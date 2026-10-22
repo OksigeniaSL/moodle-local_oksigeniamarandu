@@ -1,0 +1,108 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/alta
+
+    The page where a family joins the notices on WhatsApp: on a phone, a button that opens WhatsApp with the message
+    written; on a computer, the same as a QR code. Then, waiting for the message, and done.
+
+    Context variables required for this template:
+    * sitename, initials - The site.
+    * invalid - The code does not exist, or the site has not set its number.
+    * title, for, howto, leavenote, message - Texts of the page.
+    * choose - Not joined yet: waurl, qr (SVG) and statusurl.
+    * done - Joined: phone (masked), number, vcardurl, optouturl and optoutnote.
+
+    Example context (json):
+    {
+        "sitename": "Colegio Ejemplo",
+        "initials": "CE",
+        "invalid": false,
+        "title": "Notices from Colegio Ejemplo on WhatsApp",
+        "for": "For Ana Prueba",
+        "howto": "WhatsApp will open with your message already written. You only have to tap Send.",
+        "leavenote": "To stop them, write BAJA in that chat whenever you want.",
+        "message": "ALTA K7M2Q9XA",
+        "choose": {
+            "waurl": "https://wa.me/34900000000?text=ALTA%20K7M2Q9XA",
+            "qr": "<svg width=\"10\" height=\"10\" xmlns=\"http://www.w3.org/2000/svg\"></svg>",
+            "statusurl": "https://example.com/local/oksigeniamarandu/alta.php?code=K7M2Q9XA&action=status"
+        }
+    }
+}}
+<div class="local-oksigeniamarandu-alta">
+    <div class="mrd-centre"><span class="mrd-crest" aria-hidden="true">{{initials}}</span>{{sitename}}</div>
+
+    {{#invalid}}
+    <section class="mrd-screen">
+        <h1>{{#str}} alta:invalid, local_oksigeniamarandu {{/str}}</h1>
+        <p class="mrd-note">{{#str}} alta:invalid_help, local_oksigeniamarandu {{/str}}</p>
+    </section>
+    {{/invalid}}
+
+    {{#choose}}
+    <section class="mrd-screen mrd-choose" data-screen="choose" data-status-url="{{statusurl}}">
+        <div class="mrd-hero" aria-hidden="true">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 4.5h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5h-2a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"/><path d="M12 7.25a2.75 2.75 0 0 1 2.75 2.75v2.25l1 1.5h-7.5l1-1.5V10A2.75 2.75 0 0 1 12 7.25z"/><path d="M11 15.25a1 1 0 0 0 2 0"/></svg>
+        </div>
+        <h1>{{title}}</h1>
+        {{#for}}<p class="mrd-for">{{for}}</p>{{/for}}
+        <p class="mrd-howto mrd-phone-only">{{howto}}</p>
+        <a class="mrd-big mrd-primary mrd-phone-only" href="{{waurl}}" data-open>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5h-2a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"/></svg>
+            <span>{{#str}} alta:open, local_oksigeniamarandu {{/str}}</span>
+        </a>
+        <div class="mrd-preview mrd-phone-only" aria-hidden="true">
+            <span class="mrd-lbl">{{#str}} alta:preview, local_oksigeniamarandu {{/str}}</span>
+            <span class="mrd-inputbar"><span class="mrd-draft">{{message}}</span><span class="mrd-send">➤</span></span>
+            <span class="mrd-lbl">← {{#str}} alta:send, local_oksigeniamarandu {{/str}}</span>
+        </div>
+        <p class="mrd-note mrd-small">{{leavenote}}</p>
+        <div class="mrd-qr">
+            <b class="mrd-qrtitle">{{#str}} alta:scan, local_oksigeniamarandu {{/str}}</b>
+            <div class="mrd-qrbox" role="img" aria-label="{{#str}} alta:qr, local_oksigeniamarandu {{/str}}">{{{qr}}}</div>
+            <p class="mrd-small">{{howto}}</p>
+            <a class="mrd-linkbtn" href="{{waurl}}" data-open>{{#str}} alta:openhere, local_oksigeniamarandu {{/str}}</a>
+        </div>
+    </section>
+    <section class="mrd-screen" data-screen="wait" hidden>
+        <div class="mrd-hero" aria-hidden="true"><span class="mrd-spin"></span></div>
+        <h1>{{#str}} alta:wait, local_oksigeniamarandu {{/str}}</h1>
+        <p class="mrd-note">{{#str}} alta:wait_help, local_oksigeniamarandu {{/str}}</p>
+        <a class="mrd-big mrd-secondary" href="{{waurl}}">{{#str}} alta:reopen, local_oksigeniamarandu {{/str}}</a>
+        <p class="mrd-note" data-stuck hidden>{{#str}} alta:stuck, local_oksigeniamarandu {{/str}}</p>
+    </section>
+    {{/choose}}
+
+    {{#done}}
+    <section class="mrd-screen">
+        <div class="mrd-hero mrd-done" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></div>
+        <h1>{{#str}} alta:done, local_oksigeniamarandu {{/str}}</h1>
+        <dl class="mrd-facts">
+            <dt>{{#str}} alta:yourphone, local_oksigeniamarandu {{/str}}</dt><dd>{{phone}}</dd>
+            <dt>{{sitename}}</dt><dd>{{number}}</dd>
+        </dl>
+        <a class="mrd-big mrd-primary" href="{{vcardurl}}">{{#str}} alta:savecontact, local_oksigeniamarandu, {{sitename}} {{/str}}</a>
+        <p class="mrd-note">{{#str}} alta:savecontact_help, local_oksigeniamarandu {{/str}}</p>
+        <p class="mrd-note"><button type="button" class="mrd-linkbtn" data-leave>{{#str}} alta:leave, local_oksigeniamarandu {{/str}}</button></p>
+        <div class="mrd-leavebox" data-leave-box hidden>
+            <p class="mrd-note">{{optoutnote}}</p>
+            <a class="mrd-big mrd-secondary" href="{{optouturl}}">{{#str}} alta:open, local_oksigeniamarandu {{/str}}</a>
+        </div>
+    </section>
+    {{/done}}
+</div>

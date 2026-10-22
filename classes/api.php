@@ -87,6 +87,20 @@ class api {
     }
 
     /**
+     * The private page where a family joins: it explains, opens WhatsApp on the phone and shows a QR code on a computer.
+     * It goes in a letter or a message, never in a public place: whoever has it can join for that family.
+     *
+     * The page names whom the code stands for: the user, or what the plugin answers to the callback
+     * <component>_oksigeniamarandu_label(int $itemid): ?string in its lib.php (for example, "Family of Ana").
+     *
+     * @param string $code A code from invite().
+     * @return \moodle_url
+     */
+    public static function signup_url(string $code): \moodle_url {
+        return new \moodle_url('/local/oksigeniamarandu/alta.php', ['code' => $code]);
+    }
+
+    /**
      * Whether somebody has joined for this item or user and has not opted out.
      *
      * @param string $component The plugin.

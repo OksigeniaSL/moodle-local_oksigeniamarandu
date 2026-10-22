@@ -70,6 +70,16 @@ final class api_test extends \advanced_testcase {
     }
 
     /**
+     * The private page of a code.
+     */
+    public function test_signup_url(): void {
+        $this->assertSame(
+            '/local/oksigeniamarandu/alta.php?code=K7M2Q9XA',
+            api::signup_url('K7M2Q9XA')->out_as_local_url(false)
+        );
+    }
+
+    /**
      * Only a linked number that receives notices counts.
      */
     public function test_has_active_contact(): void {

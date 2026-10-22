@@ -28,9 +28,11 @@ use local_oksigeniamarandu\task\send_reply;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \local_oksigeniamarandu\local\inbound
  * @covers     \local_oksigeniamarandu\local\consent
+ * @covers     \local_oksigeniamarandu\local\test_message
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(inbound::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(consent::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(test_message::class)]
 final class inbound_test extends \advanced_testcase {
     /** The id Meta gives to the made-up number of the site. */
     private const SITE_NUMBER_ID = '1110000000';
@@ -191,6 +193,35 @@ final class inbound_test extends \advanced_testcase {
         $this->assertGreaterThan(1, $DB->get_field(consent::CONTACTS, 'lastinbound', ['phone' => '34600000001']));
         $this->assertFalse($DB->record_exists(consent::CONTACTS, ['phone' => '34600000005']));
         $this->assertCount(1, $this->queued_replies());
+    }
+
+    /**
+     * The statuses of the test message and an answer from its phone reach the wizard.
+     */
+    public function test_test_message(): void {
+        test_message::start('34600000001', 'wamid.TEST');
+        $statuses = $this->payload('34600000001', 'Recibido');
+        $value = &$statuses['entry'][0]['changes'][0]['value'];
+        $value['statuses'] = [
+            ['id' => 'wamid.OTHER', 'status' => 'failed', 'errors' => [['title' => 'Fake']]],
+            ['id' => 'wamid.TEST', 'status' => 'delivered', 'recipient_id' => '34600000001'],
+        ];
+        unset($value);
+
+        inbound::handle($statuses);
+
+        $state = test_message::get();
+        $this->assertNotEmpty($state['delivered']);
+        $this->assertNotEmpty($state['replied']);
+        $this->assertSame('', $state['failed']);
+
+        test_message::start('34600000002', 'wamid.TEST2');
+        test_message::status('wamid.TEST2', 'failed', 'Fake reason');
+        test_message::inbound('34600000001');
+        $state = test_message::get();
+        $this->assertSame('Fake reason', $state['failed']);
+        $this->assertEmpty($state['delivered']);
+        $this->assertEmpty($state['replied']);
     }
 
     /**

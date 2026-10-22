@@ -30,6 +30,12 @@ if ($hassiteconfig) {
         new lang_string('pluginname', 'local_oksigeniamarandu')
     ));
 
+    $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
+        'local_oksigeniamarandu_wizard',
+        new lang_string('wizard', 'local_oksigeniamarandu'),
+        new moodle_url('/local/oksigeniamarandu/wizard.php')
+    ));
+
     $settings = new admin_settingpage(
         'local_oksigeniamarandu_account',
         new lang_string('settings:account', 'local_oksigeniamarandu')
@@ -120,11 +126,5 @@ if ($hassiteconfig) {
         'local_oksigeniamarandu_contacts',
         new lang_string('contacts', 'local_oksigeniamarandu'),
         new moodle_url('/local/oksigeniamarandu/contacts.php')
-    ));
-
-    $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
-        'local_oksigeniamarandu_testmessage',
-        new lang_string('testmessage', 'local_oksigeniamarandu'),
-        new moodle_url('/local/oksigeniamarandu/testmessage.php')
     ));
 }

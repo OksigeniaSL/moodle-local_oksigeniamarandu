@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 (2026-10-22)
+
+- A set-up wizard instead of the plain settings: connect the account (checked with Meta, which answers with the number
+  and the name of the site), let Meta reach the site (callback URL and verify token to copy, the app secret, and a
+  check that Meta has called), and send yourself a test message that shows when it is sent, delivered and answered.
+- The private page where a family joins, on the phone and without a Moodle account: it opens WhatsApp with the message
+  already written, shows it as a QR code on a computer, changes by itself once the message arrives, and then offers
+  the number of the site as a contact and the way to leave.
+- `api::signup_url()` for that page, and the callback `<component>_oksigeniamarandu_label()` so that a plugin names
+  whom a code stands for.
+- Spanish texts for families, addressed as «tú».
+
 ## 0.2.0 (2026-10-22)
 
 - Numbers and their consent: a number receives nothing until it opts in, and every opt-in and opt-out is kept as

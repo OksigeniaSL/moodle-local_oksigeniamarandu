@@ -45,11 +45,11 @@ final class cloud_api_test extends \advanced_testcase {
              * Keeps the request and answers for Meta.
              *
              * @param string $url Full URL.
-             * @param string $body JSON body.
+             * @param string|null $body JSON body, or null for a GET.
              * @return string
              */
-            protected function request(string $url, string $body): string {
-                $this->sent[] = ['url' => $url, 'body' => json_decode($body, true)];
+            protected function request(string $url, ?string $body = null): string {
+                $this->sent[] = ['url' => $url, 'body' => $body === null ? null : json_decode($body, true)];
                 return $this->answer;
             }
         };
@@ -93,6 +93,33 @@ final class cloud_api_test extends \advanced_testcase {
         $api->send_template('34600000000', 'menu_reminder', 'es', $components);
 
         $this->assertSame($components, $api->sent[0]['body']['template']['components']);
+    }
+
+    /**
+     * Plain text goes as a text message, without a link preview.
+     */
+    public function test_send_text(): void {
+        $api = $this->fake_api(['messages' => [['id' => 'wamid.FAKE3']]]);
+
+        $this->assertSame('wamid.FAKE3', $api->send_text('34600000000', 'Hecho'));
+        $this->assertSame(['preview_url' => false, 'body' => 'Hecho'], $api->sent[0]['body']['text']);
+        $this->assertSame('text', $api->sent[0]['body']['type']);
+    }
+
+    /**
+     * The check of the details asks Meta for the number and its verified name.
+     */
+    public function test_get_phone_number(): void {
+        $api = $this->fake_api(['display_phone_number' => '+34 900 00 00 00', 'verified_name' => 'Colegio Ejemplo',
+            'id' => '1110000000']);
+
+        $this->assertSame(['number' => '+34 900 00 00 00', 'name' => 'Colegio Ejemplo'], $api->get_phone_number());
+        $this->assertSame('https://graph.facebook.com/' . cloud_api::DEFAULT_GRAPH_VERSION .
+            '/1110000000?fields=display_phone_number,verified_name', $api->sent[0]['url']);
+        $this->assertNull($api->sent[0]['body']);
+
+        $this->expectException(api_exception::class);
+        $this->fake_api(['error' => ['code' => 190, 'message' => 'Fake']])->get_phone_number();
     }
 
     /**

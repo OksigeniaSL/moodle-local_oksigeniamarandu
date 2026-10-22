@@ -1,0 +1,216 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/wizard
+
+    The set-up wizard: one step at a time, each with a single main action and its own check.
+
+    Context variables required for this template:
+    * product - Name of the plugin.
+    * steps - The steps there are, each with label, done, now and url (only for the steps already done).
+    * stepinfo - "Step 1 of 2 · Account", empty when finished.
+    * formurl, sesskey - Where the forms go.
+    * account, test, done - The step shown; only one of them is set.
+
+    Example context (json):
+    {
+        "product": "Oksigenia Marandu for WhatsApp",
+        "steps": [
+            {"label": "Account", "done": false, "now": true, "url": ""},
+            {"label": "Test", "done": false, "now": false, "url": ""}
+        ],
+        "stepinfo": "Step 1 of 2 · Account",
+        "formurl": "https://example.com/local/oksigeniamarandu/wizard.php",
+        "sesskey": "abc123",
+        "account": {
+            "showform": true,
+            "phonenumberid": "1110000000",
+            "wabaid": "2220000000",
+            "tokensaved": false,
+            "phonenumberiderror": "",
+            "wabaiderror": "",
+            "accesstokenerror": "",
+            "connected": false
+        }
+    }
+}}
+<div class="local-oksigeniamarandu-wizard">
+    <div class="mrd-head">
+        <div class="mrd-product">{{product}}</div>
+        <div class="mrd-progress" aria-label="{{#str}} wizard:progress, local_oksigeniamarandu {{/str}}">
+            <div class="mrd-bar">{{#steps}}<i class="{{#done}}done{{/done}}{{#now}}now{{/now}}"></i>{{/steps}}</div>
+            <div class="mrd-labels">
+                {{#steps}}
+                    {{#done}}<a href="{{url}}">{{label}}</a>{{/done}}
+                    {{^done}}{{#now}}<span class="now">{{stepinfo}}</span>{{/now}}{{^now}}<span>{{label}}</span>{{/now}}{{/done}}
+                {{/steps}}
+            </div>
+        </div>
+    </div>
+
+    {{#account}}
+    <section>
+        <h1>{{#str}} wizard:account:title, local_oksigeniamarandu {{/str}}</h1>
+        {{#showform}}
+        <p class="mrd-lead">{{#str}} wizard:account:lead, local_oksigeniamarandu {{/str}}</p>
+        <div class="mrd-cols">
+            <form method="post" action="{{formurl}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="action" value="connect">
+                <div class="mrd-field k1">
+                    <label for="mrd-phonenumberid">{{#str}} wizard:phonenumberid, local_oksigeniamarandu {{/str}}</label>
+                    <input type="text" id="mrd-phonenumberid" name="phonenumberid" inputmode="numeric" autocomplete="off" value="{{phonenumberid}}" {{#phonenumberiderror}}class="bad" aria-describedby="mrd-phonenumberid-err"{{/phonenumberiderror}}>
+                    <div class="mrd-help">{{#str}} wizard:phonenumberid_help, local_oksigeniamarandu {{/str}}</div>
+                    {{#phonenumberiderror}}<div class="mrd-err" id="mrd-phonenumberid-err">{{.}}</div>{{/phonenumberiderror}}
+                </div>
+                <div class="mrd-field k2">
+                    <label for="mrd-wabaid">{{#str}} wizard:wabaid, local_oksigeniamarandu {{/str}}</label>
+                    <input type="text" id="mrd-wabaid" name="wabaid" inputmode="numeric" autocomplete="off" value="{{wabaid}}" {{#wabaiderror}}class="bad" aria-describedby="mrd-wabaid-err"{{/wabaiderror}}>
+                    <div class="mrd-help">{{#str}} wizard:wabaid_help, local_oksigeniamarandu {{/str}}</div>
+                    {{#wabaiderror}}<div class="mrd-err" id="mrd-wabaid-err">{{.}}</div>{{/wabaiderror}}
+                </div>
+                <div class="mrd-field k3">
+                    <label for="mrd-accesstoken">{{#str}} wizard:accesstoken, local_oksigeniamarandu {{/str}}</label>
+                    <input type="text" id="mrd-accesstoken" name="accesstoken" autocomplete="off" spellcheck="false" {{#tokensaved}}placeholder="{{#str}} wizard:accesstoken_saved, local_oksigeniamarandu {{/str}}"{{/tokensaved}} {{#accesstokenerror}}class="bad" aria-describedby="mrd-accesstoken-err"{{/accesstokenerror}}>
+                    <div class="mrd-help">{{#str}} wizard:accesstoken_help, local_oksigeniamarandu {{/str}}</div>
+                    {{#accesstokenerror}}<div class="mrd-err" id="mrd-accesstoken-err">{{{.}}}</div>{{/accesstokenerror}}
+                </div>
+                <div class="mrd-actions">
+                    <button type="submit" class="mrd-btn mrd-primary">{{#str}} wizard:check, local_oksigeniamarandu {{/str}}</button>
+                    <span class="mrd-hint">{{#str}} wizard:noapp, local_oksigeniamarandu {{/str}}</span>
+                </div>
+            </form>
+            <figure class="mrd-where">
+                <svg viewBox="0 0 420 250" role="img" aria-label="{{#str}} wizard:where, local_oksigeniamarandu {{/str}}">
+                    <rect x="0" y="0" width="420" height="28" fill="#f0f2f5"/>
+                    <text x="12" y="18" font-size="11" fill="#4b5563" font-weight="700">Meta for Developers</text>
+                    <rect x="0" y="28" width="110" height="222" fill="#f7f8fa"/>
+                    <text x="12" y="56" font-size="10.5" fill="#4b5563" font-weight="700">WhatsApp</text>
+                    <rect x="6" y="66" width="100" height="24" rx="5" fill="#e3ebf6"/>
+                    <text x="14" y="82" font-size="10.5" fill="#1d4f8c" font-weight="700">{{#str}} wizard:meta:apisetup, local_oksigeniamarandu {{/str}}</text>
+                    <text x="126" y="52" font-size="14" font-weight="700" fill="#1d2125">{{#str}} wizard:meta:apisetup, local_oksigeniamarandu {{/str}}</text>
+                    <rect x="126" y="66" width="280" height="22" rx="5" fill="#fff" stroke="#9aa3ad" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="132" y1="77" x2="270" y2="77" stroke="#b42318" stroke-width="1.5"/>
+                    <text x="126" y="102" font-size="9.5" fill="#b42318" font-weight="700">{{#str}} wizard:where:temporary, local_oksigeniamarandu {{/str}}</text>
+                    <rect x="122" y="118" width="290" height="40" rx="6" fill="none" stroke="#c27c0e" stroke-width="2.5"/>
+                    <text x="130" y="134" font-size="10" fill="#4b5563">{{#str}} wizard:meta:phonenumberid, local_oksigeniamarandu {{/str}}</text>
+                    <text x="130" y="150" font-size="11" fill="#1d2125">1110000000…</text>
+                    <rect x="122" y="168" width="290" height="40" rx="6" fill="none" stroke="#7a4fb0" stroke-width="2.5"/>
+                    <text x="130" y="184" font-size="10" fill="#4b5563">{{#str}} wizard:meta:wabaid, local_oksigeniamarandu {{/str}}</text>
+                    <text x="130" y="200" font-size="11" fill="#1d2125">2220000000…</text>
+                </svg>
+                <figcaption>{{#str}} wizard:where:caption, local_oksigeniamarandu {{/str}}
+                    <span class="mrd-k3note">{{#str}} wizard:where:token, local_oksigeniamarandu {{/str}}</span></figcaption>
+            </figure>
+        </div>
+        {{/showform}}
+
+        {{#connected}}
+        <div class="mrd-ok"><span aria-hidden="true">✓</span><span>{{{line}}} <a href="{{editurl}}">{{#str}} wizard:change, local_oksigeniamarandu {{/str}}</a></span></div>
+        <h2>{{#str}} wizard:webhook:title, local_oksigeniamarandu {{/str}}</h2>
+        <p class="mrd-lead">{{#str}} wizard:webhook:lead, local_oksigeniamarandu {{/str}}</p>
+        <form method="post" action="{{formurl}}">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="webhook">
+            <div class="mrd-field k3">
+                <span class="mrd-label">{{#str}} wizard:callbackurl, local_oksigeniamarandu {{/str}}</span>
+                <div class="mrd-copy"><code>{{webhookurl}}</code><button type="button" class="mrd-btn mrd-second mrd-small" data-copy="{{webhookurl}}" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></div>
+                <div class="mrd-help">{{#str}} wizard:callbackurl_help, local_oksigeniamarandu {{/str}}</div>
+            </div>
+            <div class="mrd-field k3">
+                <span class="mrd-label">{{#str}} wizard:verifytoken, local_oksigeniamarandu {{/str}}</span>
+                <div class="mrd-copy"><code>{{verifytoken}}</code><button type="button" class="mrd-btn mrd-second mrd-small" data-copy="{{verifytoken}}" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></div>
+                <div class="mrd-help">{{#str}} wizard:verifytoken_help, local_oksigeniamarandu {{/str}}</div>
+            </div>
+            <div class="mrd-field k1">
+                <label for="mrd-appsecret">{{#str}} wizard:appsecret, local_oksigeniamarandu {{/str}}</label>
+                <input type="text" id="mrd-appsecret" name="appsecret" autocomplete="off" spellcheck="false" {{#appsecretsaved}}placeholder="{{#str}} wizard:appsecret_saved, local_oksigeniamarandu {{/str}}"{{/appsecretsaved}} {{#appsecreterror}}class="bad" aria-describedby="mrd-appsecret-err"{{/appsecreterror}}>
+                <div class="mrd-help">{{#str}} wizard:appsecret_help, local_oksigeniamarandu {{/str}}</div>
+                {{#appsecreterror}}<div class="mrd-err" id="mrd-appsecret-err">{{.}}</div>{{/appsecreterror}}
+            </div>
+            <div class="mrd-actions">
+                {{#webhookerror}}<div class="mrd-err mrd-wide">{{.}}</div>{{/webhookerror}}
+                {{#hooked}}
+                    <div class="mrd-ok"><span aria-hidden="true">✓</span><b>{{#str}} wizard:hookok, local_oksigeniamarandu {{/str}}</b></div>
+                    <a class="mrd-btn mrd-primary" href="{{nexturl}}">{{#str}} wizard:next:test, local_oksigeniamarandu {{/str}}</a>
+                {{/hooked}}
+                {{^hooked}}
+                    <button type="submit" class="mrd-btn mrd-primary">{{#str}} wizard:checkhook, local_oksigeniamarandu {{/str}}</button>
+                {{/hooked}}
+            </div>
+        </form>
+        {{/connected}}
+    </section>
+    {{/account}}
+
+    {{#test}}
+    <section>
+        <h1>{{#str}} wizard:test:title, local_oksigeniamarandu {{/str}}</h1>
+        <p class="mrd-lead">{{#str}} wizard:test:lead, local_oksigeniamarandu {{/str}}</p>
+        <div class="mrd-cols">
+            <div>
+                <form method="post" action="{{formurl}}">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="send">
+                    <div class="mrd-field mrd-blue">
+                        <label for="mrd-phone">{{#str}} wizard:test:phone, local_oksigeniamarandu {{/str}}</label>
+                        <input type="tel" id="mrd-phone" name="phone" autocomplete="tel" value="{{phone}}" {{#phoneerror}}class="bad" aria-describedby="mrd-phone-err"{{/phoneerror}}>
+                        <div class="mrd-help">{{#str}} wizard:test:phone_help, local_oksigeniamarandu {{/str}}</div>
+                        {{#phoneerror}}<div class="mrd-err" id="mrd-phone-err">{{{.}}}</div>{{/phoneerror}}
+                    </div>
+                    <div class="mrd-actions">
+                        <button type="submit" class="mrd-btn {{#sent}}mrd-second{{/sent}}{{^sent}}mrd-primary{{/sent}}">{{#sent}}{{#str}} wizard:test:again, local_oksigeniamarandu {{/str}}{{/sent}}{{^sent}}{{#str}} wizard:test:send, local_oksigeniamarandu {{/str}}{{/sent}}</button>
+                    </div>
+                </form>
+                {{#sent}}
+                <ul class="mrd-track" data-status-url="{{statusurl}}">
+                    <li class="done"><i aria-hidden="true"></i><span>{{#str}} wizard:track:sent, local_oksigeniamarandu {{/str}} <small>{{time}}</small></span></li>
+                    <li data-track="delivered" class="{{#delivered}}done{{/delivered}}"><i aria-hidden="true"></i><span>{{#str}} wizard:track:delivered, local_oksigeniamarandu {{/str}} <small>{{delivered}}</small></span></li>
+                    <li data-track="replied" class="{{#replied}}done{{/replied}}"><i aria-hidden="true"></i><span>{{#str}} wizard:track:replied, local_oksigeniamarandu {{/str}} <small>{{replied}}</small></span></li>
+                </ul>
+                <div class="mrd-err mrd-wide" data-failed="{{#str}} wizard:track:failed, local_oksigeniamarandu {{/str}}" {{^failed}}hidden{{/failed}}>{{#failed}}{{#str}} wizard:track:failed, local_oksigeniamarandu {{/str}} {{.}}{{/failed}}</div>
+                <div class="mrd-actions">
+                    <a class="mrd-btn mrd-primary" href="{{nexturl}}">{{#str}} wizard:next:done, local_oksigeniamarandu {{/str}}</a>
+                    <button type="button" class="mrd-btn mrd-link" data-nope>{{#str}} wizard:test:nope, local_oksigeniamarandu {{/str}}</button>
+                </div>
+                <p class="mrd-hint" data-nope-help hidden>{{#str}} wizard:test:nope_help, local_oksigeniamarandu {{/str}}</p>
+                {{/sent}}
+            </div>
+            <div class="mrd-chat" aria-label="{{#str}} wizard:test:preview, local_oksigeniamarandu {{/str}}">
+                <div class="mrd-who">{{sitename}}</div>
+                <div class="mrd-bubble"><b>Hello World</b><br>Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API.</div>
+                <div class="mrd-who mrd-left">{{#str}} wizard:test:english, local_oksigeniamarandu {{/str}}</div>
+            </div>
+        </div>
+    </section>
+    {{/test}}
+
+    {{#done}}
+    <section>
+        <h1>{{#str}} wizard:done:title, local_oksigeniamarandu {{/str}}</h1>
+        <ul class="mrd-summary">
+            <li><b>{{#str}} wizard:step:account, local_oksigeniamarandu {{/str}}</b><span>{{account}}</span></li>
+            <li><b>{{#str}} wizard:step:test, local_oksigeniamarandu {{/str}}</b><span>{{test}}</span></li>
+        </ul>
+        <p class="mrd-lead">{{#str}} wizard:done:lead, local_oksigeniamarandu {{/str}}</p>
+        <div class="mrd-actions">
+            <a class="mrd-btn mrd-primary" href="{{contactsurl}}">{{#str}} wizard:done:contacts, local_oksigeniamarandu {{/str}}</a>
+            <a href="{{settingsurl}}">{{#str}} wizard:done:settings, local_oksigeniamarandu {{/str}}</a>
+        </div>
+    </section>
+    {{/done}}
+</div>

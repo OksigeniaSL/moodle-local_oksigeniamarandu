@@ -1,0 +1,658 @@
+/* Oksigenia Marandu for WhatsApp: the set-up wizard and the page where a family joins. Every rule hangs from the
+   class of its page, so nothing changes anywhere else in Moodle. Palette and shapes from the mock-ups of the house. */
+
+.local-oksigeniamarandu-wizard,
+.local-oksigeniamarandu-alta {
+    --mrd-ink: #1d2125;
+    --mrd-muted: #5f6b76;
+    --mrd-line: #dee2e6;
+    --mrd-blue: #2563a8;
+    --mrd-blue-dark: #1d4f8c;
+    --mrd-blue-soft: #e8f0fa;
+    --mrd-green: #1e6b37;
+    --mrd-green-soft: #e6f4ea;
+    --mrd-red: #b42318;
+    --mrd-red-soft: #fdecea;
+    color: var(--mrd-ink);
+}
+
+/* The wizard. */
+.local-oksigeniamarandu-wizard .mrd-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px 24px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-product {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-progress {
+    flex: 1 1 420px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-bar,
+.local-oksigeniamarandu-wizard .mrd-labels {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    gap: 4px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-bar i {
+    height: 6px;
+    border-radius: 3px;
+    background: #d5dae0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-bar i.done {
+    background: var(--mrd-green);
+}
+
+.local-oksigeniamarandu-wizard .mrd-bar i.now {
+    background: var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-wizard .mrd-labels {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-labels a {
+    color: var(--mrd-green);
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-wizard .mrd-labels a::before {
+    content: "✓ ";
+}
+
+.local-oksigeniamarandu-wizard .mrd-labels .now {
+    color: var(--mrd-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard h1 {
+    font-size: 24px;
+    line-height: 1.2;
+    margin: 10px 0 2px;
+}
+
+.local-oksigeniamarandu-wizard h2 {
+    font-size: 19px;
+    margin: 12px 0 2px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-lead {
+    margin: 0 0 12px;
+    color: #3b4752;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 4px 12px;
+    align-items: center;
+    padding: 6px 0 6px 12px;
+    border-left: 4px solid var(--mrd-line);
+    margin-bottom: 8px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field.k1 {
+    border-color: #c27c0e;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field.k2 {
+    border-color: #7a4fb0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field.k3 {
+    border-color: #0f7a6d;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field.mrd-blue {
+    border-color: var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-wizard .mrd-field label,
+.local-oksigeniamarandu-wizard .mrd-field .mrd-label {
+    grid-column: 1 / -1;
+    font-weight: 700;
+    margin: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field .mrd-help {
+    font-size: 13.5px;
+    color: var(--mrd-muted);
+    line-height: 1.35;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #c3c9d0;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-field input.bad {
+    border-color: var(--mrd-red);
+    box-shadow: 0 0 0 2px var(--mrd-red-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-err {
+    grid-column: 1 / -1;
+    color: var(--mrd-red);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-wizard .mrd-wide {
+    flex-basis: 100%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 12px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-btn {
+    display: inline-block;
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-primary {
+    background: var(--mrd-blue);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-primary:hover,
+.local-oksigeniamarandu-wizard .mrd-primary:focus-visible {
+    background: var(--mrd-blue-dark);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-second {
+    background: #fff;
+    border: 1px solid #c3c9d0;
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-wizard .mrd-link {
+    background: none;
+    padding: 6px 2px;
+    color: var(--mrd-blue-dark);
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-wizard .mrd-small {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-ok {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--mrd-green-soft);
+    color: #134a26;
+    border-radius: 10px;
+    padding: 8px 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-hint {
+    font-size: 14px;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-where {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-where svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--mrd-line);
+    border-radius: 10px;
+    background: #fff;
+    font-family: system-ui, sans-serif;
+}
+
+.local-oksigeniamarandu-wizard .mrd-where figcaption {
+    font-size: 13.5px;
+    color: var(--mrd-muted);
+    margin-top: 6px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-k3note {
+    display: block;
+    border-left: 4px solid #0f7a6d;
+    padding-left: 6px;
+    margin-top: 4px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-copy {
+    display: flex;
+    gap: 6px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-copy code {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 8px 10px;
+    border: 1px dashed #b6bec7;
+    border-radius: 8px;
+    background: #fafbfc;
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-wizard .mrd-track {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-track li {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-track li i {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #c3c9d0;
+    font-size: 13px;
+    font-style: normal;
+}
+
+.local-oksigeniamarandu-wizard .mrd-track li.done {
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-wizard .mrd-track li.done i {
+    border-color: var(--mrd-green);
+    background: var(--mrd-green);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-track li.done i::before {
+    content: "✓";
+}
+
+.local-oksigeniamarandu-wizard .mrd-chat {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #efeae2;
+}
+
+.local-oksigeniamarandu-wizard .mrd-who {
+    font-size: 12px;
+    color: #6b6355;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-wizard .mrd-who.mrd-left {
+    text-align: left;
+}
+
+.local-oksigeniamarandu-wizard .mrd-bubble {
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 14.5px;
+    line-height: 1.4;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.local-oksigeniamarandu-wizard .mrd-summary {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: grid;
+    gap: 4px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-summary li {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-summary b {
+    color: var(--mrd-muted);
+    font-weight: 600;
+}
+
+@media (max-width: 900px) {
+    .local-oksigeniamarandu-wizard .mrd-cols {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .local-oksigeniamarandu-wizard .mrd-field,
+    .local-oksigeniamarandu-wizard .mrd-summary li {
+        grid-template-columns: 1fr;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-labels > :not(.now) {
+        display: none;
+    }
+}
+
+/* The page where a family joins: one column on the phone, the QR code beside it on a computer. */
+.local-oksigeniamarandu-alta {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 14px 16px 32px;
+    font-size: 17px;
+    line-height: 1.45;
+}
+
+.local-oksigeniamarandu-alta .mrd-centre {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #3b4752;
+}
+
+.local-oksigeniamarandu-alta .mrd-crest {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #dfe7f1;
+    color: var(--mrd-blue-dark);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.local-oksigeniamarandu-alta .mrd-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 14px;
+}
+
+.local-oksigeniamarandu-alta .mrd-hero {
+    align-self: center;
+    display: grid;
+    place-items: center;
+    width: 68px;
+    height: 68px;
+    border: 2px solid var(--mrd-line);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-alta .mrd-hero.mrd-done {
+    color: var(--mrd-green);
+    border-color: #bfdcc8;
+}
+
+.local-oksigeniamarandu-alta h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    font-weight: 700;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-alta .mrd-for {
+    margin: -6px 0 0;
+    text-align: center;
+    color: #3b4752;
+}
+
+.local-oksigeniamarandu-alta .mrd-note,
+.local-oksigeniamarandu-alta .mrd-howto {
+    margin: 0;
+    text-align: center;
+    color: #3b4752;
+    font-size: 15px;
+}
+
+.local-oksigeniamarandu-alta .mrd-small {
+    font-size: 14px;
+    color: var(--mrd-muted);
+    margin: 0;
+}
+
+.local-oksigeniamarandu-alta .mrd-big {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 3.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 1.25rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    text-align: center;
+    text-decoration: none;
+}
+
+.local-oksigeniamarandu-alta .mrd-primary {
+    border: 0;
+    background: var(--mrd-blue);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-alta .mrd-primary:hover,
+.local-oksigeniamarandu-alta .mrd-primary:focus-visible {
+    background: var(--mrd-blue-dark);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-alta .mrd-secondary {
+    border: 2px solid #c9d2dc;
+    background: #fff;
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-alta .mrd-linkbtn {
+    border: 0;
+    background: none;
+    padding: 6px;
+    color: var(--mrd-blue-dark);
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-alta .mrd-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0.75;
+    pointer-events: none;
+    user-select: none;
+}
+
+.local-oksigeniamarandu-alta .mrd-lbl {
+    font-size: 13px;
+    color: var(--mrd-muted);
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-alta .mrd-inputbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #ece7df;
+}
+
+.local-oksigeniamarandu-alta .mrd-draft {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    color: #3b4752;
+}
+
+.local-oksigeniamarandu-alta .mrd-send {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #6b7f78;
+    color: #fff;
+    font-size: 12px;
+}
+
+.local-oksigeniamarandu-alta .mrd-qr {
+    display: none;
+}
+
+.local-oksigeniamarandu-alta .mrd-qrbox svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.local-oksigeniamarandu-alta .mrd-spin {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid #b9cbe0;
+    border-top-color: var(--mrd-blue);
+    animation: mrd-spin 1s linear infinite;
+}
+
+@keyframes mrd-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .local-oksigeniamarandu-alta .mrd-spin {
+        animation: none;
+    }
+}
+
+.local-oksigeniamarandu-alta .mrd-facts {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 16px;
+    margin: 0;
+    padding: 12px 16px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1rem;
+    background: #fff;
+}
+
+.local-oksigeniamarandu-alta .mrd-facts dt {
+    font-weight: 400;
+    color: #3b4752;
+}
+
+.local-oksigeniamarandu-alta .mrd-facts dd {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+}
+
+.local-oksigeniamarandu-alta .mrd-leavebox {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--mrd-line);
+}
+
+@media (min-width: 900px) {
+    .local-oksigeniamarandu-alta {
+        max-width: 54rem;
+    }
+
+    .local-oksigeniamarandu-alta .mrd-screen:not(.mrd-choose) {
+        max-width: 34rem;
+        margin: 0 auto;
+    }
+
+    .local-oksigeniamarandu-alta .mrd-choose {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 240px;
+        gap: 12px 32px;
+        align-items: start;
+    }
+
+    .local-oksigeniamarandu-alta .mrd-choose > :not(.mrd-qr) {
+        grid-column: 1;
+    }
+
+    .local-oksigeniamarandu-alta .mrd-choose .mrd-hero,
+    .local-oksigeniamarandu-alta .mrd-phone-only {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-alta .mrd-choose h1,
+    .local-oksigeniamarandu-alta .mrd-choose .mrd-for,
+    .local-oksigeniamarandu-alta .mrd-choose .mrd-note {
+        text-align: left;
+    }
+
+    .local-oksigeniamarandu-alta .mrd-qr {
+        grid-column: 2;
+        grid-row: 1 / span 6;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 16px;
+        border: 1px solid var(--mrd-line);
+        border-radius: 1rem;
+        background: #fff;
+    }
+}
+
+/* Last, so that it wins: what is hidden stays hidden whatever its display. */
+.local-oksigeniamarandu-wizard [hidden],
+.local-oksigeniamarandu-alta [hidden] {
+    display: none;
+}

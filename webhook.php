@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $token = optional_param('hub_verify_token', '', PARAM_RAW_TRIMMED);
     $challenge = optional_param('hub_challenge', '', PARAM_ALPHANUMEXT);
     if ($mode === 'subscribe' && !empty($config->verifytoken) && hash_equals((string)$config->verifytoken, $token)) {
+        // The set-up wizard shows that Meta can reach the site.
+        set_config('webhookverified', time(), 'local_oksigeniamarandu');
         echo $challenge;
     } else {
         http_response_code(403);

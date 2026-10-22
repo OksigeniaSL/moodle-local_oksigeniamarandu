@@ -154,6 +154,24 @@ class cloud_api {
     }
 
     /**
+     * The number and the verified name Meta has for the phone of the site: the check that the details are right.
+     *
+     * @return array ['number' => '+34 600 00 00 00', 'name' => 'The name of the site'], as Meta writes them.
+     * @throws api_exception If Meta does not take the details.
+     */
+    public function get_phone_number(): array {
+        $response = $this->decode($this->request($this->url($this->phonenumberid .
+            '?fields=display_phone_number,verified_name')));
+        if (empty($response['display_phone_number'])) {
+            throw new api_exception('error:unexpected');
+        }
+        return [
+            'number' => (string)$response['display_phone_number'],
+            'name' => (string)($response['verified_name'] ?? ''),
+        ];
+    }
+
+    /**
      * Posts to the Graph API and turns its errors into exceptions.
      *
      * @param string $path Path after the version, such as <phone number id>/messages.
@@ -162,8 +180,28 @@ class cloud_api {
      * @throws api_exception If Meta returns an error or something that is not JSON.
      */
     protected function post(string $path, array $payload): array {
-        $url = 'https://graph.facebook.com/' . $this->graphversion . '/' . $path;
-        $response = json_decode($this->request($url, json_encode($payload)), true);
+        return $this->decode($this->request($this->url($path), json_encode($payload)));
+    }
+
+    /**
+     * The full URL of a path of the Graph API.
+     *
+     * @param string $path Path after the version.
+     * @return string
+     */
+    private function url(string $path): string {
+        return 'https://graph.facebook.com/' . $this->graphversion . '/' . $path;
+    }
+
+    /**
+     * Decodes an answer of Meta and turns its errors into exceptions.
+     *
+     * @param string $answer What Meta answered.
+     * @return array
+     * @throws api_exception If it is an error or not JSON.
+     */
+    private function decode(string $answer): array {
+        $response = json_decode($answer, true);
         if (!is_array($response)) {
             throw new api_exception('error:unexpected');
         }
@@ -179,20 +217,24 @@ class cloud_api {
     }
 
     /**
-     * One HTTP POST with the token. Kept apart so that the tests can answer for Meta.
+     * One HTTP request with the token: POST with a body, GET without. Kept apart so that the tests can answer for Meta.
      *
      * @param string $url Full URL.
-     * @param string $body JSON body.
+     * @param string|null $body JSON body, or null for a GET.
      * @return string What Meta answered.
      * @throws api_exception If Meta cannot be reached.
      */
-    protected function request(string $url, string $body): string {
+    protected function request(string $url, ?string $body = null): string {
         $curl = new \curl();
         $curl->setHeader([
             'Authorization: Bearer ' . $this->accesstoken,
             'Content-Type: application/json',
         ]);
-        $answer = $curl->post($url, $body, ['CURLOPT_TIMEOUT' => 20]);
+        if ($body === null) {
+            $answer = $curl->get($url, [], ['CURLOPT_TIMEOUT' => 20]);
+        } else {
+            $answer = $curl->post($url, $body, ['CURLOPT_TIMEOUT' => 20]);
+        }
         if ($curl->get_errno()) {
             throw new api_exception('error:network', s($curl->error));
         }

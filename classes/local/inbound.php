@@ -42,7 +42,8 @@ class inbound {
     }
 
     /**
-     * Handles the messages to the number of the site; anything else (other numbers, statuses) is left alone.
+     * Handles the messages to the number of the site, and the statuses of the test message; anything else (other
+     * numbers, other fields) is left alone.
      *
      * @param array $payload The decoded body.
      * @return int How many messages were handled.
@@ -69,6 +70,15 @@ class inbound {
                         $count++;
                     }
                 }
+                foreach ($value['statuses'] ?? [] as $status) {
+                    if (is_array($status)) {
+                        test_message::status(
+                            (string)($status['id'] ?? ''),
+                            (string)($status['status'] ?? ''),
+                            (string)($status['errors'][0]['title'] ?? '')
+                        );
+                    }
+                }
             }
         }
         return $count;
@@ -89,6 +99,7 @@ class inbound {
         $name = $names[$from] ?? null;
         $wamid = (string)($message['id'] ?? '');
         consent::touch($phone, $name);
+        test_message::inbound($phone);
 
         $type = $message['type'] ?? '';
         if ($type === 'text') {

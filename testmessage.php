@@ -42,7 +42,7 @@ if (!cloud_api::is_configured()) {
         $settings,
         get_string('testmessage:gotosettings', 'local_oksigeniamarandu'),
         'get',
-        ['primary' => true]
+        ['type' => \single_button::BUTTON_PRIMARY]
     );
     echo $OUTPUT->footer();
     die();

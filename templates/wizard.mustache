@@ -92,17 +92,17 @@
         <form method="post" action="{{formurl}}">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
             <input type="hidden" name="action" value="webhook">
-            <div class="mrd-field k3">
+            <div class="mrd-field mrd-row k3">
                 <span class="mrd-label">{{#str}} wizard:callbackurl, local_oksigeniamarandu {{/str}}</span>
                 <div class="mrd-copy"><code>{{webhookurl}}</code><button type="button" class="mrd-btn mrd-second mrd-small" data-copy="{{webhookurl}}" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></div>
                 <div class="mrd-help">{{#str}} wizard:callbackurl_help, local_oksigeniamarandu {{/str}}</div>
             </div>
-            <div class="mrd-field k3">
+            <div class="mrd-field mrd-row k3">
                 <span class="mrd-label">{{#str}} wizard:verifytoken, local_oksigeniamarandu {{/str}}</span>
                 <div class="mrd-copy"><code>{{verifytoken}}</code><button type="button" class="mrd-btn mrd-second mrd-small" data-copy="{{verifytoken}}" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></div>
                 <div class="mrd-help">{{#str}} wizard:verifytoken_help, local_oksigeniamarandu {{/str}}</div>
             </div>
-            <div class="mrd-field k3">
+            <div class="mrd-field mrd-row k3">
                 <label for="mrd-appsecret">{{#str}} wizard:appsecret, local_oksigeniamarandu {{/str}}</label>
                 <input type="text" id="mrd-appsecret" name="appsecret" autocomplete="off" spellcheck="false" {{#appsecretsaved}}placeholder="{{#str}} wizard:appsecret_saved, local_oksigeniamarandu {{/str}}"{{/appsecretsaved}} {{#appsecreterror}}class="bad" aria-describedby="mrd-appsecret-err"{{/appsecreterror}}>
                 <div class="mrd-help">{{#str}} wizard:appsecret_help, local_oksigeniamarandu {{/str}}</div>

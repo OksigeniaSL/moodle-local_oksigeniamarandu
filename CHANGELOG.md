@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 (2026-10-22)
+
+- Wizard, step 1: each detail of the second part in one row, shorter texts and a wider column for the fields, so that
+  the main button stays in view on a small laptop screen; the header row breaks whenever the title does not fit beside
+  the progress.
+
 ## 0.3.1 (2026-10-22)
 
 - Wizard: the title of the step is the heading of the page and the progress sits beside it, without the admin search;

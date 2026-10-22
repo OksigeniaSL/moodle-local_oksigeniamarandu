@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 (2026-10-22)
+
+- Numbers and their consent: a number receives nothing until it opts in, and every opt-in and opt-out is kept as
+  proof.
+- Joining and leaving by WhatsApp: writing the opt-in word (ALTA or JOIN by default), with or without a code, or the
+  opt-out word (BAJA or STOP). The words can be changed; case and accents do not matter. Each one gets a reply.
+- The webhook Meta calls, checked with the verify token and the signature of the app secret.
+- An API for other plugins: a code and a link that opens WhatsApp with the opt-in word and the code written, so that a
+  family or a user joins and gets linked to what the code stands for.
+- A list of the numbers, their status and whom they stand for.
+- Full privacy provider: the numbers of a user can be exported and deleted; WhatsApp is declared as an external
+  location.
+
 ## 0.1.0 (2026-10-22)
 
 - Base of the plugin for Moodle 4.5 to 5.3, with English and Spanish language packs.

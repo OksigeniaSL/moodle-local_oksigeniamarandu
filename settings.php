@@ -66,8 +66,61 @@ if ($hassiteconfig) {
             \local_oksigeniamarandu\local\cloud_api::DEFAULT_GRAPH_VERSION,
             '/^v[0-9]+\.[0-9]+$/'
         ));
+        $settings->add(new admin_setting_configtext(
+            'local_oksigeniamarandu/displayphone',
+            new lang_string('settings:displayphone', 'local_oksigeniamarandu'),
+            new lang_string('settings:displayphone_desc', 'local_oksigeniamarandu'),
+            '',
+            '/^\+?[0-9 ]*$/'
+        ));
+
+        $settings->add(new admin_setting_heading(
+            'local_oksigeniamarandu/webhookheading',
+            new lang_string('settings:webhook', 'local_oksigeniamarandu'),
+            new lang_string(
+                'settings:webhook_intro',
+                'local_oksigeniamarandu',
+                (new moodle_url('/local/oksigeniamarandu/webhook.php'))->out(false)
+            )
+        ));
+        $settings->add(new admin_setting_configtext(
+            'local_oksigeniamarandu/verifytoken',
+            new lang_string('settings:verifytoken', 'local_oksigeniamarandu'),
+            new lang_string('settings:verifytoken_desc', 'local_oksigeniamarandu'),
+            '',
+            PARAM_ALPHANUMEXT
+        ));
+        $settings->add(new admin_setting_encryptedpassword(
+            'local_oksigeniamarandu/appsecret',
+            new lang_string('settings:appsecret', 'local_oksigeniamarandu'),
+            new lang_string('settings:appsecret_desc', 'local_oksigeniamarandu')
+        ));
+
+        $settings->add(new admin_setting_heading(
+            'local_oksigeniamarandu/keywordsheading',
+            new lang_string('settings:keywords', 'local_oksigeniamarandu'),
+            new lang_string('settings:keywords_intro', 'local_oksigeniamarandu')
+        ));
+        $settings->add(new admin_setting_configtext(
+            'local_oksigeniamarandu/optinkeywords',
+            new lang_string('settings:optinkeywords', 'local_oksigeniamarandu'),
+            new lang_string('settings:optinkeywords_desc', 'local_oksigeniamarandu'),
+            \local_oksigeniamarandu\local\keywords::DEFAULT_OPTIN
+        ));
+        $settings->add(new admin_setting_configtext(
+            'local_oksigeniamarandu/optoutkeywords',
+            new lang_string('settings:optoutkeywords', 'local_oksigeniamarandu'),
+            new lang_string('settings:optoutkeywords_desc', 'local_oksigeniamarandu'),
+            \local_oksigeniamarandu\local\keywords::DEFAULT_OPTOUT
+        ));
     }
     $ADMIN->add('local_oksigeniamarandu', $settings);
+
+    $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
+        'local_oksigeniamarandu_contacts',
+        new lang_string('contacts', 'local_oksigeniamarandu'),
+        new moodle_url('/local/oksigeniamarandu/contacts.php')
+    ));
 
     $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
         'local_oksigeniamarandu_testmessage',

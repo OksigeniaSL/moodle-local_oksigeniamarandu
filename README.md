@@ -13,8 +13,9 @@ own official WhatsApp Business account: only to people who opted in, with a spen
 
 ## Status
 
-**Pre-alpha.** This version connects the WhatsApp account of the site and sends a test message. The notices, the
-contacts and their consent come in small versions, each one tested before it is released. Not for production sites.
+**Pre-alpha.** The site connects its WhatsApp account and sends a test message, and people join or leave by writing a
+word to its number. The notices come in the next small versions, each one tested before it is released. Not for
+production sites.
 
 ## What you need
 

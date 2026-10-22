@@ -13,9 +13,9 @@ de WhatsApp Business del propio sitio: solo a quien ha dado su consentimiento, c
 
 ## Estado
 
-**Pre-alfa.** Esta versión conecta la cuenta de WhatsApp del sitio y manda un mensaje de prueba. Los avisos, los
-contactos y su consentimiento llegan en versiones pequeñas, cada una probada antes de publicarla. No es para sitios en
-producción.
+**Pre-alfa.** El sitio conecta su cuenta de WhatsApp y manda un mensaje de prueba, y las familias se dan de alta o de
+baja escribiendo una palabra a su número. Los avisos llegan en las próximas versiones pequeñas, cada una probada antes
+de publicarla. No es para sitios en producción.
 
 ## Lo que hace falta
 

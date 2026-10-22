@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/oksigeniamarandu/db" VERSION="20261022" COMMENT="XMLDB file for local_oksigeniamarandu"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_oksigeniamarandu_contact" COMMENT="One WhatsApp number and its consent">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="phone" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="Country code and number, digits only"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Profile name WhatsApp sent, if any"/>
+        <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false" COMMENT="Language for the messages; empty means the site language"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending, active or optedout"/>
+        <FIELD NAME="consenttime" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When the last opt-in happened"/>
+        <FIELD NAME="consentsource" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="How the last opt-in happened: keyword, page or admin"/>
+        <FIELD NAME="optouttime" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When the last opt-out happened"/>
+        <FIELD NAME="lastinbound" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Last message from this number: opens the 24-hour window"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="phone" UNIQUE="true" FIELDS="phone"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_link" COMMENT="Whom a contact stands for: a Moodle user or an item of another plugin, with the code that claims it">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Empty until somebody writes the code"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user, if the link is for one"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="core" SEQUENCE="false" COMMENT="Plugin that asked for the link"/>
+        <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Item of that plugin, such as a family"/>
+        <FIELD NAME="code" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="Code the family writes after the opt-in keyword"/>
+        <FIELD NAME="timeclaimed" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contactid" TYPE="foreign" FIELDS="contactid" REFTABLE="local_oksigeniamarandu_contact" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="code" UNIQUE="true" FIELDS="code"/>
+        <INDEX NAME="componentitem" UNIQUE="false" FIELDS="component, itemid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_consent" COMMENT="Every opt-in and opt-out, kept as proof">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="action" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="optin or optout"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="keyword, page or admin"/>
+        <FIELD NAME="detail" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Id of the WhatsApp message or who did it"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contactid" TYPE="foreign" FIELDS="contactid" REFTABLE="local_oksigeniamarandu_contact" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
+</XMLDB>

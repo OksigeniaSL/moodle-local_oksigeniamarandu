@@ -117,6 +117,35 @@ class cloud_api {
         if ($components) {
             $payload['template']['components'] = $components;
         }
+        return $this->send_message($payload);
+    }
+
+    /**
+     * Sends plain text to one number. Only inside the 24 hours after the number last wrote; outside, Meta refuses it.
+     *
+     * @param string $to Digits with the country code (see phone::normalise()).
+     * @param string $text The text, up to 4096 characters.
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    public function send_text(string $to, string $text): string {
+        return $this->send_message([
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => 'text',
+            'text' => ['preview_url' => false, 'body' => \core_text::substr($text, 0, 4096)],
+        ]);
+    }
+
+    /**
+     * Posts a message and returns its id.
+     *
+     * @param array $payload The message, in the shape of the API.
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    private function send_message(array $payload): string {
         $response = $this->post($this->phonenumberid . '/messages', $payload);
         if (empty($response['messages'][0]['id'])) {
             throw new api_exception('error:unexpected');

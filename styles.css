@@ -21,6 +21,7 @@
    progress goes down as soon as the title does not fit beside it. */
 #page-header .d-flex:has(> .header-actions-container .local-oksigeniamarandu-progress) {
     flex-wrap: wrap;
+    gap: 1rem;
 }
 
 #page-header .header-actions-container:has(.local-oksigeniamarandu-progress) {

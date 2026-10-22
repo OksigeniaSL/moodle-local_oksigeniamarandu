@@ -49,6 +49,7 @@
 
     {{#invalid}}
     <section class="mrd-screen">
+        <div class="mrd-hero mrd-broken" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5 7 17a3 3 0 0 1-4.2-4.2L5.5 10"/><path d="M14.5 9.5 17 7a3 3 0 0 0-4.2-4.2L10 5.5"/><path d="M4 4l2 2M18 18l2 2M15 21v-2M3 9h2M21 15h-2M9 3v2"/></svg></div>
         <h1>{{#str}} alta:invalid, local_oksigeniamarandu {{/str}}</h1>
         <p class="mrd-note">{{#str}} alta:invalid_help, local_oksigeniamarandu {{/str}}</p>
     </section>
@@ -71,13 +72,13 @@
             <span class="mrd-inputbar"><span class="mrd-draft">{{message}}</span><span class="mrd-send">➤</span></span>
             <span class="mrd-lbl">← {{#str}} alta:send, local_oksigeniamarandu {{/str}}</span>
         </div>
-        <p class="mrd-note mrd-small">{{leavenote}}</p>
         <div class="mrd-qr">
             <b class="mrd-qrtitle">{{#str}} alta:scan, local_oksigeniamarandu {{/str}}</b>
             <div class="mrd-qrbox" role="img" aria-label="{{#str}} alta:qr, local_oksigeniamarandu {{/str}}">{{{qr}}}</div>
             <p class="mrd-small">{{howto}}</p>
             <a class="mrd-linkbtn" href="{{waurl}}" data-open>{{#str}} alta:openhere, local_oksigeniamarandu {{/str}}</a>
         </div>
+        <p class="mrd-note mrd-small">{{leavenote}}</p>
     </section>
     <section class="mrd-screen" data-screen="wait" hidden>
         <div class="mrd-hero" aria-hidden="true"><span class="mrd-spin"></span></div>
@@ -96,7 +97,7 @@
             <dt>{{#str}} alta:yourphone, local_oksigeniamarandu {{/str}}</dt><dd>{{phone}}</dd>
             <dt>{{sitename}}</dt><dd>{{number}}</dd>
         </dl>
-        <a class="mrd-big mrd-primary" href="{{vcardurl}}">{{#str}} alta:savecontact, local_oksigeniamarandu, {{sitename}} {{/str}}</a>
+        <a class="mrd-big mrd-primary" href="{{vcardurl}}">{{#str}} alta:savecontact, local_oksigeniamarandu {{/str}}</a>
         <p class="mrd-note">{{#str}} alta:savecontact_help, local_oksigeniamarandu {{/str}}</p>
         <p class="mrd-note"><button type="button" class="mrd-linkbtn" data-leave>{{#str}} alta:leave, local_oksigeniamarandu {{/str}}</button></p>
         <div class="mrd-leavebox" data-leave-box hidden>

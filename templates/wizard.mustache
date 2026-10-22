@@ -17,23 +17,15 @@
 {{!
     @template local_oksigeniamarandu/wizard
 
-    The set-up wizard: one step at a time, each with a single main action and its own check.
+    The set-up wizard: one step at a time, each with a single main action and its own check. The title of the step is
+    the heading of the page, and the progress goes in its header (wizard_progress).
 
     Context variables required for this template:
-    * product - Name of the plugin.
-    * steps - The steps there are, each with label, done, now and url (only for the steps already done).
-    * stepinfo - "Step 1 of 2 · Account", empty when finished.
     * formurl, sesskey - Where the forms go.
     * account, test, done - The step shown; only one of them is set.
 
     Example context (json):
     {
-        "product": "Oksigenia Marandu for WhatsApp",
-        "steps": [
-            {"label": "Account", "done": false, "now": true, "url": ""},
-            {"label": "Test", "done": false, "now": false, "url": ""}
-        ],
-        "stepinfo": "Step 1 of 2 · Account",
         "formurl": "https://example.com/local/oksigeniamarandu/wizard.php",
         "sesskey": "abc123",
         "account": {
@@ -49,24 +41,15 @@
     }
 }}
 <div class="local-oksigeniamarandu-wizard">
-    <div class="mrd-head">
-        <div class="mrd-product">{{product}}</div>
-        <div class="mrd-progress" aria-label="{{#str}} wizard:progress, local_oksigeniamarandu {{/str}}">
-            <div class="mrd-bar">{{#steps}}<i class="{{#done}}done{{/done}}{{#now}}now{{/now}}"></i>{{/steps}}</div>
-            <div class="mrd-labels">
-                {{#steps}}
-                    {{#done}}<a href="{{url}}">{{label}}</a>{{/done}}
-                    {{^done}}{{#now}}<span class="now">{{stepinfo}}</span>{{/now}}{{^now}}<span>{{label}}</span>{{/now}}{{/done}}
-                {{/steps}}
-            </div>
-        </div>
-    </div>
-
     {{#account}}
     <section>
-        <h1>{{#str}} wizard:account:title, local_oksigeniamarandu {{/str}}</h1>
         {{#showform}}
         <p class="mrd-lead">{{#str}} wizard:account:lead, local_oksigeniamarandu {{/str}}</p>
+        <details class="mrd-where-fold">
+            <summary>{{#str}} wizard:where:fold, local_oksigeniamarandu {{/str}}</summary>
+            {{> local_oksigeniamarandu/wizard_where }}
+            <p class="mrd-hint">{{#str}} wizard:where:caption, local_oksigeniamarandu {{/str}} {{#str}} wizard:where:token, local_oksigeniamarandu {{/str}}</p>
+        </details>
         <div class="mrd-cols">
             <form method="post" action="{{formurl}}">
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
@@ -95,24 +78,7 @@
                 </div>
             </form>
             <figure class="mrd-where">
-                <svg viewBox="0 0 420 250" role="img" aria-label="{{#str}} wizard:where, local_oksigeniamarandu {{/str}}">
-                    <rect x="0" y="0" width="420" height="28" fill="#f0f2f5"/>
-                    <text x="12" y="18" font-size="11" fill="#4b5563" font-weight="700">Meta for Developers</text>
-                    <rect x="0" y="28" width="110" height="222" fill="#f7f8fa"/>
-                    <text x="12" y="56" font-size="10.5" fill="#4b5563" font-weight="700">WhatsApp</text>
-                    <rect x="6" y="66" width="100" height="24" rx="5" fill="#e3ebf6"/>
-                    <text x="14" y="82" font-size="10.5" fill="#1d4f8c" font-weight="700">{{#str}} wizard:meta:apisetup, local_oksigeniamarandu {{/str}}</text>
-                    <text x="126" y="52" font-size="14" font-weight="700" fill="#1d2125">{{#str}} wizard:meta:apisetup, local_oksigeniamarandu {{/str}}</text>
-                    <rect x="126" y="66" width="280" height="22" rx="5" fill="#fff" stroke="#9aa3ad" stroke-width="1.5" stroke-dasharray="4 3"/>
-                    <line x1="132" y1="77" x2="270" y2="77" stroke="#b42318" stroke-width="1.5"/>
-                    <text x="126" y="102" font-size="9.5" fill="#b42318" font-weight="700">{{#str}} wizard:where:temporary, local_oksigeniamarandu {{/str}}</text>
-                    <rect x="122" y="118" width="290" height="40" rx="6" fill="none" stroke="#c27c0e" stroke-width="2.5"/>
-                    <text x="130" y="134" font-size="10" fill="#4b5563">{{#str}} wizard:meta:phonenumberid, local_oksigeniamarandu {{/str}}</text>
-                    <text x="130" y="150" font-size="11" fill="#1d2125">1110000000…</text>
-                    <rect x="122" y="168" width="290" height="40" rx="6" fill="none" stroke="#7a4fb0" stroke-width="2.5"/>
-                    <text x="130" y="184" font-size="10" fill="#4b5563">{{#str}} wizard:meta:wabaid, local_oksigeniamarandu {{/str}}</text>
-                    <text x="130" y="200" font-size="11" fill="#1d2125">2220000000…</text>
-                </svg>
+                {{> local_oksigeniamarandu/wizard_where }}
                 <figcaption>{{#str}} wizard:where:caption, local_oksigeniamarandu {{/str}}
                     <span class="mrd-k3note">{{#str}} wizard:where:token, local_oksigeniamarandu {{/str}}</span></figcaption>
             </figure>
@@ -136,7 +102,7 @@
                 <div class="mrd-copy"><code>{{verifytoken}}</code><button type="button" class="mrd-btn mrd-second mrd-small" data-copy="{{verifytoken}}" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></div>
                 <div class="mrd-help">{{#str}} wizard:verifytoken_help, local_oksigeniamarandu {{/str}}</div>
             </div>
-            <div class="mrd-field k1">
+            <div class="mrd-field k3">
                 <label for="mrd-appsecret">{{#str}} wizard:appsecret, local_oksigeniamarandu {{/str}}</label>
                 <input type="text" id="mrd-appsecret" name="appsecret" autocomplete="off" spellcheck="false" {{#appsecretsaved}}placeholder="{{#str}} wizard:appsecret_saved, local_oksigeniamarandu {{/str}}"{{/appsecretsaved}} {{#appsecreterror}}class="bad" aria-describedby="mrd-appsecret-err"{{/appsecreterror}}>
                 <div class="mrd-help">{{#str}} wizard:appsecret_help, local_oksigeniamarandu {{/str}}</div>
@@ -159,7 +125,6 @@
 
     {{#test}}
     <section>
-        <h1>{{#str}} wizard:test:title, local_oksigeniamarandu {{/str}}</h1>
         <p class="mrd-lead">{{#str}} wizard:test:lead, local_oksigeniamarandu {{/str}}</p>
         <div class="mrd-cols">
             <div>
@@ -201,7 +166,6 @@
 
     {{#done}}
     <section>
-        <h1>{{#str}} wizard:done:title, local_oksigeniamarandu {{/str}}</h1>
         <ul class="mrd-summary">
             <li><b>{{#str}} wizard:step:account, local_oksigeniamarandu {{/str}}</b><span>{{account}}</span></li>
             <li><b>{{#str}} wizard:step:test, local_oksigeniamarandu {{/str}}</b><span>{{test}}</span></li>

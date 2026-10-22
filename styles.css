@@ -17,70 +17,53 @@
 }
 
 /* The wizard. */
-.local-oksigeniamarandu-wizard .mrd-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 8px 24px;
+/* The progress of the wizard, in the header of the page, beside the title of the step. */
+.local-oksigeniamarandu-progress {
+    flex: 1 1 18rem;
+    min-width: 16rem;
+    margin-left: auto;
 }
 
-.local-oksigeniamarandu-wizard .mrd-product {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--mrd-muted);
-}
-
-.local-oksigeniamarandu-wizard .mrd-progress {
-    flex: 1 1 420px;
-}
-
-.local-oksigeniamarandu-wizard .mrd-bar,
-.local-oksigeniamarandu-wizard .mrd-labels {
+.local-oksigeniamarandu-progress .mrd-bar,
+.local-oksigeniamarandu-progress .mrd-labels {
     display: grid;
-    grid-auto-columns: 1fr;
+    grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;
     gap: 4px;
 }
 
-.local-oksigeniamarandu-wizard .mrd-bar i {
+.local-oksigeniamarandu-progress .mrd-bar i {
     height: 6px;
     border-radius: 3px;
     background: #d5dae0;
 }
 
-.local-oksigeniamarandu-wizard .mrd-bar i.done {
-    background: var(--mrd-green);
+.local-oksigeniamarandu-progress .mrd-bar i.done {
+    background: #1e6b37;
 }
 
-.local-oksigeniamarandu-wizard .mrd-bar i.now {
-    background: var(--mrd-blue);
+.local-oksigeniamarandu-progress .mrd-bar i.now {
+    background: #2563a8;
 }
 
-.local-oksigeniamarandu-wizard .mrd-labels {
+.local-oksigeniamarandu-progress .mrd-labels {
     margin-top: 4px;
     font-size: 13px;
-    color: var(--mrd-muted);
+    color: #5f6b76;
 }
 
-.local-oksigeniamarandu-wizard .mrd-labels a {
-    color: var(--mrd-green);
+.local-oksigeniamarandu-progress .mrd-labels a {
+    color: #1e6b37;
     font-weight: 600;
 }
 
-.local-oksigeniamarandu-wizard .mrd-labels a::before {
+.local-oksigeniamarandu-progress .mrd-labels a::before {
     content: "✓ ";
 }
 
-.local-oksigeniamarandu-wizard .mrd-labels .now {
-    color: var(--mrd-ink);
+.local-oksigeniamarandu-progress .mrd-labels .now {
+    color: #1d2125;
     font-weight: 700;
-}
-
-.local-oksigeniamarandu-wizard h1 {
-    font-size: 24px;
-    line-height: 1.2;
-    margin: 10px 0 2px;
 }
 
 .local-oksigeniamarandu-wizard h2 {
@@ -358,20 +341,62 @@
     font-weight: 600;
 }
 
+.local-oksigeniamarandu-wizard .mrd-where-fold {
+    display: none;
+}
+
 @media (max-width: 900px) {
     .local-oksigeniamarandu-wizard .mrd-cols {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The drawing of Meta, folded before the fields, so that the button does not go down. */
+    .local-oksigeniamarandu-wizard .mrd-where {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-where-fold {
+        display: block;
+        margin: 0 0 10px;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-where-fold summary {
+        color: var(--mrd-blue-dark);
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-where-fold svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin-top: 6px;
+        border: 1px solid var(--mrd-line);
+        border-radius: 10px;
+        background: #fff;
     }
 }
 
 @media (max-width: 560px) {
     .local-oksigeniamarandu-wizard .mrd-field,
     .local-oksigeniamarandu-wizard .mrd-summary li {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .local-oksigeniamarandu-wizard .mrd-labels > :not(.now) {
+    .local-oksigeniamarandu-progress .mrd-labels > :not(.now) {
         display: none;
+    }
+
+    /* On a phone the progress goes under the title of the step instead of squeezing it. */
+    #page-header .d-flex:has(> .header-actions-container .local-oksigeniamarandu-progress) {
+        flex-wrap: wrap;
+    }
+
+    #page-header .header-actions-container:has(.local-oksigeniamarandu-progress),
+    #page-header .header-action:has(.local-oksigeniamarandu-progress) {
+        flex-basis: 100%;
+        margin-left: 0;
     }
 }
 
@@ -551,7 +576,6 @@
 
 .local-oksigeniamarandu-alta .mrd-qrbox svg {
     display: block;
-    width: 100%;
     height: auto;
 }
 
@@ -606,48 +630,32 @@
     border-top: 1px solid var(--mrd-line);
 }
 
+.local-oksigeniamarandu-alta .mrd-hero.mrd-broken {
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-alta .mrd-qrbox svg {
+    width: 11rem;
+    margin: 0 auto;
+    aspect-ratio: 1;
+}
+
 @media (min-width: 900px) {
-    .local-oksigeniamarandu-alta {
-        max-width: 54rem;
-    }
-
-    .local-oksigeniamarandu-alta .mrd-screen:not(.mrd-choose) {
-        max-width: 34rem;
-        margin: 0 auto;
-    }
-
-    .local-oksigeniamarandu-alta .mrd-choose {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 240px;
-        gap: 12px 32px;
-        align-items: start;
-    }
-
-    .local-oksigeniamarandu-alta .mrd-choose > :not(.mrd-qr) {
-        grid-column: 1;
-    }
-
-    .local-oksigeniamarandu-alta .mrd-choose .mrd-hero,
-    .local-oksigeniamarandu-alta .mrd-phone-only {
+    .local-oksigeniamarandu-alta .mrd-phone-only,
+    .local-oksigeniamarandu-alta .mrd-choose .mrd-hero {
         display: none;
     }
 
-    .local-oksigeniamarandu-alta .mrd-choose h1,
-    .local-oksigeniamarandu-alta .mrd-choose .mrd-for,
-    .local-oksigeniamarandu-alta .mrd-choose .mrd-note {
-        text-align: left;
-    }
-
     .local-oksigeniamarandu-alta .mrd-qr {
-        grid-column: 2;
-        grid-row: 1 / span 6;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        padding: 16px;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
         border: 1px solid var(--mrd-line);
         border-radius: 1rem;
         background: #fff;
+        text-align: center;
     }
 }
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 (2026-10-22)
+
+- Wizard: the title of the step is the heading of the page and the progress sits beside it, without the admin search;
+  on a narrow screen the drawing of Meta folds before the fields, and long addresses no longer push the page wider
+  than the phone. The drawing shows again which token not to use.
+- Family page: one centred column on a computer too, a smaller QR code without a gap below, «Save the number» on one
+  line, and an emblem for a link that does not work.
+
 ## 0.3.0 (2026-10-22)
 
 - A set-up wizard instead of the plain settings: connect the account (checked with Meta, which answers with the number

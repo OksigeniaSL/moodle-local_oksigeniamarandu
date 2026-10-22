@@ -1,0 +1,44 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/wizard_progress
+
+    The progress of the set-up wizard, in the header of the page: a bar of one part per step and their names; only the
+    steps already done are links.
+
+    Context variables required for this template:
+    * steps - Each with label, done, now and url.
+    * stepinfo - "Step 1 of 2 · Account".
+
+    Example context (json):
+    {
+        "steps": [
+            {"label": "Account", "done": true, "now": false, "url": "https://example.com/local/oksigeniamarandu/wizard.php?step=account"},
+            {"label": "Test", "done": false, "now": true, "url": ""}
+        ],
+        "stepinfo": "Step 2 of 2 · Test"
+    }
+}}
+<div class="local-oksigeniamarandu-progress" aria-label="{{#str}} wizard:progress, local_oksigeniamarandu {{/str}}">
+    <div class="mrd-bar">{{#steps}}<i class="{{#done}}done{{/done}}{{#now}}now{{/now}}"></i>{{/steps}}</div>
+    <div class="mrd-labels">
+        {{#steps}}
+            {{#done}}<a href="{{url}}">{{label}}</a>{{/done}}
+            {{^done}}{{#now}}<span class="now">{{stepinfo}}</span>{{/now}}{{^now}}<span>{{label}}</span>{{/now}}{{/done}}
+        {{/steps}}
+    </div>
+</div>

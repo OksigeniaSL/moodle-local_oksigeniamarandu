@@ -117,6 +117,7 @@ if (!$context['invalid']) {
         $qr = new core_qrcode($waurl);
         $svg = $qr->getBarcodeSVGcode(6, 6, '#17212b');
         $svg = substr($svg, strpos($svg, '<svg'));
+        $svg = preg_replace('/<svg width="([0-9.]+)" height="([0-9.]+)"/', '<svg viewBox="0 0 $1 $2"', $svg, 1);
         $context['choose'] = [
             'waurl' => $waurl,
             'qr' => $svg,

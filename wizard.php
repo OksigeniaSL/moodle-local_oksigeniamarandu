@@ -32,7 +32,7 @@ use local_oksigeniamarandu\local\cloud_api;
 use local_oksigeniamarandu\local\phone;
 use local_oksigeniamarandu\local\test_message;
 
-admin_externalpage_setup('local_oksigeniamarandu_wizard');
+admin_externalpage_setup('local_oksigeniamarandu_wizard', '', null, '', ['nosearch' => true]);
 // One thing at a time: without the tabs of the administration, the next step fits on a small screen.
 $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
@@ -150,14 +150,18 @@ foreach ($order as $i => $key) {
     ];
 }
 
-$context = [
-    'product' => get_string('pluginname', $component),
+// The title of the step is the heading of the page, and the progress takes the place of the admin search beside it.
+$PAGE->set_heading(get_string('wizard:' . $step . ':title', $component));
+$PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/wizard_progress', [
     'steps' => $steps,
     'stepinfo' => $step === 'done' ? '' : get_string('wizard:stepof', $component, (object)[
         'num' => $current + 1,
         'total' => count($order),
         'name' => $names[$step],
     ]),
+]));
+
+$context = [
     'formurl' => $baseurl->out(false),
     'sesskey' => sesskey(),
 ];

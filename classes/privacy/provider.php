@@ -66,6 +66,13 @@ class provider implements
             'source' => 'privacy:metadata:consent:source',
             'timecreated' => 'privacy:metadata:consent:timecreated',
         ], 'privacy:metadata:consent');
+        $collection->add_database_table('local_oksigeniamarandu_queue', [
+            'contactid' => 'privacy:metadata:queue:contactid',
+            'params' => 'privacy:metadata:queue:params',
+            'status' => 'privacy:metadata:queue:status',
+            'timesent' => 'privacy:metadata:queue:timesent',
+            'timeclicked' => 'privacy:metadata:queue:timeclicked',
+        ], 'privacy:metadata:queue');
         $collection->add_external_location_link('whatsapp', [
             'phone' => 'privacy:metadata:whatsapp:phone',
             'message' => 'privacy:metadata:whatsapp:message',
@@ -117,7 +124,17 @@ class provider implements
             if (!$contact) {
                 continue;
             }
+            $notices = [];
+            foreach ($DB->get_records('local_oksigeniamarandu_queue', ['contactid' => $contact->id], 'id') as $row) {
+                $notices[] = (object)[
+                    'notice' => $row->component . '/' . $row->notice,
+                    'values' => json_decode($row->params, true),
+                    'status' => $row->status,
+                    'sent' => $row->timesent ? transform::datetime($row->timesent) : null,
+                ];
+            }
             $numbers[] = (object)[
+                'notices' => $notices,
                 'phone' => '+' . $contact->phone,
                 'status' => $contact->status,
                 'consenttime' => $contact->consenttime ? transform::datetime($contact->consenttime) : null,
@@ -186,6 +203,7 @@ class provider implements
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);
+                $DB->delete_records('local_oksigeniamarandu_queue', ['contactid' => $link->contactid]);
                 $DB->delete_records(consent::CONTACTS, ['id' => $link->contactid]);
             }
         }

@@ -123,6 +123,20 @@ final class cloud_api_test extends \advanced_testcase {
     }
 
     /**
+     * Templates go to the account for review, and the account lists them.
+     */
+    public function test_templates(): void {
+        $api = $this->fake_api(['id' => '9001', 'status' => 'PENDING', 'category' => 'UTILITY']);
+        $this->assertSame('9001', $api->create_template('2220000000', ['name' => 'mrd_x'])['id']);
+        $this->assertStringEndsWith('/2220000000/message_templates', $api->sent[0]['url']);
+        $this->assertSame(['name' => 'mrd_x'], $api->sent[0]['body']);
+
+        $api = $this->fake_api(['data' => [['name' => 'mrd_x', 'status' => 'APPROVED'], 'not a template']]);
+        $this->assertSame([['name' => 'mrd_x', 'status' => 'APPROVED']], $api->list_templates('2220000000'));
+        $this->assertNull($api->sent[0]['body']);
+    }
+
+    /**
      * The errors of Meta that the administrator can fix get a message of their own.
      *
      * @dataProvider errors_provider

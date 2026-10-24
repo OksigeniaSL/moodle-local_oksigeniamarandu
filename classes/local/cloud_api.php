@@ -172,6 +172,31 @@ class cloud_api {
     }
 
     /**
+     * Sends a template to Meta for review.
+     *
+     * @param string $wabaid The WhatsApp Business account.
+     * @param array $payload Name, language, category and components, in the shape of the API.
+     * @return array What Meta answers: id, status and category.
+     * @throws api_exception If Meta does not take it.
+     */
+    public function create_template(string $wabaid, array $payload): array {
+        return $this->post($wabaid . '/message_templates', $payload);
+    }
+
+    /**
+     * The templates of the account, with their status, category and why they were rejected.
+     *
+     * @param string $wabaid The WhatsApp Business account.
+     * @return array[]
+     * @throws api_exception If Meta does not answer.
+     */
+    public function list_templates(string $wabaid): array {
+        $response = $this->decode($this->request($this->url($wabaid .
+            '/message_templates?fields=name,language,status,category,rejected_reason&limit=250')));
+        return array_values(array_filter((array)($response['data'] ?? []), 'is_array'));
+    }
+
+    /**
      * Posts to the Graph API and turns its errors into exceptions.
      *
      * @param string $path Path after the version, such as <phone number id>/messages.

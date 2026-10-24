@@ -8,7 +8,7 @@ Feature: Set up the WhatsApp of the site step by step
     Given I log in as "admin"
     When I navigate to "Plugins > Local plugins > Oksigenia Marandu for WhatsApp > Set up WhatsApp" in site administration
     Then I should see "Connect the WhatsApp of the site"
-    And I should see "Step 1 of 2 · Account"
+    And I should see "Step 1 of 5 · Account"
     And "Check the connection" "button" should exist
 
   Scenario: Details that are not right are refused before asking Meta
@@ -33,3 +33,19 @@ Feature: Set up the WhatsApp of the site step by step
     When I set the field "mrd-appsecret" to "fake-secret"
     And I press "I have pasted them in Meta: check"
     Then I should see "Meta has not called the address yet."
+
+  Scenario: The limits are sentences, and the summary says them back
+    Given the following config values are set as admin:
+      | connectednumber | +34 900 00 00 00                    | local_oksigeniamarandu |
+      | connectedname   | Colegio Ejemplo                     | local_oksigeniamarandu |
+      | appsecret       | fake                                | local_oksigeniamarandu |
+      | webhookverified | 1                                   | local_oksigeniamarandu |
+      | enablednotices  | local_oksigeniamarandu/notification | local_oksigeniamarandu |
+    And I log in as "admin"
+    And I visit "/local/oksigeniamarandu/wizard.php?step=limits"
+    When I set the field "capmonth" to "25"
+    And I set the field "capfamily" to "2"
+    And I press "Finish"
+    Then I should see "Done: each notice goes out as soon as Meta approves its text"
+    And I should see "25 € a month · 2 notices a day"
+    And I should see "Switched on: 1"

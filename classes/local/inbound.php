@@ -42,8 +42,8 @@ class inbound {
     }
 
     /**
-     * Handles the messages to the number of the site, and the statuses of the test message; anything else (other
-     * numbers, other fields) is left alone.
+     * Handles the messages to the number of the site, the statuses of what it sent and what Meta says of its templates;
+     * anything else (other numbers, other fields) is left alone.
      *
      * @param array $payload The decoded body.
      * @return int How many messages were handled.
@@ -57,7 +57,19 @@ class inbound {
         foreach ($payload['entry'] ?? [] as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
                 $value = $change['value'] ?? [];
-                if (($change['field'] ?? '') !== 'messages' || (string)($value['metadata']['phone_number_id'] ?? '') !== $mine) {
+                $field = $change['field'] ?? '';
+                if ($field === 'message_template_status_update' || $field === 'template_category_update') {
+                    // What Meta says of the templates; it comes for the whole account, without a number.
+                    templates::update_from_meta(
+                        (string)($value['message_template_name'] ?? ''),
+                        (string)($value['message_template_language'] ?? ''),
+                        $field === 'message_template_status_update' ? (string)($value['event'] ?? '') : '',
+                        (string)($value['new_category'] ?? ''),
+                        (string)($value['reason'] ?? '')
+                    );
+                    continue;
+                }
+                if ($field !== 'messages' || (string)($value['metadata']['phone_number_id'] ?? '') !== $mine) {
                     continue;
                 }
                 $names = [];
@@ -72,11 +84,11 @@ class inbound {
                 }
                 foreach ($value['statuses'] ?? [] as $status) {
                     if (is_array($status)) {
-                        test_message::status(
-                            (string)($status['id'] ?? ''),
-                            (string)($status['status'] ?? ''),
-                            (string)($status['errors'][0]['title'] ?? '')
-                        );
+                        $id = (string)($status['id'] ?? '');
+                        $what = (string)($status['status'] ?? '');
+                        $error = (string)($status['errors'][0]['title'] ?? '');
+                        test_message::status($id, $what, $error);
+                        queue::status($id, $what, $error);
                     }
                 }
             }

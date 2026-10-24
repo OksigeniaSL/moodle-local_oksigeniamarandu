@@ -25,7 +25,7 @@
 }
 
 #page-header .header-actions-container:has(.local-oksigeniamarandu-progress) {
-    flex: 1 1 16rem;
+    flex: 1 1 20rem;
 }
 
 #page-header .header-action:has(.local-oksigeniamarandu-progress) {
@@ -33,8 +33,8 @@
 }
 
 .local-oksigeniamarandu-progress {
-    flex: 1 1 18rem;
-    min-width: 16rem;
+    flex: 1 1 22rem;
+    min-width: 20rem;
     margin-left: auto;
 }
 
@@ -78,6 +78,12 @@
 .local-oksigeniamarandu-progress .mrd-labels .now {
     color: #1d2125;
     font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Only what is done and what is now: the steps to come are in the bar, and the name of this one takes their room. */
+.local-oksigeniamarandu-progress .mrd-labels span:not(.now) {
+    visibility: hidden;
 }
 
 .local-oksigeniamarandu-wizard h2 {
@@ -443,6 +449,298 @@
         display: none;
     }
 
+}
+
+/* Step 3: the texts of the notices and what Meta says of them. */
+.local-oksigeniamarandu-wizard .mrd-group {
+    margin: 8px 0 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-tpl {
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr) auto;
+    gap: 4px 16px;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-wizard .mrd-tpl h3 {
+    margin: 0;
+    font-size: 15.5px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tpl p {
+    margin: 0;
+    font-size: 14.5px;
+    color: #3b4752;
+}
+
+.local-oksigeniamarandu-wizard .mrd-side {
+    text-align: right;
+}
+
+.local-oksigeniamarandu-wizard .mrd-var {
+    padding: 0 3px;
+    border-radius: 4px;
+    background: #fff1c2;
+}
+
+.local-oksigeniamarandu-wizard .mrd-chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #eef0f3;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-chip.pending {
+    background: var(--mrd-blue-soft);
+    color: #12457f;
+}
+
+.local-oksigeniamarandu-wizard .mrd-chip.approved {
+    background: var(--mrd-green-soft);
+    color: var(--mrd-green);
+}
+
+.local-oksigeniamarandu-wizard .mrd-chip.rejected,
+.local-oksigeniamarandu-wizard .mrd-chip.paused,
+.local-oksigeniamarandu-wizard .mrd-chip.disabled,
+.local-oksigeniamarandu-wizard .mrd-chip.marketing {
+    background: var(--mrd-red-soft);
+    color: var(--mrd-red);
+}
+
+.local-oksigeniamarandu-wizard .mrd-why {
+    grid-column: 2 / -1;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--mrd-red-soft);
+    color: #7a1a12;
+    font-size: 14px;
+}
+
+/* Step 4: which notices go out, with what they would cost. */
+.local-oksigeniamarandu-wizard .mrd-notice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 2px 14px;
+    align-items: center;
+    padding: 7px 0;
+    border-top: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-wizard .mrd-notice:first-of-type {
+    border-top: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-notice label {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-notice label span {
+    font-size: 14px;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-cost {
+    font-size: 14px;
+    color: #3b4752;
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-wizard .mrd-switch {
+    appearance: none;
+    position: relative;
+    width: 44px;
+    height: 26px;
+    margin: 0;
+    border-radius: 13px;
+    background: #c3c9cf;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.15s;
+}
+
+.local-oksigeniamarandu-wizard .mrd-switch:checked {
+    background: var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-wizard .mrd-switch:checked::after {
+    left: 21px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-switch:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-days input:focus-visible + label,
+.local-oksigeniamarandu-wizard .mrd-chipcheck:focus-visible + label {
+    outline: 2px solid var(--mrd-blue-dark);
+    outline-offset: 2px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-total {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0 0;
+    border-top: 2px solid var(--mrd-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-total small {
+    font-weight: 400;
+}
+
+/* Step 5: the limits, as sentences. */
+.local-oksigeniamarandu-wizard .mrd-sentence {
+    margin: 0 0 6px;
+    font-size: 19px;
+    line-height: 2.2;
+}
+
+.local-oksigeniamarandu-wizard .mrd-sentence input {
+    display: inline-block;
+    width: auto;
+    padding: 3px 8px;
+    border: 1px solid #c3c9d0;
+    border-radius: 8px;
+    font-size: 18px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-sentence .mrd-num {
+    width: 4.5em;
+    text-align: right;
+}
+
+.local-oksigeniamarandu-wizard .mrd-sentence .mrd-mail {
+    width: 16.5em;
+    max-width: calc(100% - 1em);
+}
+
+.local-oksigeniamarandu-wizard .mrd-days {
+    display: inline-flex;
+    gap: 4px;
+    vertical-align: middle;
+}
+
+.local-oksigeniamarandu-wizard .mrd-days input,
+.local-oksigeniamarandu-wizard .mrd-chipcheck {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-wizard .mrd-days label {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin: 0;
+    border: 1px solid #c3c9d0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-days input:checked + label {
+    border-color: #3b4752;
+    background: #3b4752;
+    color: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-sub {
+    margin: -4px 0 12px;
+    font-size: 14px;
+    line-height: 2.1;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-chipcheck + label {
+    display: inline-block;
+    margin: 0;
+    padding: 2px 10px;
+    border: 1px solid #c3c9d0;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-chipcheck:checked + label {
+    border-color: #e7b4ae;
+    background: var(--mrd-red-soft);
+    color: var(--mrd-red);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-chipcheck:checked + label::before {
+    content: "✓ ";
+}
+
+@media (max-width: 900px) {
+    .local-oksigeniamarandu-wizard .mrd-tpl {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-tpl h3 {
+        grid-column: 1;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-tpl .mrd-side {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-tpl p,
+    .local-oksigeniamarandu-wizard .mrd-why {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 560px) {
+    .local-oksigeniamarandu-wizard .mrd-notice {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-notice .mrd-switch {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-notice label,
+    .local-oksigeniamarandu-wizard .mrd-cost {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-sentence {
+        font-size: 17px;
+    }
 }
 
 /* The page where a family joins: one column on the phone, the QR code beside it on a computer. */

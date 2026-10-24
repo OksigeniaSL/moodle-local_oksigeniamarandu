@@ -164,11 +164,87 @@
     </section>
     {{/test}}
 
+    {{#texts}}
+    <section>
+        <p class="mrd-lead">{{#str}} wizard:texts:lead, local_oksigeniamarandu {{/str}}</p>
+        {{#none}}<p class="mrd-hint">{{#str}} wizard:texts:none, local_oksigeniamarandu {{/str}}</p>{{/none}}
+        {{#groups}}
+        <div class="mrd-group">{{plugin}}</div>
+        {{#templates}}
+        <div class="mrd-tpl">
+            <h3>{{name}}</h3>
+            <p>{{{body}}} <i>[{{button}}]</i></p>
+            <div class="mrd-side"><span class="mrd-chip {{statusclass}}">{{status}}</span>{{#marketing}} <span class="mrd-chip marketing">{{#str}} wizard:texts:marketing, local_oksigeniamarandu {{/str}}</span>{{/marketing}}</div>
+            {{#reason}}<div class="mrd-why">{{.}}</div>{{/reason}}
+        </div>
+        {{/templates}}
+        {{/groups}}
+        <form method="post" action="{{formurl}}" class="mrd-actions">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            {{#error}}<div class="mrd-err mrd-wide">{{{.}}}</div>{{/error}}
+            {{#submit}}<button type="submit" name="action" value="submit" class="mrd-btn mrd-primary">{{.}}</button>{{/submit}}
+            {{#pending}}<button type="submit" name="action" value="refresh" class="mrd-btn mrd-second">{{#str}} wizard:texts:refresh, local_oksigeniamarandu {{/str}}</button>{{/pending}}
+            <a class="mrd-btn {{#submit}}mrd-link{{/submit}}{{^submit}}mrd-primary{{/submit}}" href="{{nexturl}}">{{#str}} wizard:next:notices, local_oksigeniamarandu {{/str}}</a>
+            {{#pending}}<span class="mrd-hint mrd-wide">{{#str}} wizard:texts:waiting, local_oksigeniamarandu {{/str}}</span>{{/pending}}
+        </form>
+    </section>
+    {{/texts}}
+
+    {{#notices}}
+    <section>
+        <p class="mrd-lead">{{#str}} wizard:notices:lead, local_oksigeniamarandu {{/str}}</p>
+        <form method="post" action="{{formurl}}">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="notices">
+            {{#rows}}
+            <div class="mrd-notice">
+                <input type="checkbox" class="mrd-switch" role="switch" id="{{id}}" name="notice[{{key}}]" value="1" {{#on}}checked{{/on}}>
+                <label for="{{id}}"><b>{{name}}</b><span>{{description}}</span></label>
+                <span class="mrd-cost">{{cost}}</span>
+            </div>
+            {{/rows}}
+            <div class="mrd-total"><span>{{#str}} wizard:notices:total, local_oksigeniamarandu {{/str}} <small class="mrd-hint">· {{basis}}</small></span><span>{{total}}</span></div>
+            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} wizard:next:limits, local_oksigeniamarandu {{/str}}</button></div>
+        </form>
+    </section>
+    {{/notices}}
+
+    {{#limits}}
+    <section>
+        <p class="mrd-lead">{{#str}} wizard:limits:lead, local_oksigeniamarandu {{/str}}</p>
+        <form method="post" action="{{formurl}}" class="mrd-sentences">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="limits">
+            <p class="mrd-sentence">{{#str}} wizard:limits:cap1, local_oksigeniamarandu {{/str}}
+                <input class="mrd-num" type="text" inputmode="decimal" name="capmonth" value="{{capmonth}}" aria-label="{{#str}} wizard:limits:capmonth, local_oksigeniamarandu {{/str}}">
+                {{#str}} wizard:limits:cap2, local_oksigeniamarandu {{/str}}
+                <input class="mrd-mail" type="email" name="capemail" value="{{capemail}}" aria-label="{{#str}} wizard:limits:capemail, local_oksigeniamarandu {{/str}}"></p>
+            {{#capemailerror}}<p class="mrd-err">{{.}}</p>{{/capemailerror}}
+            <p class="mrd-sentence">{{#str}} wizard:limits:family1, local_oksigeniamarandu {{/str}}
+                <input class="mrd-num" type="number" min="0" name="capfamily" value="{{capfamily}}" aria-label="{{#str}} wizard:limits:capfamily, local_oksigeniamarandu {{/str}}">
+                {{#str}} wizard:limits:family2, local_oksigeniamarandu {{/str}}</p>
+            <p class="mrd-sentence">{{#str}} wizard:limits:quiet1, local_oksigeniamarandu {{/str}}
+                <input type="time" name="quietfrom" value="{{quietfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
+                {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
+                <input type="time" name="quietto" value="{{quietto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">{{#str}} wizard:limits:quiet3, local_oksigeniamarandu {{/str}}
+                <span class="mrd-days">{{#days}}<input type="checkbox" id="mrd-day-{{value}}" name="quietdays[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-day-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/days}}</span></p>
+            {{#hasurgent}}
+            <p class="mrd-sub">{{#str}} wizard:limits:urgent, local_oksigeniamarandu {{/str}}
+                {{#urgent}}<input type="checkbox" class="mrd-chipcheck" id="mrd-u-{{key}}" name="urgent[{{key}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-u-{{key}}">{{name}}</label> {{/urgent}}</p>
+            {{/hasurgent}}
+            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} wizard:limits:finish, local_oksigeniamarandu {{/str}}</button></div>
+        </form>
+    </section>
+    {{/limits}}
+
     {{#done}}
     <section>
         <ul class="mrd-summary">
             <li><b>{{#str}} wizard:step:account, local_oksigeniamarandu {{/str}}</b><span>{{account}}</span></li>
             <li><b>{{#str}} wizard:step:test, local_oksigeniamarandu {{/str}}</b><span>{{test}}</span></li>
+            <li><b>{{#str}} wizard:step:texts, local_oksigeniamarandu {{/str}}</b><span>{{texts}}</span></li>
+            <li><b>{{#str}} wizard:step:notices, local_oksigeniamarandu {{/str}}</b><span>{{notices}}</span></li>
+            <li><b>{{#str}} wizard:step:limits, local_oksigeniamarandu {{/str}}</b><span>{{limits}}</span></li>
         </ul>
         <p class="mrd-lead">{{#str}} wizard:done:lead, local_oksigeniamarandu {{/str}}</p>
         <div class="mrd-actions">

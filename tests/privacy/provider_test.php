@@ -59,7 +59,8 @@ final class provider_test extends provider_testcase {
         $names = array_map(function ($item) {
             return $item->get_name();
         }, $items);
-        $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'whatsapp'], $names);
+        $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
+            'whatsapp'], $names);
     }
 
     /**
@@ -96,11 +97,16 @@ final class provider_test extends provider_testcase {
         $family = api::invite('local_oksigeniameals', 42);
         consent::optin_from_message('34600000002', $family, 'wamid.FAKE');
         $first = $DB->get_field(consent::CONTACTS, 'id', ['phone' => '34600000001']);
+        \local_oksigeniamarandu\local\queue::add((int)$first, \local_oksigeniamarandu\local\notices::get(
+            'local_oksigeniamarandu',
+            'notification'
+        ), ['Colegio Ejemplo', 'Reunión'], null, false, DAYSECS);
 
         provider::delete_data_for_user(new approved_contextlist($user, 'local_oksigeniamarandu', [$system->id]));
         $this->assertFalse($DB->record_exists(consent::CONTACTS, ['phone' => '34600000001']));
         $this->assertFalse($DB->record_exists(consent::LINKS, ['userid' => $user->id]));
         $this->assertFalse($DB->record_exists(consent::LOG, ['contactid' => $first]));
+        $this->assertFalse($DB->record_exists('local_oksigeniamarandu_queue', ['contactid' => $first]));
 
         provider::delete_data_for_users(new approved_userlist($system, 'local_oksigeniamarandu', [$kept->id]));
         $this->assertFalse($DB->record_exists(consent::LINKS, ['userid' => $kept->id]));

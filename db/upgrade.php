@@ -46,5 +46,16 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102201, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026102400) {
+        // 0.4.0: the templates of the notices and the queue that sends them.
+        $file = __DIR__ . '/install.xml';
+        foreach (['local_oksigeniamarandu_tpl', 'local_oksigeniamarandu_queue'] as $table) {
+            if (!$dbman->table_exists($table)) {
+                $dbman->install_one_table_from_xmldb_file($file, $table);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026102400, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/oksigeniamarandu/db" VERSION="20261022" COMMENT="XMLDB file for local_oksigeniamarandu"
+<XMLDB PATH="local/oksigeniamarandu/db" VERSION="20261024" COMMENT="XMLDB file for local_oksigeniamarandu"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -60,6 +60,59 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="contactid" TYPE="foreign" FIELDS="contactid" REFTABLE="local_oksigeniamarandu_contact" REFFIELDS="id"/>
       </KEYS>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_tpl" COMMENT="The WhatsApp template of each notice in each language, and what Meta says of it">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Plugin that declares the notice"/>
+        <FIELD NAME="notice" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="Notice, as the plugin names it"/>
+        <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="true" SEQUENCE="false" COMMENT="Moodle language of the text"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the template in Meta"/>
+        <FIELD NAME="metaid" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Id Meta gave to the template"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending, approved, rejected, paused or disabled, as Meta says"/>
+        <FIELD NAME="category" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="utility or marketing, as Meta says"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Why Meta rejected it, if it did"/>
+        <FIELD NAME="body" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The text sent to Meta"/>
+        <FIELD NAME="timesubmitted" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="componentnoticelang" UNIQUE="true" FIELDS="component, notice, lang"/>
+        <INDEX NAME="name" UNIQUE="false" FIELDS="name"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_queue" COMMENT="Every notice for every number: waiting, sent, delivered or not">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="notice" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="params" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Values of the template, JSON"/>
+        <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Where the button of the notice goes, on this site"/>
+        <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="The end of the link of the button"/>
+        <FIELD NAME="urgent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="queued" SEQUENCE="false" COMMENT="queued, sent, delivered, read, failed or expired"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="template, paid; text, free inside the 24 hours"/>
+        <FIELD NAME="wamid" TYPE="char" LENGTH="128" NOTNULL="false" SEQUENCE="false" COMMENT="Id Meta gave to the message"/>
+        <FIELD NAME="error" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timequeued" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timeexpires" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timesent" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timedelivered" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timeclicked" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contactid" TYPE="foreign" FIELDS="contactid" REFTABLE="local_oksigeniamarandu_contact" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+        <INDEX NAME="wamid" UNIQUE="false" FIELDS="wamid"/>
+        <INDEX NAME="token" UNIQUE="true" FIELDS="token"/>
+      </INDEXES>
     </TABLE>
   </TABLES>
 </XMLDB>

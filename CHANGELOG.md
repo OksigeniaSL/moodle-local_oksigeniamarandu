@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 (2026-10-24)
+
+- Notices: each plugin declares its own in its lib.php, with their texts in its language packs; Marandu brings a
+  general one («you have a new notice from the site», with a button to read it).
+- Wizard step 3: the texts go to Meta for review as utility templates, one per notice, with a button to the site; the
+  wizard shows what Meta says (in review, approved, rejected and why, moved to marketing), from the webhook or on
+  request.
+- Wizard step 4: which notices go out by WhatsApp, with what they would cost a month.
+- Wizard step 5: the limits as sentences: spending a month (and who is told when it is reached), notices a day for
+  each family, quiet hours and days, and the notices that are urgent.
+- The queue: `api::notify()` queues a notice for everyone who joined for an item or a user; a task sends it when its
+  template is approved, outside the quiet hours and within the limits. Inside the 24 hours after a family wrote, it
+  goes as plain text, which is free. Delivered, read and failed come back from the webhook, and the button of each
+  notice goes through the site.
+
 ## 0.3.2 (2026-10-22)
 
 - Wizard, step 1: each detail of the second part in one row, shorter texts and a wider column for the fields, so that

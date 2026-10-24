@@ -18,6 +18,8 @@ namespace local_oksigeniamarandu;
 
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\keywords;
+use local_oksigeniamarandu\local\notices;
+use local_oksigeniamarandu\local\queue;
 
 /**
  * What other plugins use: a code and a link so that a family or a user joins on WhatsApp, and whether they have.
@@ -25,6 +27,10 @@ use local_oksigeniamarandu\local\keywords;
  * Example, from a plugin that keeps families without a Moodle account:
  *     $code = \local_oksigeniamarandu\api::invite('local_oksigeniameals', $family->id);
  *     $url = \local_oksigeniamarandu\api::optin_url($code); // Opens WhatsApp with «ALTA <code>» written.
+ *
+ * And, once the plugin has declared its notices (see \local_oksigeniamarandu\local\notices):
+ *     \local_oksigeniamarandu\api::notify('local_oksigeniameals', 'menu_missing', ['Ana', 'lunes 3'],
+ *         new moodle_url('/local/oksigeniameals/family.php', ['id' => $family->id]), $family->id);
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -121,5 +127,60 @@ class api {
                                          JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
                                         WHERE l.component = :component AND l.itemid = :itemid AND $usersql
                                               AND c.status = :active", $params);
+    }
+
+    /**
+     * Queues a notice for everyone who joined for an item of a plugin, or for a user.
+     *
+     * It goes out when it can: with its template approved, out of the quiet hours (unless it is urgent) and within the
+     * limits of the site. Inside the 24 hours after a family last wrote, it goes as plain text, which is free.
+     *
+     * @param string $component The plugin that declares the notice.
+     * @param string $notice The notice.
+     * @param string[] $params One value for each {{n}} of its text, in order; plain text.
+     * @param \moodle_url|null $url Where its button goes, on this site.
+     * @param int $itemid The item of the plugin, such as a family; 0 if the notice is for a user.
+     * @param int|null $userid The user, if it is for a user: then every number linked to the user gets it.
+     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param int $validfor Seconds after which it is no longer worth sending.
+     * @return int How many numbers it was queued for.
+     */
+    public static function notify(
+        string $component,
+        string $notice,
+        array $params,
+        ?\moodle_url $url = null,
+        int $itemid = 0,
+        ?int $userid = null,
+        bool $urgent = false,
+        int $validfor = 2 * DAYSECS
+    ): int {
+        global $DB;
+        $declared = notices::get($component, $notice);
+        if (!$declared) {
+            throw new \coding_exception("The notice {$component}/{$notice} is not declared");
+        }
+        if (count($params) !== count($declared->examples)) {
+            throw new \coding_exception("The notice {$component}/{$notice} takes " . count($declared->examples) . ' values');
+        }
+        // WhatsApp refuses values with new lines, tabs or long runs of spaces.
+        $params = array_map(function ($value) {
+            return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, 200);
+        }, array_values($params));
+        if ($userid !== null) {
+            $where = 'l.userid = :userid';
+            $sqlparams = ['userid' => $userid];
+        } else {
+            $where = 'l.component = :component AND l.itemid = :itemid AND l.userid IS NULL';
+            $sqlparams = ['component' => $component, 'itemid' => $itemid];
+        }
+        $contactids = $DB->get_fieldset_sql("SELECT DISTINCT c.id
+                                               FROM {" . consent::LINKS . "} l
+                                               JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+                                              WHERE $where AND c.status = :active", $sqlparams + ['active' => 'active']);
+        foreach ($contactids as $contactid) {
+            queue::add((int)$contactid, $declared, $params, $url ? $url->out(false) : null, $urgent, $validfor);
+        }
+        return count($contactids);
     }
 }

@@ -225,6 +225,31 @@ final class inbound_test extends \advanced_testcase {
     }
 
     /**
+     * The webhook of templates updates what Meta says of them, for the whole account.
+     */
+    public function test_template_updates(): void {
+        global $DB, $CFG;
+        $CFG->lang = 'es';
+        $notice = notices::get('local_oksigeniamarandu', 'notification');
+        $DB->insert_record(templates::TABLE, (object)['component' => $notice->component, 'notice' => $notice->notice,
+            'lang' => 'es', 'name' => notices::template_name($notice), 'status' => 'pending', 'timesubmitted' => 1,
+            'timemodified' => 1]);
+        $update = function (string $field, array $value): array {
+            return ['object' => 'whatsapp_business_account', 'entry' => [['id' => '2220000000',
+                'changes' => [['field' => $field, 'value' => $value]]]]];
+        };
+
+        inbound::handle($update('message_template_status_update', ['event' => 'APPROVED',
+            'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es',
+            'reason' => 'NONE']));
+        inbound::handle($update('template_category_update', ['new_category' => 'MARKETING',
+            'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es']));
+
+        $template = templates::get($notice, 'es');
+        $this->assertSame(['approved', 'marketing', null], [$template->status, $template->category, $template->reason]);
+    }
+
+    /**
      * What goes to another number of the same account, or is not a message, is left alone.
      */
     public function test_other_numbers_and_fields(): void {

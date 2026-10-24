@@ -209,7 +209,7 @@ final class panel_test extends \advanced_testcase {
         $this->assertSame(get_string(
             'panel:how:adminwhy',
             'local_oksigeniamarandu',
-            (object)['who' => fullname($admin), 'why' => 'Asked by phone']
+            (object)['who' => fullname($admin), 'why' => 'asked by phone']
         ), $people->moves[0]->how);
         $this->assertSame(get_string('panel:how:wrote', 'local_oksigeniamarandu', 'ALTA'), $people->moves[1]->how);
         // Nothing says whom the made-up plugin's family is: the number stands in, half hidden.

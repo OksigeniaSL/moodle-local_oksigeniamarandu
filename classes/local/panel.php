@@ -343,7 +343,10 @@ class panel {
             // Who did it and why, as the list keeps it: "<userid>:<reason>".
             [$userid, $reason] = array_pad(explode(':', (string)$entry->detail, 2), 2, '');
             $user = ctype_digit($userid) ? \core_user::get_user((int)$userid) : null;
-            $a = (object)['who' => $user ? fullname($user) : '?', 'why' => trim($reason)];
+            $why = trim($reason);
+            // After a colon, in lower case: «a mano, por Elena: lo pidió por teléfono».
+            $why = \core_text::strtolower(\core_text::substr($why, 0, 1)) . \core_text::substr($why, 1);
+            $a = (object)['who' => $user ? fullname($user) : '?', 'why' => $why];
             return get_string($a->why === '' ? 'panel:how:admin' : 'panel:how:adminwhy', $component, $a);
         }
         if ($entry->source === 'keyword') {

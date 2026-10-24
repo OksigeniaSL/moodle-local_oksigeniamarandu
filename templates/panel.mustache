@@ -38,7 +38,7 @@
             "templatecost": "paid, about 0.02 € each", "free": 46, "fine": "At this pace, about 4.40 €."},
         "failed": [{"time": "20:12", "name": "Menu not chosen", "phone": "+34 6•• •• •• 18", "why": "That number has no WhatsApp."}],
         "nofailed": false,
-        "people": {"active": 212, "pending": 9, "optedout": 6, "moves": [{"time": "today, 18:02", "in": true, "tag": "Joined",
+        "people": {"active": 212, "activelabel": "active", "pending": 9, "pendinglabel": "pending", "optedout": 6, "moves": [{"time": "today, 18:02", "in": true, "tag": "Joined",
             "who": "Family of Lucas", "how": "wrote ALTA"}], "nomoves": false, "listurl": "#"},
         "bynotice": [{"name": "Menu not chosen", "label": "canteen", "count": 96, "percent": "100"}],
         "nonotices": false,
@@ -118,8 +118,8 @@
         <section class="mrd-box">
             <h3>{{#str}} panel:people, local_oksigeniamarandu {{/str}}</h3>
             <div class="mrd-people">
-                <div><b>{{active}}</b><span>{{#str}} panel:people:active, local_oksigeniamarandu {{/str}}</span></div>
-                <div><b>{{pending}}</b><span>{{#str}} panel:people:pending, local_oksigeniamarandu {{/str}}</span></div>
+                <div><b>{{active}}</b><span>{{activelabel}}</span></div>
+                <div><b>{{pending}}</b><span>{{pendinglabel}}</span></div>
                 <div><b>{{optedout}}</b><span>{{#str}} panel:people:optedout, local_oksigeniamarandu {{/str}}</span></div>
             </div>
             <ul class="mrd-moves">

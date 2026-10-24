@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 (2026-10-24)
+
+- The reread of the panel by design: the state in bold, no underline on the links of the header in any mode, one or
+  many in the counts of people («1 pendiente», «9 pendientes»), and the reason of an opt-out in lower case after the
+  colon.
+
 ## 0.6.0 (2026-10-24)
 
 - The panel, the first page of the plugin: whether the notices go out and, if not, the one thing to do (a new token,

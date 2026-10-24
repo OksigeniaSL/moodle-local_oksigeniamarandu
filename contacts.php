@@ -162,7 +162,9 @@ foreach (['all', 'active', 'pending', 'optedout'] as $filter) {
 $donecontact = $done ? $DB->get_record(consent::CONTACTS, ['id' => $done]) : null;
 
 $context = [
-    'lede' => get_string('list:lede', $component, (object)$counts),
+    'lede' => implode(' · ', array_map(function ($status) use ($counts, $component) {
+        return get_string('list:lede:' . $status . ($counts[$status] === 1 ? '_one' : ''), $component, $counts[$status]);
+    }, ['active', 'pending', 'optedout'])),
     'action' => $baseurl->out_omit_querystring(),
     'q' => $q,
     'status' => $status === 'all' ? '' : $status,

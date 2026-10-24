@@ -167,7 +167,9 @@ $context = [
     'nofailed' => !$failed,
     'people' => [
         'active' => $people->active,
+        'activelabel' => get_string($people->active === 1 ? 'panel:people:active_one' : 'panel:people:active', $component),
         'pending' => $people->pending,
+        'pendinglabel' => get_string($people->pending === 1 ? 'panel:people:pending_one' : 'panel:people:pending', $component),
         'optedout' => $people->optedout,
         'moves' => $moves,
         'nomoves' => !$moves,

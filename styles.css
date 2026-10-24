@@ -1140,6 +1140,7 @@
 .local-oksigeniamarandu-links a {
     display: inline-flex;
     line-height: 1.5;
+    text-decoration: none;
     align-items: center;
     gap: 7px;
     padding: 5px 12px 5px 8px;
@@ -1189,6 +1190,7 @@
 .local-oksigeniamarandu-panel .mrd-state h2 {
     margin: 0;
     font-size: 22px;
+    font-weight: 700;
     line-height: 1.25;
 }
 

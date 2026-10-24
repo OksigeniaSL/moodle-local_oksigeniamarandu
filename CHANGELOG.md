@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 (2026-10-24)
+
+- Wizard: on a phone, the progress keeps the same right margin as the content.
+- Wizard: the test number is shown as the person wrote it, in the test step and in the summary.
+
 ## 0.4.0 (2026-10-24)
 
 - Notices: each plugin declares its own in its lib.php, with their texts in its language packs; Marandu brings a

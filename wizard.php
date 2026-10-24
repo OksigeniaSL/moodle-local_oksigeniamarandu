@@ -115,7 +115,7 @@ if ($action === 'connect' && confirm_sesskey()) {
         $errors['phone'] = get_string('error:phone', $component);
     } else {
         try {
-            test_message::start($to, cloud_api::from_config()->send_template($to, 'hello_world', 'en_US'));
+            test_message::start($to, cloud_api::from_config()->send_template($to, 'hello_world', 'en_US'), $typed['phone']);
             redirect(new moodle_url($baseurl, ['step' => 'test']));
         } catch (api_exception $e) {
             $errors['phone'] = $e->getMessage();
@@ -272,7 +272,7 @@ if ($step === 'account') {
         'nexturl' => (new moodle_url($baseurl, ['step' => 'texts']))->out(false),
     ] : false;
     $context['test'] = [
-        'phone' => $typed['phone'] ?? ($state ? '+' . $state['phone'] : ''),
+        'phone' => $typed['phone'] ?? ($state ? $state['typed'] ?? '+' . $state['phone'] : ''),
         'phoneerror' => $errors['phone'] ?? '',
         'sent' => $sent,
         'sitename' => $config->connectedname ?? '',
@@ -375,7 +375,8 @@ if ($step === 'account') {
     $enabled = array_intersect(notices::enabled(), array_keys($allnotices));
     $context['done'] = [
         'account' => trim(($config->connectedname ?? '') . ' · ' . ($config->connectednumber ?? ''), ' ·'),
-        'test' => $state && $state['delivered'] ? get_string('wizard:done:testok', $component, '+' . $state['phone'])
+        'test' => $state && $state['delivered']
+            ? get_string('wizard:done:testok', $component, $state['typed'] ?? '+' . $state['phone'])
             : get_string('wizard:done:testpending', $component),
         'texts' => get_string('wizard:done:texts', $component, (object)[
             'approved' => $approved,

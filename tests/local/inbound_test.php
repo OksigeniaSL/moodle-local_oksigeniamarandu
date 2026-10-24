@@ -199,7 +199,8 @@ final class inbound_test extends \advanced_testcase {
      * The statuses of the test message and an answer from its phone reach the wizard.
      */
     public function test_test_message(): void {
-        test_message::start('34600000001', 'wamid.TEST');
+        test_message::start('34600000001', 'wamid.TEST', ' +34 600 00 00 01 ');
+        $this->assertSame('+34 600 00 00 01', test_message::get()['typed']);
         $statuses = $this->payload('34600000001', 'Recibido');
         $value = &$statuses['entry'][0]['changes'][0]['value'];
         $value['statuses'] = [
@@ -219,6 +220,7 @@ final class inbound_test extends \advanced_testcase {
         test_message::status('wamid.TEST2', 'failed', 'Fake reason');
         test_message::inbound('34600000001');
         $state = test_message::get();
+        $this->assertSame('+34600000002', $state['typed']);
         $this->assertSame('Fake reason', $state['failed']);
         $this->assertEmpty($state['delivered']);
         $this->assertEmpty($state['replied']);

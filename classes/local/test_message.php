@@ -32,9 +32,18 @@ class test_message {
      *
      * @param string $phone Digits with the country code.
      * @param string $wamid The id Meta gave to the message.
+     * @param string $typed The number as the person wrote it, to show it the same way; empty to show the digits.
      */
-    public static function start(string $phone, string $wamid): void {
-        self::save(['phone' => $phone, 'wamid' => $wamid, 'sent' => time(), 'delivered' => 0, 'failed' => '', 'replied' => 0]);
+    public static function start(string $phone, string $wamid, string $typed = ''): void {
+        self::save([
+            'phone' => $phone,
+            'typed' => trim($typed) === '' ? '+' . $phone : trim($typed),
+            'wamid' => $wamid,
+            'sent' => time(),
+            'delivered' => 0,
+            'failed' => '',
+            'replied' => 0,
+        ]);
     }
 
     /**

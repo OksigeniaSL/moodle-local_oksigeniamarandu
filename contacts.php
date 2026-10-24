@@ -15,8 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * The numbers that have joined or left, with whom they stand for, and opting one out when the family asks the site.
- * A plain list until the panel arrives.
+ * The numbers on WhatsApp: search, filter by status, whom each stands for, and opting one out when the family asks the
+ * site, with the reason, in its own row. From the mock-up of the house.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -28,94 +28,170 @@ require_once($CFG->libdir . '/adminlib.php');
 
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\keywords;
-use local_oksigeniamarandu\local\queue;
+use local_oksigeniamarandu\local\panel;
 
-admin_externalpage_setup('local_oksigeniamarandu_contacts');
+admin_externalpage_setup('local_oksigeniamarandu_contacts', '', null, '', ['nosearch' => true]);
 
-$baseurl = new moodle_url('/local/oksigeniamarandu/contacts.php');
+$component = 'local_oksigeniamarandu';
+$now = time();
+$page = 20;
+$reasons = ['phone', 'person', 'mail', 'notfamily', 'other'];
+$q = optional_param('q', '', PARAM_RAW_TRIMMED);
+$status = optional_param('status', 'all', PARAM_ALPHA);
+$status = in_array($status, ['all', 'active', 'pending', 'optedout'], true) ? $status : 'all';
+$shown = max($page, optional_param('shown', $page, PARAM_INT));
+$ask = optional_param('ask', 0, PARAM_INT);
+$done = optional_param('done', 0, PARAM_INT);
+$baseurl = new moodle_url('/local/oksigeniamarandu/contacts.php', array_filter(['q' => $q,
+    'status' => $status === 'all' ? '' : $status]));
+
+// Opting out by hand, with the reason: it stays in the record of consent, with who did it.
+$error = '';
 $optout = optional_param('optout', 0, PARAM_INT);
-if ($optout && ($contact = $DB->get_record(consent::CONTACTS, ['id' => $optout])) && $contact->status !== 'optedout') {
-    // When a family asks the site, by phone or in person: it stays in the record of consent, with who did it.
-    if (optional_param('confirm', 0, PARAM_BOOL) && confirm_sesskey()) {
-        consent::optout($contact->phone, 'admin', 'user:' . $USER->id);
-        redirect(
-            $baseurl,
-            get_string('contacts:optedout', 'local_oksigeniamarandu', '+' . $contact->phone),
-            null,
-            \core\output\notification::NOTIFY_SUCCESS
-        );
+if ($optout && confirm_sesskey() && ($contact = $DB->get_record(consent::CONTACTS, ['id' => $optout]))) {
+    $reason = optional_param('reason', '', PARAM_ALPHA);
+    $other = trim(optional_param('other', '', PARAM_TEXT));
+    if (!in_array($reason, $reasons, true) || ($reason === 'other' && $other === '')) {
+        $error = get_string('list:ask:error', $component);
+        $ask = $contact->id;
+    } else if ($contact->status !== 'optedout') {
+        $why = $reason === 'other' ? $other : get_string('list:reason:' . $reason, $component);
+        consent::optout($contact->phone, 'admin', $USER->id . ':' . core_text::substr($why, 0, 200));
+        redirect(new moodle_url($baseurl, ['done' => $contact->id]));
     }
-    echo $OUTPUT->header();
-    echo $OUTPUT->confirm(
-        get_string('contacts:optout_confirm', 'local_oksigeniamarandu', (object)[
-            'phone' => '+' . $contact->phone,
-            'word' => keywords::first('optinkeywords'),
-        ]),
-        new moodle_url($baseurl, ['optout' => $contact->id, 'confirm' => 1, 'sesskey' => sesskey()]),
-        $baseurl
-    );
-    echo $OUTPUT->footer();
-    die();
 }
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('contacts', 'local_oksigeniamarandu'));
-if ($blocked = queue::blocked()) {
-    echo $OUTPUT->notification(get_string('wizard:blocked', 'local_oksigeniamarandu', s($blocked->message)), 'error');
-}
+$PAGE->set_heading(get_string('contacts', $component));
+$PAGE->set_secondary_navigation(false);
+$PAGE->blocks->show_only_fake_blocks(true);
+$PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/panel_links', ['links' => [
+    ['url' => (new moodle_url('/local/oksigeniamarandu/index.php'))->out(false), 'label' => get_string('list:panel', $component),
+        'art' => ['size' => 22, 'texts' => true]],
+]]));
 
-$contacts = $DB->get_records(consent::CONTACTS, null, 'timemodified DESC', '*', 0, 500);
-if (!$contacts) {
-    echo html_writer::tag('p', get_string('contacts:none', 'local_oksigeniamarandu', keywords::first('optinkeywords')));
-    echo $OUTPUT->footer();
-    die();
-}
-
+// The counts of the whole list, and the numbers that match the search and the filter.
 $counts = $DB->get_records_sql_menu('SELECT status, COUNT(1) FROM {' . consent::CONTACTS . '} GROUP BY status');
-$summary = [];
-foreach (['active', 'pending', 'optedout'] as $status) {
-    $summary[] = get_string('status:' . $status, 'local_oksigeniamarandu') . ': ' . (int)($counts[$status] ?? 0);
+$counts = ['active' => (int)($counts['active'] ?? 0), 'pending' => (int)($counts['pending'] ?? 0),
+    'optedout' => (int)($counts['optedout'] ?? 0)];
+$counts['all'] = array_sum($counts);
+$where = ['1 = 1'];
+$params = [];
+if ($status !== 'all') {
+    $where[] = 'c.status = :status';
+    $params['status'] = $status;
 }
-echo html_writer::tag('p', implode(' · ', $summary));
-
-[$insql, $params] = $DB->get_in_or_equal(array_keys($contacts));
-$links = $DB->get_records_select(consent::LINKS, "contactid $insql", $params);
-$userids = array_filter(array_column($links, 'userid'));
-$users = $userids ? $DB->get_records_list('user', 'id', $userids) : [];
-
-$table = new html_table();
-$table->head = [
-    get_string('contacts:phone', 'local_oksigeniamarandu'),
-    get_string('contacts:name', 'local_oksigeniamarandu'),
-    get_string('contacts:status', 'local_oksigeniamarandu'),
-    get_string('contacts:since', 'local_oksigeniamarandu'),
-    get_string('contacts:standsfor', 'local_oksigeniamarandu'),
-    '',
-];
-foreach ($contacts as $contact) {
-    $for = [];
-    foreach ($links as $link) {
-        if ($link->contactid != $contact->id) {
-            continue;
-        }
-        if ($link->userid && isset($users[$link->userid])) {
-            $for[] = fullname($users[$link->userid]);
-        } else {
-            $for[] = s($link->component) . ($link->itemid ? ' #' . (int)$link->itemid : '');
-        }
+if ($q !== '') {
+    $any = [$DB->sql_like('c.name', ':name', false, false)];
+    $params['name'] = '%' . $DB->sql_like_escape($q) . '%';
+    $digits = preg_replace('/\D/', '', $q);
+    if (strlen($digits) >= 3) {
+        $any[] = $DB->sql_like('c.phone', ':phone');
+        $params['phone'] = '%' . $digits . '%';
     }
-    $time = $contact->status === 'optedout' ? $contact->optouttime : $contact->consenttime;
-    $table->data[] = [
-        s('+' . $contact->phone),
-        s((string)$contact->name),
-        get_string('status:' . $contact->status, 'local_oksigeniamarandu'),
-        $time ? userdate($time, get_string('strftimedatetimeshort', 'langconfig')) : '',
-        $for ? implode(', ', $for) : get_string('contacts:unlinked', 'local_oksigeniamarandu'),
-        $contact->status === 'optedout' ? '' : html_writer::link(
-            new moodle_url($baseurl, ['optout' => $contact->id]),
-            get_string('contacts:optout', 'local_oksigeniamarandu')
-        ),
+    $any[] = 'c.id IN (SELECT l.contactid FROM {' . consent::LINKS . '} l JOIN {user} u ON u.id = l.userid
+                        WHERE ' . $DB->sql_like($DB->sql_fullname('u.firstname', 'u.lastname'), ':user', false, false) . ')';
+    $params['user'] = '%' . $DB->sql_like_escape($q) . '%';
+    $where[] = '(' . implode(' OR ', $any) . ')';
+}
+$where = implode(' AND ', $where);
+$total = $DB->count_records_sql('SELECT COUNT(1) FROM {' . consent::CONTACTS . "} c WHERE $where", $params);
+$contacts = $DB->get_records_sql('SELECT c.* FROM {' . consent::CONTACTS . "} c WHERE $where
+                                   ORDER BY c.timemodified DESC, c.id DESC", $params, 0, $shown);
+
+// Whom each one stands for, and the last move of its consent.
+$whom = panel::standsfor(array_keys($contacts));
+$last = [];
+if ($contacts) {
+    [$insql, $inparams] = $DB->get_in_or_equal(array_keys($contacts));
+    foreach ($DB->get_records_select(consent::LOG, "contactid $insql", $inparams, 'timecreated DESC, id DESC') as $entry) {
+        $last[$entry->contactid] = $last[$entry->contactid] ?? $entry;
+    }
+}
+$chosen = optional_param('reason', 'phone', PARAM_ALPHA);
+$rows = [];
+foreach ($contacts as $contact) {
+    $entry = $last[$contact->id] ?? null;
+    $who = $whom[$contact->id][0] ?? null;
+    $row = [
+        'id' => $contact->id,
+        'phone' => panel::spaced($contact->phone),
+        'name' => (string)$contact->name,
+        // Whom it stands for and what that is; only what it is, if the plugin does not name it.
+        'who' => $who ? ($who->name !== '' ? $who->name : $who->kind) : '',
+        'kind' => $who && $who->name !== '' ? $who->kind : '',
+        'status' => $contact->status,
+        'chip' => get_string('list:chip:' . $contact->status, $component),
+        'since' => panel::when($entry ? (int)$entry->timecreated : (int)$contact->timecreated, $now),
+        'how' => $entry ? panel::how($entry) : get_string('panel:how:pending', $component),
+        'canout' => $contact->status !== 'optedout',
+        'askurl' => (new moodle_url($baseurl, ['ask' => $contact->id, 'shown' => $shown]))->out(false) . '#mrd-' . $contact->id,
+    ];
+    if ($ask == $contact->id && $row['canout']) {
+        $hidden = [];
+        foreach ($baseurl->params() + ['optout' => $contact->id, 'shown' => $shown, 'sesskey' => sesskey()] as $name => $value) {
+            $hidden[] = ['name' => $name, 'value' => $value];
+        }
+        $row['ask'] = [
+            'question' => get_string('list:ask', $component, (object)['phone' => $row['phone'],
+                'who' => $row['who'] !== '' ? ' (' . $row['who'] . ')' : '']),
+            'action' => $baseurl->out_omit_querystring(),
+            'hidden' => $hidden,
+            'reasons' => array_map(function ($reason) use ($component, $chosen) {
+                return ['value' => $reason, 'label' => get_string('list:reason:' . $reason, $component),
+                    'selected' => $reason === $chosen];
+            }, $reasons),
+            'other' => optional_param('other', '', PARAM_TEXT),
+            'otheropen' => $chosen === 'other',
+            'error' => $error,
+            'cancel' => (new moodle_url($baseurl, ['shown' => $shown]))->out(false) . '#mrd-' . $contact->id,
+        ];
+    }
+    $rows[] = $row;
+}
+
+$filters = [];
+foreach (['all', 'active', 'pending', 'optedout'] as $filter) {
+    $filters[] = [
+        'url' => (new moodle_url('/local/oksigeniamarandu/contacts.php', array_filter(['q' => $q,
+            'status' => $filter === 'all' ? '' : $filter])))->out(false),
+        'label' => get_string('list:filter:' . $filter, $component),
+        'count' => $counts[$filter],
+        'current' => $filter === $status,
     ];
 }
-echo html_writer::table($table);
+$donecontact = $done ? $DB->get_record(consent::CONTACTS, ['id' => $done]) : null;
+
+$context = [
+    'lede' => get_string('list:lede', $component, (object)$counts),
+    'action' => $baseurl->out_omit_querystring(),
+    'q' => $q,
+    'status' => $status === 'all' ? '' : $status,
+    'filters' => $filters,
+    'hasany' => $counts['all'] > 0,
+    'count' => get_string($total === 1 ? 'list:count:one' : 'list:count:many', $component, $total),
+    'done' => $donecontact && $donecontact->status === 'optedout'
+        ? get_string('list:done', $component, panel::spaced($donecontact->phone)) : '',
+    'rows' => $rows,
+    'hasrows' => (bool)$rows,
+    'more' => $total > $shown ? [
+        'shown' => get_string('list:shown', $component, (object)['shown' => $shown, 'total' => $total]),
+        'url' => (new moodle_url($baseurl, ['shown' => $shown + $page]))->out(false),
+        'label' => get_string('list:more', $component, $page),
+    ] : null,
+    'none' => $counts['all'] === 0 ? [
+        'text' => get_string('list:none_desc', $component, keywords::first('optinkeywords')),
+        'url' => (new moodle_url('/local/oksigeniamarandu/wizard.php', ['step' => 'done']))->out(false),
+        'size' => 56,
+        'nonumbers' => true,
+    ] : null,
+    'nothing' => $counts['all'] > 0 && !$rows ? [
+        'title' => $q !== '' ? get_string('list:nothing:q', $component, $q) : get_string('list:nothing:filter', $component),
+        'clear' => (new moodle_url('/local/oksigeniamarandu/contacts.php'))->out(false),
+        'size' => 56,
+        'noresults' => true,
+    ] : null,
+];
+
+echo $OUTPUT->header();
+echo $OUTPUT->render_from_template('local_oksigeniamarandu/contacts', $context);
 echo $OUTPUT->footer();

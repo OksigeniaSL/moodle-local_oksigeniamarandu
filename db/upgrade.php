@@ -75,5 +75,15 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102402, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026102403) {
+        // 0.6.0: the error code of Meta, for the panel to tell why a notice failed.
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $field = new xmldb_field('errorcode', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'error');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026102403, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

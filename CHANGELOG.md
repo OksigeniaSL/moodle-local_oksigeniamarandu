@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 (2026-10-24)
+
+- The panel, the first page of the plugin: whether the notices go out and, if not, the one thing to do (a new token,
+  the restriction or the payment in Meta, the limit of the month); today, from sent to read, and what waits and why;
+  the month against the limit, at this pace; what failed, with the reason in plain words; who joined or left, and how;
+  and how many notices of each kind went out.
+- The list of numbers: search by a part of the number or by name, filters by status with their counts, twenty at a
+  time, one card per number on a phone, and opting a number out in its own row, with the reason.
+- Each plugin can say what it is about and what its items are, in its own words (`marandu:label`, `marandu:item`),
+  for the panel and the list.
+- A notice that fails keeps the error code of Meta, for the panel to tell why; the page where a family joins no longer
+  breaks if the plugin that asked for the code has been uninstalled.
+
 ## 0.5.0 (2026-10-24)
 
 - The queue tries again after errors that pass (Meta busy, too many messages, the network): after 1, 5, 15 and 60

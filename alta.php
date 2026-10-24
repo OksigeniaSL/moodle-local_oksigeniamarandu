@@ -77,8 +77,7 @@ if ($link && $link->userid) {
     $user = core_user::get_user($link->userid);
     $for = $user ? fullname($user) : '';
 } else if ($link && $link->component !== 'core') {
-    $label = component_callback($link->component, 'oksigeniamarandu_label', [(int)$link->itemid], null);
-    $for = is_string($label) ? $label : '';
+    $for = (string)\local_oksigeniamarandu\local\notices::item_label($link->component, (int)$link->itemid);
 }
 
 $initials = '';

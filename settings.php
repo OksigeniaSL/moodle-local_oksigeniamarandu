@@ -31,6 +31,12 @@ if ($hassiteconfig) {
     ));
 
     $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
+        'local_oksigeniamarandu_panel',
+        new lang_string('panel', 'local_oksigeniamarandu'),
+        new moodle_url('/local/oksigeniamarandu/index.php')
+    ));
+
+    $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
         'local_oksigeniamarandu_wizard',
         new lang_string('wizard', 'local_oksigeniamarandu'),
         new moodle_url('/local/oksigeniamarandu/wizard.php')

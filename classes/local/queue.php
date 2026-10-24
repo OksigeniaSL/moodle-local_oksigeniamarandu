@@ -205,7 +205,7 @@ class queue {
                     ]);
                     $counts['waiting']++;
                 } else {
-                    self::finish($row, $now, 'failed', $free ? 'text' : 'template', null, $e->getMessage());
+                    self::finish($row, $now, 'failed', $free ? 'text' : 'template', null, $e->getMessage(), $e->metacode);
                     $counts['failed']++;
                 }
             }
@@ -291,8 +291,9 @@ class queue {
      * @param string $wamid The id of the message.
      * @param string $status sent, delivered, read or failed.
      * @param string $error What Meta says when it fails.
+     * @param int|null $code The error code of Meta, when it fails.
      */
-    public static function status(string $wamid, string $status, string $error = ''): void {
+    public static function status(string $wamid, string $status, string $error = '', ?int $code = null): void {
         global $DB;
         if ($wamid === '' || !($row = $DB->get_record(self::TABLE, ['wamid' => $wamid]))) {
             return;
@@ -303,6 +304,7 @@ class queue {
         } else if ($status === 'failed') {
             $row->status = 'failed';
             $row->error = \core_text::substr($error === '' ? 'failed' : $error, 0, 255);
+            $row->errorcode = $code;
         } else {
             return;
         }
@@ -346,6 +348,28 @@ class queue {
         }
         $now = (int)$date->format('Hi');
         return $from > $to ? ($now >= $from || $now < $to) : ($now >= $from && $now < $to);
+    }
+
+    /**
+     * When the quiet hours or days that hold a time end, in steps of five minutes; the time itself if it is not quiet.
+     *
+     * @param int $time The time.
+     * @return int
+     */
+    public static function quiet_end(int $time): int {
+        $end = $time;
+        // A week and a day is longer than any quiet the site can set.
+        while (self::is_quiet($end) && $end < $time + 8 * DAYSECS) {
+            $end += 5 * MINSECS;
+        }
+        if ($end === $time) {
+            return $time;
+        }
+        // On the minute the quiet ends, not five minutes after it.
+        while ($end - MINSECS > $time && !self::is_quiet($end - MINSECS)) {
+            $end -= MINSECS;
+        }
+        return $end;
     }
 
     /**
@@ -405,6 +429,7 @@ class queue {
      * @param string|null $kind template or text.
      * @param string|null $wamid The id of the message.
      * @param string|null $error Why, if it did not go.
+     * @param int|null $code The error code of Meta, if it gave one.
      */
     private static function finish(
         \stdClass $row,
@@ -412,14 +437,17 @@ class queue {
         string $status,
         ?string $kind,
         ?string $wamid,
-        ?string $error = null
+        ?string $error = null,
+        ?int $code = null
     ): void {
         global $DB;
         $row->status = $status;
         $row->kind = $kind;
         $row->wamid = $wamid;
         $row->error = $error === null ? null : \core_text::substr(strip_tags($error), 0, 255);
-        $row->timesent = $status === 'sent' ? $now : null;
+        $row->errorcode = $code;
+        // When it went out or failed: the panel counts both by day.
+        $row->timesent = $status === 'sent' || $status === 'failed' ? $now : null;
         $row->timeretry = null;
         $DB->update_record(self::TABLE, $row);
     }

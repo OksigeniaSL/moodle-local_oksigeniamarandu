@@ -15,7 +15,8 @@ de WhatsApp Business del propio sitio: solo a quien ha dado su consentimiento, c
 
 **Pre-alfa.** El sitio conecta su cuenta de WhatsApp con un asistente, las familias se dan de alta o de baja
 escribiendo una palabra a su número, y los plugins del sitio mandan sus avisos con plantillas aprobadas por Meta,
-dentro de los topes que pone el sitio. Cada versión es pequeña y se prueba antes de publicarla. No es para sitios en
+dentro de los topes que pone el sitio. Un panel dice de un vistazo si los avisos salen, y una lista guarda los números y
+su consentimiento. Cada versión es pequeña y se prueba antes de publicarla. No es para sitios en
 producción.
 
 ## Lo que hace falta

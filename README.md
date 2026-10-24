@@ -15,7 +15,7 @@ own official WhatsApp Business account: only to people who opted in, with a spen
 
 **Pre-alpha.** The site connects its WhatsApp account with a wizard, people join or leave by writing a word to its
 number, and the plugins of the site send their notices with templates approved by Meta, within the limits the site
-sets. Each version is small and tested before it is released. Not for production sites.
+sets. A panel tells at a glance whether the notices go out, and a list keeps the numbers and their consent. Each version is small and tested before it is released. Not for production sites.
 
 ## What you need
 

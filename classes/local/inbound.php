@@ -90,8 +90,9 @@ class inbound {
                         $id = (string)($status['id'] ?? '');
                         $what = (string)($status['status'] ?? '');
                         $error = (string)($status['errors'][0]['title'] ?? '');
+                        $code = isset($status['errors'][0]['code']) ? (int)$status['errors'][0]['code'] : null;
                         test_message::status($id, $what, $error);
-                        queue::status($id, $what, $error);
+                        queue::status($id, $what, $error, $code);
                     }
                 }
             }

@@ -1,0 +1,141 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/contacts
+
+    The list of numbers: search, filters with their counts, one row (one card on a phone) per number, and opting one
+    out in its own row, with the reason.
+
+    Context variables required for this template:
+    * lede, count, done - Sentences.
+    * action, q, status - The search form.
+    * filters - Each with url, label, count and current.
+    * hasany, hasrows - Whether there are numbers at all, and in this search.
+    * rows - Each with id, phone, name, who, kind, status, chip, since, how, canout, askurl and, when asked, ask
+      (question, action, hidden, reasons, other, otheropen, error and cancel).
+    * more - shown, url and label, when there are more.
+    * none, nothing - The empty list, and a search with nothing.
+
+    Example context (json):
+    {
+        "lede": "212 active · 9 pending · 6 opted out", "count": "227 numbers", "done": "",
+        "action": "#", "q": "", "status": "",
+        "filters": [{"url": "#", "label": "All", "count": 227, "current": true}],
+        "hasany": true, "hasrows": true,
+        "rows": [{"id": 1, "phone": "+34 600 23 86 70", "name": "Irene", "who": "Irene Medina Blanco", "kind": "Moodle user",
+            "status": "active", "chip": "Active", "since": "today, 13:56", "how": "wrote ALTA", "canout": true, "askurl": "#"}],
+        "more": null, "none": null, "nothing": null
+    }
+}}
+<div class="local-oksigeniamarandu-panel local-oksigeniamarandu-list">
+    <p class="mrd-lede">{{lede}}</p>
+    {{#hasany}}
+    <div class="mrd-tools">
+        <form class="mrd-search" method="get" action="{{action}}" role="search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L21 21"/></svg>
+            <label class="visually-hidden sr-only" for="mrd-q">{{#str}} list:search, local_oksigeniamarandu {{/str}}</label>
+            <input id="mrd-q" type="search" name="q" value="{{q}}" placeholder="{{#str}} list:search, local_oksigeniamarandu {{/str}}">
+            {{#status}}<input type="hidden" name="status" value="{{status}}">{{/status}}
+        </form>
+        <nav class="mrd-filter" aria-label="{{#str}} list:filter, local_oksigeniamarandu {{/str}}">
+            {{#filters}}
+                <a class="btn" href="{{url}}" {{#current}}aria-current="true"{{/current}}>{{label}}<small>{{count}}</small></a>
+            {{/filters}}
+        </nav>
+    </div>
+    {{#done}}<p class="mrd-done" role="status">{{done}}</p>{{/done}}
+    {{#hasrows}}
+    <p class="mrd-count">{{count}}</p>
+    <table class="mrd-table table-reboot">
+        <thead>
+            <tr>
+                <th scope="col">{{#str}} list:col:phone, local_oksigeniamarandu {{/str}}</th>
+                <th scope="col">{{#str}} list:col:name, local_oksigeniamarandu {{/str}}</th>
+                <th scope="col">{{#str}} list:col:who, local_oksigeniamarandu {{/str}}</th>
+                <th scope="col">{{#str}} list:col:status, local_oksigeniamarandu {{/str}}</th>
+                <th scope="col">{{#str}} list:col:since, local_oksigeniamarandu {{/str}}</th>
+                <th scope="col"><span class="visually-hidden sr-only">{{#str}} list:optout, local_oksigeniamarandu {{/str}}</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#rows}}
+            <tr class="mrd-row" id="mrd-{{id}}">
+                <td class="num">{{phone}}</td>
+                <td class="nm">{{#name}}{{name}}{{/name}}{{^name}}<span class="none">{{#str}} list:noname, local_oksigeniamarandu {{/str}}</span>{{/name}}</td>
+                <td class="who">{{#who}}{{who}}{{#kind}}<small><i class="dot">· </i>{{kind}}</small>{{/kind}}{{/who}}{{^who}}<span class="none">{{#str}} list:unlinked, local_oksigeniamarandu {{/str}}</span>{{/who}}</td>
+                <td class="st"><span class="mrd-chip {{status}}">{{chip}}</span></td>
+                <td class="since">{{since}}<small>{{how}}</small></td>
+                <td class="act">{{#canout}}{{^ask}}<a class="btn mrd-btn second small" href="{{askurl}}">{{#str}} list:optout, local_oksigeniamarandu {{/str}}</a>{{/ask}}{{/canout}}</td>
+            </tr>
+            {{#ask}}
+            <tr class="ask">
+                <td colspan="6">
+                    <form class="mrd-ask" method="post" action="{{action}}" aria-label="{{question}}">
+                        {{#hidden}}<input type="hidden" name="{{name}}" value="{{value}}">{{/hidden}}
+                        <p><b>{{question}}</b> {{#str}} list:ask:what, local_oksigeniamarandu {{/str}}</p>
+                        <label>{{#str}} list:ask:reason, local_oksigeniamarandu {{/str}}
+                            <select name="reason" data-mrd-reason>
+                                {{#reasons}}<option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>{{/reasons}}
+                            </select>
+                        </label>
+                        <label data-mrd-other {{^otheropen}}hidden{{/otheropen}}>{{#str}} list:ask:other, local_oksigeniamarandu {{/str}}
+                            <input type="text" name="other" value="{{other}}" maxlength="200">
+                        </label>
+                        <button type="submit" class="btn mrd-btn danger small">{{#str}} list:optout, local_oksigeniamarandu {{/str}}</button>
+                        <a class="btn mrd-btn link" href="{{cancel}}">{{#str}} cancel {{/str}}</a>
+                        {{#error}}<p class="mrd-err" role="alert">{{error}}</p>{{/error}}
+                    </form>
+                </td>
+            </tr>
+            {{/ask}}
+            {{/rows}}
+        </tbody>
+    </table>
+    {{#more}}
+    <p class="mrd-more"><span>{{shown}}</span><a class="btn mrd-btn second small" href="{{url}}">{{label}}</a></p>
+    {{/more}}
+    {{/hasrows}}
+    {{/hasany}}
+    {{#none}}
+    <div class="mrd-empty">
+        <span class="mrd-emptyart">{{> local_oksigeniamarandu/art }}</span>
+        <h3>{{#str}} list:none, local_oksigeniamarandu {{/str}}</h3>
+        <p>{{text}}</p>
+        <a class="btn mrd-btn second" href="{{url}}">{{#str}} list:none_how, local_oksigeniamarandu {{/str}}</a>
+    </div>
+    {{/none}}
+    {{#nothing}}
+    <div class="mrd-empty">
+        <span class="mrd-emptyart">{{> local_oksigeniamarandu/art }}</span>
+        <h3>{{title}}</h3>
+        <p>{{#str}} list:nothing_desc, local_oksigeniamarandu {{/str}}</p>
+        <a class="btn mrd-btn second" href="{{clear}}">{{#str}} list:nothing_clear, local_oksigeniamarandu {{/str}}</a>
+    </div>
+    {{/nothing}}
+</div>
+{{#js}}
+document.querySelectorAll('.local-oksigeniamarandu-list [data-mrd-reason]').forEach(function(select) {
+    var other = select.closest('form').querySelector('[data-mrd-other]');
+    select.addEventListener('change', function() {
+        other.hidden = select.value !== 'other';
+        if (!other.hidden) {
+            other.querySelector('input').focus();
+        }
+    });
+});
+{{/js}}

@@ -34,6 +34,11 @@ namespace local_oksigeniamarandu\local;
  *         can choose it at the link.';
  *     $string['marandu:menu_missing_button'] = 'Choose the menu';              // The button, up to 25 characters.
  *
+ * and, optionally, what the plugin is and what its items are for whoever runs the site, in its own words:
+ *
+ *     $string['marandu:label'] = 'canteen';                    // Beside the name of each notice, in the panel.
+ *     $string['marandu:item'] = 'a family of the canteen';     // Under whom a number stands for, in the list.
+ *
  * The examples are the values Meta sees when it reviews the text: made up, one for each {{n}}. Perweek is how many of
  * these notices a family gets in a usual week, to estimate the cost.
  *
@@ -92,6 +97,64 @@ class notices {
     public static function text(\stdClass $notice, string $part = '', ?string $lang = null): string {
         $id = 'marandu:' . $notice->notice . ($part === '' ? '' : '_' . $part);
         return get_string_manager()->get_string($id, $notice->component, null, $lang);
+    }
+
+    /**
+     * What a notice is about, for whoever runs the site: its own label, the label of its plugin, or the plugin's name.
+     *
+     * @param \stdClass $notice The notice.
+     * @return string
+     */
+    public static function label(\stdClass $notice): string {
+        $strings = get_string_manager();
+        foreach (['marandu:' . $notice->notice . '_label', 'marandu:label'] as $id) {
+            if ($strings->string_exists($id, $notice->component)) {
+                return get_string($id, $notice->component);
+            }
+        }
+        return self::pluginname($notice->component);
+    }
+
+    /**
+     * What the items of a plugin are, under whom a number stands for: «a family of the canteen».
+     *
+     * @param string $component The plugin.
+     * @return string
+     */
+    public static function item(string $component): string {
+        $strings = get_string_manager();
+        foreach (['marandu:item', 'marandu:label'] as $id) {
+            if ($strings->string_exists($id, $component)) {
+                return get_string($id, $component);
+            }
+        }
+        return self::pluginname($component);
+    }
+
+    /**
+     * Whom an item of a plugin stands for, as the plugin names it in <component>_oksigeniamarandu_label(int $itemid) in
+     * its lib.php (for example, «Family of Ana»); null if it does not, or if the plugin is not installed any more.
+     *
+     * @param string $component The plugin.
+     * @param int $itemid Its item.
+     * @return string|null
+     */
+    public static function item_label(string $component, int $itemid): ?string {
+        if ($component === 'core' || \core_component::get_component_directory($component) === null) {
+            return null;
+        }
+        $label = component_callback($component, 'oksigeniamarandu_label', [$itemid], null);
+        return is_string($label) && $label !== '' ? $label : null;
+    }
+
+    /**
+     * The name of a plugin, or its component if it is not installed any more.
+     *
+     * @param string $component The plugin.
+     * @return string
+     */
+    private static function pluginname(string $component): string {
+        return get_string_manager()->string_exists('pluginname', $component) ? get_string('pluginname', $component) : $component;
     }
 
     /**

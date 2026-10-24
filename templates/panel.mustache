@@ -1,0 +1,145 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/panel
+
+    The panel: the state first and alone, then today, the month, what failed, who joined or left, and each notice.
+
+    Context variables required for this template:
+    * state - kind, title, text, art, bad or cap (for its colour) and actions (url, label, primary).
+    * today - until, sent, delivered, read, failed, waits (count, label, when) and nowait.
+    * month - name, spent, cap, spentpercent, likelypercent, full, scale, templates, templatecost, free and fine.
+    * failed - Each with time, name, phone and why; nofailed when there is none.
+    * people - active, pending, optedout, moves (time, in, tag, who, how), nomoves and listurl.
+    * bynotice - Each with name, label, count and percent; nonotices when there is none; total.
+
+    Example context (json):
+    {
+        "state": {"kind": "ok", "title": "Everything running", "text": "Quiet hours now.", "art": {"size": 56, "running": true},
+            "actions": []},
+        "today": {"until": "until 20:40", "sent": 38, "delivered": 35, "read": 27, "failed": 2,
+            "waits": [{"count": 5, "label": "Quiet hours", "when": "tomorrow, 08:00"}], "nowait": false},
+        "month": {"name": "October, roughly", "spent": "3.40 €", "cap": "of a 10.00 € limit", "spentpercent": "34",
+            "likelypercent": "44", "full": false, "scale": ["0.00 €", "5.00 €", "10.00 €"], "templates": 170,
+            "templatecost": "paid, about 0.02 € each", "free": 46, "fine": "At this pace, about 4.40 €."},
+        "failed": [{"time": "20:12", "name": "Menu not chosen", "phone": "+34 6•• •• •• 18", "why": "That number has no WhatsApp."}],
+        "nofailed": false,
+        "people": {"active": 212, "pending": 9, "optedout": 6, "moves": [{"time": "today, 18:02", "in": true, "tag": "Joined",
+            "who": "Family of Lucas", "how": "wrote ALTA"}], "nomoves": false, "listurl": "#"},
+        "bynotice": [{"name": "Menu not chosen", "label": "canteen", "count": 96, "percent": "100"}],
+        "nonotices": false,
+        "total": "this month · 96 in all"
+    }
+}}
+<div class="local-oksigeniamarandu-panel">
+    {{#state}}
+    <section class="mrd-state{{#bad}} bad{{/bad}}{{#cap}} cap{{/cap}}" aria-live="polite">
+        <span class="mrd-stateart">{{#art}}{{> local_oksigeniamarandu/art }}{{/art}}</span>
+        <div>
+            <h2>{{title}}</h2>
+            <p>{{text}}</p>
+        </div>
+        {{#actions.0}}
+        <div class="mrd-act">
+            {{#actions}}
+                <a class="btn mrd-btn {{#primary}}primary{{/primary}}{{^primary}}link{{/primary}}" href="{{url}}">{{label}}</a>
+            {{/actions}}
+        </div>
+        {{/actions.0}}
+    </section>
+    {{/state}}
+
+    <div class="mrd-grid">
+        {{#today}}
+        <section class="mrd-box">
+            <h3>{{#str}} panel:today, local_oksigeniamarandu {{/str}} <span>{{until}}</span></h3>
+            <ul class="mrd-flow">
+                <li><b>{{sent}}</b><span>{{#str}} panel:today:sent, local_oksigeniamarandu {{/str}}</span></li>
+                <li><b>{{delivered}}</b><span>{{#str}} panel:today:delivered, local_oksigeniamarandu {{/str}}</span></li>
+                <li><b>{{read}}</b><span>{{#str}} panel:today:read, local_oksigeniamarandu {{/str}}</span></li>
+                <li class="off"><b>{{failed}}</b><span>{{#str}} panel:today:failed, local_oksigeniamarandu {{/str}}</span></li>
+            </ul>
+            <ul class="mrd-wait">
+                <li class="lead">{{#str}} panel:waiting, local_oksigeniamarandu {{/str}}</li>
+                {{#waits}}
+                    <li><b>{{count}}</b><span>{{label}}</span><span>{{when}}</span></li>
+                {{/waits}}
+                {{#nowait}}
+                    <li class="none">{{#str}} panel:waiting:none, local_oksigeniamarandu {{/str}}</li>
+                {{/nowait}}
+            </ul>
+        </section>
+        {{/today}}
+
+        {{#month}}
+        <section class="mrd-box">
+            <h3>{{#str}} panel:month, local_oksigeniamarandu {{/str}} <span>{{name}}</span></h3>
+            <div class="mrd-money"><b>{{spent}}</b> <span>{{cap}}</span></div>
+            <div class="mrd-gauge{{#full}} full{{/full}}" aria-hidden="true">
+                <i class="likely" style="width: {{likelypercent}}%"></i>
+                <i style="width: {{spentpercent}}%"></i>
+            </div>
+            {{#scale.0}}
+            <div class="mrd-scale">{{#scale}}<span>{{.}}</span>{{/scale}}</div>
+            {{/scale.0}}
+            <ul class="mrd-split">
+                <li><b>{{templates}}</b><span>{{#str}} panel:month:paid, local_oksigeniamarandu {{/str}} <small>· {{templatecost}}</small></span></li>
+                <li><b>{{free}}</b><span>{{#str}} panel:month:freename, local_oksigeniamarandu {{/str}} <small>· {{#str}} panel:month:free, local_oksigeniamarandu {{/str}}</small></span></li>
+            </ul>
+            <p class="mrd-fine">{{fine}}</p>
+        </section>
+        {{/month}}
+
+        <section class="mrd-box">
+            <h3>{{#str}} panel:failed, local_oksigeniamarandu {{/str}} <span>{{#str}} panel:failed:last, local_oksigeniamarandu {{/str}}</span></h3>
+            <ul class="mrd-failed">
+                {{#failed}}
+                    <li><time>{{time}}</time><div><b>{{name}}</b> <span class="num">· {{phone}}</span><span class="why">{{why}}</span></div></li>
+                {{/failed}}
+            </ul>
+            {{#nofailed}}<p class="mrd-none">{{#str}} panel:failed:none, local_oksigeniamarandu {{/str}}</p>{{/nofailed}}
+        </section>
+
+        {{#people}}
+        <section class="mrd-box">
+            <h3>{{#str}} panel:people, local_oksigeniamarandu {{/str}}</h3>
+            <div class="mrd-people">
+                <div><b>{{active}}</b><span>{{#str}} panel:people:active, local_oksigeniamarandu {{/str}}</span></div>
+                <div><b>{{pending}}</b><span>{{#str}} panel:people:pending, local_oksigeniamarandu {{/str}}</span></div>
+                <div><b>{{optedout}}</b><span>{{#str}} panel:people:optedout, local_oksigeniamarandu {{/str}}</span></div>
+            </div>
+            <ul class="mrd-moves">
+                {{#moves}}
+                    <li><time>{{time}}</time><span class="mrd-tag {{#in}}in{{/in}}{{^in}}out{{/in}}">{{tag}}</span><span>{{who}} <small>· {{how}}</small></span></li>
+                {{/moves}}
+            </ul>
+            {{#nomoves}}<p class="mrd-none">{{#str}} panel:people:none, local_oksigeniamarandu {{/str}}</p>{{/nomoves}}
+            <a class="btn mrd-btn second small" href="{{listurl}}">{{#str}} panel:people:list, local_oksigeniamarandu {{/str}}</a>
+        </section>
+        {{/people}}
+
+        <section class="mrd-box mrd-wide">
+            <h3>{{#str}} panel:bynotice, local_oksigeniamarandu {{/str}} <span>{{total}}</span></h3>
+            <ul class="mrd-bars">
+                {{#bynotice}}
+                    <li><span>{{name}} <small>· {{label}}</small></span><b>{{count}}</b><em><i style="width: {{percent}}%"></i></em></li>
+                {{/bynotice}}
+            </ul>
+            {{#nonotices}}<p class="mrd-none">{{#str}} panel:bynotice:none, local_oksigeniamarandu {{/str}}</p>{{/nonotices}}
+        </section>
+    </div>
+</div>

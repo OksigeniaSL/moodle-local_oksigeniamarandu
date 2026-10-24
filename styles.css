@@ -30,6 +30,8 @@
 
 #page-header .header-action:has(.local-oksigeniamarandu-progress) {
     width: 100%;
+    /* The ms-2 of Moodle is important, and with the full width it pushes the progress out of the page on a phone. */
+    /* stylelint-disable-next-line declaration-no-important */
     margin-left: 0 !important;
 }
 

@@ -66,7 +66,7 @@ $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/panel_links', ['links' => [
     ['url' => (new moodle_url('/local/oksigeniamarandu/index.php'))->out(false), 'label' => get_string('list:panel', $component),
-        'art' => ['size' => 22, 'texts' => true]],
+        'art' => ['size' => 22, 'stroke' => 4.65, 'texts' => true]],
 ]]));
 
 // The counts of the whole list, and the numbers that match the search and the filter.
@@ -181,13 +181,13 @@ $context = [
     'none' => $counts['all'] === 0 ? [
         'text' => get_string('list:none_desc', $component, keywords::first('optinkeywords')),
         'url' => (new moodle_url('/local/oksigeniamarandu/wizard.php', ['step' => 'done']))->out(false),
-        'size' => 56,
+        'size' => 56, 'stroke' => 1.83,
         'nonumbers' => true,
     ] : null,
     'nothing' => $counts['all'] > 0 && !$rows ? [
         'title' => $q !== '' ? get_string('list:nothing:q', $component, $q) : get_string('list:nothing:filter', $component),
         'clear' => (new moodle_url('/local/oksigeniamarandu/contacts.php'))->out(false),
-        'size' => 56,
+        'size' => 56, 'stroke' => 1.83,
         'noresults' => true,
     ] : null,
 ];

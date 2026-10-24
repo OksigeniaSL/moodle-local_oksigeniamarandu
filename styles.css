@@ -1170,12 +1170,6 @@
     color: var(--mrd-accent-ink);
 }
 
-.local-oksigeniamarandu-links svg *,
-.local-oksigeniamarandu-panel .mrd-art * {
-    vector-effect: non-scaling-stroke;
-    stroke-width: 1.6px;
-}
-
 /* 1. The state, first and alone: what is happening and, if something is wrong, the one thing to do. */
 .local-oksigeniamarandu-panel .mrd-state {
     display: grid;
@@ -1500,8 +1494,8 @@
     border: 0;
 }
 
-.local-oksigeniamarandu-panel .mrd-failed time,
-.local-oksigeniamarandu-panel .mrd-moves time {
+.local-oksigeniamarandu-panel .mrd-failed .mrd-when,
+.local-oksigeniamarandu-panel .mrd-moves .mrd-when {
     color: var(--mrd-muted);
     font-size: 13.5px;
     font-variant-numeric: tabular-nums;

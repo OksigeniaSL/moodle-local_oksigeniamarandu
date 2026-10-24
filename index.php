@@ -44,11 +44,11 @@ $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/panel_links', ['links' => [
     ['url' => $listurl->out(false), 'label' => get_string('panel:numbers', $component),
-        'count' => $DB->count_records(consent::CONTACTS), 'art' => ['size' => 22, 'numbers' => true]],
+        'count' => $DB->count_records(consent::CONTACTS), 'art' => ['size' => 22, 'stroke' => 4.65, 'numbers' => true]],
     ['url' => (new moodle_url($wizard, ['step' => 'texts']))->out(false), 'label' => get_string('panel:texts', $component),
-        'art' => ['size' => 22, 'texts' => true]],
+        'art' => ['size' => 22, 'stroke' => 4.65, 'texts' => true]],
     ['url' => $wizard->out(false), 'label' => get_string('panel:settings', $component),
-        'art' => ['size' => 22, 'settings' => true]],
+        'art' => ['size' => 22, 'stroke' => 4.65, 'settings' => true]],
 ]]));
 
 // 1. The state, first and alone.
@@ -58,7 +58,7 @@ $waiting = get_string($state->waiting === 1 ? 'panel:waiting:one' : 'panel:waiti
 $box = ['kind' => $state->kind, 'actions' => []];
 if ($state->kind === 'notready') {
     $box += ['title' => get_string('panel:notready', $component), 'text' => get_string('panel:notready_desc', $component),
-        'art' => ['size' => 56, 'settings' => true]];
+        'art' => ['size' => 56, 'stroke' => 1.83, 'settings' => true]];
     $box['actions'][] = ['url' => $wizard->out(false), 'label' => get_string('panel:fix:setup', $component), 'primary' => true];
 } else if ($state->kind === 'blocked') {
     $text = [
@@ -68,7 +68,7 @@ if ($state->kind === 'notready') {
         'account' => get_string('panel:blocked:account_desc', $component, $state->message),
     ][$state->what];
     $box += ['bad' => true, 'title' => get_string('panel:blocked:' . $state->what, $component),
-        'text' => $text . ' ' . ($state->waiting ? $waiting : ''), 'art' => ['size' => 56, 'stopped' => true]];
+        'text' => $text . ' ' . ($state->waiting ? $waiting : ''), 'art' => ['size' => 56, 'stroke' => 1.83, 'stopped' => true]];
     if ($state->what === 'token' || $state->what === 'account') {
         $box['actions'][] = ['url' => (new moodle_url($wizard, ['step' => 'account', 'edit' => 1]))->out(false),
             'label' => get_string('panel:fix:token', $component), 'primary' => true];
@@ -85,7 +85,7 @@ if ($state->kind === 'notready') {
     $next = new DateTime('@' . $now);
     $next->setTimezone(core_date::get_server_timezone_object());
     $next->modify('first day of next month midnight');
-    $box += ['cap' => true, 'art' => ['size' => 56, 'cap' => true],
+    $box += ['cap' => true, 'art' => ['size' => 56, 'stroke' => 1.83, 'cap' => true],
         'title' => get_string('panel:cap', $component, (object)['spent' => $money($month->spent), 'cap' => $money($month->cap)]),
         'text' => get_string(
             'panel:cap_desc',
@@ -95,7 +95,7 @@ if ($state->kind === 'notready') {
     $box['actions'][] = ['url' => (new moodle_url($wizard, ['step' => 'limits']))->out(false),
         'label' => get_string('panel:fix:cap', $component), 'primary' => true];
 } else {
-    $box += ['title' => get_string('panel:ok', $component), 'art' => ['size' => 56, 'running' => true],
+    $box += ['title' => get_string('panel:ok', $component), 'art' => ['size' => 56, 'stroke' => 1.83, 'running' => true],
         'text' => $state->next ? get_string('panel:ok:quiet', $component, panel::when($state->next, $now))
             : ($state->waiting ? get_string('panel:ok:going', $component) : get_string('panel:ok:idle', $component))];
 }

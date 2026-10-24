@@ -29,7 +29,7 @@
 
     Example context (json):
     {
-        "state": {"kind": "ok", "title": "Everything running", "text": "Quiet hours now.", "art": {"size": 56, "running": true},
+        "state": {"kind": "ok", "title": "Everything running", "text": "Quiet hours now.", "art": {"size": 56, "stroke": 1.83, "running": true},
             "actions": []},
         "today": {"until": "until 20:40", "sent": 38, "delivered": 35, "read": 27, "failed": 2,
             "waits": [{"count": 5, "label": "Quiet hours", "when": "tomorrow, 08:00"}], "nowait": false},
@@ -108,7 +108,7 @@
             <h3>{{#str}} panel:failed, local_oksigeniamarandu {{/str}} <span>{{#str}} panel:failed:last, local_oksigeniamarandu {{/str}}</span></h3>
             <ul class="mrd-failed">
                 {{#failed}}
-                    <li><time>{{time}}</time><div><b>{{name}}</b> <span class="num">· {{phone}}</span><span class="why">{{why}}</span></div></li>
+                    <li><span class="mrd-when">{{time}}</span><div><b>{{name}}</b> <span class="num">· {{phone}}</span><span class="why">{{why}}</span></div></li>
                 {{/failed}}
             </ul>
             {{#nofailed}}<p class="mrd-none">{{#str}} panel:failed:none, local_oksigeniamarandu {{/str}}</p>{{/nofailed}}
@@ -124,7 +124,7 @@
             </div>
             <ul class="mrd-moves">
                 {{#moves}}
-                    <li><time>{{time}}</time><span class="mrd-tag {{#in}}in{{/in}}{{^in}}out{{/in}}">{{tag}}</span><span>{{who}} <small>· {{how}}</small></span></li>
+                    <li><span class="mrd-when">{{time}}</span><span class="mrd-tag {{#in}}in{{/in}}{{^in}}out{{/in}}">{{tag}}</span><span>{{who}} <small>· {{how}}</small></span></li>
                 {{/moves}}
             </ul>
             {{#nomoves}}<p class="mrd-none">{{#str}} panel:people:none, local_oksigeniamarandu {{/str}}</p>{{/nomoves}}

@@ -27,7 +27,7 @@ namespace local_oksigeniamarandu\local;
  */
 class cloud_api {
     /** The Graph API version used when the site does not set one. */
-    public const DEFAULT_GRAPH_VERSION = 'v23.0';
+    public const DEFAULT_GRAPH_VERSION = 'v26.0';
 
     /** Meta error codes with a message of their own; the rest get the general one, with the text of Meta. */
     private const KNOWN_ERRORS = [
@@ -43,7 +43,7 @@ class cloud_api {
     /** @var string The access token, already decrypted. */
     private $accesstoken;
 
-    /** @var string Graph API version, such as v23.0. */
+    /** @var string Graph API version, such as v26.0. */
     private $graphversion;
 
     /**

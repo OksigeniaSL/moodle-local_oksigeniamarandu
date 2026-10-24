@@ -36,6 +36,24 @@ class queue {
     /** Free replies are possible until 24 hours after the family last wrote; a margin, so as not to arrive late. */
     private const WINDOW = DAYSECS - 30 * MINSECS;
 
+    /** How long a notice waits before each new try after an error that passes; after the last, it has failed. */
+    private const RETRY = [MINSECS, 5 * MINSECS, 15 * MINSECS, HOURSECS];
+
+    /** Errors of Meta that pass: too many messages, Meta busy or unavailable. */
+    private const TRANSIENT = [130429, 131000, 131016, 131056, 133004];
+
+    /** Errors of the account of the site (token, permissions, restrictions, payment, number): nothing can go out. */
+    private const ACCOUNT = [0, 3, 10, 190, 368, 131005, 131031, 131042, 131045, 131057, 133010];
+
+    /** The 24 hours after the family last wrote have passed: the notice has to go with its template. */
+    private const WINDOW_CLOSED = 131047;
+
+    /** Errors of a template that is no longer approved, and the status it gets. */
+    private const TEMPLATE = [132001 => 'pending', 132015 => 'paused', 132016 => 'disabled'];
+
+    /** While the account has a problem, the queue tries again this often. */
+    private const BLOCKED_RETRY = 15 * MINSECS;
+
     /**
      * Queues a notice for one number.
      *
@@ -99,7 +117,15 @@ class queue {
         $counts['expired'] = $DB->count_records_select(self::TABLE, 'status = ? AND timeexpires < ?', ['queued', $now]);
         $DB->set_field_select(self::TABLE, 'status', 'expired', 'status = ? AND timeexpires < ?', ['queued', $now]);
 
-        foreach ($DB->get_records(self::TABLE, ['status' => 'queued'], 'id ASC', '*', 0, 200) as $row) {
+        // While the account has a problem, one try now and then is enough to see whether it is fixed.
+        $blocked = self::blocked();
+        if ($blocked && $blocked->time > $now - self::BLOCKED_RETRY) {
+            $counts['waiting'] = $DB->count_records(self::TABLE, ['status' => 'queued']);
+            return $counts;
+        }
+
+        $select = "status = 'queued' AND (timeretry IS NULL OR timeretry <= :now)";
+        foreach ($DB->get_records_select(self::TABLE, $select, ['now' => $now], 'id ASC', '*', 0, 200) as $row) {
             $key = $row->component . '/' . $row->notice;
             $notice = notices::get($row->component, $row->notice);
             $contact = $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]);
@@ -119,7 +145,8 @@ class queue {
                 continue;
             }
             $params = json_decode($row->params, true) ?: [];
-            $free = !empty($contact->lastinbound) && $contact->lastinbound > $now - self::WINDOW;
+            // A notice that Meta refused as free text goes with its template.
+            $free = $row->kind !== 'template' && !empty($contact->lastinbound) && $contact->lastinbound > $now - self::WINDOW;
             $template = $free ? null : templates::approved($notice, $contact->lang ?: null);
             if (!$free && !$template) {
                 $counts['waiting']++;
@@ -151,12 +178,111 @@ class queue {
                     $spent += $cost;
                 }
                 $counts['sent']++;
+                if ($blocked) {
+                    unset_config('sendblocked', 'local_oksigeniamarandu');
+                    $blocked = null;
+                }
             } catch (api_exception $e) {
-                self::finish($row, $now, 'failed', $free ? 'text' : 'template', null, $e->getMessage());
-                $counts['failed']++;
+                $what = self::failure($e);
+                if ($what === 'account') {
+                    // Nothing else would go out either: the notices wait, untouched, until the account is fixed.
+                    self::block($e, $now);
+                    $counts['waiting'] = $DB->count_records(self::TABLE, ['status' => 'queued']);
+                    break;
+                }
+                if ($what === 'window') {
+                    $DB->set_field(self::TABLE, 'kind', 'template', ['id' => $row->id]);
+                    $counts['waiting']++;
+                } else if ($what === 'template' && $template) {
+                    templates::set_status($template, self::TEMPLATE[$e->metacode]);
+                    $counts['waiting']++;
+                } else if ($what === 'transient' && $row->attempts < count(self::RETRY)) {
+                    $DB->update_record(self::TABLE, (object)[
+                        'id' => $row->id,
+                        'attempts' => $row->attempts + 1,
+                        'timeretry' => $now + self::RETRY[$row->attempts],
+                        'error' => \core_text::substr(strip_tags($e->getMessage()), 0, 255),
+                    ]);
+                    $counts['waiting']++;
+                } else {
+                    self::finish($row, $now, 'failed', $free ? 'text' : 'template', null, $e->getMessage());
+                    $counts['failed']++;
+                }
             }
         }
         return $counts;
+    }
+
+    /**
+     * What an error of Meta means for the queue.
+     *
+     * @param api_exception $e The error.
+     * @return string transient, account, window, template or final.
+     */
+    public static function failure(api_exception $e): string {
+        $code = $e->metacode;
+        if ($code === null) {
+            // The network, or an answer that is not Meta's: it usually passes.
+            return 'transient';
+        }
+        if (in_array($code, self::TRANSIENT, true)) {
+            return 'transient';
+        }
+        if (in_array($code, self::ACCOUNT, true) || ($code >= 200 && $code <= 299)) {
+            return 'account';
+        }
+        if ($code === self::WINDOW_CLOSED) {
+            return 'window';
+        }
+        if (isset(self::TEMPLATE[$code])) {
+            return 'template';
+        }
+        return 'final';
+    }
+
+    /**
+     * The problem of the account that stops the queue, if there is one.
+     *
+     * @return \stdClass|null With code, message and time.
+     */
+    public static function blocked(): ?\stdClass {
+        $blocked = json_decode((string)get_config('local_oksigeniamarandu', 'sendblocked'));
+        return is_object($blocked) ? $blocked : null;
+    }
+
+    /**
+     * Stops the queue for a problem of the account, and tells whom the site said once a day.
+     *
+     * @param api_exception $e The error.
+     * @param int $now The time.
+     */
+    private static function block(api_exception $e, int $now): void {
+        $message = \core_text::substr(strip_tags($e->getMessage()), 0, 255);
+        set_config(
+            'sendblocked',
+            json_encode(['code' => $e->metacode, 'message' => $message, 'time' => $now]),
+            'local_oksigeniamarandu'
+        );
+        $email = (string)get_config('local_oksigeniamarandu', 'capemail');
+        $day = userdate($now, '%Y-%m-%d', \core_date::get_server_timezone());
+        if ($email === '' || !validate_email($email) || get_config('local_oksigeniamarandu', 'blockwarned') === $day) {
+            return;
+        }
+        set_config('blockwarned', $day, 'local_oksigeniamarandu');
+        $to = \core_user::get_noreply_user();
+        $to->email = $email;
+        $to->emailstop = 0;
+        $a = (object)[
+            'site' => format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]),
+            'problem' => $message,
+            'url' => (new \moodle_url('/local/oksigeniamarandu/wizard.php', ['step' => 'account']))->out(false),
+        ];
+        email_to_user(
+            $to,
+            \core_user::get_noreply_user(),
+            get_string('blockmail:subject', 'local_oksigeniamarandu', $a),
+            get_string('blockmail:body', 'local_oksigeniamarandu', $a)
+        );
     }
 
     /**
@@ -294,6 +420,7 @@ class queue {
         $row->wamid = $wamid;
         $row->error = $error === null ? null : \core_text::substr(strip_tags($error), 0, 255);
         $row->timesent = $status === 'sent' ? $now : null;
+        $row->timeretry = null;
         $DB->update_record(self::TABLE, $row);
     }
 

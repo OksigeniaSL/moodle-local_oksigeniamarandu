@@ -112,7 +112,7 @@
                 {{#webhookerror}}<div class="mrd-err mrd-wide">{{.}}</div>{{/webhookerror}}
                 {{#hooked}}
                     <div class="mrd-ok"><span aria-hidden="true">✓</span><b>{{#str}} wizard:hookok, local_oksigeniamarandu {{/str}}</b></div>
-                    <a class="mrd-btn mrd-primary" href="{{nexturl}}">{{#str}} wizard:next:test, local_oksigeniamarandu {{/str}}</a>
+                    <a class="btn mrd-btn mrd-primary" href="{{nexturl}}">{{#str}} wizard:next:test, local_oksigeniamarandu {{/str}}</a>
                 {{/hooked}}
                 {{^hooked}}
                     <button type="submit" class="mrd-btn mrd-primary">{{#str}} wizard:checkhook, local_oksigeniamarandu {{/str}}</button>
@@ -149,7 +149,7 @@
                 </ul>
                 <div class="mrd-err mrd-wide" data-failed="{{#str}} wizard:track:failed, local_oksigeniamarandu {{/str}}" {{^failed}}hidden{{/failed}}>{{#failed}}{{#str}} wizard:track:failed, local_oksigeniamarandu {{/str}} {{.}}{{/failed}}</div>
                 <div class="mrd-actions">
-                    <a class="mrd-btn mrd-primary" href="{{nexturl}}">{{#str}} wizard:next:done, local_oksigeniamarandu {{/str}}</a>
+                    <a class="btn mrd-btn mrd-primary" href="{{nexturl}}">{{#str}} wizard:next:done, local_oksigeniamarandu {{/str}}</a>
                     <button type="button" class="mrd-btn mrd-link" data-nope>{{#str}} wizard:test:nope, local_oksigeniamarandu {{/str}}</button>
                 </div>
                 <p class="mrd-hint" data-nope-help hidden>{{#str}} wizard:test:nope_help, local_oksigeniamarandu {{/str}}</p>
@@ -184,7 +184,7 @@
             {{#error}}<div class="mrd-err mrd-wide">{{{.}}}</div>{{/error}}
             {{#submit}}<button type="submit" name="action" value="submit" class="mrd-btn mrd-primary">{{.}}</button>{{/submit}}
             {{#pending}}<button type="submit" name="action" value="refresh" class="mrd-btn mrd-second">{{#str}} wizard:texts:refresh, local_oksigeniamarandu {{/str}}</button>{{/pending}}
-            <a class="mrd-btn {{#submit}}mrd-link{{/submit}}{{^submit}}mrd-primary{{/submit}}" href="{{nexturl}}">{{#str}} wizard:next:notices, local_oksigeniamarandu {{/str}}</a>
+            <a class="mrd-btn {{#submit}}mrd-link{{/submit}}{{^submit}}btn mrd-primary{{/submit}}" href="{{nexturl}}">{{#str}} wizard:next:notices, local_oksigeniamarandu {{/str}}</a>
             {{#pending}}<span class="mrd-hint mrd-wide">{{#str}} wizard:texts:waiting, local_oksigeniamarandu {{/str}}</span>{{/pending}}
         </form>
     </section>
@@ -248,7 +248,7 @@
         </ul>
         <p class="mrd-lead">{{#str}} wizard:done:lead, local_oksigeniamarandu {{/str}}</p>
         <div class="mrd-actions">
-            <a class="mrd-btn mrd-primary" href="{{contactsurl}}">{{#str}} wizard:done:contacts, local_oksigeniamarandu {{/str}}</a>
+            <a class="btn mrd-btn mrd-primary" href="{{contactsurl}}">{{#str}} wizard:done:contacts, local_oksigeniamarandu {{/str}}</a>
             <a href="{{settingsurl}}">{{#str}} wizard:done:settings, local_oksigeniamarandu {{/str}}</a>
         </div>
     </section>

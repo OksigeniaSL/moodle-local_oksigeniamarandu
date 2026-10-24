@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 (2026-10-24)
+
+- The queue tries again after errors that pass (Meta busy, too many messages, the network): after 1, 5, 15 and 60
+  minutes, and then the notice has failed.
+- A problem of the account (an expired token, permissions, a restricted account, payment) stops the queue without
+  spending its notices: the wizard and the list of numbers say so, whom the site said gets an email once a day, and
+  the queue goes on by itself when the account works again.
+- When Meta says the 24 hours after the family wrote have passed, the notice goes with its template; a template Meta
+  pauses or disables stops being used, and its notices wait.
+- What Meta says of the templates, as its webhooks write it: regional languages with a hyphen (es-MX), templates that
+  come back (reinstated) or are deleted, the category of each status, and a change of category announced a day
+  before. The example of the button is the end of its link, as Meta asks.
+- The list of numbers can opt a number out when a family asks the site; it stays in the record of consent, with who
+  did it.
+- The wizard and the page where a family joins take their colours from the theme, so they follow the light and dark
+  modes of Moodle 5.3; the QR code stays dark on white.
+- The default version of the Graph API is v26.0; sites that kept the old default move to it.
+
 ## 0.4.1 (2026-10-24)
 
 - Wizard: on a phone, the progress keeps the same right margin as the content.

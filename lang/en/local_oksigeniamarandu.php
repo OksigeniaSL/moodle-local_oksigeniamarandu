@@ -46,11 +46,18 @@ $string['alta:title'] = 'Notices from {$a} on WhatsApp';
 $string['alta:wait'] = 'Waiting for your message';
 $string['alta:wait_help'] = 'If you have already tapped Send in WhatsApp, this changes by itself in a few seconds.';
 $string['alta:yourphone'] = 'Your mobile';
+$string['blockmail:body'] = 'Meta does not let {$a->site} send WhatsApp messages: {$a->problem}
+
+The notices wait in the queue and go out as soon as it is fixed. Check the account in the set-up wizard: {$a->url}';
+$string['blockmail:subject'] = 'WhatsApp notices of {$a->site}: sending has stopped';
 $string['capmail:body'] = 'The WhatsApp notices of {$a->site} have reached the limit of {$a->cap} € for this month. The rest wait for next month, or for the limit to go up in the set-up wizard.';
 $string['capmail:subject'] = 'WhatsApp notices of {$a->site}: limit of the month reached';
 $string['contacts'] = 'Numbers on WhatsApp';
 $string['contacts:name'] = 'Name on WhatsApp';
 $string['contacts:none'] = 'No number has joined yet. People join by writing {$a} to the number of the site, with the link or the QR code a plugin gives them.';
+$string['contacts:optedout'] = 'Opted out: {$a}.';
+$string['contacts:optout'] = 'Opt out';
+$string['contacts:optout_confirm'] = 'Opt out the number {$a->phone}? It gets nothing more until it joins again by writing {$a->word}. It is not told on WhatsApp. The opt-out stays in the record of consent, with who did it.';
 $string['contacts:phone'] = 'Number';
 $string['contacts:since'] = 'Since';
 $string['contacts:standsfor'] = 'Stands for';
@@ -134,6 +141,7 @@ $string['wizard:account:title'] = 'Connect the WhatsApp of the site';
 $string['wizard:appsecret'] = 'App secret';
 $string['wizard:appsecret_help'] = 'This one goes the other way, from Meta to here: your app › App settings › Basic.';
 $string['wizard:appsecret_saved'] = 'Saved; paste another one only to change it';
+$string['wizard:blocked'] = 'Sending has stopped: {$a} The notices wait in the queue and go out as soon as the account works again.';
 $string['wizard:callbackurl'] = 'Callback URL';
 $string['wizard:callbackurl_help'] = 'The address where Meta tells Marandu what happens.';
 $string['wizard:change'] = 'Change the details';

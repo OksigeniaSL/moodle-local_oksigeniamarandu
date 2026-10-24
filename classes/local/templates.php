@@ -79,7 +79,8 @@ class templates {
                     'type' => 'URL',
                     'text' => \core_text::substr(notices::text($notice, 'button', $lang), 0, 25),
                     'url' => self::button_url(),
-                    'example' => [self::button_url('K7M2Q9XA')],
+                    // Meta takes the example of the end of the link, not the whole link.
+                    'example' => ['K7M2Q9XA'],
                 ]]],
             ],
         ];
@@ -107,7 +108,7 @@ class templates {
         ];
         $record->name = $payload['name'];
         $record->metaid = (string)($answer['id'] ?? '');
-        $record->status = self::status((string)($answer['status'] ?? 'PENDING'));
+        $record->status = self::status((string)($answer['status'] ?? 'PENDING')) ?? 'pending';
         $record->category = strtolower((string)($answer['category'] ?? 'UTILITY'));
         $record->reason = null;
         $record->body = $payload['components'][0]['text'];
@@ -146,10 +147,10 @@ class templates {
      * Keeps what Meta says of a template, from the webhook or from a refresh.
      *
      * @param string $name Its name in Meta.
-     * @param string $metalang Its language in Meta.
-     * @param string $status APPROVED, REJECTED, PENDING, PAUSED, DISABLED…; empty to leave it.
+     * @param string $metalang Its language in Meta: es, es_MX, or es-MX as some webhooks write it.
+     * @param string $status APPROVED, REJECTED, PENDING, PAUSED, DISABLED, REINSTATED…; empty to leave it.
      * @param string $category UTILITY, MARKETING…; empty to leave it.
-     * @param string $reason Why it was rejected, if it was.
+     * @param string|null $reason Why it was rejected, NONE or empty if it was not; null to leave it.
      * @return bool Whether a template of the site changed.
      */
     public static function update_from_meta(
@@ -157,22 +158,26 @@ class templates {
         string $metalang,
         string $status,
         string $category = '',
-        string $reason = ''
+        ?string $reason = ''
     ): bool {
         global $DB;
         $changed = false;
+        $wanted = self::langkey($metalang);
         foreach ($DB->get_records(self::TABLE, ['name' => $name]) as $record) {
-            if (notices::metalang($record->lang) !== $metalang) {
+            if (self::langkey(notices::metalang($record->lang)) !== $wanted) {
                 continue;
             }
             $before = [$record->status, $record->category, $record->reason];
-            if ($status !== '') {
-                $record->status = self::status($status);
+            $mapped = $status === '' ? null : self::status($status);
+            if ($mapped !== null) {
+                $record->status = $mapped;
             }
             if ($category !== '') {
                 $record->category = strtolower($category);
             }
-            $record->reason = $reason === '' || strtoupper($reason) === 'NONE' ? null : \core_text::substr($reason, 0, 255);
+            if ($reason !== null) {
+                $record->reason = $reason === '' || strtoupper($reason) === 'NONE' ? null : \core_text::substr($reason, 0, 255);
+            }
             if ($before !== [$record->status, $record->category, $record->reason]) {
                 $record->timemodified = time();
                 $DB->update_record(self::TABLE, $record);
@@ -200,13 +205,56 @@ class templates {
     }
 
     /**
-     * A status of Meta, as stored.
+     * Marks a template as Meta answered when a notice went out with it: paused, disabled or no longer there.
+     *
+     * @param \stdClass $template The stored template.
+     * @param string $status pending, paused or disabled.
+     */
+    public static function set_status(\stdClass $template, string $status): void {
+        global $DB;
+        if ($template->status !== $status) {
+            $DB->update_record(self::TABLE, (object)['id' => $template->id, 'status' => $status, 'timemodified' => time()]);
+        }
+    }
+
+    /**
+     * A status or an event of Meta, as stored.
+     *
+     * Flagged and locked templates can still be used: those events leave the status as it was.
      *
      * @param string $status As Meta writes it.
-     * @return string pending, approved, rejected, paused or disabled.
+     * @return string|null pending, approved, rejected, paused or disabled; null to leave it.
      */
-    private static function status(string $status): string {
-        $status = strtolower($status);
-        return in_array($status, ['approved', 'rejected', 'paused', 'disabled'], true) ? $status : 'pending';
+    private static function status(string $status): ?string {
+        switch (strtoupper($status)) {
+            case 'APPROVED':
+            case 'REINSTATED':
+                return 'approved';
+            case 'REJECTED':
+            case 'LIMIT_EXCEEDED':
+                return 'rejected';
+            case 'PAUSED':
+                return 'paused';
+            case 'DISABLED':
+            case 'DELETED':
+            case 'ARCHIVED':
+            case 'PENDING_DELETION':
+                return 'disabled';
+            case 'FLAGGED':
+            case 'LOCKED':
+                return null;
+            default:
+                return 'pending';
+        }
+    }
+
+    /**
+     * A language code of Meta in one form, to compare it: es_MX and es-MX are the same.
+     *
+     * @param string $lang The code.
+     * @return string
+     */
+    private static function langkey(string $lang): string {
+        return strtolower(str_replace('-', '_', $lang));
     }
 }

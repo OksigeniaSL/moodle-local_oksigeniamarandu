@@ -15,7 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * The numbers that have joined or left, with whom they stand for. A plain list until the panel arrives.
+ * The numbers that have joined or left, with whom they stand for, and opting one out when the family asks the site.
+ * A plain list until the panel arrives.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -27,11 +28,41 @@ require_once($CFG->libdir . '/adminlib.php');
 
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\keywords;
+use local_oksigeniamarandu\local\queue;
 
 admin_externalpage_setup('local_oksigeniamarandu_contacts');
 
+$baseurl = new moodle_url('/local/oksigeniamarandu/contacts.php');
+$optout = optional_param('optout', 0, PARAM_INT);
+if ($optout && ($contact = $DB->get_record(consent::CONTACTS, ['id' => $optout])) && $contact->status !== 'optedout') {
+    // When a family asks the site, by phone or in person: it stays in the record of consent, with who did it.
+    if (optional_param('confirm', 0, PARAM_BOOL) && confirm_sesskey()) {
+        consent::optout($contact->phone, 'admin', 'user:' . $USER->id);
+        redirect(
+            $baseurl,
+            get_string('contacts:optedout', 'local_oksigeniamarandu', '+' . $contact->phone),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    }
+    echo $OUTPUT->header();
+    echo $OUTPUT->confirm(
+        get_string('contacts:optout_confirm', 'local_oksigeniamarandu', (object)[
+            'phone' => '+' . $contact->phone,
+            'word' => keywords::first('optinkeywords'),
+        ]),
+        new moodle_url($baseurl, ['optout' => $contact->id, 'confirm' => 1, 'sesskey' => sesskey()]),
+        $baseurl
+    );
+    echo $OUTPUT->footer();
+    die();
+}
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('contacts', 'local_oksigeniamarandu'));
+if ($blocked = queue::blocked()) {
+    echo $OUTPUT->notification(get_string('wizard:blocked', 'local_oksigeniamarandu', s($blocked->message)), 'error');
+}
 
 $contacts = $DB->get_records(consent::CONTACTS, null, 'timemodified DESC', '*', 0, 500);
 if (!$contacts) {
@@ -59,6 +90,7 @@ $table->head = [
     get_string('contacts:status', 'local_oksigeniamarandu'),
     get_string('contacts:since', 'local_oksigeniamarandu'),
     get_string('contacts:standsfor', 'local_oksigeniamarandu'),
+    '',
 ];
 foreach ($contacts as $contact) {
     $for = [];
@@ -79,6 +111,10 @@ foreach ($contacts as $contact) {
         get_string('status:' . $contact->status, 'local_oksigeniamarandu'),
         $time ? userdate($time, get_string('strftimedatetimeshort', 'langconfig')) : '',
         $for ? implode(', ', $for) : get_string('contacts:unlinked', 'local_oksigeniamarandu'),
+        $contact->status === 'optedout' ? '' : html_writer::link(
+            new moodle_url($baseurl, ['optout' => $contact->id]),
+            get_string('contacts:optout', 'local_oksigeniamarandu')
+        ),
     ];
 }
 echo html_writer::table($table);

@@ -249,6 +249,37 @@ final class inbound_test extends \advanced_testcase {
 
         $template = templates::get($notice, 'es');
         $this->assertSame(['approved', 'marketing', null], [$template->status, $template->category, $template->reason]);
+
+        // A rejection keeps its reason when the category changes afterwards.
+        inbound::handle($update('message_template_status_update', ['event' => 'REJECTED',
+            'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es',
+            'reason' => 'INVALID_FORMAT', 'message_template_category' => 'UTILITY']));
+        inbound::handle($update('template_category_update', ['new_category' => 'UTILITY',
+            'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es']));
+        $template = templates::get($notice, 'es');
+        $this->assertSame(['rejected', 'utility', 'INVALID_FORMAT'], [$template->status, $template->category,
+            $template->reason]);
+
+        // As the webhooks write a regional language (es-MX), the events that bring a template back or leave it as it
+        // was, and a change of category announced a day before.
+        $DB->insert_record(templates::TABLE, (object)['component' => $notice->component, 'notice' => $notice->notice,
+            'lang' => 'es_mx', 'name' => notices::template_name($notice), 'status' => 'approved', 'timesubmitted' => 1,
+            'timemodified' => 1]);
+        $event = function (string $event) use ($update): array {
+            return $update('message_template_status_update', ['event' => $event, 'reason' => 'NONE',
+                'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es-MX']);
+        };
+        $statuses = [];
+        foreach (['PAUSED', 'REINSTATED', 'FLAGGED', 'DELETED'] as $name) {
+            inbound::handle($event($name));
+            $statuses[] = templates::get($notice, 'es_mx')->status;
+        }
+        $this->assertSame(['paused', 'approved', 'approved', 'disabled'], $statuses);
+        inbound::handle($update('template_category_update', ['new_category' => 'UTILITY', 'correct_category' => 'MARKETING',
+            'category_update_timestamp' => 1746169200, 'message_template_name' => 'mrd_local_oksigeniamarandu_notification',
+            'message_template_language' => 'es-MX']));
+        $this->assertSame('marketing', templates::get($notice, 'es_mx')->category);
+        $this->assertSame('rejected', templates::get($notice, 'es')->status);
     }
 
     /**

@@ -63,7 +63,7 @@
         <h1>{{title}}</h1>
         {{#for}}<p class="mrd-for">{{for}}</p>{{/for}}
         <p class="mrd-howto mrd-phone-only">{{howto}}</p>
-        <a class="mrd-big mrd-primary mrd-phone-only" href="{{waurl}}" data-open>
+        <a class="btn mrd-big mrd-primary mrd-phone-only" href="{{waurl}}" data-open>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5h-2a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"/></svg>
             <span>{{#str}} alta:open, local_oksigeniamarandu {{/str}}</span>
         </a>
@@ -84,7 +84,7 @@
         <div class="mrd-hero" aria-hidden="true"><span class="mrd-spin"></span></div>
         <h1>{{#str}} alta:wait, local_oksigeniamarandu {{/str}}</h1>
         <p class="mrd-note">{{#str}} alta:wait_help, local_oksigeniamarandu {{/str}}</p>
-        <a class="mrd-big mrd-secondary" href="{{waurl}}">{{#str}} alta:reopen, local_oksigeniamarandu {{/str}}</a>
+        <a class="btn mrd-big mrd-secondary" href="{{waurl}}">{{#str}} alta:reopen, local_oksigeniamarandu {{/str}}</a>
         <p class="mrd-note" data-stuck hidden>{{#str}} alta:stuck, local_oksigeniamarandu {{/str}}</p>
     </section>
     {{/choose}}
@@ -97,12 +97,12 @@
             <dt>{{#str}} alta:yourphone, local_oksigeniamarandu {{/str}}</dt><dd>{{phone}}</dd>
             <dt>{{sitename}}</dt><dd>{{number}}</dd>
         </dl>
-        <a class="mrd-big mrd-primary" href="{{vcardurl}}">{{#str}} alta:savecontact, local_oksigeniamarandu {{/str}}</a>
+        <a class="btn mrd-big mrd-primary" href="{{vcardurl}}">{{#str}} alta:savecontact, local_oksigeniamarandu {{/str}}</a>
         <p class="mrd-note">{{#str}} alta:savecontact_help, local_oksigeniamarandu {{/str}}</p>
         <p class="mrd-note"><button type="button" class="mrd-linkbtn" data-leave>{{#str}} alta:leave, local_oksigeniamarandu {{/str}}</button></p>
         <div class="mrd-leavebox" data-leave-box hidden>
             <p class="mrd-note">{{optoutnote}}</p>
-            <a class="mrd-big mrd-secondary" href="{{optouturl}}">{{#str}} alta:open, local_oksigeniamarandu {{/str}}</a>
+            <a class="btn mrd-big mrd-secondary" href="{{optouturl}}">{{#str}} alta:open, local_oksigeniamarandu {{/str}}</a>
         </div>
     </section>
     {{/done}}

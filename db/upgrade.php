@@ -57,5 +57,23 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102400, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026102402) {
+        // 0.5.0: the queue tries again after errors that pass.
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $field = new xmldb_field('attempts', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'error');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('timeretry', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'timeexpires');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        // The version of the API that was the default moves to the current one; a version the site chose stays.
+        if (get_config('local_oksigeniamarandu', 'graphversion') === 'v23.0') {
+            set_config('graphversion', \local_oksigeniamarandu\local\cloud_api::DEFAULT_GRAPH_VERSION, 'local_oksigeniamarandu');
+        }
+        upgrade_plugin_savepoint(true, 2026102402, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

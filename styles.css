@@ -2,18 +2,100 @@
    class of its page, so nothing changes anywhere else in Moodle. Palette and shapes from the mock-ups of the house. */
 
 .local-oksigeniamarandu-wizard,
-.local-oksigeniamarandu-alta {
-    --mrd-ink: #1d2125;
-    --mrd-muted: #5f6b76;
-    --mrd-line: #dee2e6;
-    --mrd-blue: #2563a8;
-    --mrd-blue-dark: #1d4f8c;
-    --mrd-blue-soft: #e8f0fa;
-    --mrd-green: #1e6b37;
-    --mrd-green-soft: #e6f4ea;
-    --mrd-red: #b42318;
-    --mrd-red-soft: #fdecea;
+.local-oksigeniamarandu-alta,
+.local-oksigeniamarandu-progress {
+    /* The colours of the theme, so that the pages follow its light and dark modes (Moodle 5.3); after each comma, the
+       light value for the themes and versions that do not have them. */
+    --mrd-bg: var(--bs-body-bg, #fff);
+    --mrd-bg-soft: var(--bs-tertiary-bg, #f7f8fa);
+    --mrd-bg-chip: var(--bs-secondary-bg, #eef0f3);
+    --mrd-ink: var(--bs-body-color, #1d2125);
+    --mrd-ink-soft: var(--bs-secondary-color, #3b4752);
+    --mrd-muted: var(--bs-secondary-color, #5f6b76);
+    --mrd-line: var(--bs-border-color, #dee2e6);
+    --mrd-line-strong: color-mix(in srgb, var(--mrd-ink) 25%, var(--mrd-bg));
+    --mrd-blue: var(--bs-primary, var(--primary, #2563a8));
+    --mrd-blue-dark: color-mix(in srgb, var(--mrd-blue) 82%, #000);
+    --mrd-blue-text: var(--bs-primary-text-emphasis, #1d4f8c);
+    --mrd-blue-soft: var(--bs-primary-bg-subtle, #e8f0fa);
+    --mrd-blue-line: var(--bs-primary-border-subtle, #b9cbe0);
+    --mrd-green: var(--bs-success, #1e6b37);
+    --mrd-green-text: var(--bs-success-text-emphasis, #134a26);
+    --mrd-green-soft: var(--bs-success-bg-subtle, #e6f4ea);
+    --mrd-green-line: var(--bs-success-border-subtle, #bfdcc8);
+    --mrd-red: var(--bs-danger, #b42318);
+    --mrd-red-text: var(--bs-danger-text-emphasis, #7a1a12);
+    --mrd-red-soft: var(--bs-danger-bg-subtle, #fdecea);
+    --mrd-red-line: var(--bs-danger-border-subtle, #e7b4ae);
+    --mrd-var: var(--bs-warning-bg-subtle, #fff1c2);
+    /* The marks of the three details of Meta, as in its drawing: mid tones, which read on both modes. */
+    --mrd-k1: #c27c0e;
+    --mrd-k2: #7a4fb0;
+    --mrd-k3: #0f7a6d;
+    /* WhatsApp, as it looks in each mode. */
+    --mrd-chat: #efeae2;
+    --mrd-chat-who: #6b6355;
+    --mrd-bubble: #fff;
+    --mrd-chat-bar: #ece7df;
     color: var(--mrd-ink);
+}
+
+[data-bs-theme="dark"] .local-oksigeniamarandu-wizard,
+[data-bs-theme="dark"] .local-oksigeniamarandu-alta {
+    --mrd-chat: #0b141a;
+    --mrd-chat-who: #8696a0;
+    --mrd-bubble: #202c33;
+    --mrd-chat-bar: #202c33;
+}
+
+/* The drawing of where each detail is in Meta, in the colours of the page. */
+.local-oksigeniamarandu-wizard .mrd-meta .w-top {
+    fill: var(--mrd-bg-chip);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-side {
+    fill: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-item {
+    fill: var(--mrd-blue-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-itemtext {
+    fill: var(--mrd-blue-text);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-text {
+    fill: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-ink {
+    fill: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-box {
+    fill: var(--mrd-bg);
+    stroke: var(--mrd-line-strong);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-faint {
+    fill: var(--mrd-line-strong);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-redline {
+    stroke: var(--mrd-red);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-redtext {
+    fill: var(--mrd-red-text);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-k1 {
+    stroke: var(--mrd-k1);
+}
+
+.local-oksigeniamarandu-wizard .mrd-meta .w-k2 {
+    stroke: var(--mrd-k2);
 }
 
 /* The wizard. */
@@ -52,25 +134,25 @@
 .local-oksigeniamarandu-progress .mrd-bar i {
     height: 6px;
     border-radius: 3px;
-    background: #d5dae0;
+    background: var(--mrd-line-strong);
 }
 
 .local-oksigeniamarandu-progress .mrd-bar i.done {
-    background: #1e6b37;
+    background: var(--mrd-green);
 }
 
 .local-oksigeniamarandu-progress .mrd-bar i.now {
-    background: #2563a8;
+    background: var(--mrd-blue);
 }
 
 .local-oksigeniamarandu-progress .mrd-labels {
     margin-top: 4px;
     font-size: 13px;
-    color: #5f6b76;
+    color: var(--mrd-muted);
 }
 
 .local-oksigeniamarandu-progress .mrd-labels a {
-    color: #1e6b37;
+    color: var(--mrd-green-text);
     font-weight: 600;
 }
 
@@ -79,7 +161,7 @@
 }
 
 .local-oksigeniamarandu-progress .mrd-labels .now {
-    color: #1d2125;
+    color: var(--mrd-ink);
     font-weight: 700;
     white-space: nowrap;
 }
@@ -96,7 +178,7 @@
 
 .local-oksigeniamarandu-wizard .mrd-lead {
     margin: 0 0 12px;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
 }
 
 .local-oksigeniamarandu-wizard .mrd-cols {
@@ -117,15 +199,15 @@
 }
 
 .local-oksigeniamarandu-wizard .mrd-field.k1 {
-    border-color: #c27c0e;
+    border-color: var(--mrd-k1);
 }
 
 .local-oksigeniamarandu-wizard .mrd-field.k2 {
-    border-color: #7a4fb0;
+    border-color: var(--mrd-k2);
 }
 
 .local-oksigeniamarandu-wizard .mrd-field.k3 {
-    border-color: #0f7a6d;
+    border-color: var(--mrd-k3);
 }
 
 .local-oksigeniamarandu-wizard .mrd-field.mrd-blue {
@@ -178,9 +260,9 @@
 .local-oksigeniamarandu-wizard .mrd-field input {
     width: 100%;
     padding: 8px 10px;
-    border: 1px solid #c3c9d0;
+    border: 1px solid var(--mrd-line-strong);
     border-radius: 8px;
-    background: #fff;
+    background: var(--mrd-bg);
 }
 
 .local-oksigeniamarandu-wizard .mrd-field input.bad {
@@ -190,7 +272,7 @@
 
 .local-oksigeniamarandu-wizard .mrd-err {
     grid-column: 1 / -1;
-    color: var(--mrd-red);
+    color: var(--mrd-red-text);
     font-size: 14px;
     font-weight: 600;
 }
@@ -207,8 +289,11 @@
     margin-top: 8px;
 }
 
+/* The links that look like buttons carry .btn too, so that the theme does not underline them in dark mode; the
+   shape and colours stay these. */
 .local-oksigeniamarandu-wizard .mrd-btn {
     display: inline-block;
+    font-size: inherit;
     border: 0;
     border-radius: 10px;
     padding: 10px 18px;
@@ -229,15 +314,15 @@
 }
 
 .local-oksigeniamarandu-wizard .mrd-second {
-    background: #fff;
-    border: 1px solid #c3c9d0;
+    background: var(--mrd-bg);
+    border: 1px solid var(--mrd-line-strong);
     color: var(--mrd-ink);
 }
 
 .local-oksigeniamarandu-wizard .mrd-link {
     background: none;
     padding: 6px 2px;
-    color: var(--mrd-blue-dark);
+    color: var(--mrd-blue-text);
     text-decoration: underline;
     font-weight: 600;
 }
@@ -252,7 +337,7 @@
     gap: 10px;
     align-items: flex-start;
     background: var(--mrd-green-soft);
-    color: #134a26;
+    color: var(--mrd-green-text);
     border-radius: 10px;
     padding: 6px 14px;
 }
@@ -272,7 +357,7 @@
     height: auto;
     border: 1px solid var(--mrd-line);
     border-radius: 10px;
-    background: #fff;
+    background: var(--mrd-bg);
     font-family: system-ui, sans-serif;
 }
 
@@ -284,7 +369,7 @@
 
 .local-oksigeniamarandu-wizard .mrd-k3note {
     display: block;
-    border-left: 4px solid #0f7a6d;
+    border-left: 4px solid var(--mrd-k3);
     padding-left: 6px;
     margin-top: 4px;
 }
@@ -301,9 +386,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     padding: 8px 10px;
-    border: 1px dashed #b6bec7;
+    border: 1px dashed var(--mrd-line-strong);
     border-radius: 8px;
-    background: #fafbfc;
+    background: var(--mrd-bg-soft);
     color: var(--mrd-ink);
 }
 
@@ -329,7 +414,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    border: 2px solid #c3c9d0;
+    border: 2px solid var(--mrd-line-strong);
     font-size: 13px;
     font-style: normal;
 }
@@ -353,12 +438,12 @@
     gap: 8px;
     padding: 12px;
     border-radius: 12px;
-    background: #efeae2;
+    background: var(--mrd-chat);
 }
 
 .local-oksigeniamarandu-wizard .mrd-who {
     font-size: 12px;
-    color: #6b6355;
+    color: var(--mrd-chat-who);
     text-align: center;
 }
 
@@ -367,7 +452,7 @@
 }
 
 .local-oksigeniamarandu-wizard .mrd-bubble {
-    background: #fff;
+    background: var(--mrd-bubble);
     border-radius: 10px;
     padding: 8px 10px;
     font-size: 14.5px;
@@ -414,7 +499,7 @@
     }
 
     .local-oksigeniamarandu-wizard .mrd-where-fold summary {
-        color: var(--mrd-blue-dark);
+        color: var(--mrd-blue-text);
         font-weight: 600;
         text-decoration: underline;
         cursor: pointer;
@@ -427,7 +512,7 @@
         margin-top: 6px;
         border: 1px solid var(--mrd-line);
         border-radius: 10px;
-        background: #fff;
+        background: var(--mrd-bg);
     }
 }
 
@@ -481,7 +566,7 @@
 .local-oksigeniamarandu-wizard .mrd-tpl p {
     margin: 0;
     font-size: 14.5px;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
 }
 
 .local-oksigeniamarandu-wizard .mrd-side {
@@ -491,7 +576,7 @@
 .local-oksigeniamarandu-wizard .mrd-var {
     padding: 0 3px;
     border-radius: 4px;
-    background: #fff1c2;
+    background: var(--mrd-var);
 }
 
 .local-oksigeniamarandu-wizard .mrd-chip {
@@ -501,18 +586,18 @@
     font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
-    background: #eef0f3;
+    background: var(--mrd-bg-chip);
     color: var(--mrd-muted);
 }
 
 .local-oksigeniamarandu-wizard .mrd-chip.pending {
     background: var(--mrd-blue-soft);
-    color: #12457f;
+    color: var(--mrd-blue-text);
 }
 
 .local-oksigeniamarandu-wizard .mrd-chip.approved {
     background: var(--mrd-green-soft);
-    color: var(--mrd-green);
+    color: var(--mrd-green-text);
 }
 
 .local-oksigeniamarandu-wizard .mrd-chip.rejected,
@@ -520,7 +605,7 @@
 .local-oksigeniamarandu-wizard .mrd-chip.disabled,
 .local-oksigeniamarandu-wizard .mrd-chip.marketing {
     background: var(--mrd-red-soft);
-    color: var(--mrd-red);
+    color: var(--mrd-red-text);
 }
 
 .local-oksigeniamarandu-wizard .mrd-why {
@@ -528,7 +613,7 @@
     padding: 4px 10px;
     border-radius: 8px;
     background: var(--mrd-red-soft);
-    color: #7a1a12;
+    color: var(--mrd-red-text);
     font-size: 14px;
 }
 
@@ -560,7 +645,7 @@
 
 .local-oksigeniamarandu-wizard .mrd-cost {
     font-size: 14px;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
     white-space: nowrap;
 }
 
@@ -571,7 +656,7 @@
     height: 26px;
     margin: 0;
     border-radius: 13px;
-    background: #c3c9cf;
+    background: var(--mrd-line-strong);
     cursor: pointer;
 }
 
@@ -598,7 +683,7 @@
 .local-oksigeniamarandu-wizard .mrd-switch:focus-visible,
 .local-oksigeniamarandu-wizard .mrd-days input:focus-visible + label,
 .local-oksigeniamarandu-wizard .mrd-chipcheck:focus-visible + label {
-    outline: 2px solid var(--mrd-blue-dark);
+    outline: 2px solid var(--mrd-blue-text);
     outline-offset: 2px;
 }
 
@@ -627,7 +712,7 @@
     display: inline-block;
     width: auto;
     padding: 3px 8px;
-    border: 1px solid #c3c9d0;
+    border: 1px solid var(--mrd-line-strong);
     border-radius: 8px;
     font-size: 18px;
 }
@@ -661,9 +746,9 @@
     width: 34px;
     height: 34px;
     margin: 0;
-    border: 1px solid #c3c9d0;
+    border: 1px solid var(--mrd-line-strong);
     border-radius: 8px;
-    background: #fff;
+    background: var(--mrd-bg);
     font-size: 15px;
     font-weight: 700;
     line-height: 1;
@@ -671,9 +756,9 @@
 }
 
 .local-oksigeniamarandu-wizard .mrd-days input:checked + label {
-    border-color: #3b4752;
-    background: #3b4752;
-    color: #fff;
+    border-color: var(--mrd-ink);
+    background: var(--mrd-ink);
+    color: var(--mrd-bg);
 }
 
 .local-oksigeniamarandu-wizard .mrd-sub {
@@ -687,17 +772,17 @@
     display: inline-block;
     margin: 0;
     padding: 2px 10px;
-    border: 1px solid #c3c9d0;
+    border: 1px solid var(--mrd-line-strong);
     border-radius: 999px;
-    background: #fff;
+    background: var(--mrd-bg);
     font-size: 14px;
     cursor: pointer;
 }
 
 .local-oksigeniamarandu-wizard .mrd-chipcheck:checked + label {
-    border-color: #e7b4ae;
+    border-color: var(--mrd-red-line);
     background: var(--mrd-red-soft);
-    color: var(--mrd-red);
+    color: var(--mrd-red-text);
     font-weight: 700;
 }
 
@@ -761,7 +846,7 @@
     gap: 10px;
     font-size: 15px;
     font-weight: 700;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
 }
 
 .local-oksigeniamarandu-alta .mrd-crest {
@@ -770,8 +855,8 @@
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: #dfe7f1;
-    color: var(--mrd-blue-dark);
+    background: var(--mrd-blue-soft);
+    color: var(--mrd-blue-text);
     font-size: 13px;
     font-weight: 800;
 }
@@ -791,13 +876,13 @@
     height: 68px;
     border: 2px solid var(--mrd-line);
     border-radius: 50%;
-    background: #fff;
+    background: var(--mrd-bg);
     color: var(--mrd-blue);
 }
 
 .local-oksigeniamarandu-alta .mrd-hero.mrd-done {
-    color: var(--mrd-green);
-    border-color: #bfdcc8;
+    color: var(--mrd-green-text);
+    border-color: var(--mrd-green-line);
 }
 
 .local-oksigeniamarandu-alta h1 {
@@ -811,14 +896,14 @@
 .local-oksigeniamarandu-alta .mrd-for {
     margin: -6px 0 0;
     text-align: center;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
 }
 
 .local-oksigeniamarandu-alta .mrd-note,
 .local-oksigeniamarandu-alta .mrd-howto {
     margin: 0;
     text-align: center;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
     font-size: 15px;
 }
 
@@ -856,8 +941,8 @@
 }
 
 .local-oksigeniamarandu-alta .mrd-secondary {
-    border: 2px solid #c9d2dc;
-    background: #fff;
+    border: 2px solid var(--mrd-line-strong);
+    background: var(--mrd-bg);
     color: var(--mrd-ink);
 }
 
@@ -865,7 +950,7 @@
     border: 0;
     background: none;
     padding: 6px;
-    color: var(--mrd-blue-dark);
+    color: var(--mrd-blue-text);
     font-weight: 700;
     text-decoration: underline;
     cursor: pointer;
@@ -893,16 +978,16 @@
     gap: 6px;
     padding: 4px;
     border-radius: 10px;
-    background: #ece7df;
+    background: var(--mrd-chat-bar);
 }
 
 .local-oksigeniamarandu-alta .mrd-draft {
     padding: 2px 10px;
     border-radius: 999px;
-    background: #fff;
+    background: var(--mrd-bubble);
     font-size: 14px;
     font-weight: 700;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
 }
 
 .local-oksigeniamarandu-alta .mrd-send {
@@ -929,7 +1014,7 @@
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    border: 3px solid #b9cbe0;
+    border: 3px solid var(--mrd-blue-line);
     border-top-color: var(--mrd-blue);
     animation: mrd-spin 1s linear infinite;
 }
@@ -954,12 +1039,12 @@
     padding: 12px 16px;
     border: 1px solid var(--mrd-line);
     border-radius: 1rem;
-    background: #fff;
+    background: var(--mrd-bg);
 }
 
 .local-oksigeniamarandu-alta .mrd-facts dt {
     font-weight: 400;
-    color: #3b4752;
+    color: var(--mrd-ink-soft);
 }
 
 .local-oksigeniamarandu-alta .mrd-facts dd {
@@ -984,6 +1069,10 @@
     width: 11rem;
     margin: 0 auto;
     aspect-ratio: 1;
+    /* Dark on white in both modes: not every phone reads a QR code the other way round. */
+    padding: 8px;
+    border-radius: 8px;
+    background: #fff;
 }
 
 @media (min-width: 900px) {
@@ -1000,7 +1089,7 @@
         padding: 12px 16px;
         border: 1px solid var(--mrd-line);
         border-radius: 1rem;
-        background: #fff;
+        background: var(--mrd-bg);
         text-align: center;
     }
 }

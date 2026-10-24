@@ -432,4 +432,179 @@ final class queue_test extends \advanced_testcase {
         $this->assertSame('failed', $row->status);
         $this->assertNotEmpty($row->error);
     }
+
+    /**
+     * A client that answers in turn: an error code of Meta, network for a failed connection, or ok.
+     *
+     * @param array $answers The answers, in order; ok once they run out.
+     * @return cloud_api
+     */
+    private function answering_api(array $answers): cloud_api {
+        $api = new class ('1110000000', 'fake-token') extends cloud_api {
+            /** @var array What is left to answer. */
+            public $answers = [];
+
+            /** @var array What was sent. */
+            public $sent = [];
+
+            /**
+             * Answers a template message.
+             *
+             * @param string $to Number.
+             * @param string $template Name.
+             * @param string $language Language.
+             * @param array $components Values.
+             * @return string
+             */
+            public function send_template(string $to, string $template, string $language, array $components = []): string {
+                return $this->answer(['template', $to, $template]);
+            }
+
+            /**
+             * Answers a text message.
+             *
+             * @param string $to Number.
+             * @param string $text Text.
+             * @return string
+             */
+            public function send_text(string $to, string $text): string {
+                return $this->answer(['text', $to, $text]);
+            }
+
+            /**
+             * The next answer.
+             *
+             * @param array $message What would be sent.
+             * @return string The id of the message.
+             */
+            private function answer(array $message): string {
+                $answer = array_shift($this->answers) ?? 'ok';
+                if ($answer === 'ok') {
+                    $this->sent[] = $message;
+                    return 'wamid.T' . count($this->sent);
+                }
+                if ($answer === 'network') {
+                    throw new api_exception('error:network', 'Fake timeout');
+                }
+                throw new api_exception('error:meta', (object)['code' => $answer, 'message' => 'Fake'], $answer);
+            }
+        };
+        $api->answers = $answers;
+        return $api;
+    }
+
+    /**
+     * What each error of Meta means for the queue.
+     */
+    public function test_kinds_of_failure(): void {
+        $kinds = [];
+        foreach ([130429, 131000, 131056, null, 190, 131042, 200, 131047, 132015, 131026, 100] as $code) {
+            $e = $code === null ? new api_exception('error:network', 'x') : new api_exception('error:meta', null, $code);
+            $kinds[] = queue::failure($e);
+        }
+        $this->assertSame(['transient', 'transient', 'transient', 'transient', 'account', 'account', 'account', 'window',
+            'template', 'final', 'final'], $kinds);
+    }
+
+    /**
+     * After an error that passes, the notice is tried again later, and fails after the last try.
+     */
+    public function test_retries(): void {
+        global $DB;
+        $this->approve();
+        $this->family('34600000001');
+        $this->notify();
+        $api = $this->answering_api([130429, 'network']);
+        $now = self::WEDNESDAY;
+
+        $this->assertSame(1, queue::process($api, $now)['waiting']);
+        $row = $DB->get_record(queue::TABLE, []);
+        $this->assertSame(['queued', 1, $now + MINSECS], [$row->status, (int)$row->attempts, (int)$row->timeretry]);
+
+        // Not before its time.
+        $this->assertSame(0, array_sum(queue::process($api, $now + 30)));
+        $this->assertCount(1, $api->answers);
+
+        queue::process($api, $now + MINSECS);
+        $this->assertSame(2, (int)$DB->get_field(queue::TABLE, 'attempts', []));
+        $this->assertSame(1, queue::process($api, $now + 7 * MINSECS)['sent']);
+        $row = $DB->get_record(queue::TABLE, []);
+        $this->assertSame('sent', $row->status);
+        $this->assertNull($row->timeretry);
+
+        // Always busy: after the last try, it has failed.
+        $this->notify();
+        $api = $this->answering_api(array_fill(0, 5, 131000));
+        for ($i = 1; $i <= 5; $i++) {
+            queue::process($api, $now + $i * (HOURSECS + MINSECS));
+        }
+        $this->assertSame(1, $DB->count_records(queue::TABLE, ['status' => 'failed']));
+        $this->assertSame([], $api->answers);
+    }
+
+    /**
+     * A problem of the account stops the queue without spending its notices, tells whom the site said once a day,
+     * and the queue goes on by itself when the account works again.
+     */
+    public function test_account_problem_stops_the_queue(): void {
+        global $DB;
+        set_config('capemail', 'secretaria@example.com', 'local_oksigeniamarandu');
+        $this->approve();
+        $this->family('34600000001');
+        $this->family('34600000002', 43);
+        $this->notify(42);
+        $this->notify(43);
+        $sink = $this->redirectEmails();
+        $now = self::WEDNESDAY;
+
+        $counts = queue::process($this->answering_api([190]), $now);
+        $this->assertSame([0, 2], [$counts['sent'], $counts['waiting']]);
+        $this->assertSame(2, $DB->count_records(queue::TABLE, ['status' => 'queued', 'attempts' => 0]));
+        $this->assertSame(190, queue::blocked()->code);
+        $this->assertCount(1, $sink->get_messages());
+
+        // Meanwhile, Meta is not asked every minute.
+        $api = $this->answering_api([]);
+        $this->assertSame(2, queue::process($api, $now + 5 * MINSECS)['waiting']);
+        $this->assertSame([], $api->sent);
+
+        // Still broken after a while: no second email the same day.
+        queue::process($this->answering_api([190]), $now + 16 * MINSECS);
+        $this->assertCount(1, $sink->get_messages());
+
+        // Fixed.
+        $this->assertSame(2, queue::process($this->answering_api([]), $now + 32 * MINSECS)['sent']);
+        $this->assertNull(queue::blocked());
+    }
+
+    /**
+     * When Meta says the 24 hours have passed, the free text becomes the template.
+     */
+    public function test_window_closed_goes_with_the_template(): void {
+        global $DB;
+        $this->approve();
+        $contact = $this->family('34600000001');
+        $DB->set_field(consent::CONTACTS, 'lastinbound', self::WEDNESDAY - HOURSECS, ['id' => $contact->id]);
+        $this->notify();
+        $api = $this->answering_api([131047]);
+
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY)['waiting']);
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY + MINSECS)['sent']);
+        $this->assertSame('template', $api->sent[0][0]);
+    }
+
+    /**
+     * A template Meta has paused stops being used, and its notices wait.
+     */
+    public function test_paused_template(): void {
+        $notice = $this->approve();
+        $this->family('34600000001');
+        $this->notify();
+        $api = $this->answering_api([132015]);
+
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY)['waiting']);
+        $this->assertSame('paused', templates::get($notice, 'es')->status);
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY + MINSECS)['waiting']);
+        $this->assertSame([], $api->sent);
+    }
 }

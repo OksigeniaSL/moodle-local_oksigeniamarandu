@@ -89,6 +89,8 @@ if ($action === 'connect' && confirm_sesskey()) {
             $info = cloud_api::from_config()->get_phone_number();
             set_config('connectednumber', $info['number'], $component);
             set_config('connectedname', $info['name'], $component);
+            // The account works again: the queue does not wait for its next try.
+            unset_config('sendblocked', $component);
             redirect(new moodle_url($baseurl, ['step' => 'account']));
         } catch (api_exception $e) {
             $errors['accesstoken'] = $e->getMessage();
@@ -447,5 +449,8 @@ JS
 );
 
 echo $OUTPUT->header();
+if ($blocked = queue::blocked()) {
+    echo $OUTPUT->notification(get_string('wizard:blocked', $component, s($blocked->message)), 'error');
+}
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/wizard', $context);
 echo $OUTPUT->footer();

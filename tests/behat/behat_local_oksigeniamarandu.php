@@ -52,4 +52,18 @@ class behat_local_oksigeniamarandu extends behat_base {
     public function i_open_the_whatsapp_signup_page_with_a_code_that_does_not_exist(): void {
         $this->execute('behat_general::i_visit', ['/local/oksigeniamarandu/alta.php?code=ZZZZ2222']);
     }
+
+    /**
+     * A number joins for a user, as if it had written the opt-in word with the code of the user.
+     *
+     * @Given /^the number "(?P<phone_string>[0-9]+)" has joined on WhatsApp for "(?P<username_string>(?:[^"]|\\")*)"$/
+     * @param string $phone Digits with the country code, made up.
+     * @param string $username The user.
+     */
+    public function the_number_has_joined_on_whatsapp_for(string $phone, string $username): void {
+        global $DB;
+        $userid = (int)$DB->get_field('user', 'id', ['username' => $username], MUST_EXIST);
+        $code = \local_oksigeniamarandu\api::invite('core', 0, $userid);
+        \local_oksigeniamarandu\local\consent::optin_from_message($phone, $code, 'wamid.BEHAT');
+    }
 }

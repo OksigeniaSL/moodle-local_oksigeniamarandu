@@ -46,11 +46,18 @@ $string['alta:title'] = 'Avisos de {$a} por WhatsApp';
 $string['alta:wait'] = 'Esperando tu mensaje';
 $string['alta:wait_help'] = 'Si ya has pulsado Enviar en WhatsApp, esto cambia solo en unos segundos.';
 $string['alta:yourphone'] = 'Tu móvil';
+$string['blockmail:body'] = 'Meta no deja mandar mensajes de WhatsApp a {$a->site}: {$a->problem}
+
+Los avisos esperan en la cola y salen en cuanto se arregle. Revisa la cuenta en el asistente: {$a->url}';
+$string['blockmail:subject'] = 'Avisos por WhatsApp de {$a->site}: el envío se ha parado';
 $string['capmail:body'] = 'Los avisos por WhatsApp de {$a->site} han llegado al tope de {$a->cap} € de este mes. Los que quedan esperan al mes que viene o a que se suba el tope en el asistente de configuración.';
 $string['capmail:subject'] = 'Avisos por WhatsApp de {$a->site}: tope del mes alcanzado';
 $string['contacts'] = 'Números en WhatsApp';
 $string['contacts:name'] = 'Nombre en WhatsApp';
 $string['contacts:none'] = 'Todavía no se ha apuntado ningún número. Se apuntan escribiendo {$a} al número del sitio, con el enlace o el código QR que les da un plugin.';
+$string['contacts:optedout'] = 'Dado de baja: {$a}.';
+$string['contacts:optout'] = 'Dar de baja';
+$string['contacts:optout_confirm'] = '¿Dar de baja el número {$a->phone}? No le llegará nada más hasta que vuelva a darse de alta escribiendo {$a->word}. No se le avisa por WhatsApp. La baja queda en el registro de consentimiento, con quién la hizo.';
 $string['contacts:phone'] = 'Número';
 $string['contacts:since'] = 'Desde';
 $string['contacts:standsfor'] = 'Representa a';
@@ -134,6 +141,7 @@ $string['wizard:account:title'] = 'Conecta el WhatsApp del sitio';
 $string['wizard:appsecret'] = 'Clave secreta de la app';
 $string['wizard:appsecret_help'] = 'Esta va al revés, de Meta aquí: tu app › Configuración de la app › Básica.';
 $string['wizard:appsecret_saved'] = 'Guardada; pega otra solo para cambiarla';
+$string['wizard:blocked'] = 'El envío está parado: {$a} Los avisos esperan en la cola y saldrán en cuanto la cuenta vuelva a funcionar.';
 $string['wizard:callbackurl'] = 'URL de devolución de llamada';
 $string['wizard:callbackurl_help'] = 'La dirección a la que Meta le cuenta las cosas a Marandu.';
 $string['wizard:change'] = 'Cambiar los datos';

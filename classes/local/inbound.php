@@ -60,12 +60,15 @@ class inbound {
                 $field = $change['field'] ?? '';
                 if ($field === 'message_template_status_update' || $field === 'template_category_update') {
                     // What Meta says of the templates; it comes for the whole account, without a number.
+                    // A change of category comes a day before it happens, with the one to come as correct_category.
+                    $status = $field === 'message_template_status_update';
                     templates::update_from_meta(
                         (string)($value['message_template_name'] ?? ''),
                         (string)($value['message_template_language'] ?? ''),
-                        $field === 'message_template_status_update' ? (string)($value['event'] ?? '') : '',
-                        (string)($value['new_category'] ?? ''),
-                        (string)($value['reason'] ?? '')
+                        $status ? (string)($value['event'] ?? '') : '',
+                        (string)($status ? ($value['message_template_category'] ?? '')
+                            : ($value['correct_category'] ?? $value['new_category'] ?? '')),
+                        $status ? (string)($value['reason'] ?? '') : null
                     );
                     continue;
                 }

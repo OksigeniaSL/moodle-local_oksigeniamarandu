@@ -368,7 +368,9 @@ if (!$fresh) {
                 'likely' => $money($m->likely)]),
             'scale' => $m->cap > 0 ? [$money(0), $money($m->cap / 2), $money($m->cap)] : [],
             'fine' => ($m->full ? $str('panel:cost:full') : $str('panel:cost:likely', $money($m->likely))) . ' '
-                . $str('panel:cost:split', (object)['paid' => $m->templates, 'cost' => $money($m->cost), 'free' => $m->free]),
+                . $str('panel:cost:split', (object)['paid' => $m->templates, 'cost' => $money($m->cost), 'free' => $m->free])
+                // Meta charges the answers of service above 1,000 a month; their price is not in the sum above.
+                . ($m->free > 1000 ? ' ' . $str('panel:cost:over', $m->free - 1000) : ''),
         ];
     }
 

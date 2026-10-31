@@ -3136,6 +3136,8 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
    everything
    inside is in em, and the layout follows the width of the block itself (with the drawers open or closed). */
 .local-oksigeniamarandu-dash {
+    /* Apart from the links of the header, which Moodle puts right above the page. */
+    margin-top: 1rem;
     /* stylelint-disable-next-line csstree/validator */
     container: mrdp / inline-size;
     /* stylelint-disable-next-line csstree/validator */

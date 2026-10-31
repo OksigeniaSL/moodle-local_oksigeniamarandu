@@ -6,7 +6,7 @@ Feature: The panel tells at a glance whether the WhatsApp notices go out
 
   Scenario: A site without its account is sent to the wizard
     Given I log in as "admin"
-    When I navigate to "Plugins > Local plugins > Oksigenia Marandu for WhatsApp > WhatsApp notices" in site administration
+    When I navigate to "Plugins > Local plugins > Oksigenia Marandu > WhatsApp notices" in site administration
     Then I should see "WhatsApp is not connected yet"
     And "Set up WhatsApp" "link" should exist
 
@@ -15,7 +15,7 @@ Feature: The panel tells at a glance whether the WhatsApp notices go out
       | phonenumberid | 1110000000 | local_oksigeniamarandu |
       | accesstoken   | made-up    | local_oksigeniamarandu |
     And I log in as "admin"
-    When I navigate to "Plugins > Local plugins > Oksigenia Marandu for WhatsApp > WhatsApp notices" in site administration
+    When I navigate to "Plugins > Local plugins > Oksigenia Marandu > WhatsApp notices" in site administration
     Then I should see "Everything running"
     And I should see "Nothing has failed."
     And I should see "Joined and left"

@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/status-pre--alpha-red)
 [![Sponsor](https://img.shields.io/badge/sponsor-Oksigenia-00d4ff)](https://oksigenia.com/en/open-source#sponsor)
 
-**Oksigenia Marandu for WhatsApp** brings the notices of Moodle™ and of its plugins to WhatsApp, sent from the site's
+**Oksigenia Marandu** brings the notices of Moodle™ and of its plugins to WhatsApp, sent from the site's
 own official WhatsApp Business account: only to people who opted in, with a spending cap and quiet hours.
 *Marandu* means "news" or "notice" in Guarani.
 
@@ -28,7 +28,7 @@ sets. A panel tells at a glance whether the notices go out, and a list keeps the
 
 1. Copy the plugin to `local/oksigeniamarandu` in your Moodle (4.5 to 5.3).
 2. Visit *Site administration > Notifications* to finish the install.
-3. In *Site administration > Plugins > Local plugins > Oksigenia Marandu for WhatsApp*, paste the details of the
+3. In *Site administration > Plugins > Local plugins > Oksigenia Marandu*, paste the details of the
    account and send yourself a test message.
 
 ## Development

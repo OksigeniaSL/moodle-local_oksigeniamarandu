@@ -6,14 +6,14 @@ Feature: Set up the WhatsApp of the site step by step
 
   Scenario: The first step asks for the details of the app in Meta
     Given I log in as "admin"
-    When I navigate to "Plugins > Local plugins > Oksigenia Marandu for WhatsApp > Set up WhatsApp" in site administration
+    When I navigate to "Plugins > Local plugins > Oksigenia Marandu > Set up WhatsApp" in site administration
     Then I should see "Connect the WhatsApp of the site"
     And I should see "Step 1 of 5 · Account"
     And "Check the connection" "button" should exist
 
   Scenario: Details that are not right are refused before asking Meta
     Given I log in as "admin"
-    And I navigate to "Plugins > Local plugins > Oksigenia Marandu for WhatsApp > Set up WhatsApp" in site administration
+    And I navigate to "Plugins > Local plugins > Oksigenia Marandu > Set up WhatsApp" in site administration
     When I set the field "mrd-phonenumberid" to "not a number"
     And I press "Check the connection"
     Then I should see "Only digits: a long number, without spaces."
@@ -26,7 +26,7 @@ Feature: Set up the WhatsApp of the site step by step
       | connectedname   | Colegio Ejemplo  | local_oksigeniamarandu |
       | verifytoken     | fakeverify       | local_oksigeniamarandu |
     And I log in as "admin"
-    When I navigate to "Plugins > Local plugins > Oksigenia Marandu for WhatsApp > Set up WhatsApp" in site administration
+    When I navigate to "Plugins > Local plugins > Oksigenia Marandu > Set up WhatsApp" in site administration
     Then I should see "First part done: connected with Meta."
     And I should see "/local/oksigeniamarandu/webhook.php"
     And I should see "fakeverify"

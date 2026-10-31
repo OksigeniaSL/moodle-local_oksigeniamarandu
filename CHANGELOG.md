@@ -13,6 +13,7 @@
 - A number that writes too many wrong codes waits a quarter of an hour; it counts by number, since on WhatsApp
   everything arrives from the addresses of Meta.
 - A code may come in two halves, as a letter prints it: «ALTA K7M2 Q9XA».
+- The name is Oksigenia Marandu, without the channel.
 
 ## 0.6.1 (2026-10-24)
 

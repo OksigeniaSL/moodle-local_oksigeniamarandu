@@ -50,6 +50,7 @@ $string['blockmail:body'] = 'Meta does not let {$a->site} send WhatsApp messages
 
 The notices wait in the queue and go out as soon as it is fixed. Check the account in the set-up wizard: {$a->url}';
 $string['blockmail:subject'] = 'WhatsApp notices of {$a->site}: sending has stopped';
+$string['cachedef_wrongcodes'] = 'Wrong codes written on WhatsApp, to slow down guessing';
 $string['capmail:body'] = 'The WhatsApp notices of {$a->site} have reached the limit of {$a->cap} € for this month. The rest wait for next month, or for the limit to go up in the set-up wizard.';
 $string['capmail:subject'] = 'WhatsApp notices of {$a->site}: limit of the month reached';
 $string['contacts'] = 'Numbers on WhatsApp';
@@ -256,6 +257,7 @@ $string['settings:wabaid'] = 'WhatsApp Business account ID';
 $string['settings:wabaid_desc'] = 'Under API Setup too. It is needed to register the templates.';
 $string['settings:webhook'] = 'What Meta sends to the site';
 $string['settings:webhook_intro'] = 'In Meta for Developers, the app of the site, WhatsApp > Configuration, set this callback URL and subscribe to the field «messages»: {$a}';
+$string['task:checkfamily'] = 'Check the numbers of the family records';
 $string['task:sendqueue'] = 'Send the WhatsApp notices';
 $string['wizard'] = 'Set up WhatsApp';
 $string['wizard:accesstoken'] = 'Access token';

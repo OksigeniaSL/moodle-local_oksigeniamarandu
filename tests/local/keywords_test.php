@@ -49,6 +49,8 @@ final class keywords_test extends \advanced_testcase {
             'opt-in alone' => ['ALTA', ['action' => 'optin', 'code' => null]],
             'opt-in with code, as the link writes it' => ['ALTA K7M2Q9XA', ['action' => 'optin', 'code' => 'K7M2Q9XA']],
             'opt-in in lower case with a code' => ['  alta k7m2q9xa ', ['action' => 'optin', 'code' => 'K7M2Q9XA']],
+            'opt-in with the code in two halves' => ['Alta K7M2-Q9XA', ['action' => 'optin', 'code' => 'K7M2Q9XA']],
+            'three words that are not a code' => ['ALTA PARA ANA', null],
             'opt-in in English' => ['Join', ['action' => 'optin', 'code' => null]],
             'opt-out with a full stop' => ['Baja.', ['action' => 'optout']],
             'opt-out in English' => ['stop', ['action' => 'optout']],

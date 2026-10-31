@@ -17,20 +17,25 @@
 namespace local_oksigeniamarandu;
 
 use local_oksigeniamarandu\local\consent;
+use local_oksigeniamarandu\local\family;
 use local_oksigeniamarandu\local\keywords;
 use local_oksigeniamarandu\local\notices;
 use local_oksigeniamarandu\local\queue;
 
 /**
- * What other plugins use: a code and a link so that a family or a user joins on WhatsApp, and whether they have.
+ * What other plugins use: a code and a link so that a family or a user joins on WhatsApp, whether they have, and the
+ * notices for them.
  *
- * Example, from a plugin that keeps families without a Moodle account:
- *     $code = \local_oksigeniamarandu\api::invite('local_oksigeniameals', $family->id);
+ * With the family records of Oksigenia Family (local_oksigeniafamily), a plugin tells the family of a student without
+ * knowing their numbers, once it has declared its notices (see \local_oksigeniamarandu\local\notices):
+ *     \local_oksigeniamarandu\api::notify_child('local_oksigeniameals', 'menu_missing', ['Ana', 'lunes 3'],
+ *         new moodle_url('/local/oksigeniameals/k.php'), $student->id);
+ * The family joins by writing ALTA with the student's code of the records, or just ALTA from the number the school has.
+ *
+ * Without the records, a plugin gives a code of its own to whom it keeps (a user, or an item such as a reader):
+ *     $code = \local_oksigeniamarandu\api::invite('local_example', $item->id);
  *     $url = \local_oksigeniamarandu\api::optin_url($code); // Opens WhatsApp with «ALTA <code>» written.
- *
- * And, once the plugin has declared its notices (see \local_oksigeniamarandu\local\notices):
- *     \local_oksigeniamarandu\api::notify('local_oksigeniameals', 'menu_missing', ['Ana', 'lunes 3'],
- *         new moodle_url('/local/oksigeniameals/family.php', ['id' => $family->id]), $family->id);
+ *     \local_oksigeniamarandu\api::notify('local_example', 'reminder', ['Ana', 'lunes 3'], $pageurl, $item->id);
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -156,17 +161,7 @@ class api {
         int $validfor = 2 * DAYSECS
     ): int {
         global $DB;
-        $declared = notices::get($component, $notice);
-        if (!$declared) {
-            throw new \coding_exception("The notice {$component}/{$notice} is not declared");
-        }
-        if (count($params) !== count($declared->examples)) {
-            throw new \coding_exception("The notice {$component}/{$notice} takes " . count($declared->examples) . ' values');
-        }
-        // WhatsApp refuses values with new lines, tabs or long runs of spaces.
-        $params = array_map(function ($value) {
-            return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, 200);
-        }, array_values($params));
+        [$declared, $params] = self::prepare($component, $notice, $params);
         if ($userid !== null) {
             $where = 'l.userid = :userid';
             $sqlparams = ['userid' => $userid];
@@ -178,6 +173,111 @@ class api {
                                                FROM {" . consent::LINKS . "} l
                                                JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
                                               WHERE $where AND c.status = :active", $sqlparams + ['active' => 'active']);
+        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor);
+    }
+
+    /**
+     * Queues a notice about a student for the numbers of the student's family, from the family records of Oksigenia
+     * Family. Nothing goes out without them, nor to a number that has not opted in.
+     *
+     * @param string $component The plugin that declares the notice.
+     * @param string $notice The notice.
+     * @param string[] $params One value for each {{n}} of its text, in order; plain text.
+     * @param \moodle_url|null $url Where its button goes, on this site.
+     * @param int $childuserid The student.
+     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param int $validfor Seconds after which it is no longer worth sending.
+     * @return int How many numbers it was queued for.
+     */
+    public static function notify_child(
+        string $component,
+        string $notice,
+        array $params,
+        ?\moodle_url $url,
+        int $childuserid,
+        bool $urgent = false,
+        int $validfor = 2 * DAYSECS
+    ): int {
+        global $DB;
+        [$declared, $params] = self::prepare($component, $notice, $params);
+        $contactids = family::contacts_of_child($childuserid);
+        if (!$contactids) {
+            return 0;
+        }
+        [$insql, $inparams] = $DB->get_in_or_equal($contactids, SQL_PARAMS_NAMED);
+        $active = $DB->get_fieldset_select(
+            consent::CONTACTS,
+            'id',
+            "id $insql AND status = :active",
+            $inparams + ['active' => 'active']
+        );
+        return self::queue_for($active, $declared, $params, $url, $urgent, $validfor);
+    }
+
+    /**
+     * Stops numbers standing for an item of a plugin or for a user, when the plugin no longer has them (a family that
+     * left, a user who is gone). The numbers keep their consent; they just stop getting these notices.
+     *
+     * @param string $component The plugin.
+     * @param int $itemid Its item; 0 if the link is only for a user.
+     * @param int|null $userid The user, if the links are for one.
+     * @return int How many links were dropped.
+     */
+    public static function unlink(string $component, int $itemid = 0, ?int $userid = null): int {
+        global $DB;
+        $params = ['component' => $component, 'itemid' => $itemid];
+        $where = 'component = :component AND itemid = :itemid AND ' . ($userid === null ? 'userid IS NULL' : 'userid = :userid');
+        if ($userid !== null) {
+            $params['userid'] = $userid;
+        }
+        $count = $DB->count_records_select(consent::LINKS, $where, $params);
+        $DB->delete_records_select(consent::LINKS, $where, $params);
+        return $count;
+    }
+
+    /**
+     * A declared notice and its values, as WhatsApp takes them.
+     *
+     * @param string $component The plugin that declares the notice.
+     * @param string $notice The notice.
+     * @param string[] $params Its values.
+     * @return array The notice and the values.
+     * @throws \coding_exception If the notice is not declared or takes another number of values.
+     */
+    private static function prepare(string $component, string $notice, array $params): array {
+        $declared = notices::get($component, $notice);
+        if (!$declared) {
+            throw new \coding_exception("The notice {$component}/{$notice} is not declared");
+        }
+        if (count($params) !== count($declared->examples)) {
+            throw new \coding_exception("The notice {$component}/{$notice} takes " . count($declared->examples) . ' values');
+        }
+        // WhatsApp refuses values with new lines, tabs or long runs of spaces.
+        $params = array_map(function ($value) {
+            return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, 200);
+        }, array_values($params));
+        return [$declared, $params];
+    }
+
+    /**
+     * Queues a notice for some contacts.
+     *
+     * @param int[] $contactids The contacts.
+     * @param \stdClass $declared The notice.
+     * @param string[] $params Its values.
+     * @param \moodle_url|null $url Where its button goes.
+     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param int $validfor Seconds after which it is no longer worth sending.
+     * @return int How many.
+     */
+    private static function queue_for(
+        array $contactids,
+        \stdClass $declared,
+        array $params,
+        ?\moodle_url $url,
+        bool $urgent,
+        int $validfor
+    ): int {
         foreach ($contactids as $contactid) {
             queue::add((int)$contactid, $declared, $params, $url ? $url->out(false) : null, $urgent, $validfor);
         }

@@ -34,4 +34,13 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    [
+        // The numbers of the family records, checked once a day besides its events: a phone that changed, an adult gone.
+        'classname' => 'local_oksigeniamarandu\task\check_family',
+        'minute' => 'R',
+        'hour' => '3',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

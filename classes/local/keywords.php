@@ -91,6 +91,10 @@ class keywords {
         if (count($words) <= 2 && in_array($words[0], self::list('optinkeywords'), true)) {
             return ['action' => 'optin', 'code' => $words[1] ?? null];
         }
+        // A code of eight in two halves, as a letter may print it: «ALTA K7M2 Q9XA» or «ALTA K7M2-Q9XA».
+        if (count($words) === 3 && in_array($words[0], self::list('optinkeywords'), true) && strlen($words[1] . $words[2]) === 8) {
+            return ['action' => 'optin', 'code' => $words[1] . $words[2]];
+        }
         return null;
     }
 

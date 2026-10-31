@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0 (2026-10-31)
+
+- The family records of Oksigenia Family (`local_oksigeniafamily`), when the site has them, and nothing changes
+  without them:
+  - ALTA with a student's code of the records joins the number to the student's family; ALTA alone, from the number
+    the school has for an adult, joins it to that adult. Being in the records never sends anything: only writing does.
+  - `api::notify_child()` sends a notice about a student to the numbers of the student's family.
+  - When an adult leaves the records or their phone changes, the old number stops standing for them at once, and a
+    daily task checks it again.
+- `api::unlink()`, for a plugin to stop a number standing for one of its items or users.
+- A number that writes too many wrong codes waits a quarter of an hour; it counts by number, since on WhatsApp
+  everything arrives from the addresses of Meta.
+- A code may come in two halves, as a letter prints it: «ALTA K7M2 Q9XA».
+
 ## 0.6.1 (2026-10-24)
 
 - The reread of the panel by design: the state in bold, no underline on the links of the header in any mode, one or

@@ -50,6 +50,7 @@ $string['blockmail:body'] = 'Meta no deja mandar mensajes de WhatsApp a {$a->sit
 
 Los avisos esperan en la cola y salen en cuanto se arregle. Revisa la cuenta en el asistente: {$a->url}';
 $string['blockmail:subject'] = 'Avisos por WhatsApp de {$a->site}: el envío se ha parado';
+$string['cachedef_wrongcodes'] = 'Códigos mal escritos por WhatsApp, para frenar a quien intenta adivinarlos';
 $string['capmail:body'] = 'Los avisos por WhatsApp de {$a->site} han llegado al tope de {$a->cap} € de este mes. Los que quedan esperan al mes que viene o a que se suba el tope en el asistente de configuración.';
 $string['capmail:subject'] = 'Avisos por WhatsApp de {$a->site}: tope del mes alcanzado';
 $string['contacts'] = 'Números en WhatsApp';
@@ -256,6 +257,7 @@ $string['settings:wabaid'] = 'Identificador de la cuenta de WhatsApp Business';
 $string['settings:wabaid_desc'] = 'También en API Setup («WhatsApp Business Account ID»). Hace falta para dar de alta las plantillas.';
 $string['settings:webhook'] = 'Lo que Meta manda al sitio';
 $string['settings:webhook_intro'] = 'En Meta for Developers, en la app del sitio, WhatsApp > Configuration, pon esta URL de devolución («Callback URL») y suscríbete al campo «messages»: {$a}';
+$string['task:checkfamily'] = 'Revisar los números de la ficha de familias';
 $string['task:sendqueue'] = 'Mandar los avisos de WhatsApp';
 $string['wizard'] = 'Configurar WhatsApp';
 $string['wizard:accesstoken'] = 'Token de acceso';

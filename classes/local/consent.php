@@ -33,6 +33,12 @@ class consent {
     /** Table of the opt-ins and opt-outs, kept as proof. */
     public const LOG = 'local_oksigeniamarandu_consent';
 
+    /** Wrong codes a number may write before it has to wait. */
+    private const WRONG_TRIES = 5;
+
+    /** How long a number waits after too many wrong codes. */
+    private const WRONG_PAUSE = 15 * MINSECS;
+
     /**
      * The contact of a number, created as pending if it does not exist yet.
      *
@@ -94,14 +100,30 @@ class consent {
     public static function optin_from_message(string $phone, ?string $code, string $detail, ?string $name = null): string {
         global $DB;
         $link = null;
+        $adultids = [];
         if ($code !== null) {
+            if (self::guessing($phone)) {
+                return 'unknowncode';
+            }
             $link = $DB->get_record(self::LINKS, ['code' => $code]);
             $mine = $link && $link->contactid
                 && $DB->record_exists(self::CONTACTS, ['id' => $link->contactid, 'phone' => $phone]);
-            if (!$link || ($link->contactid && !$mine)) {
-                // A code that does not exist, or that another number already used: nothing is linked.
+            if (!$link) {
+                // Not a code of Marandu: perhaps a student's code of the family records.
+                $adultid = family::claim($phone, $code, $name);
+                if ($adultid === null) {
+                    self::wrong($phone);
+                    return 'unknowncode';
+                }
+                $adultids = [$adultid];
+            } else if ($link->contactid && !$mine) {
+                // A code that another number already used: nothing is linked.
+                self::wrong($phone);
                 return 'unknowncode';
             }
+        } else {
+            // Without a code, a number the school already has for an adult of the family records stands for them.
+            $adultids = family::adults($phone);
         }
         $contact = self::get_or_create($phone, $name);
         self::set_status($contact, 'optin', 'keyword', $detail);
@@ -110,7 +132,35 @@ class consent {
             $link->timeclaimed = time();
             $DB->update_record(self::LINKS, $link);
         }
+        family::link((int)$contact->id, $adultids);
         return 'optin';
+    }
+
+    /**
+     * Whether a number has written too many wrong codes lately, and has to wait before trying again. It counts by number,
+     * not by address: on WhatsApp everything arrives from the addresses of Meta.
+     *
+     * @param string $phone Digits with the country code.
+     * @return bool
+     */
+    private static function guessing(string $phone): bool {
+        $tries = \cache::make('local_oksigeniamarandu', 'wrongcodes')->get($phone);
+        return $tries && $tries['count'] >= self::WRONG_TRIES && $tries['since'] > time() - self::WRONG_PAUSE;
+    }
+
+    /**
+     * Counts a wrong code from a number.
+     *
+     * @param string $phone Digits with the country code.
+     */
+    private static function wrong(string $phone): void {
+        $cache = \cache::make('local_oksigeniamarandu', 'wrongcodes');
+        $tries = $cache->get($phone);
+        if (!$tries || $tries['since'] <= time() - self::WRONG_PAUSE) {
+            $tries = ['count' => 0, 'since' => time()];
+        }
+        $tries['count']++;
+        $cache->set($phone, $tries);
     }
 
     /**

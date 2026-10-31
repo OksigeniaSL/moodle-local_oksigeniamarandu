@@ -6,7 +6,7 @@ Feature: See the numbers that joined on WhatsApp
 
   Scenario: The list of numbers says how people join while nobody has
     Given I log in as "admin"
-    When I navigate to "Plugins > Local plugins > Oksigenia Marandu > Numbers on WhatsApp" in site administration
+    When I navigate to "Plugins > Local plugins > Oksigenia Marandu > Numbers and chats" in site administration
     Then I should see "No number has joined yet"
     And I should see "People join by writing ALTA to the number of the site"
 
@@ -16,7 +16,7 @@ Feature: See the numbers that joined on WhatsApp
       | ana      | Ana       | Prueba   |
     And the number "34600000001" has joined on WhatsApp for "ana"
     And I log in as "admin"
-    And I navigate to "Plugins > Local plugins > Oksigenia Marandu > Numbers on WhatsApp" in site administration
+    And I navigate to "Plugins > Local plugins > Oksigenia Marandu > Numbers and chats" in site administration
     And I should see "Active" in the "+34 600 00 00 01" "table_row"
     And I should see "Ana Prueba" in the "+34 600 00 00 01" "table_row"
     When I click on "Opt out" "link"

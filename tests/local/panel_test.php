@@ -135,7 +135,10 @@ final class panel_test extends \advanced_testcase {
         $this->row($contact, ['status' => 'failed', 'wamid' => null, 'errorcode' => 100]);
         $this->row($contact, ['timesent' => self::WEDNESDAY - DAYSECS]);
 
-        $this->assertSame(['sent' => 5, 'delivered' => 3, 'read' => 2, 'failed' => 2], panel::today(self::WEDNESDAY));
+        $this->assertSame(
+            ['sent' => 5, 'delivered' => 3, 'read' => 2, 'failed' => 2, 'telegram' => 0],
+            panel::today(self::WEDNESDAY)
+        );
 
         $month = panel::month(self::WEDNESDAY);
         $this->assertSame([4, 1], [$month->templates, $month->free]);

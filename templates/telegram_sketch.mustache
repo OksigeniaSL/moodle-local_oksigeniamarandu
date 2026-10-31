@@ -1,0 +1,40 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/telegram_sketch
+
+    A sketch of the talk with @BotFather, which answers in English: the name, the username and the token, pointed out.
+    Not a screenshot, so that it does not age.
+
+    Context variables required for this template:
+    * sketch - name, user and token, of example.
+
+    Example context (json):
+    {
+        "sketch": {"name": "Example School", "user": "example_bot", "token": "123:ABC"}
+    }
+}}
+{{#sketch}}
+<ol class="mrd-bf">
+    <li class="me"><span class="b">/newbot</span></li>
+    <li lang="en"><span class="b">Alright, a new bot. … Please choose a name for your bot.</span></li>
+    <li class="me"><span class="b">{{name}}</span><span class="ann">{{#str}} telegram:sketch:name, local_oksigeniamarandu {{/str}}</span></li>
+    <li lang="en"><span class="b">Good. Now let's choose a username for your bot. It must end in `bot`…</span></li>
+    <li class="me"><span class="b">{{user}}</span><span class="ann">{{#str}} telegram:sketch:user, local_oksigeniamarandu {{/str}}</span></li>
+    <li><span class="b" lang="en">Done! Congratulations on your new bot. … Use this token to access the HTTP API:<mark>{{token}}</mark>Keep your token secure…</span><span class="ann">{{#str}} telegram:sketch:token, local_oksigeniamarandu {{/str}}</span></li>
+</ol>
+{{/sketch}}

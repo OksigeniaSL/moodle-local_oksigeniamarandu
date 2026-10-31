@@ -102,5 +102,15 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110100, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110200) {
+        // 0.9.0: the bot is known by its number, so that a token renewed with /revoke is not taken for another bot.
+        $token = (string)get_config('local_oksigeniamarandu', 'telegramtoken');
+        if ($token !== '' && !get_config('local_oksigeniamarandu', 'telegrambotid')) {
+            $id = \local_oksigeniamarandu\local\telegram::bot_id(\core\encryption::decrypt($token));
+            set_config('telegrambotid', $id, 'local_oksigeniamarandu');
+        }
+        upgrade_plugin_savepoint(true, 2026110200, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

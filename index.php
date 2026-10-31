@@ -39,7 +39,12 @@ $money = function (float $amount): string {
     return get_string('panel:money', 'local_oksigeniamarandu', format_float($amount, 2));
 };
 
-$PAGE->set_heading(get_string('panel', $component));
+// The title says the channels the site has ready: WhatsApp, Telegram, or both.
+$ready = array_column(array_filter(\local_oksigeniamarandu\api::channels(), function ($channel) {
+    return $channel['ready'];
+}), 'name');
+$PAGE->set_heading($ready ? get_string('panel:title', $component, implode(get_string('panel:and', $component), $ready))
+    : get_string('panel', $component));
 $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/panel_links', ['links' => [
@@ -151,6 +156,7 @@ $context = [
         'delivered' => $today['delivered'],
         'read' => $today['read'],
         'failed' => $today['failed'],
+        'telegram' => $today['telegram'] ? get_string('panel:today:telegram', $component, $today['telegram']) : '',
         'waits' => $waits,
         'nowait' => !$waits,
     ],

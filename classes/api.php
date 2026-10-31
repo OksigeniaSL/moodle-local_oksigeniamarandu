@@ -205,7 +205,9 @@ class api {
             $list[$channel] = [
                 'name' => $info['name'],
                 'joined' => (bool)$contact,
-                'where' => $contact ? local\panel::mask($contact->phone) : '',
+                // To the person themselves, the number half hidden, or just Telegram.
+                'where' => $contact ? (local\telegram::is_chat($contact->phone) ? 'Telegram'
+                    : local\panel::mask($contact->phone)) : '',
                 'url' => self::join_url($channel, $code),
             ];
         }

@@ -17,83 +17,190 @@
 {{!
     @template local_oksigeniamarandu/telegram
 
-    Telegram: connect the bot of the site with its token, and test it from the phone of whoever sets it up. The steps
-    to make the bot as a numbered list, the note on privacy before connecting, and the steps that come after.
+    Telegram, in three moments: the token (and the change of bot), joining from the phone, and the test with how a
+    notice arrives. From the mock-up of the house.
 
     Context variables required for this template:
-    * editing - Whether the token is asked for.
-    * action, sesskey - The forms.
-    * error - What went wrong, if anything.
-    * privacy - A sentence on where Telegram keeps the messages.
-    * track - The steps (label, done, now).
-    * bot, botname, editurl, joinurl, qr, joined, sent - The bot connected, and its test.
+    * action, sesskey, error, privacy - The forms and the note on privacy.
+    * token, change, current, keepurl, sketch (name, user, token) - The first moment, and the change of bot.
+    * confirm - name, user, people (what happens to them) and farewell, to confirm another bot.
+    * bot - name, user, people, listurl, same and changeurl, once connected.
+    * join - url, link, qr, statusurl, joinedsub and nexturl, to join from the phone.
+    * test - name, sent, panelurl, initials, botname, botuser, reply, text, button, stop, focus, time and jointime.
 
     Example context (json):
     {
-        "editing": true, "action": "#", "sesskey": "abc", "error": "", "privacy": "Telegram keeps these messages.",
-        "track": [{"label": "Connect the bot", "done": false, "now": true}],
-        "bot": "", "botname": "", "editurl": "#", "joinurl": "#", "qr": "", "joined": false, "sent": ""
+        "action": "#", "sesskey": "abc", "error": "", "privacy": "Telegram keeps these messages on its servers.",
+        "token": true, "change": false, "current": "", "keepurl": "#",
+        "sketch": {"name": "Example School", "user": "example_bot", "token": "123:ABC"},
+        "confirm": null, "bot": null, "join": null, "test": null
     }
 }}
-<div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-telegram">
-    {{#editing}}
-    <p class="mrd-lead">{{#str}} telegram:lead, local_oksigeniamarandu {{/str}}</p>
-    <ol class="mrd-steps">
-        <li>
-            <span>{{#str}} telegram:step1, local_oksigeniamarandu {{/str}}</span>
-            <a class="btn mrd-btn mrd-second mrd-small" href="https://t.me/BotFather" target="_blank" rel="noopener">{{#str}} telegram:openbotfather, local_oksigeniamarandu {{/str}}</a>
-        </li>
-        <li>
-            <span>{{#str}} telegram:step2, local_oksigeniamarandu {{/str}}</span>
-            <span class="mrd-copy"><code>/newbot</code><button type="button" class="btn mrd-btn mrd-second mrd-small" data-copy="/newbot" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></span>
-        </li>
-        <li><span>{{#str}} telegram:step3, local_oksigeniamarandu {{/str}}</span></li>
-    </ol>
-    <form method="post" action="{{action}}">
-        <input type="hidden" name="sesskey" value="{{sesskey}}">
-        <input type="hidden" name="action" value="connect">
-        <div class="mrd-field mrd-blue">
-            <label for="mrd-tgtoken">{{#str}} telegram:token, local_oksigeniamarandu {{/str}}</label>
-            <span class="mrd-help">{{#str}} telegram:token_help, local_oksigeniamarandu {{/str}}</span>
-            <input type="text" id="mrd-tgtoken" name="token" autocomplete="off" spellcheck="false"{{#error}} class="bad"{{/error}}>
-            <span class="mrd-tokencheck" data-tokencheck aria-live="polite" data-ok="{{#str}} telegram:token:ok, local_oksigeniamarandu {{/str}}" data-bad="{{#str}} telegram:token:bad, local_oksigeniamarandu {{/str}}"></span>
-            {{#error}}<span class="mrd-err">{{error}}</span>{{/error}}
+<div class="local-oksigeniamarandu-tg mrd-tg">
+    {{#token}}
+    <section class="mrd-card mrd-token" aria-labelledby="mrd-h-token">
+        <div class="mrd-token-main">
+            {{#change}}
+            <div class="mrd-current">
+                <p>{{{current}}}</p>
+                <a class="btn mrd-btn mrd-second mrd-small" href="{{keepurl}}">{{#str}} telegram:keep, local_oksigeniamarandu {{/str}}</a>
+            </div>
+            {{/change}}
+            <h2 id="mrd-h-token">{{#change}}{{#str}} telegram:change, local_oksigeniamarandu {{/str}}{{/change}}{{^change}}{{#str}} telegram:connecttitle, local_oksigeniamarandu {{/str}}{{/change}}</h2>
+            <p class="mrd-lead">{{#str}} telegram:lead, local_oksigeniamarandu {{/str}}</p>
+            <form method="post" action="{{action}}" data-connect>
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="action" value="connect">
+                {{#change}}<input type="hidden" name="edit" value="1">{{/change}}
+                <ol class="mrd-steps">
+                    <li><div class="mrd-step"><span>{{#str}} telegram:step1, local_oksigeniamarandu {{/str}}</span>
+                        <a class="btn mrd-btn mrd-second mrd-small" href="https://t.me/BotFather" target="_blank" rel="noopener">{{#str}} telegram:openbotfather, local_oksigeniamarandu {{/str}}</a></div></li>
+                    <li><div class="mrd-step"><span>{{#str}} telegram:step2, local_oksigeniamarandu {{/str}}</span>
+                        <span class="mrd-copy"><code>/newbot</code><button type="button" class="btn mrd-btn mrd-second mrd-small" data-copy="/newbot" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></span></div></li>
+                    <li><div class="mrd-step"><span>{{#str}} telegram:step3, local_oksigeniamarandu {{/str}}</span>
+                        <div class="mrd-field">
+                            <label for="mrd-tgtoken">{{#change}}{{#str}} telegram:newtoken, local_oksigeniamarandu {{/str}}{{/change}}{{^change}}{{#str}} telegram:token, local_oksigeniamarandu {{/str}}{{/change}}</label>
+                            <input type="text" id="mrd-tgtoken" name="token" autocomplete="off" spellcheck="false" aria-describedby="mrd-tok-help mrd-tok-check"{{#error}} class="bad"{{/error}}>
+                            <span class="mrd-fieldfoot"><span class="mrd-help" id="mrd-tok-help">{{#str}} telegram:token_help, local_oksigeniamarandu {{/str}}</span>
+                            <span class="mrd-tokencheck" id="mrd-tok-check" data-tokencheck aria-live="polite" data-ok="{{#str}} telegram:token:ok, local_oksigeniamarandu {{/str}}" data-bad="{{#str}} telegram:token:bad, local_oksigeniamarandu {{/str}}"></span></span>
+                            {{#error}}<span class="mrd-err" role="alert">{{error}}</span>{{/error}}
+                        </div></div></li>
+                </ol>
+                {{#change}}<p class="mrd-tip">{{#str}} telegram:revoke, local_oksigeniamarandu {{/str}}</p>{{/change}}
+                <details class="mrd-fold"><summary>{{#str}} telegram:sketch:fold, local_oksigeniamarandu {{/str}}</summary><div>{{> local_oksigeniamarandu/telegram_sketch }}</div></details>
+                <p class="mrd-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
+                <div class="mrd-actions">
+                    <button type="submit" class="btn mrd-btn mrd-primary" data-connect-button data-wait="{{#str}} telegram:checking, local_oksigeniamarandu {{/str}}">{{#change}}{{#str}} telegram:connectnew, local_oksigeniamarandu {{/str}}{{/change}}{{^change}}{{#str}} telegram:connect, local_oksigeniamarandu {{/str}}{{/change}}</button>
+                    <span class="mrd-help" role="status" data-connect-wait></span>
+                </div>
+            </form>
         </div>
-        <p class="mrd-note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
-        <div class="mrd-actions">
-            <button type="submit" class="btn mrd-btn mrd-primary">{{#str}} telegram:connect, local_oksigeniamarandu {{/str}}</button>
+        <figure class="mrd-sketch mrd-side">
+            <figcaption>{{#str}} telegram:sketch, local_oksigeniamarandu {{/str}}</figcaption>
+            {{> local_oksigeniamarandu/telegram_sketch }}
+            <p class="mrd-fine">{{#str}} telegram:sketch:note, local_oksigeniamarandu {{/str}}</p>
+        </figure>
+    </section>
+    {{/token}}
+
+    {{#bot}}
+    <section class="mrd-botcard" aria-label="{{#str}} telegram:bot, local_oksigeniamarandu {{/str}}">
+        {{#same}}<p class="mrd-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>{{#str}} telegram:same, local_oksigeniamarandu {{/str}}</span></p>{{/same}}
+        <span class="mrd-medal" aria-hidden="true">{{> local_oksigeniamarandu/telegram_plane }}</span>
+        <div class="mrd-botid"><b>{{name}}</b><span class="user">{{user}}</span><span class="mrd-tgchip">{{#str}} telegram:connected, local_oksigeniamarandu {{/str}}</span></div>
+        <div class="mrd-botrow">
+            <p>{{people}}{{#listurl}} · <a href="{{listurl}}">{{#str}} telegram:people:list, local_oksigeniamarandu {{/str}}</a>{{/listurl}}</p>
+            <p class="mrd-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
         </div>
-    </form>
-    {{/editing}}
-    {{^editing}}
-    <p class="mrd-ok">✓ {{#str}} telegram:connected, local_oksigeniamarandu {{/str}} <b>{{botname}}</b> ({{bot}}) · <a href="{{editurl}}">{{#str}} telegram:change, local_oksigeniamarandu {{/str}}</a></p>
-    <p class="mrd-note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
-    <h2>{{#str}} telegram:test, local_oksigeniamarandu {{/str}}</h2>
-    {{^joined}}
-    <p class="mrd-lead">{{#str}} telegram:test:join, local_oksigeniamarandu {{/str}}</p>
-    <div class="mrd-cols">
-        <div class="mrd-actions">
-            <a class="btn mrd-btn mrd-primary" href="{{joinurl}}" target="_blank" rel="noopener">{{#str}} telegram:open, local_oksigeniamarandu {{/str}}</a>
-            <a class="btn mrd-btn mrd-second" href="{{action}}">{{#str}} telegram:test:done, local_oksigeniamarandu {{/str}}</a>
+        <a class="btn mrd-btn mrd-second mrd-small" href="{{changeurl}}">{{#str}} telegram:change, local_oksigeniamarandu {{/str}}</a>
+    </section>
+    {{/bot}}
+
+    {{#join}}
+    <section class="mrd-card mrd-join" aria-labelledby="mrd-h-join">
+        <figure class="mrd-qr mrd-qr-side">
+            <div class="mrd-qrtile" role="img" aria-label="{{#str}} telegram:qr:label, local_oksigeniamarandu {{/str}}">{{{qr}}}</div>
+            <figcaption>{{#str}} telegram:qr, local_oksigeniamarandu {{/str}}<span>{{link}}</span></figcaption>
+        </figure>
+        <div class="mrd-join-main">
+            <h2 id="mrd-h-join">{{#str}} telegram:join, local_oksigeniamarandu {{/str}}</h2>
+            <p class="mrd-lead">{{#str}} telegram:join:lead, local_oksigeniamarandu {{/str}}</p>
+            <ol class="mrd-steps mrd-wide">
+                <li><div class="mrd-step">{{#str}} telegram:join:scan, local_oksigeniamarandu {{/str}}</div></li>
+                <li><div class="mrd-step"><span>{{#str}} telegram:join:start, local_oksigeniamarandu {{/str}}</span></div></li>
+            </ol>
+            <div class="mrd-actions">
+                <span class="mrd-wide">{{#str}} telegram:join:computer, local_oksigeniamarandu {{/str}}</span>
+                <a class="btn mrd-btn mrd-primary mrd-open" href="{{url}}" target="_blank" rel="noopener">{{> local_oksigeniamarandu/telegram_plane }}{{#str}} telegram:open, local_oksigeniamarandu {{/str}}</a>
+            </div>
+            <p class="mrd-howto mrd-narrow">{{#str}} telegram:join:start, local_oksigeniamarandu {{/str}}</p>
         </div>
-        <figure class="mrd-tgqr">{{{qr}}}<figcaption>{{#str}} telegram:qr, local_oksigeniamarandu {{/str}}</figcaption></figure>
-    </div>
-    {{/joined}}
-    {{#joined}}
-    <p class="mrd-lead">{{#str}} telegram:test:joined, local_oksigeniamarandu {{/str}}</p>
-    <form method="post" action="{{action}}" class="mrd-actions">
-        <input type="hidden" name="sesskey" value="{{sesskey}}">
-        <input type="hidden" name="action" value="test">
-        <button type="submit" class="btn mrd-btn mrd-primary">{{#str}} telegram:test:send, local_oksigeniamarandu {{/str}}</button>
-        {{#sent}}<span class="mrd-hint">{{sent}}</span>{{/sent}}
-    </form>
-    {{#error}}<p class="mrd-err">{{error}}</p>{{/error}}
-    {{/joined}}
-    {{/editing}}
-    <h3 class="mrd-group">{{#str}} telegram:track, local_oksigeniamarandu {{/str}}</h3>
-    <ol class="mrd-track">
-        {{#track}}
-            <li class="{{#done}}done{{/done}}{{#now}}now{{/now}}"><i>{{^done}}{{num}}{{/done}}</i><span>{{label}}</span></li>
-        {{/track}}
-    </ol>
+        <div class="mrd-live" data-status-url="{{statusurl}}" data-next="{{nexturl}}" data-joined="{{#str}} telegram:join:joined, local_oksigeniamarandu {{/str}}" data-joined-sub="{{joinedsub}}">
+            <span class="mrd-fly" aria-hidden="true">{{> local_oksigeniamarandu/telegram_plane }}</span>
+            <div class="mrd-live-msg" role="status">
+                <p class="mrd-live-title" data-live-title>{{#str}} telegram:join:waiting, local_oksigeniamarandu {{/str}}</p>
+                <p class="mrd-live-sub" data-live-sub>{{#str}} telegram:join:auto, local_oksigeniamarandu {{/str}}</p>
+                <p class="mrd-live-sub mrd-stuck" data-stuck hidden>{{#str}} telegram:join:stuck, local_oksigeniamarandu {{/str}} <button type="button" class="mrd-linkbtn" data-recheck>{{#str}} telegram:join:recheck, local_oksigeniamarandu {{/str}}</button><br><span data-stuck-help data-notyet="{{#str}} telegram:join:notyet, local_oksigeniamarandu {{/str}}">{{#str}} telegram:join:stuckhelp, local_oksigeniamarandu {{/str}}</span></p>
+            </div>
+        </div>
+        <details class="mrd-fold"><summary>{{#str}} telegram:join:otherphone, local_oksigeniamarandu {{/str}}</summary>
+            <div><figure class="mrd-qr"><div class="mrd-qrtile" role="img" aria-label="{{#str}} telegram:qr:label, local_oksigeniamarandu {{/str}}">{{{qr}}}</div>
+                <figcaption>{{#str}} telegram:qr, local_oksigeniamarandu {{/str}}<span>{{link}}</span></figcaption></figure></div>
+        </details>
+    </section>
+    {{/join}}
+
+    {{#test}}
+    <section class="mrd-card mrd-test" aria-labelledby="mrd-h-test">
+        <div class="mrd-test-main">
+            <p class="mrd-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg><span>{{#str}} telegram:test:joined, local_oksigeniamarandu {{/str}} <b>{{name}}</b>.</span></p>
+            <h2 id="mrd-h-test"{{#focus}} tabindex="-1" data-focus{{/focus}}>{{#str}} telegram:test, local_oksigeniamarandu {{/str}}</h2>
+            <p class="mrd-lead">{{#str}} telegram:test:lead, local_oksigeniamarandu {{/str}}</p>
+            <form method="post" action="{{action}}" class="mrd-actions">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="action" value="test">
+                <button type="submit" class="btn mrd-btn mrd-primary">{{> local_oksigeniamarandu/telegram_plane }}{{#sent}}{{#str}} telegram:test:again, local_oksigeniamarandu {{/str}}{{/sent}}{{^sent}}{{#str}} telegram:test:send, local_oksigeniamarandu {{/str}}{{/sent}}</button>
+            </form>
+            {{#error}}<p class="mrd-err" role="alert">{{error}}</p>{{/error}}
+            {{#sent}}
+            <p class="mrd-sent" role="status">{{sent}}</p>
+            <div class="mrd-actions mrd-after">
+                <a class="btn mrd-btn mrd-primary" href="{{panelurl}}">{{#str}} telegram:test:panel, local_oksigeniamarandu {{/str}}</a>
+                <button type="button" class="mrd-linkbtn" data-nope aria-expanded="false" aria-controls="mrd-nope-help">{{#str}} telegram:test:nope, local_oksigeniamarandu {{/str}}</button>
+            </div>
+            <p class="mrd-nope" id="mrd-nope-help" hidden>{{#str}} telegram:test:nopehelp, local_oksigeniamarandu, {{botuser}} {{/str}}</p>
+            {{/sent}}
+        </div>
+        <figure class="mrd-phone">
+            <div class="tg">
+                <div class="tg-head"><span class="tg-back" aria-hidden="true">‹</span><span class="tg-ava" aria-hidden="true">{{initials}}</span>
+                    <span class="tg-who"><b>{{botname}}</b><small>bot</small></span><i class="mrd-mark" aria-hidden="true">1</i></div>
+                <div class="tg-chat">
+                    <span class="tg-day">{{#str}} telegram:phone:today, local_oksigeniamarandu {{/str}}</span>
+                    <div class="tg-b out">/start<small>{{jointime}} ✓✓</small></div>
+                    <div class="tg-b in">{{reply}}<small>{{jointime}}</small></div>
+                    {{#sent}}
+                    <div class="tg-msg arrive">
+                        <i class="mrd-mark" aria-hidden="true">2</i>
+                        <div class="tg-b in">{{text}}<small>{{time}}</small></div>
+                        <span class="tg-kb">{{button}}<span class="arr" aria-hidden="true">↗</span><i class="mrd-mark" aria-hidden="true">3</i></span>
+                    </div>
+                    {{/sent}}
+                    {{^sent}}<div class="tg-ghost">{{#str}} telegram:phone:ghost, local_oksigeniamarandu {{/str}}</div>{{/sent}}
+                </div>
+                <div class="tg-bar" aria-hidden="true"><span>{{#str}} telegram:phone:message, local_oksigeniamarandu {{/str}}</span></div>
+            </div>
+            <figcaption>{{#str}} telegram:phone:caption, local_oksigeniamarandu {{/str}}</figcaption>
+        </figure>
+        <div class="mrd-test-more">
+            <h3 class="mrd-group">{{#str}} telegram:legend, local_oksigeniamarandu {{/str}}</h3>
+            <ol class="mrd-legend">
+                <li>{{#str}} telegram:legend:1, local_oksigeniamarandu {{/str}}</li>
+                <li>{{#str}} telegram:legend:2, local_oksigeniamarandu {{/str}}</li>
+                <li>{{#str}} telegram:legend:3, local_oksigeniamarandu {{/str}}</li>
+            </ol>
+            <p class="mrd-fine">{{stop}}</p>
+        </div>
+    </section>
+    {{/test}}
+
+    {{#confirm}}
+    <dialog class="mrd-modal" data-confirm open aria-labelledby="mrd-dlg-title">
+        <form method="post" action="{{action}}">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <div class="mrd-modal-head"><h2 id="mrd-dlg-title">{{#str}} telegram:confirm, local_oksigeniamarandu {{/str}}</h2>
+                <button type="submit" name="action" value="cancel" class="mrd-x" aria-label="{{#str}} cancel {{/str}}">×</button></div>
+            <div class="mrd-modal-body">
+                <p>{{#str}} telegram:confirm:other, local_oksigeniamarandu {{/str}} <b>{{name}}</b> ({{user}}).</p>
+                <p>{{{people}}}</p>
+                <label class="mrd-check"><input type="checkbox" name="farewell" value="1" checked> <span>{{#str}} telegram:confirm:farewell, local_oksigeniamarandu {{/str}}</span></label>
+                <blockquote class="mrd-quote">{{farewell}}<span class="tg-kb">{{#str}} telegram:farewell:button, local_oksigeniamarandu {{/str}}<span class="arr" aria-hidden="true">↗</span></span></blockquote>
+            </div>
+            <div class="mrd-modal-foot">
+                <button type="submit" name="action" value="cancel" class="btn mrd-btn mrd-second" autofocus>{{#str}} cancel {{/str}}</button>
+                <button type="submit" name="action" value="switch" class="btn mrd-btn mrd-primary">{{#str}} telegram:confirm:ok, local_oksigeniamarandu {{/str}}</button>
+            </div>
+        </form>
+    </dialog>
+    {{/confirm}}
 </div>

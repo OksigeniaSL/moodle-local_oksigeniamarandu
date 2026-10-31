@@ -98,6 +98,8 @@ class panel {
             'delivered' => $count("status IN ('delivered', 'read')"),
             'read' => $count("status = 'read'"),
             'failed' => $count("status = 'failed'"),
+            // Telegram does not tell a bot whether a message was delivered or read: those stay as sent.
+            'telegram' => $count("kind = 'telegram' AND status = 'sent'"),
         ];
     }
 
@@ -362,6 +364,9 @@ class panel {
         if ($entry->source === 'blocked') {
             return get_string('panel:how:blocked', $component);
         }
+        if ($entry->source === 'keyword' && str_starts_with((string)$entry->detail, 'telegram:')) {
+            return get_string($entry->action === 'optout' ? 'panel:how:tgstop' : 'panel:how:tgstart', $component);
+        }
         if ($entry->source === 'keyword') {
             $word = keywords::first($entry->action === 'optout' ? 'optoutkeywords' : 'optinkeywords');
             return get_string('panel:how:wrote', $component, $word);
@@ -377,7 +382,8 @@ class panel {
      */
     public static function mask(string $phone): string {
         if (telegram::is_chat($phone)) {
-            return 'Telegram';
+            // A chat, with the end of its number, so that two of them are told apart: Chat ••07.
+            return get_string('panel:tgchat', 'local_oksigeniamarandu', substr(telegram::chat($phone), -2));
         }
         if (strlen($phone) < 7) {
             return '+' . $phone;

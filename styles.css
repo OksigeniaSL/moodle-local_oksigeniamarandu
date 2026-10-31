@@ -1,4 +1,4 @@
-/* Oksigenia Marandu for WhatsApp: the set-up wizard and the page where a family joins. Every rule hangs from the
+/* Oksigenia Marandu: the set-up wizard and the page where a family joins. Every rule hangs from the
    class of its page, so nothing changes anywhere else in Moodle. Palette and shapes from the mock-ups of the house. */
 
 .local-oksigeniamarandu-wizard,
@@ -1094,105 +1094,6 @@
     }
 }
 
-/* The page of Telegram: the QR code of the bot, dark on white in both modes. */
-.local-oksigeniamarandu-wizard .mrd-tgqr {
-    margin: 0;
-    text-align: center;
-}
-
-.local-oksigeniamarandu-wizard .mrd-tgqr svg {
-    display: block;
-    width: 9rem;
-    height: auto;
-    margin: 0 auto;
-    padding: 8px;
-    border-radius: 8px;
-    background: #fff;
-}
-
-.local-oksigeniamarandu-wizard .mrd-tgqr figcaption {
-    margin-top: 6px;
-    color: var(--mrd-muted);
-    font-size: 13.5px;
-}
-
-/* The steps to make the bot, numbered, each with its link or what to copy. */
-.local-oksigeniamarandu-wizard .mrd-steps {
-    display: grid;
-    gap: 8px;
-    margin: 0 0 14px;
-    padding: 0;
-    list-style: none;
-    counter-reset: mrd-step;
-}
-
-.local-oksigeniamarandu-wizard .mrd-steps li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 12px;
-    counter-increment: mrd-step;
-}
-
-.local-oksigeniamarandu-wizard .mrd-steps li::before {
-    content: counter(mrd-step);
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--mrd-blue-soft);
-    color: var(--mrd-blue-text);
-    font-size: 14px;
-    font-weight: 700;
-}
-
-/* A note to know before connecting, the size of the text, with its sign. */
-.local-oksigeniamarandu-wizard .mrd-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin: 6px 0 10px;
-    color: var(--mrd-ink-soft);
-}
-
-.local-oksigeniamarandu-wizard .mrd-note svg {
-    flex: none;
-    margin-top: 2px;
-    color: var(--mrd-blue-text);
-}
-
-/* The form of the token, as it is pasted. */
-.local-oksigeniamarandu-wizard .mrd-tokencheck {
-    grid-column: 1 / -1;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.local-oksigeniamarandu-wizard .mrd-tokencheck.ok {
-    color: var(--mrd-green-text);
-}
-
-.local-oksigeniamarandu-wizard .mrd-tokencheck.ok::before {
-    content: "✓ ";
-}
-
-.local-oksigeniamarandu-wizard .mrd-tokencheck.bad {
-    color: var(--mrd-red-text);
-}
-
-/* The step where one is, among those still to come. */
-.local-oksigeniamarandu-wizard .mrd-track li.now {
-    color: var(--mrd-ink);
-    font-weight: 700;
-}
-
-.local-oksigeniamarandu-wizard .mrd-track li.now i {
-    border-color: var(--mrd-blue);
-    color: var(--mrd-blue-text);
-}
-
 /* The panel and the list of numbers, from the mock-up of the house. Text and drawings in the accent take the colour of
    links, which the theme makes readable in each mode; fills take the primary. */
 .local-oksigeniamarandu-panel,
@@ -1456,6 +1357,13 @@
 
 .local-oksigeniamarandu-panel .mrd-flow li.off b {
     color: var(--mrd-bad-ink);
+}
+
+/* Telegram does not say whether a message was delivered or read: a line under the flow says so. */
+.local-oksigeniamarandu-panel .mrd-flownote {
+    margin: -4px 0 12px;
+    color: var(--mrd-muted);
+    font-size: 13.5px;
 }
 
 .local-oksigeniamarandu-panel .mrd-wait {
@@ -2104,3 +2012,1399 @@
 .local-oksigeniamarandu-panel [hidden] {
     display: none;
 }
+
+/* The page of Telegram, in three moments, from the mock-up of the house: the bot, joining from the phone and the test.
+   Its type grows with the screen, so the whiteboard reads from the back; everything inside is in em, and the layout
+   follows the width of the block itself. */
+.local-oksigeniamarandu-tg,
+.local-oksigeniamarandu-tgsteps {
+    --mrd-bg: var(--bs-body-bg, #fff);
+    --mrd-bg-soft: var(--bs-tertiary-bg, #f8f9fa);
+    --mrd-bg-chip: var(--bs-secondary-bg, #e9ecef);
+    --mrd-ink: var(--bs-body-color, #1d2125);
+    --mrd-muted: var(--bs-secondary-color, #5f6b76);
+    --mrd-line: var(--bs-border-color, #dee2e6);
+    --mrd-line-strong: color-mix(in srgb, var(--mrd-ink) 25%, var(--mrd-bg));
+    --mrd-edge: color-mix(in srgb, var(--mrd-ink) 50%, var(--mrd-bg));
+    --mrd-blue: var(--bs-primary, #0f6cbf);
+    --mrd-blue-dark: color-mix(in srgb, var(--mrd-blue) 82%, #000);
+    --mrd-blue-text: var(--bs-primary-text-emphasis, #062b4c);
+    --mrd-blue-soft: var(--bs-primary-bg-subtle, #cfe2f2);
+    --mrd-blue-line: var(--bs-primary-border-subtle, #9fc4e5);
+    --mrd-link: var(--bs-link-color, #0f6cbf);
+    --mrd-green: var(--bs-success, #357a32);
+    --mrd-green-text: var(--bs-success-text-emphasis, #152f14);
+    --mrd-green-soft: var(--bs-success-bg-subtle, #d7e4d6);
+    --mrd-green-line: var(--bs-success-border-subtle, #aecaad);
+    --mrd-bar-done: var(--mrd-green);
+    --mrd-bar-now: var(--mrd-blue);
+    --mrd-mark-bg: var(--mrd-blue);
+    --mrd-mark-ink: #fff;
+    --mrd-red: var(--bs-danger, #ca3120);
+    --mrd-red-text: var(--bs-danger-text-emphasis, #51140d);
+    --mrd-red-soft: var(--bs-danger-bg-subtle, #f4d6d2);
+    --tg-wall: #dfe9d2;
+    --tg-wall2: #c7dab1;
+    --tg-head: #fff;
+    --tg-head-ink: #000;
+    --tg-sub: #56616c;
+    --tg-in: #fff;
+    --tg-in-ink: #000;
+    --tg-in-time: #5c6772;
+    --tg-out: #effedd;
+    --tg-out-ink: #000;
+    --tg-out-time: #3a7134;
+    --tg-kb: #4f6a49;
+    --tg-kb-ink: #fff;
+    --tg-day: #566950;
+    --tg-frame: #1d2125;
+    --tg-bar: #fff;
+    --tg-bar-ink: #5c6772;
+    --tg-ava: #2d6aa0;
+    color: var(--mrd-ink);
+}
+
+/* In dark, the bars and the marks take the emphasis colours of the theme, which keep 3:1 against the page; Telegram,
+   as it looks in dark. */
+[data-bs-theme="dark"] .local-oksigeniamarandu-tg,
+[data-bs-theme="dark"] .local-oksigeniamarandu-tgsteps {
+    --mrd-bar-done: var(--mrd-green-text);
+    --mrd-bar-now: var(--mrd-link);
+    --mrd-mark-bg: var(--mrd-link);
+    --mrd-mark-ink: var(--mrd-bg);
+    --tg-wall: #0e1621;
+    --tg-wall2: #14212f;
+    --tg-head: #17212b;
+    --tg-head-ink: #fff;
+    --tg-sub: #93a6b8;
+    --tg-in: #182533;
+    --tg-in-ink: #f1f1f1;
+    --tg-in-time: #93a6b8;
+    --tg-out: #2b5278;
+    --tg-out-ink: #fff;
+    --tg-out-time: #bcd2e6;
+    --tg-kb: #22374c;
+    --tg-kb-ink: #fff;
+    --tg-day: #1e2d3c;
+    --tg-frame: #000;
+    --tg-bar: #17212b;
+    --tg-bar-ink: #93a6b8;
+}
+
+/* The steps, in the header beside the title, as the wizard's: done in green, now in blue, the rest in grey. */
+#page-header .d-flex:has(> .header-actions-container .local-oksigeniamarandu-tgsteps) {
+    flex-wrap: wrap;
+    gap: 0.5rem 2.5rem;
+    align-items: flex-end;
+}
+
+#page-header .header-actions-container:has(.local-oksigeniamarandu-tgsteps) {
+    flex: 1 1 22rem;
+    margin-left: auto;
+}
+
+#page-header .header-action:has(.local-oksigeniamarandu-tgsteps) {
+    /* stylelint-disable-next-line declaration-no-important */
+    margin-left: 0 !important;
+    flex: 1 1 auto;
+}
+
+.local-oksigeniamarandu-tgsteps {
+    margin: 0 0 4px;
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-bar,
+.local-oksigeniamarandu-tgsteps .mrd-labels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-bar i {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--mrd-line-strong);
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-bar i.done {
+    background: var(--mrd-bar-done);
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-bar i.now {
+    background: var(--mrd-bar-now);
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-labels {
+    margin: 5px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13.5px;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-labels .done {
+    color: var(--mrd-green-text);
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-labels .done::before {
+    content: "✓ ";
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-labels .now {
+    color: var(--mrd-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tgsteps .mrd-pos {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    #page-header .header-actions-container:has(.local-oksigeniamarandu-tgsteps) {
+        flex-basis: 100%;
+    }
+
+    .local-oksigeniamarandu-tgsteps .mrd-labels {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-tgsteps .mrd-labels li:not(.now):not(.shown) {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-tgsteps .mrd-pos {
+        display: inline;
+    }
+}
+
+.local-oksigeniamarandu-tg {
+    container: mrd / inline-size;
+    display: grid;
+    gap: 1em;
+    font-size: clamp(15px, calc(7px + 0.62vw), 20px);
+}
+
+.local-oksigeniamarandu-tg :focus-visible {
+    outline: 3px solid var(--mrd-link);
+    outline-offset: 2px;
+}
+
+.local-oksigeniamarandu-tg h2[tabindex="-1"]:focus {
+    outline: 0;
+}
+
+.local-oksigeniamarandu-tg h2 {
+    margin: 0 0 0.3em;
+    font-size: 1.4em;
+    line-height: 1.25;
+}
+
+.local-oksigeniamarandu-tg .mrd-lead {
+    margin: 0 0 1em;
+}
+
+.local-oksigeniamarandu-tg .mrd-fine {
+    margin: 0.6em 0 0;
+    font-size: 0.86em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-tg .mrd-card {
+    min-width: 0;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1.1em;
+    padding: 1.25em 1.5em;
+    background: var(--mrd-bg);
+}
+
+/* The buttons carry .btn, so that the theme does not underline them; these rules go first. */
+.local-oksigeniamarandu-tg .btn.mrd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    min-height: max(44px, 2.75em);
+    padding: 0.45em 1.15em;
+    border: 1px solid transparent;
+    border-radius: 0.6em;
+    font-size: 1em;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn svg {
+    width: 1.35em;
+    height: 1.35em;
+    flex: none;
+}
+
+/* The plane is drawn on 64: a thicker stroke keeps it at 1.6 pixels in a button. */
+.local-oksigeniamarandu-tg .btn.mrd-btn svg path {
+    stroke-width: 3.8;
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn.mrd-primary {
+    background: var(--mrd-blue);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn.mrd-primary:hover {
+    background: var(--mrd-blue-dark);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn.mrd-second {
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    border-color: var(--mrd-edge);
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn.mrd-second:hover {
+    border-color: var(--mrd-link);
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn.mrd-small {
+    padding: 0.3em 0.9em;
+    font-size: 0.92em;
+}
+
+.local-oksigeniamarandu-tg .btn.mrd-btn[disabled] {
+    opacity: 0.75;
+    cursor: progress;
+}
+
+.local-oksigeniamarandu-tg .mrd-linkbtn {
+    min-height: 44px;
+    padding: 0.4em 0.2em;
+    border: 0;
+    background: none;
+    color: var(--mrd-link);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-tg .mrd-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6em 1em;
+}
+
+.local-oksigeniamarandu-tg .mrd-help {
+    font-size: 0.88em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-tg .mrd-err {
+    display: block;
+    color: var(--mrd-red-text);
+    font-weight: 600;
+}
+
+/* Numbered steps, each with its link or what to copy; the number sits on the line of its text. */
+.local-oksigeniamarandu-tg .mrd-steps {
+    display: grid;
+    gap: 0.75em;
+    margin: 0 0 1em;
+    padding: 0;
+    list-style: none;
+    counter-reset: mrd-step;
+}
+
+.local-oksigeniamarandu-tg .mrd-steps > li {
+    display: grid;
+    grid-template-columns: 1.9em minmax(0, 1fr);
+    gap: 0 0.75em;
+    align-items: baseline;
+    counter-increment: mrd-step;
+}
+
+.local-oksigeniamarandu-tg .mrd-steps > li::before {
+    content: counter(mrd-step);
+    display: grid;
+    place-items: center;
+    width: 1.9em;
+    height: 1.9em;
+    border-radius: 50%;
+    background: var(--mrd-blue-soft);
+    color: var(--mrd-blue-text);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tg .mrd-step {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4em 0.9em;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.local-oksigeniamarandu-tg .mrd-copy code,
+.local-oksigeniamarandu-tg .mrd-tip code {
+    padding: 0.35em 0.65em;
+    border: 1px dashed var(--mrd-edge);
+    border-radius: 0.5em;
+    background: var(--mrd-bg-soft);
+    font: 0.95em/1.3 ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-tg .mrd-tip code {
+    padding: 0.1em 0.4em;
+}
+
+.local-oksigeniamarandu-tg .tg-start {
+    display: inline-block;
+    padding: 0.05em 0.7em;
+    border: 1px solid var(--mrd-edge);
+    border-radius: 0.4em;
+    font-size: 0.85em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--mrd-link);
+}
+
+/* The token: label, box, the help and the check as it is pasted, with the line of the field on its left. */
+.local-oksigeniamarandu-tg .mrd-field {
+    flex-basis: 100%;
+    display: grid;
+    gap: 0.3em;
+    margin: 0.4em 0 0;
+    padding: 0.15em 0 0.15em 0.9em;
+    border-left: 4px solid var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-tg .mrd-field label {
+    margin: 0;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tg .mrd-field input {
+    width: 100%;
+    min-height: max(44px, 2.75em);
+    padding: 0.45em 0.75em;
+    border: 1px solid var(--mrd-edge);
+    border-radius: 0.5em;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    font: 1em/1.3 ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+.local-oksigeniamarandu-tg .mrd-field input.bad {
+    border-color: var(--mrd-red);
+    box-shadow: 0 0 0 2px var(--mrd-red-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-fieldfoot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0 1em;
+}
+
+.local-oksigeniamarandu-tg .mrd-tokencheck {
+    min-height: 1.45em;
+    font-size: 0.92em;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-tg .mrd-tokencheck.ok {
+    color: var(--mrd-green-text);
+}
+
+.local-oksigeniamarandu-tg .mrd-tokencheck.ok::before {
+    content: "✓ ";
+}
+
+.local-oksigeniamarandu-tg .mrd-tokencheck.bad {
+    color: var(--mrd-red-text);
+}
+
+/* A note to know before connecting, the size of the text, with its sign. */
+.local-oksigeniamarandu-tg .mrd-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin: 0 0 1em;
+}
+
+.local-oksigeniamarandu-tg .mrd-note svg {
+    flex: none;
+    width: 1.25em;
+    height: 1.25em;
+    margin-top: 0.12em;
+    color: var(--mrd-link);
+}
+
+/* Moment 1: the steps on the left and, on a wide block, the talk with @BotFather drawn on the right (a sketch, not a
+   screenshot, so it does not age); on a narrow one, folded under the steps. */
+.local-oksigeniamarandu-tg .mrd-token {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25em 2.25em;
+}
+
+.local-oksigeniamarandu-tg .mrd-token form {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-sketch {
+    margin: 0;
+    padding: 1em 1.1em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1em;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-sketch figcaption {
+    margin: 0 0 0.7em;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tg .mrd-side {
+    display: none;
+}
+
+.local-oksigeniamarandu-tg .mrd-fold {
+    margin: 0 0 1em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 0.8em;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-fold summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    min-height: 44px;
+    padding: 0.35em 0.9em;
+    color: var(--mrd-link);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-tg .mrd-fold[open] summary {
+    border-bottom: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-tg .mrd-fold > div {
+    padding: 0.9em;
+}
+
+.local-oksigeniamarandu-tg .mrd-bf {
+    display: grid;
+    gap: 0.5em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-tg .mrd-bf li {
+    display: grid;
+    justify-items: start;
+    gap: 0.15em;
+}
+
+.local-oksigeniamarandu-tg .mrd-bf li.me {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2em 0.6em;
+}
+
+.local-oksigeniamarandu-tg .mrd-bf .b {
+    max-width: 90%;
+    padding: 0.4em 0.75em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1em 1em 1em 0.3em;
+    background: var(--mrd-bg);
+    line-height: 1.4;
+}
+
+.local-oksigeniamarandu-tg .mrd-bf .me .b {
+    border-color: var(--mrd-blue-line);
+    border-radius: 1em 1em 0.3em 1em;
+    background: var(--mrd-blue-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-bf .ann {
+    font-size: 0.92em;
+    font-weight: 600;
+    color: var(--mrd-link);
+}
+
+.local-oksigeniamarandu-tg .mrd-bf .ann::before {
+    content: "↑ ";
+}
+
+.local-oksigeniamarandu-tg .mrd-bf .me .ann::before {
+    content: "";
+}
+
+.local-oksigeniamarandu-tg .mrd-bf .me .ann::after {
+    content: " →";
+}
+
+.local-oksigeniamarandu-tg .mrd-bf mark {
+    display: block;
+    margin: 0.35em 0;
+    padding: 0.2em 0.45em;
+    border-radius: 0.3em;
+    outline: 2px dashed var(--mrd-link);
+    background: var(--mrd-blue-soft);
+    color: var(--mrd-ink);
+    font: 0.95em/1.35 ui-monospace, "SFMono-Regular", Menlo, monospace;
+    word-break: break-all;
+}
+
+@container mrd (min-width: 860px) {
+    .local-oksigeniamarandu-tg .mrd-token {
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-token .mrd-side {
+        display: block;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-token .mrd-fold {
+        display: none;
+    }
+}
+
+/* The change of bot: the bot of now, and the tip for a new token of the same bot. */
+.local-oksigeniamarandu-tg .mrd-current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5em 1em;
+    margin: 0 0 1em;
+    padding: 0.55em 0.55em 0.55em 1em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 0.8em;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-current p {
+    flex: 1 1 18em;
+    margin: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-tip {
+    margin: 0 0 1em;
+    padding: 0.55em 0.9em;
+    border-radius: 0.7em;
+    background: var(--mrd-blue-soft);
+    color: var(--mrd-ink);
+}
+
+/* The bot, once connected: one row with its drawing, its name, its state, who has joined and the way to change it. */
+.local-oksigeniamarandu-tg .mrd-botcard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.2em 1em;
+    align-items: center;
+    padding: 0.85em 1.25em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1.1em;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-medal {
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 3.2em;
+    height: 3.2em;
+    border-radius: 50%;
+    background: var(--mrd-blue-soft);
+    color: var(--mrd-link);
+}
+
+.local-oksigeniamarandu-tg .mrd-medal svg {
+    width: 2.1em;
+    height: 2.1em;
+}
+
+.local-oksigeniamarandu-tg .mrd-medal svg path {
+    stroke-width: 2.6;
+}
+
+.local-oksigeniamarandu-tg .mrd-medal .trail {
+    display: none;
+}
+
+.local-oksigeniamarandu-tg .mrd-botid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.15em 0.7em;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-botid b {
+    font-size: 1.12em;
+}
+
+.local-oksigeniamarandu-tg .mrd-botid .user {
+    color: var(--mrd-muted);
+    overflow-wrap: anywhere;
+}
+
+.local-oksigeniamarandu-tg .mrd-tgchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.1em 0.7em;
+    border-radius: 999px;
+    background: var(--mrd-green-soft);
+    color: var(--mrd-green-text);
+    font-size: 0.86em;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tg .mrd-tgchip::before {
+    content: "";
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.local-oksigeniamarandu-tg .mrd-botrow {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.1em 1.5em;
+    font-size: 0.92em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-tg .mrd-botrow p {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-botrow .mrd-note svg {
+    width: 1.15em;
+    height: 1.15em;
+    margin-top: 0.15em;
+}
+
+.local-oksigeniamarandu-tg .mrd-botcard > .btn {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+}
+
+.local-oksigeniamarandu-tg .mrd-botcard > .mrd-ok {
+    grid-column: 1 / -1;
+}
+
+@container mrd (max-width: 520px) {
+    .local-oksigeniamarandu-tg .mrd-botcard {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-tg .mrd-botcard > .btn {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        justify-self: start;
+        margin-top: 0.4em;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-botrow {
+        grid-column: 1 / -1;
+    }
+}
+
+.local-oksigeniamarandu-tg .mrd-ok {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin: 0 0 1em;
+    padding: 0.55em 0.9em;
+    border-radius: 0.7em;
+    background: var(--mrd-green-soft);
+    color: var(--mrd-green-text);
+}
+
+.local-oksigeniamarandu-tg .mrd-ok svg {
+    flex: none;
+    width: 1.3em;
+    height: 1.3em;
+    margin-top: 0.1em;
+}
+
+/* Moment 2: join from the phone. One card: the QR code, what to do, and the waiting, side by side when there is room;
+   on a phone, the button first, the waiting under it and the code folded away. */
+.local-oksigeniamarandu-tg .mrd-join {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1em 1.75em;
+}
+
+.local-oksigeniamarandu-tg .mrd-join .mrd-qr-side,
+.local-oksigeniamarandu-tg .mrd-join .mrd-wide {
+    display: none;
+}
+
+.local-oksigeniamarandu-tg .mrd-qr {
+    margin: 0;
+    display: grid;
+    justify-items: center;
+    gap: 0.5em;
+    text-align: center;
+}
+
+/* The QR code, dark on white in both modes, so that every camera reads it. */
+.local-oksigeniamarandu-tg .mrd-qrtile {
+    width: 13em;
+    padding: 0.75em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 0.9em;
+    background: #fff;
+}
+
+.local-oksigeniamarandu-tg .mrd-qrtile svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.local-oksigeniamarandu-tg .mrd-qr figcaption {
+    font-size: 0.92em;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-tg .mrd-qr figcaption span {
+    display: block;
+    font-weight: 400;
+    color: var(--mrd-muted);
+    overflow-wrap: anywhere;
+}
+
+.local-oksigeniamarandu-tg .mrd-join .mrd-open {
+    width: 100%;
+}
+
+.local-oksigeniamarandu-tg .mrd-howto {
+    margin: 0.55em 0 0;
+    color: var(--mrd-muted);
+    font-size: 0.93em;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-tg .mrd-live {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.15em 1em;
+    align-items: center;
+    padding: 0.9em 1.1em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 0.9em;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-fly {
+    display: grid;
+    place-items: center;
+    width: 3.4em;
+    height: 3.4em;
+    color: var(--mrd-link);
+}
+
+.local-oksigeniamarandu-tg .mrd-fly svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.local-oksigeniamarandu-tg .mrd-live-msg p {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-live-title {
+    font-size: 1.08em;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tg .mrd-live-sub {
+    color: var(--mrd-muted);
+    font-size: 0.93em;
+}
+
+.local-oksigeniamarandu-tg .mrd-live-msg .mrd-stuck {
+    margin-top: 0.5em;
+    padding-top: 0.5em;
+    border-top: 1px dashed var(--mrd-line);
+}
+
+.local-oksigeniamarandu-tg .mrd-live.is-joined {
+    border-color: var(--mrd-green-line);
+    background: var(--mrd-green-soft);
+}
+
+.local-oksigeniamarandu-tg .mrd-live.is-joined .mrd-fly,
+.local-oksigeniamarandu-tg .mrd-live.is-joined .mrd-live-title,
+.local-oksigeniamarandu-tg .mrd-live.is-joined .mrd-live-sub {
+    color: var(--mrd-green-text);
+}
+
+@container mrd (min-width: 700px) {
+    .local-oksigeniamarandu-tg .mrd-join {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-qr-side {
+        display: grid;
+        grid-row: 1 / span 2;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-wide {
+        display: revert;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-steps.mrd-wide {
+        display: grid;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-narrow,
+    .local-oksigeniamarandu-tg .mrd-join .mrd-fold {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .btn.mrd-btn.mrd-open {
+        width: auto;
+        background: var(--mrd-bg);
+        color: var(--mrd-ink);
+        border-color: var(--mrd-edge);
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .btn.mrd-btn.mrd-open:hover {
+        border-color: var(--mrd-link);
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-live {
+        grid-column: 2;
+    }
+}
+
+@container mrd (min-width: 1080px) {
+    .local-oksigeniamarandu-tg .mrd-join {
+        grid-template-columns: auto minmax(0, 1.4fr) minmax(15em, 1fr);
+        align-items: stretch;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-qr-side {
+        grid-row: 1;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-live {
+        grid-column: 3;
+        grid-row: 1;
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        align-content: center;
+        text-align: center;
+        padding: 1.2em;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-join .mrd-fly {
+        width: 5.2em;
+        height: 5.2em;
+        margin-bottom: 0.4em;
+    }
+}
+
+/* The plane flies while it waits: the trail runs and the plane rocks a little. Still with reduced motion or the
+   pause. */
+.local-oksigeniamarandu-tg .mrd-fly .trail {
+    animation: mrd-trail 1.4s linear infinite;
+}
+
+.local-oksigeniamarandu-tg .mrd-fly .plane {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: mrd-rock 3.6s ease-in-out infinite;
+}
+
+.local-oksigeniamarandu-tg .mrd-btn .trail {
+    display: none;
+}
+
+@keyframes mrd-trail {
+    to {
+        stroke-dashoffset: -12;
+    }
+}
+
+@keyframes mrd-rock {
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0);
+    }
+
+    50% {
+        transform: translate(1px, -2px) rotate(-3deg);
+    }
+}
+
+/* Moment 3: the test, and on its side the phone with the chat as it arrives; the numbers tie the phone to the list. */
+.local-oksigeniamarandu-tg .mrd-test {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25em 2.25em;
+}
+
+.local-oksigeniamarandu-tg .mrd-test-main,
+.local-oksigeniamarandu-tg .mrd-test-more {
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-test form {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-sent {
+    margin: 0.7em 0 0;
+    font-weight: 600;
+    color: var(--mrd-green-text);
+}
+
+.local-oksigeniamarandu-tg .mrd-group {
+    margin: 1.3em 0 0.4em;
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-tg .mrd-legend {
+    display: grid;
+    gap: 0.45em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: mrd-lg;
+}
+
+.local-oksigeniamarandu-tg .mrd-legend li {
+    display: grid;
+    grid-template-columns: 1.85em minmax(0, 1fr);
+    gap: 0 0.65em;
+    align-items: baseline;
+    counter-increment: mrd-lg;
+}
+
+.local-oksigeniamarandu-tg .mrd-legend li::before,
+.local-oksigeniamarandu-tg .mrd-mark {
+    display: grid;
+    place-items: center;
+    width: 1.6em;
+    height: 1.6em;
+    border-radius: 50%;
+    background: var(--mrd-mark-bg);
+    color: var(--mrd-mark-ink);
+    font-size: 0.85em;
+    font-weight: 700;
+    font-style: normal;
+    line-height: 1;
+}
+
+.local-oksigeniamarandu-tg .mrd-legend li::before {
+    content: counter(mrd-lg);
+    width: 1.85em;
+    height: 1.85em;
+}
+
+.local-oksigeniamarandu-tg .mrd-after {
+    margin-top: 0.6em;
+}
+
+.local-oksigeniamarandu-tg .mrd-nope {
+    margin: 0.5em 0 0;
+    padding: 0.6em 0.9em;
+    border-radius: 0.7em;
+    background: var(--mrd-bg-soft);
+    border: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-tg .mrd-phone {
+    margin: 0;
+    display: grid;
+    justify-items: center;
+    gap: 0.55em;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-phone > figcaption {
+    font-size: 0.88em;
+    color: var(--mrd-muted);
+    text-align: center;
+}
+
+@container mrd (min-width: 760px) {
+    .local-oksigeniamarandu-tg .mrd-test {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto 1fr;
+        row-gap: 0;
+        align-items: start;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-test .mrd-phone {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        width: 20em;
+    }
+
+    .local-oksigeniamarandu-tg .mrd-test .mrd-test-main,
+    .local-oksigeniamarandu-tg .mrd-test .mrd-test-more {
+        grid-column: 1;
+    }
+
+}
+
+/* The Telegram of the drawing, ours and simulated: only the phone uses its colours. */
+.local-oksigeniamarandu-tg .tg {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1em;
+    background: linear-gradient(165deg, var(--tg-wall), var(--tg-wall2));
+    font-size: 0.9em;
+}
+
+/* On a wide block, the phone with its frame. */
+@container mrd (min-width: 760px) {
+    .local-oksigeniamarandu-tg .tg {
+        border: 0.55em solid var(--tg-frame);
+        border-radius: 2.1em;
+        box-shadow: 0 0.6em 1.8em rgba(0, 0, 0, 0.18);
+    }
+}
+
+.local-oksigeniamarandu-tg .tg-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.55em 0.8em;
+    background: var(--tg-head);
+    color: var(--tg-head-ink);
+}
+
+.local-oksigeniamarandu-tg .tg-back {
+    font-size: 1.5em;
+    line-height: 1;
+    color: var(--tg-sub);
+}
+
+.local-oksigeniamarandu-tg .tg-ava {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.3em;
+    height: 2.3em;
+    border-radius: 50%;
+    background: var(--tg-ava);
+    color: #fff;
+    font-size: 0.9em;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-tg .tg-who {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.local-oksigeniamarandu-tg .tg-who b {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-tg .tg-who small {
+    color: var(--tg-sub);
+    font-size: 0.82em;
+}
+
+.local-oksigeniamarandu-tg .tg-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45em;
+    padding: 0.75em 0.9em 0.9em;
+}
+
+.local-oksigeniamarandu-tg .tg-day {
+    align-self: center;
+    padding: 0.05em 0.7em;
+    border-radius: 999px;
+    background: var(--tg-day);
+    color: #fff;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-tg .tg-b {
+    position: relative;
+    max-width: 90%;
+    padding: 0.4em 0.65em 0.35em;
+    border-radius: 0.95em;
+    font-size: 0.93em;
+    line-height: 1.38;
+}
+
+.local-oksigeniamarandu-tg .tg-b.in {
+    align-self: flex-start;
+    border-bottom-left-radius: 0.3em;
+    background: var(--tg-in);
+    color: var(--tg-in-ink);
+}
+
+.local-oksigeniamarandu-tg .tg-b.out {
+    align-self: flex-end;
+    border-bottom-right-radius: 0.3em;
+    background: var(--tg-out);
+    color: var(--tg-out-ink);
+}
+
+.local-oksigeniamarandu-tg .tg-b small {
+    float: right;
+    margin: 0.4em 0 0 0.7em;
+    font-size: 0.74em;
+    line-height: 1.6;
+    color: var(--tg-in-time);
+}
+
+.local-oksigeniamarandu-tg .tg-b.out small {
+    color: var(--tg-out-time);
+}
+
+.local-oksigeniamarandu-tg .tg-msg {
+    position: relative;
+    align-self: flex-start;
+    display: grid;
+    gap: 0.25em;
+    max-width: 92%;
+}
+
+.local-oksigeniamarandu-tg .tg-msg .tg-b {
+    max-width: none;
+}
+
+.local-oksigeniamarandu-tg .tg-kb {
+    position: relative;
+    display: block;
+    padding: 0.45em 1.4em;
+    border-radius: 0.6em;
+    background: var(--tg-kb);
+    color: var(--tg-kb-ink);
+    font-size: 0.88em;
+    font-weight: 600;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-tg .tg-kb .arr {
+    position: absolute;
+    top: 0.1em;
+    right: 0.4em;
+    font-size: 0.8em;
+}
+
+.local-oksigeniamarandu-tg .tg-ghost {
+    align-self: flex-start;
+    width: 80%;
+    padding: 0.75em 0.8em;
+    border: 2px dashed var(--tg-sub);
+    border-radius: 0.95em;
+    color: var(--tg-in-ink);
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-tg .tg-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.55em 0.8em;
+    background: var(--tg-bar);
+    color: var(--tg-bar-ink);
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-tg .tg-bar span {
+    flex: 1;
+}
+
+.local-oksigeniamarandu-tg .tg .mrd-mark {
+    position: absolute;
+    z-index: 1;
+    box-shadow: 0 0 0 2px var(--mrd-bg);
+}
+
+.local-oksigeniamarandu-tg .tg-head .mrd-mark {
+    position: static;
+    margin-left: auto;
+}
+
+.local-oksigeniamarandu-tg .tg-msg > .mrd-mark {
+    left: -.75em;
+    top: -.55em;
+}
+
+.local-oksigeniamarandu-tg .tg-kb .mrd-mark {
+    left: -.75em;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.local-oksigeniamarandu-tg .tg-msg.arrive {
+    animation: tg-arrive 0.5s ease-out both;
+}
+
+@keyframes tg-arrive {
+    from {
+        opacity: 0;
+        transform: translateY(0.7em);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* «Change the bot»: a modal, in the colours of the page. */
+.local-oksigeniamarandu-tg .mrd-modal {
+    width: min(36rem, calc(100vw - 32px));
+    padding: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
+    font-size: clamp(15px, calc(7px + 0.62vw), 19px);
+}
+
+.local-oksigeniamarandu-tg .mrd-modal::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.local-oksigeniamarandu-tg .mrd-modal form {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-tg .mrd-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding: 0.6em 0.6em 0.6em 1.25em;
+    border-bottom: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-tg .mrd-modal-head h2 {
+    margin: 0;
+    font-size: 1.3em;
+}
+
+.local-oksigeniamarandu-tg .mrd-x {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 0.4em;
+    background: none;
+    color: var(--mrd-ink);
+    font-size: 1.6em;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-tg .mrd-modal-body {
+    padding: 1em 1.25em 0.4em;
+}
+
+.local-oksigeniamarandu-tg .mrd-modal-body > p {
+    margin: 0 0 0.8em;
+}
+
+.local-oksigeniamarandu-tg .mrd-check {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    min-height: 44px;
+    margin: 0;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-tg .mrd-check input {
+    flex: none;
+    width: 1.3em;
+    height: 1.3em;
+    margin: 0;
+    accent-color: var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-tg .mrd-quote {
+    margin: 0.2em 0 0.8em 2em;
+    padding: 0.6em 0.8em;
+    border-left: 3px solid var(--mrd-edge);
+    border-radius: 0 0.5em 0.5em 0;
+    background: var(--mrd-bg-soft);
+    font-size: 0.93em;
+}
+
+.local-oksigeniamarandu-tg .mrd-quote .tg-kb {
+    margin-top: 0.5em;
+    background: var(--mrd-bg);
+    color: var(--mrd-link);
+    border: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-tg .mrd-modal-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.6em;
+    padding: 0.8em 1.25em;
+    border-top: 1px solid var(--mrd-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .local-oksigeniamarandu-tg *,
+    .local-oksigeniamarandu-tg *::before,
+    .local-oksigeniamarandu-tg *::after {
+        /* stylelint-disable-next-line declaration-no-important */
+        animation: none !important;
+    }
+}
+
+/* The pause of the Access panel (oksiacSettings.pauseAnim) puts this class on the body. */
+body.oks-a11y-pause .local-oksigeniamarandu-tg *,
+body.oks-a11y-pause .local-oksigeniamarandu-tg *::before,
+body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
+    /* stylelint-disable-next-line declaration-no-important */
+    animation: none !important;
+}
+

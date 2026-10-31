@@ -122,7 +122,10 @@ foreach ($contacts as $contact) {
         'status' => $contact->status,
         'chip' => get_string('list:chip:' . $contact->status, $component),
         'since' => panel::when($entry ? (int)$entry->timecreated : (int)$contact->timecreated, $now),
-        'how' => $entry ? panel::how($entry) : get_string('panel:how:pending', $component),
+        // A chat of Telegram that had joined the old bot waits for the new one.
+        'how' => $contact->status === 'pending' && $entry && $entry->action === 'optin'
+            ? get_string('panel:how:newbot', $component)
+            : ($entry ? panel::how($entry) : get_string('panel:how:pending', $component)),
         'canout' => $contact->status !== 'optedout',
         'askurl' => (new moodle_url($baseurl, ['ask' => $contact->id, 'shown' => $shown]))->out(false) . '#mrd-' . $contact->id,
     ];

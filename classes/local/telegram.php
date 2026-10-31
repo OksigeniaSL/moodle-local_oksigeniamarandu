@@ -87,11 +87,102 @@ class telegram {
         $secret = random_string(48);
         $api->set_webhook((new \moodle_url('/local/oksigeniamarandu/tgwebhook.php'))->out(false), $secret);
         set_config('telegramtoken', \core\encryption::encrypt($token), 'local_oksigeniamarandu');
+        set_config('telegrambotid', (string)($bot['id'] ?? self::bot_id($token)), 'local_oksigeniamarandu');
         set_config('telegrambot', (string)($bot['username'] ?? ''), 'local_oksigeniamarandu');
         set_config('telegramname', (string)($bot['first_name'] ?? ''), 'local_oksigeniamarandu');
         set_config('telegramsecret', $secret, 'local_oksigeniamarandu');
         unset_config('telegramblocked', 'local_oksigeniamarandu');
         return $bot;
+    }
+
+    /**
+     * The bot a token is of: the number before its colon.
+     *
+     * @param string $token The token.
+     * @return string
+     */
+    public static function bot_id(string $token): string {
+        return (string)strtok($token, ':');
+    }
+
+    /**
+     * Whether a new token is of the bot the site has now (a token renewed with /revoke), rather than of another bot.
+     *
+     * @param array $bot The new bot, as getMe gives it.
+     * @return bool
+     */
+    public static function is_same_bot(array $bot): bool {
+        $id = (string)get_config('local_oksigeniamarandu', 'telegrambotid');
+        if ($id !== '') {
+            return (string)($bot['id'] ?? '') === $id;
+        }
+        return strcasecmp((string)($bot['username'] ?? ''), (string)get_config('local_oksigeniamarandu', 'telegrambot')) === 0;
+    }
+
+    /**
+     * The chats that have joined the bot and receive notices.
+     *
+     * @return int[] The contacts.
+     */
+    public static function joined(): array {
+        global $DB;
+        return array_map('intval', $DB->get_fieldset_select(
+            consent::CONTACTS,
+            'id',
+            'channel = :channel AND status = :active',
+            ['channel' => 'telegram', 'active' => 'active']
+        ));
+    }
+
+    /**
+     * Changes to another bot: the chats that had joined the old one wait for the new one (a bot cannot write first, so
+     * they have to open it and start it), without opting out and still standing for whom they stood. The old bot can
+     * send them the link to the new one first.
+     *
+     * @param string $newbot The username of the new bot.
+     * @param string|null $oldtoken The token of the old bot, to send them the link; null not to.
+     * @return int How many chats wait for the new bot.
+     */
+    public static function switch_bot(string $newbot, ?string $oldtoken): int {
+        global $DB;
+        $ids = self::joined();
+        if ($ids) {
+            [$insql, $params] = $DB->get_in_or_equal($ids);
+            $DB->execute(
+                'UPDATE {' . consent::CONTACTS . "} SET status = 'pending', timemodified = ? WHERE id $insql",
+                array_merge([time()], $params)
+            );
+        }
+        set_config('telegramchange', json_encode([
+            'from' => (string)get_config('local_oksigeniamarandu', 'telegrambot'),
+            'to' => $newbot,
+            'contacts' => $ids,
+            'time' => time(),
+            'told' => $oldtoken !== null && $ids,
+        ]), 'local_oksigeniamarandu');
+        if ($oldtoken !== null && $ids) {
+            \local_oksigeniamarandu\task\telegram_farewell::queue($oldtoken, $newbot, $ids);
+        }
+        return count($ids);
+    }
+
+    /**
+     * How many of the chats of the old bot have started the new one, while it is worth saying.
+     *
+     * @return \stdClass|null With back, of and told; null if there was no change, or all are back.
+     */
+    public static function returned(): ?\stdClass {
+        global $DB;
+        $change = json_decode((string)get_config('local_oksigeniamarandu', 'telegramchange'));
+        if (!is_object($change) || empty($change->contacts)) {
+            return null;
+        }
+        [$insql, $params] = $DB->get_in_or_equal($change->contacts);
+        $back = $DB->count_records_select(consent::CONTACTS, "id $insql AND status = 'active'", $params);
+        if ($back >= count($change->contacts)) {
+            return null;
+        }
+        return (object)['back' => $back, 'of' => count($change->contacts), 'told' => !empty($change->told)];
     }
 
     /**

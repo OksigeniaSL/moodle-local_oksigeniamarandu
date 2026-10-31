@@ -21,7 +21,7 @@
 
     Context variables required for this template:
     * state - kind, title, text, art, bad or cap (for its colour) and actions (url, label, primary).
-    * today - until, sent, delivered, read, failed, waits (count, label, when) and nowait.
+    * today - until, sent, delivered, read, failed, telegram (a note, or empty), waits (count, label, when) and nowait.
     * month - name, spent, cap, spentpercent, likelypercent, full, scale, templates, templatecost, free and fine.
     * failed - Each with time, name, phone and why; nofailed when there is none.
     * people - active, pending, optedout, moves (time, in, tag, who, how), nomoves and listurl.
@@ -73,6 +73,7 @@
                 <li><b>{{read}}</b><span>{{#str}} panel:today:read, local_oksigeniamarandu {{/str}}</span></li>
                 <li class="off"><b>{{failed}}</b><span>{{#str}} panel:today:failed, local_oksigeniamarandu {{/str}}</span></li>
             </ul>
+            {{#telegram}}<p class="mrd-flownote">{{telegram}}</p>{{/telegram}}
             <ul class="mrd-wait">
                 <li class="lead">{{#str}} panel:waiting, local_oksigeniamarandu {{/str}}</li>
                 {{#waits}}

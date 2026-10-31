@@ -243,6 +243,84 @@ final class telegram_test extends \advanced_testcase {
         $this->assertTrue(telegram::verify_secret($secret));
         $this->assertFalse(telegram::verify_secret('not-it'));
         $this->assertSame('https://t.me/marandu_example_bot?start=K7M2Q9XA', telegram::join_url('K7M2Q9XA'));
+
+        // The bot is known by the number before the colon: a token renewed with /revoke is the same bot.
+        $this->assertSame('123456789', get_config('local_oksigeniamarandu', 'telegrambotid'));
+        $this->assertTrue(telegram::is_same_bot(['id' => 123456789, 'username' => 'renamed_bot']));
+        $this->assertFalse(telegram::is_same_bot(['id' => 987654321, 'username' => 'marandu_example_bot']));
+    }
+
+    /**
+     * Changing to another bot: the chats of the old one wait for the new one, without opting out and still standing for
+     * whom they stood; nothing goes out to them meanwhile; the old bot can tell them; a «/start» on the new one brings
+     * each back.
+     */
+    public function test_switch_bot(): void {
+        global $DB;
+        $ana = $this->getDataGenerator()->create_user();
+        $luis = $this->getDataGenerator()->create_user();
+        telegram::handle($this->message(555, '/start ' . api::invite('core', 0, (int)$ana->id)));
+        telegram::handle($this->message(556, '/start ' . api::invite('core', 0, (int)$luis->id)));
+        telegram::handle($this->message(557, '/start'));
+        telegram::handle($this->message(557, '/stop'));
+        $this->assertCount(2, telegram::joined());
+
+        $this->assertSame(2, telegram::switch_bot('marandu_new_bot', '123456789:' . str_repeat('A', 35)));
+        $this->assertSame([], telegram::joined());
+        $this->assertSame(['pending', 'pending', 'optedout'], array_values($DB->get_fieldset_select(
+            consent::CONTACTS,
+            'status',
+            "channel = 'telegram' ORDER BY phone"
+        )));
+        $this->assertFalse(api::user_joined((int)$ana->id, 'telegram'));
+        $this->assertEquals((object)['back' => 0, 'of' => 2, 'told' => true], telegram::returned());
+
+        // Nothing goes out to a chat that waits: the new bot cannot write first.
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => 'tg:555']);
+        queue::add(
+            (int)$contact->id,
+            notices::get('local_oksigeniamarandu', 'notification'),
+            ['Colegio Ejemplo', 'Hola'],
+            null,
+            false,
+            DAYSECS,
+            self::WEDNESDAY
+        );
+        $bot = $this->bot();
+        $this->assertSame(1, queue::process(null, self::WEDNESDAY, $bot)['skipped']);
+        $this->assertSame([], $bot->sent);
+
+        // The old bot tells them, with a button to the new one.
+        $tasks = \core\task\manager::get_adhoc_tasks('\local_oksigeniamarandu\task\telegram_farewell');
+        $this->assertCount(1, $tasks);
+        $old = $this->bot();
+        $farewell = new class extends \local_oksigeniamarandu\task\telegram_farewell {
+            /** @var telegram_api The fake old bot. */
+            public $bot;
+
+            /**
+             * The fake old bot.
+             *
+             * @param string $token The token.
+             * @return telegram_api
+             */
+            protected function api(string $token): telegram_api {
+                return $this->bot;
+            }
+        };
+        $farewell->bot = $old;
+        $farewell->set_custom_data(reset($tasks)->get_custom_data());
+        $farewell->execute();
+        $this->assertSame(['555', '556'], array_column($old->sent, 0));
+        $this->assertSame('https://t.me/marandu_new_bot', $old->sent[0][2]);
+        $this->assertStringContainsString('@marandu_new_bot', $old->sent[0][1]);
+
+        // Ana starts the new bot: back, still linked to her account.
+        telegram::handle($this->message(555, '/start'));
+        $this->assertTrue(api::user_joined((int)$ana->id, 'telegram'));
+        $this->assertEquals((object)['back' => 1, 'of' => 2, 'told' => true], telegram::returned());
+        telegram::handle($this->message(556, '/start'));
+        $this->assertNull(telegram::returned());
     }
 
     /**

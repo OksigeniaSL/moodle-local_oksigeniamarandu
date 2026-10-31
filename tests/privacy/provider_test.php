@@ -51,7 +51,7 @@ final class provider_test extends provider_testcase {
     }
 
     /**
-     * The tables and WhatsApp are declared.
+     * The tables, WhatsApp and Telegram are declared.
      */
     public function test_get_metadata(): void {
         $items = provider::get_metadata(new \core_privacy\local\metadata\collection('local_oksigeniamarandu'))
@@ -60,7 +60,7 @@ final class provider_test extends provider_testcase {
             return $item->get_name();
         }, $items);
         $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
-            'whatsapp'], $names);
+            'telegram', 'whatsapp'], $names);
     }
 
     /**

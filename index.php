@@ -47,6 +47,8 @@ $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/p
         'count' => $DB->count_records(consent::CONTACTS), 'art' => ['size' => 22, 'stroke' => 4.65, 'numbers' => true]],
     ['url' => (new moodle_url($wizard, ['step' => 'texts']))->out(false), 'label' => get_string('panel:texts', $component),
         'art' => ['size' => 22, 'stroke' => 4.65, 'texts' => true]],
+    ['url' => (new moodle_url('/local/oksigeniamarandu/telegram.php'))->out(false), 'label' => 'Telegram',
+        'art' => ['size' => 22, 'stroke' => 4.65, 'texts' => true]],
     ['url' => $wizard->out(false), 'label' => get_string('panel:settings', $component),
         'art' => ['size' => 22, 'stroke' => 4.65, 'settings' => true]],
 ]]));
@@ -66,6 +68,7 @@ if ($state->kind === 'notready') {
         'restricted' => get_string('panel:blocked:restricted_desc', $component),
         'payment' => get_string('panel:blocked:payment_desc', $component),
         'account' => get_string('panel:blocked:account_desc', $component, $state->message),
+        'telegram' => get_string('panel:blocked:telegram_desc', $component, $state->message),
     ][$state->what];
     $box += ['bad' => true, 'title' => get_string('panel:blocked:' . $state->what, $component),
         'text' => $text . ' ' . ($state->waiting ? $waiting : ''), 'art' => ['size' => 56, 'stroke' => 1.83, 'stopped' => true]];
@@ -74,6 +77,9 @@ if ($state->kind === 'notready') {
             'label' => get_string('panel:fix:token', $component), 'primary' => true];
         $box['actions'][] = ['url' => 'https://developers.facebook.com/apps/',
             'label' => get_string('panel:fix:where', $component)];
+    } else if ($state->what === 'telegram') {
+        $box['actions'][] = ['url' => (new moodle_url('/local/oksigeniamarandu/telegram.php', ['edit' => 1]))->out(false),
+            'label' => get_string('panel:fix:telegram', $component), 'primary' => true];
     } else if ($state->what === 'restricted') {
         $box['actions'][] = ['url' => 'https://business.facebook.com/wa/manage/home/',
             'label' => get_string('panel:fix:restricted', $component), 'primary' => true];
@@ -160,6 +166,7 @@ $context = [
         'templates' => $month->templates,
         'templatecost' => get_string('panel:month:templates', $component, $money($month->cost)),
         'free' => $month->free,
+        'telegram' => $month->telegram,
         'fine' => $month->full ? get_string('panel:month:full', $component)
             : get_string('panel:month:likely', $component, $money($month->likely)),
     ],

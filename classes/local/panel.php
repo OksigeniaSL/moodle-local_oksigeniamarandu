@@ -54,13 +54,18 @@ class panel {
         global $DB;
         $waiting = $DB->count_records(queue::TABLE, ['status' => 'queued']);
         $state = (object)['kind' => 'ok', 'what' => '', 'since' => 0, 'message' => '', 'waiting' => $waiting, 'next' => 0];
-        if (!cloud_api::is_configured()) {
+        if (!cloud_api::is_configured() && !telegram_api::is_configured()) {
             $state->kind = 'notready';
             return $state;
         }
-        if ($blocked = queue::blocked()) {
+        $blocked = queue::blocked('whatsapp');
+        $what = $blocked ? self::BLOCKED[(int)$blocked->code] ?? 'account' : '';
+        if (!$blocked && ($blocked = queue::blocked('telegram'))) {
+            $what = 'telegram';
+        }
+        if ($blocked) {
             $state->kind = 'blocked';
-            $state->what = self::BLOCKED[(int)$blocked->code] ?? 'account';
+            $state->what = $what;
             $state->since = (int)$blocked->time;
             $state->message = (string)$blocked->message;
             return $state;
@@ -110,15 +115,13 @@ class panel {
         if (!$rows) {
             return [];
         }
-        if (queue::blocked()) {
-            return [(object)['reason' => 'blocked', 'count' => count($rows), 'when' => 0, 'name' => '']];
-        }
+        $stopped = ['whatsapp' => (bool)queue::blocked('whatsapp'), 'telegram' => (bool)queue::blocked('telegram')];
         $quiet = queue::is_quiet($now);
         $quietend = $quiet ? queue::quiet_end($now) : 0;
         $urgent = notices::urgent();
         $cap = self::capreached($now);
         [$insql, $params] = $DB->get_in_or_equal(array_unique(array_column($rows, 'contactid')));
-        $contacts = $DB->get_records_select(consent::CONTACTS, "id $insql", $params, '', 'id, lang, lastinbound');
+        $contacts = $DB->get_records_select(consent::CONTACTS, "id $insql", $params, '', 'id, phone, lang, lastinbound');
         $approved = [];
         $groups = [];
         $add = function (string $key, string $reason, int $when = 0, string $name = '') use (&$groups): void {
@@ -132,6 +135,12 @@ class panel {
         };
         foreach ($rows as $row) {
             $key = $row->component . '/' . $row->notice;
+            $contact = $contacts[$row->contactid] ?? null;
+            $chat = $contact && telegram::is_chat($contact->phone);
+            if ($stopped[$chat ? 'telegram' : 'whatsapp']) {
+                $add('blocked', 'blocked');
+                continue;
+            }
             if ($row->timeretry > $now) {
                 $add('retry', 'retry', (int)$row->timeretry);
                 continue;
@@ -140,8 +149,8 @@ class panel {
                 $add('quiet', 'quiet', $quietend);
                 continue;
             }
-            $contact = $contacts[$row->contactid] ?? null;
-            $free = $contact && $row->kind !== 'template' && $contact->lastinbound > $now - DAYSECS + 30 * MINSECS;
+            // Telegram is free and has no templates; inside the 24 hours, WhatsApp too.
+            $free = $chat || ($contact && $row->kind !== 'template' && $contact->lastinbound > $now - DAYSECS + 30 * MINSECS);
             if ($free) {
                 $add('now', 'now');
                 continue;
@@ -159,7 +168,7 @@ class panel {
                 $add('now', 'now');
             }
         }
-        $order = ['now' => 0, 'retry' => 1, 'quiet' => 2, 'template' => 3, 'cap' => 4];
+        $order = ['now' => 0, 'retry' => 1, 'quiet' => 2, 'template' => 3, 'cap' => 4, 'blocked' => 5];
         uasort($groups, function ($a, $b) use ($order) {
             return [$order[$a->reason], -$a->count] <=> [$order[$b->reason], -$b->count];
         });
@@ -170,8 +179,8 @@ class panel {
      * What the month costs, roughly, against the limit of the site.
      *
      * @param int $now The time.
-     * @return \stdClass With spent, cap (0 for none), cost (of a template), templates and free (how many went out each
-     *     way), likely (the end of the month at this pace) and full (whether the limit is reached).
+     * @return \stdClass With spent, cap (0 for none), cost (of a template), templates, free and telegram (how many went out
+     *     each way), likely (the end of the month at this pace) and full (whether the limit is reached).
      */
     public static function month(int $now): \stdClass {
         global $DB;
@@ -193,6 +202,7 @@ class panel {
             'cost' => queue::cost(),
             'templates' => $count('template'),
             'free' => $count('text'),
+            'telegram' => $count('telegram'),
             'likely' => $days >= $length ? $spent : $spent / $elapsed * $length,
             'full' => self::capreached($now),
         ];
@@ -349,6 +359,9 @@ class panel {
             $a = (object)['who' => $user ? fullname($user) : '?', 'why' => $why];
             return get_string($a->why === '' ? 'panel:how:admin' : 'panel:how:adminwhy', $component, $a);
         }
+        if ($entry->source === 'blocked') {
+            return get_string('panel:how:blocked', $component);
+        }
         if ($entry->source === 'keyword') {
             $word = keywords::first($entry->action === 'optout' ? 'optoutkeywords' : 'optinkeywords');
             return get_string('panel:how:wrote', $component, $word);
@@ -363,6 +376,9 @@ class panel {
      * @return string
      */
     public static function mask(string $phone): string {
+        if (telegram::is_chat($phone)) {
+            return 'Telegram';
+        }
         if (strlen($phone) < 7) {
             return '+' . $phone;
         }
@@ -376,6 +392,9 @@ class panel {
      * @return string
      */
     public static function spaced(string $phone): string {
+        if (telegram::is_chat($phone)) {
+            return 'Telegram';
+        }
         if (strlen($phone) !== 11) {
             return '+' . $phone;
         }
@@ -389,11 +408,14 @@ class panel {
      *
      * @param \stdClass $row The row of the queue, with status, errorcode and attempts.
      * @return string The key of the reason: nowhatsapp, invalid, notallowed, notemplate, paused, disabled, noanswer,
-     *     expired or generic.
+     *     expired, tgblocked or generic.
      */
     public static function why(\stdClass $row): string {
         if ($row->status === 'expired') {
             return 'expired';
+        }
+        if ((int)$row->errorcode === -403) {
+            return 'tgblocked';
         }
         if (isset(self::WHY[(int)$row->errorcode]) && $row->errorcode !== null) {
             return self::WHY[(int)$row->errorcode];

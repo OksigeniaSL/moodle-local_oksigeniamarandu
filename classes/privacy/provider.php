@@ -77,6 +77,10 @@ class provider implements
             'phone' => 'privacy:metadata:whatsapp:phone',
             'message' => 'privacy:metadata:whatsapp:message',
         ], 'privacy:metadata:whatsapp');
+        $collection->add_external_location_link('telegram', [
+            'chat' => 'privacy:metadata:telegram:chat',
+            'message' => 'privacy:metadata:telegram:message',
+        ], 'privacy:metadata:telegram');
         return $collection;
     }
 

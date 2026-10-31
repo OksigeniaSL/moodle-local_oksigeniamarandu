@@ -1094,6 +1094,28 @@
     }
 }
 
+/* The page of Telegram: the QR code of the bot, dark on white in both modes. */
+.local-oksigeniamarandu-wizard .mrd-tgqr {
+    margin: 0;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tgqr svg {
+    display: block;
+    width: 9rem;
+    height: auto;
+    margin: 0 auto;
+    padding: 8px;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tgqr figcaption {
+    margin-top: 6px;
+    color: var(--mrd-muted);
+    font-size: 13.5px;
+}
+
 /* The panel and the list of numbers, from the mock-up of the house. Text and drawings in the accent take the colour of
    links, which the theme makes readable in each mode; fills take the primary. */
 .local-oksigeniamarandu-panel,

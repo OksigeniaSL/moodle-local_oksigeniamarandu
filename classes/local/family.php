@@ -53,8 +53,10 @@ class family {
         if (!self::available()) {
             return null;
         }
+        // A chat of Telegram has no phone to give the records.
+        $phone = telegram::is_chat($phone) ? '' : '+' . $phone;
         try {
-            $adult = \local_oksigeniafamily\api::claim($code, array_filter(['phone' => '+' . $phone, 'firstname' => $name]));
+            $adult = \local_oksigeniafamily\api::claim($code, array_filter(['phone' => $phone, 'firstname' => $name]));
         } catch (\moodle_exception $e) {
             return null;
         }
@@ -68,7 +70,7 @@ class family {
      * @return int[]
      */
     public static function adults(string $phone): array {
-        if (!self::available()) {
+        if (!self::available() || telegram::is_chat($phone)) {
             return [];
         }
         return array_map('intval', array_keys(\local_oksigeniafamily\api::adults_by_phone('+' . $phone)));

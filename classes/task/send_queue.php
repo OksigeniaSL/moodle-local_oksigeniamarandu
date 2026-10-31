@@ -19,9 +19,10 @@ namespace local_oksigeniamarandu\task;
 use local_oksigeniamarandu\local\api_exception;
 use local_oksigeniamarandu\local\cloud_api;
 use local_oksigeniamarandu\local\queue;
+use local_oksigeniamarandu\local\telegram_api;
 
 /**
- * Sends the notices of the queue that can go out now.
+ * Sends the notices of the queue that can go out now, by WhatsApp and by Telegram.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -41,15 +42,21 @@ class send_queue extends \core\task\scheduled_task {
      * Sends what can go out; without an account connected, nothing.
      */
     public function execute() {
-        if (!cloud_api::is_configured()) {
-            return;
+        $whatsapp = $telegram = null;
+        try {
+            $whatsapp = cloud_api::is_configured() ? cloud_api::from_config() : null;
+        } catch (api_exception $e) {
+            mtrace('Marandu, WhatsApp: ' . $e->getMessage());
         }
         try {
-            $counts = queue::process(cloud_api::from_config());
+            $telegram = telegram_api::is_configured() ? telegram_api::from_config() : null;
         } catch (api_exception $e) {
-            mtrace('Marandu: ' . $e->getMessage());
+            mtrace('Marandu, Telegram: ' . $e->getMessage());
+        }
+        if (!$whatsapp && !$telegram) {
             return;
         }
+        $counts = queue::process($whatsapp, null, $telegram);
         if (array_sum($counts)) {
             mtrace('Marandu: ' . json_encode($counts));
         }

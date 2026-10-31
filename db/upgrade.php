@@ -85,5 +85,22 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102403, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110100) {
+        // 0.8.0: Telegram. A contact has its channel, and its address may be a chat of Telegram (tg: and the chat).
+        $table = new xmldb_table('local_oksigeniamarandu_contact');
+        $index = new xmldb_index('phone', XMLDB_INDEX_UNIQUE, ['phone']);
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
+        $field = new xmldb_field('phone', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null, 'id');
+        $dbman->change_field_precision($table, $field);
+        $dbman->add_index($table, $index);
+        $field = new xmldb_field('channel', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'whatsapp', 'phone');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026110100, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

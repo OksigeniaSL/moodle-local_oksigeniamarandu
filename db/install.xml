@@ -7,7 +7,8 @@
     <TABLE NAME="local_oksigeniamarandu_contact" COMMENT="One WhatsApp number and its consent">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="phone" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="Country code and number, digits only"/>
+        <FIELD NAME="phone" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" COMMENT="WhatsApp: country code and number, digits only; Telegram: tg: and the chat"/>
+        <FIELD NAME="channel" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="whatsapp" SEQUENCE="false" COMMENT="whatsapp or telegram"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Profile name WhatsApp sent, if any"/>
         <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false" COMMENT="Language for the messages; empty means the site language"/>
         <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending, active or optedout"/>

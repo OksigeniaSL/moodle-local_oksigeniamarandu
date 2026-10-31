@@ -99,6 +99,9 @@
             <ul class="mrd-split">
                 <li><b>{{templates}}</b><span>{{#str}} panel:month:paid, local_oksigeniamarandu {{/str}} <small>· {{templatecost}}</small></span></li>
                 <li><b>{{free}}</b><span>{{#str}} panel:month:freename, local_oksigeniamarandu {{/str}} <small>· {{#str}} panel:month:free, local_oksigeniamarandu {{/str}}</small></span></li>
+                {{#telegram}}
+                <li><b>{{telegram}}</b><span>{{#str}} panel:month:telegram, local_oksigeniamarandu {{/str}} <small>· {{#str}} panel:month:telegramfree, local_oksigeniamarandu {{/str}}</small></span></li>
+                {{/telegram}}
             </ul>
             <p class="mrd-fine">{{fine}}</p>
         </section>

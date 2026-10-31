@@ -54,6 +54,9 @@ class queue {
     /** While the account has a problem, the queue tries again this often. */
     private const BLOCKED_RETRY = 15 * MINSECS;
 
+    /** Where the problem of the account of each channel is kept. */
+    private const BLOCKED_SETTING = ['whatsapp' => 'sendblocked', 'telegram' => 'telegramblocked'];
+
     /**
      * Queues a notice for one number.
      *
@@ -95,13 +98,14 @@ class queue {
     }
 
     /**
-     * Sends what can go out now.
+     * Sends what can go out now, each notice by the channel of its contact.
      *
-     * @param cloud_api $api The client.
+     * @param cloud_api|null $api The client of WhatsApp, if the site has it.
      * @param int|null $now The time, for the tests.
+     * @param telegram_api|null $telegram The client of Telegram, if the site has a bot.
      * @return array Counts by what happened: sent, waiting, failed, expired, skipped.
      */
-    public static function process(cloud_api $api, ?int $now = null): array {
+    public static function process(?cloud_api $api, ?int $now = null, ?telegram_api $telegram = null): array {
         global $DB;
         $now = $now ?? time();
         $counts = ['sent' => 0, 'waiting' => 0, 'failed' => 0, 'expired' => 0, 'skipped' => 0];
@@ -113,15 +117,19 @@ class queue {
         $enabled = notices::enabled();
         $urgent = notices::urgent();
         $spent = self::spent($now);
+        $clients = ['whatsapp' => $api, 'telegram' => $telegram];
 
         $counts['expired'] = $DB->count_records_select(self::TABLE, 'status = ? AND timeexpires < ?', ['queued', $now]);
         $DB->set_field_select(self::TABLE, 'status', 'expired', 'status = ? AND timeexpires < ?', ['queued', $now]);
 
-        // While the account has a problem, one try now and then is enough to see whether it is fixed.
-        $blocked = self::blocked();
-        if ($blocked && $blocked->time > $now - self::BLOCKED_RETRY) {
-            $counts['waiting'] = $DB->count_records(self::TABLE, ['status' => 'queued']);
-            return $counts;
+        // While the account of a channel has a problem, one try now and then is enough to see whether it is fixed; the
+        // other channel goes on.
+        $paused = [];
+        $wasblocked = [];
+        foreach (array_keys(self::BLOCKED_SETTING) as $channel) {
+            $blocked = self::blocked($channel);
+            $wasblocked[$channel] = (bool)$blocked;
+            $paused[$channel] = $blocked && $blocked->time > $now - self::BLOCKED_RETRY;
         }
 
         $select = "status = 'queued' AND (timeretry IS NULL OR timeretry <= :now)";
@@ -136,6 +144,11 @@ class queue {
                 $counts['skipped']++;
                 continue;
             }
+            $channel = telegram::is_chat($contact->phone) ? 'telegram' : 'whatsapp';
+            if ($paused[$channel] || !$clients[$channel]) {
+                $counts['waiting']++;
+                continue;
+            }
             if ($quiet && !$row->urgent && !in_array($key, $urgent, true)) {
                 $counts['waiting']++;
                 continue;
@@ -145,9 +158,27 @@ class queue {
                 continue;
             }
             $params = json_decode($row->params, true) ?: [];
+            $lang = $contact->lang ?: null;
+            if ($channel === 'telegram') {
+                // Telegram has no templates and no window: the text of the notice, with its link as a button. It is free.
+                try {
+                    $id = $telegram->send_text(
+                        telegram::chat($contact->phone),
+                        self::render($notice, $params, $lang),
+                        $row->url ? templates::button_url($row->token) : null,
+                        notices::text($notice, 'button', $lang)
+                    );
+                    self::finish($row, $now, 'sent', 'telegram', 'tg.' . $id);
+                    $counts['sent']++;
+                    self::unblock('telegram', $wasblocked);
+                } catch (api_exception $e) {
+                    self::failed($row, $e, $now, 'telegram', $contact, null, $counts, $paused);
+                }
+                continue;
+            }
             // A notice that Meta refused as free text goes with its template.
             $free = $row->kind !== 'template' && !empty($contact->lastinbound) && $contact->lastinbound > $now - self::WINDOW;
-            $template = $free ? null : templates::approved($notice, $contact->lang ?: null);
+            $template = $free ? null : templates::approved($notice, $lang);
             if (!$free && !$template) {
                 $counts['waiting']++;
                 continue;
@@ -159,7 +190,7 @@ class queue {
             }
             try {
                 if ($free) {
-                    $text = self::render($notice, $params, $contact->lang ?: null);
+                    $text = self::render($notice, $params, $lang);
                     if ($row->url) {
                         $text .= "\n" . templates::button_url($row->token);
                     }
@@ -178,52 +209,104 @@ class queue {
                     $spent += $cost;
                 }
                 $counts['sent']++;
-                if ($blocked) {
-                    unset_config('sendblocked', 'local_oksigeniamarandu');
-                    $blocked = null;
-                }
+                self::unblock('whatsapp', $wasblocked);
             } catch (api_exception $e) {
-                $what = self::failure($e);
-                if ($what === 'account') {
-                    // Nothing else would go out either: the notices wait, untouched, until the account is fixed.
-                    self::block($e, $now);
-                    $counts['waiting'] = $DB->count_records(self::TABLE, ['status' => 'queued']);
-                    break;
-                }
-                if ($what === 'window') {
-                    $DB->set_field(self::TABLE, 'kind', 'template', ['id' => $row->id]);
-                    $counts['waiting']++;
-                } else if ($what === 'template' && $template) {
-                    templates::set_status($template, self::TEMPLATE[$e->metacode]);
-                    $counts['waiting']++;
-                } else if ($what === 'transient' && $row->attempts < count(self::RETRY)) {
-                    $DB->update_record(self::TABLE, (object)[
-                        'id' => $row->id,
-                        'attempts' => $row->attempts + 1,
-                        'timeretry' => $now + self::RETRY[$row->attempts],
-                        'error' => \core_text::substr(strip_tags($e->getMessage()), 0, 255),
-                    ]);
-                    $counts['waiting']++;
-                } else {
-                    self::finish($row, $now, 'failed', $free ? 'text' : 'template', null, $e->getMessage(), $e->metacode);
-                    $counts['failed']++;
-                }
+                self::failed($row, $e, $now, $free ? 'text' : 'template', $contact, $template, $counts, $paused);
             }
         }
         return $counts;
     }
 
     /**
-     * What an error of Meta means for the queue.
+     * What happens to a notice that the channel refused.
+     *
+     * @param \stdClass $row The row of the queue.
+     * @param api_exception $e The error.
+     * @param int $now The time.
+     * @param string $kind template, text or telegram.
+     * @param \stdClass $contact The contact.
+     * @param \stdClass|null $template The template it went with, if any.
+     * @param array $counts The counts of the run, updated.
+     * @param array $paused The channels paused by a problem of their account, updated.
+     */
+    private static function failed(
+        \stdClass $row,
+        api_exception $e,
+        int $now,
+        string $kind,
+        \stdClass $contact,
+        ?\stdClass $template,
+        array &$counts,
+        array &$paused
+    ): void {
+        global $DB;
+        $channel = $kind === 'telegram' ? 'telegram' : 'whatsapp';
+        $what = self::failure($e);
+        if ($what === 'account') {
+            // Nothing else would go out by this channel either: its notices wait, untouched, until it is fixed.
+            self::block($e, $now, $channel);
+            $paused[$channel] = true;
+            $counts['waiting']++;
+        } else if ($what === 'blocked') {
+            // The person blocked the bot of Telegram: the same as opting out.
+            consent::optout($contact->phone, 'blocked', 'telegram');
+            self::finish($row, $now, 'failed', $kind, null, $e->getMessage(), $e->metacode);
+            $counts['failed']++;
+        } else if ($what === 'window') {
+            $DB->set_field(self::TABLE, 'kind', 'template', ['id' => $row->id]);
+            $counts['waiting']++;
+        } else if ($what === 'template' && $template) {
+            templates::set_status($template, self::TEMPLATE[$e->metacode]);
+            $counts['waiting']++;
+        } else if ($what === 'transient' && $row->attempts < count(self::RETRY)) {
+            $DB->update_record(self::TABLE, (object)[
+                'id' => $row->id,
+                'attempts' => $row->attempts + 1,
+                'timeretry' => $now + self::RETRY[$row->attempts],
+                'error' => \core_text::substr(strip_tags($e->getMessage()), 0, 255),
+            ]);
+            $counts['waiting']++;
+        } else {
+            self::finish($row, $now, 'failed', $kind, null, $e->getMessage(), $e->metacode);
+            $counts['failed']++;
+        }
+    }
+
+    /**
+     * A channel works again: its problem is forgotten.
+     *
+     * @param string $channel whatsapp or telegram.
+     * @param array $wasblocked Whether each channel had a problem, updated.
+     */
+    private static function unblock(string $channel, array &$wasblocked): void {
+        if ($wasblocked[$channel]) {
+            unset_config(self::BLOCKED_SETTING[$channel], 'local_oksigeniamarandu');
+            $wasblocked[$channel] = false;
+        }
+    }
+
+    /**
+     * What an error of Meta or of Telegram means for the queue.
      *
      * @param api_exception $e The error.
-     * @return string transient, account, window, template or final.
+     * @return string transient, account, window, template, blocked or final.
      */
     public static function failure(api_exception $e): string {
         $code = $e->metacode;
         if ($code === null) {
             // The network, or an answer that is not Meta's: it usually passes.
             return 'transient';
+        }
+        if ($code < 0) {
+            // Telegram: too many messages or a server that fails pass; a token that is not valid stops the bot; a person
+            // who blocked the bot has opted out.
+            if ($code === -429 || $code <= -500) {
+                return 'transient';
+            }
+            if ($code === -401 || $code === -404) {
+                return 'account';
+            }
+            return $code === -403 ? 'blocked' : 'final';
         }
         if (in_array($code, self::TRANSIENT, true)) {
             return 'transient';
@@ -241,47 +324,52 @@ class queue {
     }
 
     /**
-     * The problem of the account that stops the queue, if there is one.
+     * The problem of the account of a channel that stops its notices, if there is one.
      *
+     * @param string $channel whatsapp or telegram.
      * @return \stdClass|null With code, message and time.
      */
-    public static function blocked(): ?\stdClass {
-        $blocked = json_decode((string)get_config('local_oksigeniamarandu', 'sendblocked'));
+    public static function blocked(string $channel = 'whatsapp'): ?\stdClass {
+        $blocked = json_decode((string)get_config('local_oksigeniamarandu', self::BLOCKED_SETTING[$channel]));
         return is_object($blocked) ? $blocked : null;
     }
 
     /**
-     * Stops the queue for a problem of the account, and tells whom the site said once a day.
+     * Stops a channel for a problem of its account, and tells whom the site said once a day.
      *
      * @param api_exception $e The error.
      * @param int $now The time.
+     * @param string $channel whatsapp or telegram.
      */
-    private static function block(api_exception $e, int $now): void {
+    private static function block(api_exception $e, int $now, string $channel = 'whatsapp'): void {
         $message = \core_text::substr(strip_tags($e->getMessage()), 0, 255);
         set_config(
-            'sendblocked',
+            self::BLOCKED_SETTING[$channel],
             json_encode(['code' => $e->metacode, 'message' => $message, 'time' => $now]),
             'local_oksigeniamarandu'
         );
         $email = (string)get_config('local_oksigeniamarandu', 'capemail');
         $day = userdate($now, '%Y-%m-%d', \core_date::get_server_timezone());
-        if ($email === '' || !validate_email($email) || get_config('local_oksigeniamarandu', 'blockwarned') === $day) {
+        $warned = $channel === 'telegram' ? 'telegramwarned' : 'blockwarned';
+        if ($email === '' || !validate_email($email) || get_config('local_oksigeniamarandu', $warned) === $day) {
             return;
         }
-        set_config('blockwarned', $day, 'local_oksigeniamarandu');
+        set_config($warned, $day, 'local_oksigeniamarandu');
         $to = \core_user::get_noreply_user();
         $to->email = $email;
         $to->emailstop = 0;
         $a = (object)[
             'site' => format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]),
             'problem' => $message,
-            'url' => (new \moodle_url('/local/oksigeniamarandu/wizard.php', ['step' => 'account']))->out(false),
+            'url' => $channel === 'telegram' ? (new \moodle_url('/local/oksigeniamarandu/telegram.php'))->out(false)
+                : (new \moodle_url('/local/oksigeniamarandu/wizard.php', ['step' => 'account']))->out(false),
         ];
+        $prefix = $channel === 'telegram' ? 'blockmail:telegram' : 'blockmail:';
         email_to_user(
             $to,
             \core_user::get_noreply_user(),
-            get_string('blockmail:subject', 'local_oksigeniamarandu', $a),
-            get_string('blockmail:body', 'local_oksigeniamarandu', $a)
+            get_string($prefix . 'subject', 'local_oksigeniamarandu', $a),
+            get_string($prefix . 'body', 'local_oksigeniamarandu', $a)
         );
     }
 

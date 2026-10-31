@@ -19,6 +19,8 @@ namespace local_oksigeniamarandu\task;
 use local_oksigeniamarandu\local\api_exception;
 use local_oksigeniamarandu\local\cloud_api;
 use local_oksigeniamarandu\local\keywords;
+use local_oksigeniamarandu\local\telegram;
+use local_oksigeniamarandu\local\telegram_api;
 
 /**
  * The reply to an opt-in or an opt-out, sent after the webhook has answered Meta.
@@ -73,8 +75,13 @@ class send_reply extends \core\task\adhoc_task {
             return;
         }
         $lang = $DB->get_field('local_oksigeniamarandu_contact', 'lang', ['phone' => $data->phone]);
+        $text = self::text($data->reply, $lang ?: null);
         try {
-            $this->api()->send_text($data->phone, self::text($data->reply, $lang ?: null));
+            if (telegram::is_chat($data->phone)) {
+                $this->telegram()->send_text(telegram::chat($data->phone), $text);
+            } else {
+                $this->api()->send_text($data->phone, $text);
+            }
         } catch (api_exception $e) {
             mtrace('Marandu: the reply was not sent: ' . $e->getMessage());
         }
@@ -87,5 +94,14 @@ class send_reply extends \core\task\adhoc_task {
      */
     protected function api(): cloud_api {
         return cloud_api::from_config();
+    }
+
+    /**
+     * The client of the bot of Telegram. Kept apart so that the tests can answer for Telegram.
+     *
+     * @return telegram_api
+     */
+    protected function telegram(): telegram_api {
+        return telegram_api::from_config();
     }
 }

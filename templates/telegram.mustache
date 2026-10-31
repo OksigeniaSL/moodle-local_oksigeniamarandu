@@ -1,0 +1,78 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/telegram
+
+    Telegram: connect the bot of the site with its token, and test it from the phone of whoever sets it up.
+
+    Context variables required for this template:
+    * editing - Whether the token is asked for.
+    * action, sesskey - The forms.
+    * error - What went wrong, if anything.
+    * privacy - A sentence on where Telegram keeps the messages.
+    * bot, botname, editurl, joinurl, qr, joined, sent - The bot connected, and its test.
+
+    Example context (json):
+    {
+        "editing": false, "action": "#", "sesskey": "abc", "error": "", "privacy": "Telegram keeps these messages.",
+        "bot": "@marandu_test_bot", "botname": "Marandu", "editurl": "#", "joinurl": "#", "qr": "", "joined": true,
+        "sent": ""
+    }
+}}
+<div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-telegram">
+    {{#editing}}
+    <p class="mrd-lead">{{#str}} telegram:lead, local_oksigeniamarandu {{/str}}</p>
+    <form method="post" action="{{action}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="connect">
+        <div class="mrd-field mrd-blue">
+            <label for="mrd-tgtoken">{{#str}} telegram:token, local_oksigeniamarandu {{/str}}</label>
+            <span class="mrd-help">{{#str}} telegram:token_help, local_oksigeniamarandu {{/str}}</span>
+            <input type="text" id="mrd-tgtoken" name="token" autocomplete="off" spellcheck="false"{{#error}} class="bad"{{/error}}>
+            {{#error}}<span class="mrd-err">{{error}}</span>{{/error}}
+        </div>
+        <div class="mrd-actions">
+            <button type="submit" class="btn mrd-btn mrd-primary">{{#str}} telegram:connect, local_oksigeniamarandu {{/str}}</button>
+        </div>
+    </form>
+    {{/editing}}
+    {{^editing}}
+    <p class="mrd-ok">✓ {{#str}} telegram:connected, local_oksigeniamarandu {{/str}} <b>{{botname}}</b> ({{bot}}) · <a href="{{editurl}}">{{#str}} telegram:change, local_oksigeniamarandu {{/str}}</a></p>
+    <h2>{{#str}} telegram:test, local_oksigeniamarandu {{/str}}</h2>
+    {{^joined}}
+    <p class="mrd-lead">{{#str}} telegram:test:join, local_oksigeniamarandu {{/str}}</p>
+    <div class="mrd-cols">
+        <div class="mrd-actions">
+            <a class="btn mrd-btn mrd-primary" href="{{joinurl}}" target="_blank" rel="noopener">{{#str}} telegram:open, local_oksigeniamarandu {{/str}}</a>
+            <a class="btn mrd-btn mrd-second" href="{{action}}">{{#str}} telegram:test:done, local_oksigeniamarandu {{/str}}</a>
+        </div>
+        <figure class="mrd-tgqr">{{{qr}}}<figcaption>{{#str}} telegram:qr, local_oksigeniamarandu {{/str}}</figcaption></figure>
+    </div>
+    {{/joined}}
+    {{#joined}}
+    <p class="mrd-lead">{{#str}} telegram:test:joined, local_oksigeniamarandu {{/str}}</p>
+    <form method="post" action="{{action}}" class="mrd-actions">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="test">
+        <button type="submit" class="btn mrd-btn mrd-primary">{{#str}} telegram:test:send, local_oksigeniamarandu {{/str}}</button>
+        {{#sent}}<span class="mrd-hint">{{sent}}</span>{{/sent}}
+    </form>
+    {{#error}}<p class="mrd-err">{{error}}</p>{{/error}}
+    {{/joined}}
+    {{/editing}}
+    <p class="mrd-hint">{{privacy}}</p>
+</div>

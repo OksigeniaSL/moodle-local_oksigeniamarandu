@@ -16,11 +16,14 @@
 
 namespace local_oksigeniamarandu;
 
+use local_oksigeniamarandu\local\cloud_api;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\family;
 use local_oksigeniamarandu\local\keywords;
 use local_oksigeniamarandu\local\notices;
 use local_oksigeniamarandu\local\queue;
+use local_oksigeniamarandu\local\telegram;
+use local_oksigeniamarandu\local\telegram_api;
 
 /**
  * What other plugins use: a code and a link so that a family or a user joins on WhatsApp, whether they have, and the
@@ -95,6 +98,118 @@ class api {
             return null;
         }
         return 'https://wa.me/' . $number . '?text=' . rawurlencode(keywords::first('optinkeywords') . ' ' . $code);
+    }
+
+    /**
+     * The channels the site has ready: WhatsApp with its account and number, Telegram with its bot.
+     *
+     * @return array By channel (whatsapp, telegram), with name and ready.
+     */
+    public static function channels(): array {
+        return [
+            'whatsapp' => ['name' => 'WhatsApp', 'ready' => cloud_api::is_configured()
+                && (string)get_config('local_oksigeniamarandu', 'displayphone') !== ''],
+            'telegram' => ['name' => 'Telegram', 'ready' => telegram_api::is_configured()],
+        ];
+    }
+
+    /**
+     * The link that joins with a code on a channel: WhatsApp with the opt-in word and the code written, or the bot of
+     * Telegram started with the code.
+     *
+     * @param string $channel whatsapp or telegram.
+     * @param string $code A code from invite(), or of the family records.
+     * @return string|null Null if the site does not have that channel ready.
+     */
+    public static function join_url(string $channel, string $code): ?string {
+        if ($channel === 'telegram') {
+            return telegram::join_url($code);
+        }
+        return $channel === 'whatsapp' ? self::optin_url($code) : null;
+    }
+
+    /**
+     * Whether a user has joined on a channel, with whatever code: from their notification preferences, the app or a
+     * letter.
+     *
+     * @param int $userid The user.
+     * @param string|null $channel whatsapp or telegram; either if null.
+     * @return bool
+     */
+    public static function user_joined(int $userid, ?string $channel = null): bool {
+        global $DB;
+        $params = ['userid' => $userid, 'active' => 'active'];
+        $where = '';
+        if ($channel !== null) {
+            $where = ' AND c.channel = :channel';
+            $params['channel'] = $channel;
+        }
+        return $DB->record_exists_sql("SELECT 1
+                                         FROM {" . consent::LINKS . "} l
+                                         JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+                                        WHERE l.userid = :userid AND c.status = :active$where", $params);
+    }
+
+    /**
+     * For each channel the site has ready, whether a user is on it and the link to join it, for a screen where the user
+     * chooses where to get the notices (such as the one of the app).
+     *
+     * @param int $userid The user.
+     * @return array By channel, with name, joined, where (the number or the chat, half hidden) and url (to join).
+     */
+    public static function user_channels(int $userid): array {
+        return self::channel_list('core', 0, $userid);
+    }
+
+    /**
+     * The same for an adult of the family records of Oksigenia Family, who may have no account.
+     *
+     * @param int $adultid The adult.
+     * @return array By channel, with name, joined, where and url.
+     */
+    public static function adult_channels(int $adultid): array {
+        return self::channel_list(family::COMPONENT, $adultid, null);
+    }
+
+    /**
+     * Whom a channel list is for, and how they are on each channel.
+     *
+     * @param string $component The plugin of the links.
+     * @param int $itemid Its item.
+     * @param int|null $userid The user, if they are one.
+     * @return array By channel, with name, joined, where and url.
+     */
+    private static function channel_list(string $component, int $itemid, ?int $userid): array {
+        global $DB;
+        $params = ['active' => 'active', 'component' => $component, 'itemid' => $itemid];
+        $where = 'l.component = :component AND l.itemid = :itemid AND ';
+        if ($userid !== null) {
+            $where = 'l.userid = :userid AND ';
+            $params['userid'] = $userid;
+        }
+        $joined = $DB->get_records_sql("SELECT c.id, c.channel, c.phone
+                                          FROM {" . consent::LINKS . "} l
+                                          JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+                                         WHERE {$where}c.status = :active", $params);
+        $list = [];
+        $code = null;
+        foreach (self::channels() as $channel => $info) {
+            if (!$info['ready']) {
+                continue;
+            }
+            $contacts = array_filter($joined, function ($contact) use ($channel) {
+                return $contact->channel === $channel;
+            });
+            $contact = reset($contacts);
+            $code = $code ?? self::invite($component, $itemid, $userid);
+            $list[$channel] = [
+                'name' => $info['name'],
+                'joined' => (bool)$contact,
+                'where' => $contact ? local\panel::mask($contact->phone) : '',
+                'url' => self::join_url($channel, $code),
+            ];
+        }
+        return $list;
     }
 
     /**

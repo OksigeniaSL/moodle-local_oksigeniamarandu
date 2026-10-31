@@ -55,6 +55,7 @@ class consent {
         $now = time();
         $contact = (object)[
             'phone' => $phone,
+            'channel' => telegram::is_chat($phone) ? 'telegram' : 'whatsapp',
             'name' => $name === null ? null : \core_text::substr(clean_param($name, PARAM_NOTAGS), 0, 255),
             'status' => 'pending',
             'timecreated' => $now,
@@ -144,7 +145,7 @@ class consent {
      * @return bool
      */
     private static function guessing(string $phone): bool {
-        $tries = \cache::make('local_oksigeniamarandu', 'wrongcodes')->get($phone);
+        $tries = \cache::make('local_oksigeniamarandu', 'wrongcodes')->get(self::cachekey($phone));
         return $tries && $tries['count'] >= self::WRONG_TRIES && $tries['since'] > time() - self::WRONG_PAUSE;
     }
 
@@ -155,12 +156,22 @@ class consent {
      */
     private static function wrong(string $phone): void {
         $cache = \cache::make('local_oksigeniamarandu', 'wrongcodes');
-        $tries = $cache->get($phone);
+        $tries = $cache->get(self::cachekey($phone));
         if (!$tries || $tries['since'] <= time() - self::WRONG_PAUSE) {
             $tries = ['count' => 0, 'since' => time()];
         }
         $tries['count']++;
-        $cache->set($phone, $tries);
+        $cache->set(self::cachekey($phone), $tries);
+    }
+
+    /**
+     * An address as a key of the cache, which takes only letters, digits and _: «tg:555» becomes «tg_555».
+     *
+     * @param string $phone The address of a contact.
+     * @return string
+     */
+    private static function cachekey(string $phone): string {
+        return preg_replace('/[^A-Za-z0-9_]/', '_', $phone);
     }
 
     /**

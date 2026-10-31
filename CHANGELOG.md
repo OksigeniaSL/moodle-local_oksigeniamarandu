@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0 (2026-11-01)
+
+- Telegram, the second channel, with the bot of each site:
+  - A page connects the bot with its token: the plugin checks it with Telegram and tells it where the webhook is, with
+    a secret it sends back. Whoever sets it up joins from their phone and sends themselves a test message.
+  - People join by opening the bot with its link and a code (`t.me/<bot>?start=<code>`), the same as ALTA on
+    WhatsApp, also with a student's code of the family records. «/stop», the opt-out word or blocking the bot opts out.
+  - The same queue, quiet hours and limit a day: a notice goes as its text, with its link as a button. It is free, with
+    no templates and no 24-hour window.
+  - Each channel stops apart: a token that Telegram no longer takes stops Telegram, and WhatsApp goes on.
+  - The panel and the list show Telegram: its stop, its line in the month and the people who blocked the bot.
+- For a screen where a person chooses where to get the notices: `api::channels()`, `join_url()`, `user_channels()`,
+  `adult_channels()` and `user_joined()`.
+
 ## 0.7.0 (2026-10-31)
 
 - The family records of Oksigenia Family (`local_oksigeniafamily`), when the site has them, and nothing changes

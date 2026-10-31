@@ -39,11 +39,14 @@ $reasons = ['phone', 'person', 'mail', 'notfamily', 'other'];
 $q = optional_param('q', '', PARAM_RAW_TRIMMED);
 $status = optional_param('status', 'all', PARAM_ALPHA);
 $status = in_array($status, ['all', 'active', 'pending', 'optedout'], true) ? $status : 'all';
+// Only one channel, as the page of Telegram links to the chats that have not come back to a new bot.
+$channel = optional_param('channel', '', PARAM_ALPHA);
+$channel = in_array($channel, ['whatsapp', 'telegram'], true) ? $channel : '';
 $shown = max($page, optional_param('shown', $page, PARAM_INT));
 $ask = optional_param('ask', 0, PARAM_INT);
 $done = optional_param('done', 0, PARAM_INT);
 $baseurl = new moodle_url('/local/oksigeniamarandu/contacts.php', array_filter(['q' => $q,
-    'status' => $status === 'all' ? '' : $status]));
+    'status' => $status === 'all' ? '' : $status, 'channel' => $channel]));
 
 // Opting out by hand, with the reason: it stays in the record of consent, with who did it.
 $error = '';
@@ -61,7 +64,7 @@ if ($optout && confirm_sesskey() && ($contact = $DB->get_record(consent::CONTACT
     }
 }
 
-$PAGE->set_heading(get_string('contacts', $component));
+$PAGE->set_heading(get_string($channel ? 'contacts:' . $channel : 'contacts', $component));
 $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/panel_links', ['links' => [
@@ -70,12 +73,17 @@ $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/p
 ]]));
 
 // The counts of the whole list, and the numbers that match the search and the filter.
-$counts = $DB->get_records_sql_menu('SELECT status, COUNT(1) FROM {' . consent::CONTACTS . '} GROUP BY status');
+$counts = $DB->get_records_sql_menu('SELECT status, COUNT(1) FROM {' . consent::CONTACTS . '}'
+    . ($channel ? ' WHERE channel = ?' : '') . ' GROUP BY status', $channel ? [$channel] : []);
 $counts = ['active' => (int)($counts['active'] ?? 0), 'pending' => (int)($counts['pending'] ?? 0),
     'optedout' => (int)($counts['optedout'] ?? 0)];
 $counts['all'] = array_sum($counts);
 $where = ['1 = 1'];
 $params = [];
+if ($channel) {
+    $where[] = 'c.channel = :channel';
+    $params['channel'] = $channel;
+}
 if ($status !== 'all') {
     $where[] = 'c.status = :status';
     $params['status'] = $status;
@@ -156,7 +164,7 @@ $filters = [];
 foreach (['all', 'active', 'pending', 'optedout'] as $filter) {
     $filters[] = [
         'url' => (new moodle_url('/local/oksigeniamarandu/contacts.php', array_filter(['q' => $q,
-            'status' => $filter === 'all' ? '' : $filter])))->out(false),
+            'status' => $filter === 'all' ? '' : $filter, 'channel' => $channel])))->out(false),
         'label' => get_string('list:filter:' . $filter, $component),
         'count' => $counts[$filter],
         'current' => $filter === $status,
@@ -171,9 +179,14 @@ $context = [
     'action' => $baseurl->out_omit_querystring(),
     'q' => $q,
     'status' => $status === 'all' ? '' : $status,
+    'channel' => $channel,
     'filters' => $filters,
     'hasany' => $counts['all'] > 0,
-    'count' => get_string($total === 1 ? 'list:count:one' : 'list:count:many', $component, $total),
+    'count' => get_string(
+        ($channel === 'telegram' ? 'list:chats:' : 'list:count:') . ($total === 1 ? 'one' : 'many'),
+        $component,
+        $total
+    ),
     'done' => $donecontact && $donecontact->status === 'optedout'
         ? get_string('list:done', $component, panel::spaced($donecontact->phone)) : '',
     'rows' => $rows,

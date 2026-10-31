@@ -2014,6 +2014,8 @@
 }
 
 /* The page of Telegram, in three moments, from the mock-up of the house: the bot, joining from the phone and the test.
+   The validator of Moodle's stylelint (css-tree 2.3) does not know container queries, nor clamp(), min() and max() in
+   some properties, which every browser of Moodle 4.5 has: those lines carry their exception.
    Its type grows with the screen, so the whiteboard reads from the back; everything inside is in em, and the layout
    follows the width of the block itself. */
 .local-oksigeniamarandu-tg,
@@ -2179,9 +2181,11 @@
 }
 
 .local-oksigeniamarandu-tg {
+    /* stylelint-disable-next-line csstree/validator */
     container: mrd / inline-size;
     display: grid;
     gap: 1em;
+    /* stylelint-disable-next-line csstree/validator */
     font-size: clamp(15px, calc(7px + 0.62vw), 20px);
 }
 
@@ -2224,6 +2228,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5em;
+    /* stylelint-disable-next-line csstree/validator */
     min-height: max(44px, 2.75em);
     padding: 0.45em 1.15em;
     border: 1px solid transparent;
@@ -2393,6 +2398,7 @@
 
 .local-oksigeniamarandu-tg .mrd-field input {
     width: 100%;
+    /* stylelint-disable-next-line csstree/validator */
     min-height: max(44px, 2.75em);
     padding: 0.45em 0.75em;
     border: 1px solid var(--mrd-edge);
@@ -2572,6 +2578,7 @@
     word-break: break-all;
 }
 
+/* stylelint-disable-next-line csstree/validator */
 @container mrd (min-width: 860px) {
     .local-oksigeniamarandu-tg .mrd-token {
         grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
@@ -2716,6 +2723,7 @@
     grid-column: 1 / -1;
 }
 
+/* stylelint-disable-next-line csstree/validator */
 @container mrd (max-width: 520px) {
     .local-oksigeniamarandu-tg .mrd-botcard {
         grid-template-columns: auto minmax(0, 1fr);
@@ -2866,6 +2874,7 @@
     color: var(--mrd-green-text);
 }
 
+/* stylelint-disable-next-line csstree/validator */
 @container mrd (min-width: 700px) {
     .local-oksigeniamarandu-tg .mrd-join {
         grid-template-columns: auto minmax(0, 1fr);
@@ -2905,6 +2914,7 @@
     }
 }
 
+/* stylelint-disable-next-line csstree/validator */
 @container mrd (min-width: 1080px) {
     .local-oksigeniamarandu-tg .mrd-join {
         grid-template-columns: auto minmax(0, 1.4fr) minmax(15em, 1fr);
@@ -3060,6 +3070,7 @@
     text-align: center;
 }
 
+/* stylelint-disable-next-line csstree/validator */
 @container mrd (min-width: 760px) {
     .local-oksigeniamarandu-tg .mrd-test {
         grid-template-columns: minmax(0, 1fr) auto;
@@ -3094,6 +3105,7 @@
 }
 
 /* On a wide block, the phone with its frame. */
+/* stylelint-disable-next-line csstree/validator */
 @container mrd (min-width: 760px) {
     .local-oksigeniamarandu-tg .tg {
         border: 0.55em solid var(--tg-frame);
@@ -3296,6 +3308,7 @@
 
 /* «Change the bot»: a modal, in the colours of the page. */
 .local-oksigeniamarandu-tg .mrd-modal {
+    /* stylelint-disable-next-line csstree/validator */
     width: min(36rem, calc(100vw - 32px));
     padding: 0;
     border: 0;
@@ -3303,6 +3316,7 @@
     background: var(--mrd-bg);
     color: var(--mrd-ink);
     box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
+    /* stylelint-disable-next-line csstree/validator */
     font-size: clamp(15px, calc(7px + 0.62vw), 19px);
 }
 

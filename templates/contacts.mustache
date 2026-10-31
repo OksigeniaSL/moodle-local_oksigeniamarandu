@@ -33,7 +33,7 @@
     Example context (json):
     {
         "lede": "212 active · 9 pending · 6 opted out", "count": "227 numbers", "done": "",
-        "action": "#", "q": "", "status": "",
+        "action": "#", "q": "", "status": "", "channel": "",
         "filters": [{"url": "#", "label": "All", "count": 227, "current": true}],
         "hasany": true, "hasrows": true,
         "rows": [{"id": 1, "phone": "+34 600 23 86 70", "name": "Irene", "who": "Irene Medina Blanco", "kind": "Moodle user",
@@ -51,6 +51,7 @@
             <label class="visually-hidden sr-only" for="mrd-q">{{#str}} list:search, local_oksigeniamarandu {{/str}}</label>
             <input id="mrd-q" type="search" name="q" value="{{q}}" placeholder="{{#str}} list:search, local_oksigeniamarandu {{/str}}">
             {{#status}}<input type="hidden" name="status" value="{{status}}">{{/status}}
+            {{#channel}}<input type="hidden" name="channel" value="{{channel}}">{{/channel}}
         </form>
         <nav class="mrd-filter" aria-label="{{#str}} list:filter, local_oksigeniamarandu {{/str}}">
             {{#filters}}

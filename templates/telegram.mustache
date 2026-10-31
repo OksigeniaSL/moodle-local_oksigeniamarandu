@@ -24,7 +24,7 @@
     * action, sesskey, error, privacy - The forms and the note on privacy.
     * token, change, current, keepurl, sketch (name, user, token) - The first moment, and the change of bot.
     * confirm - name, user, people (what happens to them) and farewell, to confirm another bot.
-    * bot - name, user, people, listurl, same and changeurl, once connected.
+    * bot - name, user, people, listurl, listlabel, same and changeurl, once connected.
     * join - url, link, qr, statusurl, joinedsub and nexturl, to join from the phone.
     * test - name, sent, panelurl, initials, botname, botuser, reply, text, button, stop, focus, time and jointime.
 
@@ -89,7 +89,7 @@
         <span class="mrd-medal" aria-hidden="true">{{> local_oksigeniamarandu/telegram_plane }}</span>
         <div class="mrd-botid"><b>{{name}}</b><span class="user">{{user}}</span><span class="mrd-tgchip">{{#str}} telegram:connected, local_oksigeniamarandu {{/str}}</span></div>
         <div class="mrd-botrow">
-            <p>{{people}}{{#listurl}} · <a href="{{listurl}}">{{#str}} telegram:people:list, local_oksigeniamarandu {{/str}}</a>{{/listurl}}</p>
+            <p>{{people}}{{#listurl}} · <a href="{{listurl}}">{{listlabel}}</a>{{/listurl}}</p>
             <p class="mrd-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
         </div>
         <a class="btn mrd-btn mrd-second mrd-small" href="{{changeurl}}">{{#str}} telegram:change, local_oksigeniamarandu {{/str}}</a>

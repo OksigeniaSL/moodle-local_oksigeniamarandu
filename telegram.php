@@ -173,6 +173,7 @@ $count = get_string(
     $people
 );
 $returned = telegram::returned();
+$missingurl = new moodle_url('/local/oksigeniamarandu/contacts.php', ['status' => 'pending', 'channel' => 'telegram']);
 if ($returned) {
     $peopletext = get_string($returned->told ? 'telegram:people:backtold' : 'telegram:people:back', $component, $returned);
 } else if ($people === 1 && $chat) {
@@ -216,7 +217,10 @@ $context = [
         'name' => $botname,
         'user' => $bot,
         'people' => $peopletext,
-        'listurl' => $people > 1 && !$returned ? (new moodle_url('/local/oksigeniamarandu/contacts.php'))->out(false) : '',
+        // The list; after a change of bot, those who have not come back yet, to tell them some other way.
+        'listurl' => $returned ? $missingurl->out(false)
+            : ($people > 1 ? (new moodle_url('/local/oksigeniamarandu/contacts.php'))->out(false) : ''),
+        'listlabel' => get_string($returned ? 'telegram:people:missing' : 'telegram:people:list', $component),
         'same' => optional_param('same', 0, PARAM_BOOL),
         'changeurl' => (new moodle_url($baseurl, ['edit' => 1]))->out(false),
     ] : null,

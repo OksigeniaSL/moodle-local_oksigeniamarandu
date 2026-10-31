@@ -17,6 +17,7 @@
 namespace local_oksigeniamarandu\local;
 
 use local_oksigeniamarandu\api;
+use local_oksigeniamarandu\task\send_reply;
 
 /**
  * Tests for Telegram, the second channel. A fake bot answers for Telegram; made-up chats and people.
@@ -29,6 +30,7 @@ use local_oksigeniamarandu\api;
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(telegram::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(telegram_api::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(telegram_menu::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(queue::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(api::class)]
 final class telegram_test extends \advanced_testcase {
@@ -64,6 +66,9 @@ final class telegram_test extends \advanced_testcase {
             /** @var array The errors to answer with, in turn. */
             public $errors = [];
 
+            /** @var array The other methods called, with their parameters. */
+            public $calls = [];
+
             /**
              * The bot.
              *
@@ -90,15 +95,34 @@ final class telegram_test extends \advanced_testcase {
              * @param string $text The text.
              * @param string|null $url The link of the button.
              * @param string $label The label of the button.
+             * @param bool $silent Without sound.
              * @return string
              */
-            public function send_text(string $chatid, string $text, ?string $url = null, string $label = ''): string {
+            public function send_text(
+                string $chatid,
+                string $text,
+                ?string $url = null,
+                string $label = '',
+                bool $silent = false
+            ): string {
                 $code = array_shift($this->errors);
                 if ($code !== null) {
                     throw new api_exception('error:telegram', (object)['code' => -$code, 'message' => 'Fake'], $code);
                 }
-                $this->sent[] = [$chatid, $text, $url, $label];
+                $this->sent[] = [$chatid, $text, $url, $label, $silent];
                 return (string)count($this->sent);
+            }
+
+            /**
+             * Any other method: kept, and answered as done.
+             *
+             * @param string $method The method.
+             * @param string $body Its parameters.
+             * @return string
+             */
+            protected function request(string $method, string $body): string {
+                $this->calls[] = [$method, json_decode($body, true)];
+                return '{"ok":true,"result":true}';
             }
         };
         $bot->errors = $errors;
@@ -125,13 +149,18 @@ final class telegram_test extends \advanced_testcase {
         global $DB;
         $user = $this->getDataGenerator()->create_user();
         $code = api::invite('core', 0, (int)$user->id);
-        $this->assertTrue(telegram::handle($this->message(555, '/start ' . $code)));
+        $answer = telegram::handle($this->message(555, '/start ' . $code));
+        // The reply goes back at once, in the answer to the webhook.
+        $this->assertSame(
+            ['sendMessage', '555', send_reply::text('optin')],
+            [$answer['method'], $answer['chat_id'], $answer['text']]
+        );
 
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => 'tg:555']);
         $this->assertSame(['telegram', 'active', 'Ana Ejemplo'], [$contact->channel, $contact->status, $contact->name]);
         $this->assertTrue(api::user_joined((int)$user->id, 'telegram'));
         $this->assertFalse(api::user_joined((int)$user->id, 'whatsapp'));
-        $this->assertCount(1, \core\task\manager::get_adhoc_tasks('\local_oksigeniamarandu\task\send_reply'));
+        $this->assertCount(0, \core\task\manager::get_adhoc_tasks('\local_oksigeniamarandu\task\send_reply'));
 
         telegram::handle($this->message(555, '/stop'));
         $this->assertSame('optedout', $DB->get_field(consent::CONTACTS, 'status', ['phone' => 'tg:555']));
@@ -143,8 +172,67 @@ final class telegram_test extends \advanced_testcase {
 
         $group = $this->message(-100, '/start ' . $code);
         $group['message']['chat']['type'] = 'group';
-        $this->assertFalse(telegram::handle($group));
-        $this->assertFalse(telegram::handle($this->message(556, 'hola')));
+        $this->assertNull(telegram::handle($group));
+        // Writing anything else: the bot says that nobody reads it.
+        $this->assertSame(telegram_menu::nobody('tg:556'), telegram::handle($this->message(556, 'hola')));
+    }
+
+    /**
+     * The menu of the bot: Telegram learns it in each language of the site; the words of the site and the English ones
+     * work; whom the notices are about, notices without sound (but not the urgent ones), the language with its buttons,
+     * and leaving.
+     */
+    public function test_menu(): void {
+        global $DB;
+        $bot = $this->bot();
+        telegram_menu::register($bot);
+        [$method, $params] = $bot->calls[0];
+        $this->assertSame(['setMyCommands', 'all_private_chats'], [$method, $params['scope']['type']]);
+        $this->assertSame(['help', 'who', 'mute', 'stop'], array_column($params['commands'], 'command'));
+        $this->assertSame('en', $bot->calls[1][1]['language_code']);
+
+        $this->assertSame('mute', telegram_menu::command('Mute'));
+        $this->assertNull(telegram_menu::command('nada'));
+
+        // Before joining, only the help and how to join.
+        $answer = telegram::handle($this->message(560, '/who'));
+        $this->assertSame(get_string('telegram:menu:out', 'local_oksigeniamarandu'), $answer['text']);
+
+        $user = $this->getDataGenerator()->create_user(['firstname' => 'Ana', 'lastname' => 'Ejemplo']);
+        telegram::handle($this->message(560, '/start ' . api::invite('core', 0, (int)$user->id)));
+        $answer = telegram::handle($this->message(560, '/who@marandu_example_bot'));
+        $this->assertStringContainsString('Ana Ejemplo', $answer['text']);
+        $this->assertStringContainsString('/mute', telegram::handle($this->message(560, '/help'))['text']);
+        $this->assertStringContainsString('/help', telegram::handle($this->message(560, '/whatever'))['text']);
+
+        // Without sound: what does not hurry; an urgent notice still sounds.
+        telegram::handle($this->message(560, '/mute'));
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => 'tg:560']);
+        $this->assertSame(1, (int)$contact->silent);
+        $notice = notices::get('local_oksigeniamarandu', 'notification');
+        queue::add((int)$contact->id, $notice, ['Colegio Ejemplo', 'Hola'], null, false, DAYSECS, self::WEDNESDAY);
+        queue::add((int)$contact->id, $notice, ['Colegio Ejemplo', 'Hoy'], null, true, DAYSECS, self::WEDNESDAY);
+        $bot = $this->bot();
+        queue::process(null, self::WEDNESDAY, $bot);
+        $this->assertSame([true, false], array_column($bot->sent, 4));
+        telegram::handle($this->message(560, '/mute'));
+        $this->assertSame(0, (int)$DB->get_field(consent::CONTACTS, 'silent', ['id' => $contact->id]));
+
+        // The language: one site language only, so the buttons offer it, and a button changes the chat.
+        $answer = telegram::handle($this->message(560, '/language'));
+        $this->assertSame('lang:en', $answer['reply_markup']['inline_keyboard'][0][0]['callback_data']);
+        $bot = $this->bot();
+        $answer = telegram::handle(['callback_query' => ['id' => 'q1', 'data' => 'lang:en',
+            'message' => ['message_id' => 9, 'chat' => ['id' => 560, 'type' => 'private']]]], $bot);
+        $this->assertSame(['editMessageText', 9], [$answer['method'], $answer['message_id']]);
+        $this->assertSame('en', $DB->get_field(consent::CONTACTS, 'lang', ['id' => $contact->id]));
+        $this->assertSame('answerCallbackQuery', $bot->calls[0][0]);
+        $this->assertNull(telegram::handle(['callback_query' => ['id' => 'q2', 'data' => 'other',
+            'message' => ['message_id' => 9, 'chat' => ['id' => 560, 'type' => 'private']]]]));
+
+        // Leaving from the menu.
+        telegram::handle($this->message(560, '/stop'));
+        $this->assertSame('optedout', $DB->get_field(consent::CONTACTS, 'status', ['id' => $contact->id]));
     }
 
     /**
@@ -243,6 +331,27 @@ final class telegram_test extends \advanced_testcase {
         $this->assertTrue(telegram::verify_secret($secret));
         $this->assertFalse(telegram::verify_secret('not-it'));
         $this->assertSame('https://t.me/marandu_example_bot?start=K7M2Q9XA', telegram::join_url('K7M2Q9XA'));
+        // And the bot gets its menu.
+        $this->assertSame('setMyCommands', $bot->calls[0][0]);
+
+        // After an update of the plugin, the bot is told again what it reads and its menu, with the same secret.
+        $refresh = new class extends \local_oksigeniamarandu\task\telegram_refresh {
+            /** @var telegram_api The fake bot. */
+            public $bot;
+
+            /**
+             * The fake bot.
+             *
+             * @return telegram_api
+             */
+            protected function api(): telegram_api {
+                return $this->bot;
+            }
+        };
+        $refresh->bot = $this->bot();
+        $refresh->execute();
+        $this->assertSame(['webhook', $url, $secret], $refresh->bot->sent[0]);
+        $this->assertSame('setMyCommands', $refresh->bot->calls[0][0]);
 
         // The bot is known by the number before the colon: a token renewed with /revoke is the same bot.
         $this->assertSame('123456789', get_config('local_oksigeniamarandu', 'telegrambotid'));

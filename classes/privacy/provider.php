@@ -32,6 +32,7 @@ use core_privacy\local\request\transform;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 use local_oksigeniamarandu\local\consent;
+use local_oksigeniamarandu\local\telegram;
 
 /**
  * The numbers, their consent and whom they stand for. A number is a user's when a link ties it to that user; numbers of
@@ -51,6 +52,8 @@ class provider implements
         $collection->add_database_table(consent::CONTACTS, [
             'phone' => 'privacy:metadata:contact:phone',
             'name' => 'privacy:metadata:contact:name',
+            'lang' => 'privacy:metadata:contact:lang',
+            'silent' => 'privacy:metadata:contact:silent',
             'status' => 'privacy:metadata:contact:status',
             'consenttime' => 'privacy:metadata:contact:consenttime',
             'optouttime' => 'privacy:metadata:contact:optouttime',
@@ -139,8 +142,11 @@ class provider implements
             }
             $numbers[] = (object)[
                 'notices' => $notices,
-                'phone' => '+' . $contact->phone,
+                // A chat of Telegram has no phone: its address, as Marandu keeps it.
+                'phone' => telegram::is_chat($contact->phone) ? $contact->phone : '+' . $contact->phone,
                 'status' => $contact->status,
+                'lang' => $contact->lang,
+                'silent' => transform::yesno(!empty($contact->silent)),
                 'consenttime' => $contact->consenttime ? transform::datetime($contact->consenttime) : null,
                 'optouttime' => $contact->optouttime ? transform::datetime($contact->optouttime) : null,
                 'linked' => transform::datetime($link->timeclaimed ?: $link->timecreated),

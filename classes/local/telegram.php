@@ -92,7 +92,21 @@ class telegram {
         set_config('telegramname', (string)($bot['first_name'] ?? ''), 'local_oksigeniamarandu');
         set_config('telegramsecret', $secret, 'local_oksigeniamarandu');
         unset_config('telegramblocked', 'local_oksigeniamarandu');
+        self::menu($api);
         return $bot;
+    }
+
+    /**
+     * Gives the bot its menu. Without it the bot works the same: a failure is only noted.
+     *
+     * @param telegram_api $api The bot.
+     */
+    public static function menu(telegram_api $api): void {
+        try {
+            telegram_menu::register($api);
+        } catch (api_exception $e) {
+            debugging('Marandu: the menu of the bot was not set: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**
@@ -198,49 +212,64 @@ class telegram {
 
     /**
      * Handles what reaches the bot: a person who starts it (with a code or without), writes the opt-in or opt-out word
-     * or «/stop», or blocks it. Only private chats count.
+     * or «/stop», blocks it, uses its menu or presses a button of it. Only private chats count. The answer goes back in
+     * the reply to the webhook, so it arrives at once.
      *
      * @param array $update The update of Telegram.
-     * @return bool Whether it changed the consent of a chat.
+     * @param telegram_api|null $api The bot, for what cannot wait for the reply (the button that is waiting).
+     * @return array|null The answer, as a method of the Bot API; null if there is nothing to answer.
      */
-    public static function handle(array $update): bool {
+    public static function handle(array $update, ?telegram_api $api = null): ?array {
+        if (isset($update['callback_query'])) {
+            return telegram_menu::callback($update['callback_query'], $api);
+        }
         if (isset($update['my_chat_member'])) {
             $member = $update['my_chat_member'];
             if (($member['chat']['type'] ?? '') === 'private' && ($member['new_chat_member']['status'] ?? '') === 'kicked') {
                 // The person blocked the bot: the same as opting out; nothing can reach them any more.
                 consent::optout(self::address((string)$member['chat']['id']), 'blocked', 'telegram');
-                return true;
             }
-            return false;
+            return null;
         }
         $message = $update['message'] ?? null;
         if (!is_array($message) || ($message['chat']['type'] ?? '') !== 'private' || !isset($message['text'])) {
-            return false;
+            return null;
         }
         $address = self::address((string)$message['chat']['id']);
         $from = $message['from'] ?? [];
         $name = trim(($from['first_name'] ?? '') . ' ' . ($from['last_name'] ?? ''));
+        $name = $name === '' ? null : $name;
         $detail = 'telegram:' . ($message['message_id'] ?? '');
         $text = trim((string)$message['text']);
         if (preg_match('/^\/start(?:@\w+)?(?:\s+([A-Za-z0-9_-]{1,64}))?$/', $text, $parts)) {
             $code = isset($parts[1]) ? strtoupper(str_replace(['-', '_'], '', $parts[1])) : null;
-            $reply = consent::optin_from_message($address, $code, $detail, $name === '' ? null : $name);
-        } else if (preg_match('/^\/stop(?:@\w+)?$/', $text)) {
-            consent::optout($address, 'keyword', $detail);
-            $reply = 'optout';
-        } else {
-            $match = keywords::match($text);
-            if ($match === null) {
-                return false;
-            }
-            if ($match['action'] === 'optout') {
-                consent::optout($address, 'keyword', $detail);
-                $reply = 'optout';
-            } else {
-                $reply = consent::optin_from_message($address, $match['code'], $detail, $name === '' ? null : $name);
-            }
+            return self::reply($address, consent::optin_from_message($address, $code, $detail, $name));
         }
-        send_reply::queue($address, $reply);
-        return true;
+        if (preg_match('/^\/(\w{1,32})(?:@\w+)?(?:\s|$)/u', $text, $parts)) {
+            // A command of the menu, in any language of the site; an unknown one gets the help.
+            return telegram_menu::answer($address, telegram_menu::command($parts[1]) ?? 'help', $detail);
+        }
+        $match = keywords::match($text);
+        if ($match === null) {
+            return telegram_menu::nobody($address);
+        }
+        if ($match['action'] === 'optout') {
+            consent::optout($address, 'keyword', $detail);
+            return self::reply($address, 'optout');
+        }
+        return self::reply($address, consent::optin_from_message($address, $match['code'], $detail, $name));
+    }
+
+    /**
+     * A reply of consent (joined, left, unknown code), in the language of the chat.
+     *
+     * @param string $address The chat.
+     * @param string $reply optin, optout or unknowncode.
+     * @return array The answer, as a method of the Bot API.
+     */
+    private static function reply(string $address, string $reply): array {
+        global $DB;
+        $lang = (string)$DB->get_field(consent::CONTACTS, 'lang', ['phone' => $address]);
+        return ['method' => 'sendMessage', 'chat_id' => self::chat($address), 'text' => send_reply::text($reply, $lang ?: null)];
     }
 }

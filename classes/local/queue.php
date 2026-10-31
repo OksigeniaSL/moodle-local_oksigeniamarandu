@@ -162,11 +162,13 @@ class queue {
             if ($channel === 'telegram') {
                 // Telegram has no templates and no window: the text of the notice, with its link as a button. It is free.
                 try {
+                    // Without sound if the person asked for it, unless the notice is urgent.
                     $id = $telegram->send_text(
                         telegram::chat($contact->phone),
                         self::render($notice, $params, $lang),
                         $row->url ? templates::button_url($row->token) : null,
-                        notices::text($notice, 'button', $lang)
+                        notices::text($notice, 'button', $lang),
+                        !empty($contact->silent) && !$row->urgent && !in_array($key, $urgent, true)
                     );
                     self::finish($row, $now, 'sent', 'telegram', 'tg.' . $id);
                     $counts['sent']++;

@@ -112,5 +112,19 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110200, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110300) {
+        // 0.10.0: the menu of the bot of Telegram. A chat can ask for notices without sound.
+        $table = new xmldb_table('local_oksigeniamarandu_contact');
+        $field = new xmldb_field('silent', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'lang');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        // A bot already connected learns its menu and its buttons, in a task: Telegram is not called from the upgrade.
+        if (\local_oksigeniamarandu\local\telegram_api::is_configured()) {
+            \core\task\manager::queue_adhoc_task(new \local_oksigeniamarandu\task\telegram_refresh());
+        }
+        upgrade_plugin_savepoint(true, 2026110300, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

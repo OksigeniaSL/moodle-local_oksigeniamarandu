@@ -15,8 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * The webhook of the bot of Telegram: what people write to it, and whether they block it. Telegram sends back, in a
- * header, the secret the site gave it when connecting the bot; without it, nothing is read.
+ * The webhook of the bot of Telegram: what people write to it, the buttons of its menu, and whether they block it.
+ * Telegram sends back, in a header, the secret the site gave it when connecting the bot; without it, nothing is read.
+ * The answer of the bot goes in the reply itself, as Telegram allows, so it arrives at once.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -30,7 +31,9 @@ define('NO_DEBUG_DISPLAY', true);
 
 require(__DIR__ . '/../../config.php');
 
+use local_oksigeniamarandu\local\api_exception;
 use local_oksigeniamarandu\local\telegram;
+use local_oksigeniamarandu\local\telegram_api;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !telegram::verify_secret($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '')) {
     http_response_code(403);
@@ -38,8 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !telegram::verify_secret($_SERVER['
 }
 
 $update = json_decode(file_get_contents('php://input'), true);
+$answer = null;
 if (is_array($update)) {
-    telegram::handle($update);
+    try {
+        $api = telegram_api::from_config();
+    } catch (api_exception $e) {
+        $api = null;
+    }
+    $answer = telegram::handle($update, $api);
 }
-// Telegram only needs to know it arrived; the replies go out later, in an ad hoc task.
-echo 'OK';
+if ($answer) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($answer);
+} else {
+    echo 'OK';
+}

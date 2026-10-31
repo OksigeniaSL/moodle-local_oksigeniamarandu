@@ -86,7 +86,7 @@ class telegram_api {
         $this->call('setWebhook', [
             'url' => $url,
             'secret_token' => $secret,
-            'allowed_updates' => ['message', 'my_chat_member'],
+            'allowed_updates' => ['message', 'my_chat_member', 'callback_query'],
             'drop_pending_updates' => true,
         ]);
     }
@@ -98,19 +98,44 @@ class telegram_api {
      * @param string $text The text, up to 4096 characters.
      * @param string|null $url Where the button goes.
      * @param string $label The label of the button.
+     * @param bool $silent Without sound, for what does not hurry.
      * @return string The id of the message.
      */
-    public function send_text(string $chatid, string $text, ?string $url = null, string $label = ''): string {
+    public function send_text(string $chatid, string $text, ?string $url = null, string $label = '', bool $silent = false): string {
         $params = [
             'chat_id' => $chatid,
             'text' => \core_text::substr($text, 0, 4096),
             'link_preview_options' => ['is_disabled' => true],
+            'disable_notification' => $silent,
         ];
         if ($url !== null) {
             $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $url]]]];
         }
         $answer = $this->call('sendMessage', $params);
         return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
+     * The menu of the bot, for the phones in a language or for all the rest; only in private chats.
+     *
+     * @param array $commands Each with command and description.
+     * @param string|null $lang Two letters; null for the phones of any other language.
+     */
+    public function set_commands(array $commands, ?string $lang = null): void {
+        $params = ['commands' => $commands, 'scope' => ['type' => 'all_private_chats']];
+        if ($lang !== null) {
+            $params['language_code'] = $lang;
+        }
+        $this->call('setMyCommands', $params);
+    }
+
+    /**
+     * Stops the wait of a button that was pressed.
+     *
+     * @param string $id The callback query.
+     */
+    public function answer_callback(string $id): void {
+        $this->call('answerCallbackQuery', ['callback_query_id' => $id]);
     }
 
     /**

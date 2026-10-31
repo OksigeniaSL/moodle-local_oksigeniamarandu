@@ -1,0 +1,41 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/limits
+
+    The quiet hours and the limits, for every channel, on a page of their own: the sentences of the last step of the
+    wizard of WhatsApp.
+
+    Context variables required for this template:
+    * lead, saved - What it is for, and the line after saving.
+    * form - The context of local_oksigeniamarandu/limits_form.
+
+    Example context (json):
+    {
+        "lead": "So that nothing arrives at eleven at night.", "saved": "",
+        "form": {"formurl": "#", "sesskey": "abc", "submit": "Save", "money": false, "capmonth": "10", "capemail": "",
+            "capemailerror": "", "capfamily": 3, "quietfrom": "20:00", "quietto": "08:00", "days": [], "urgent": [],
+            "hasurgent": false}
+    }
+}}
+<div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-limits">
+    <section>
+        <p class="mrd-lead">{{lead}}</p>
+        {{#saved}}<p class="mrd-saved" role="status">{{saved}}</p>{{/saved}}
+        {{#form}}{{> local_oksigeniamarandu/limits_form }}{{/form}}
+    </section>
+</div>

@@ -150,27 +150,15 @@ if ($action === 'connect' && confirm_sesskey()) {
     }
 } else if ($action === 'notices' && confirm_sesskey()) {
     // Step 4: which notices go out by WhatsApp.
-    $chosen = optional_param_array('notice', [], PARAM_RAW);
-    $keys = array_intersect(array_keys(notices::all()), array_keys(array_filter($chosen)));
+    // The notices come as values: Moodle drops the keys of an array that have a slash, as "component/notice" has.
+    $chosen = optional_param_array('notice', [], PARAM_RAW_TRIMMED);
+    $keys = array_values(array_intersect(array_keys(notices::all()), $chosen));
     set_config('enablednotices', implode(',', $keys), $component);
     redirect(new moodle_url($baseurl, ['step' => 'limits']));
 } else if ($action === 'limits' && confirm_sesskey()) {
     // Step 5: the limits, as sentences.
-    $email = trim(optional_param('capemail', '', PARAM_RAW_TRIMMED));
-    if ($email !== '' && !validate_email($email)) {
-        $errors['capemail'] = get_string('wizard:limits:bademail', $component);
-    } else {
-        set_config('capmonth', max(0, unformat_float(optional_param('capmonth', '0', PARAM_RAW_TRIMMED), true) ?: 0), $component);
-        set_config('capemail', $email, $component);
-        set_config('capfamily', max(0, optional_param('capfamily', 0, PARAM_INT)), $component);
-        foreach (['quietfrom', 'quietto'] as $name) {
-            $time = optional_param($name, '', PARAM_RAW_TRIMMED);
-            set_config($name, preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time) ? $time : '', $component);
-        }
-        $days = array_keys(array_filter(optional_param_array('quietdays', [], PARAM_INT)));
-        set_config('quietdays', implode(',', array_intersect($days, range(0, 6))), $component);
-        $urgent = array_keys(array_filter(optional_param_array('urgent', [], PARAM_INT)));
-        set_config('urgentnotices', implode(',', array_intersect($urgent, notices::enabled())), $component);
+    $errors += \local_oksigeniamarandu\local\limits::save(true);
+    if (!$errors) {
         redirect(new moodle_url($baseurl, ['step' => 'done']));
     }
 }
@@ -349,33 +337,10 @@ if ($step === 'account') {
         ]),
     ];
 } else if ($step === 'limits') {
-    $days = array_filter(explode(',', (string)($config->quietdays ?? '6,0')), 'strlen');
-    $urgent = notices::urgent();
-    $daynames = [];
-    foreach ([1, 2, 3, 4, 5, 6, 0] as $day) {
-        $daynames[] = [
-            'value' => $day,
-            'label' => get_string('wizard:limits:day' . $day, $component),
-            'name' => get_string(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][$day], 'calendar'),
-            'on' => in_array((string)$day, $days, true),
-        ];
-    }
-    $urgentrows = [];
-    foreach (notices::enabled() as $key) {
-        if (isset($allnotices[$key])) {
-            $urgentrows[] = ['key' => $key, 'name' => notices::text($allnotices[$key]), 'on' => in_array($key, $urgent, true)];
-        }
-    }
-    $context['limits'] = [
-        'capmonth' => format_float((float)($config->capmonth ?? 10), 0),
-        'capemail' => $config->capemail ?? ($CFG->supportemail ?? ''),
-        'capfamily' => (int)($config->capfamily ?? 3),
-        'quietfrom' => $config->quietfrom ?? '20:00',
-        'quietto' => $config->quietto ?? '08:00',
-        'days' => $daynames,
-        'urgent' => $urgentrows,
-        'hasurgent' => !empty($urgentrows),
-        'capemailerror' => $errors['capemail'] ?? '',
+    $context['limits'] = \local_oksigeniamarandu\local\limits::context(true, $errors) + [
+        'formurl' => $baseurl->out(false),
+        'sesskey' => sesskey(),
+        'submit' => get_string('wizard:limits:finish', $component),
     ];
 } else {
     $approved = $DB->count_records(templates::TABLE, ['status' => 'approved']);

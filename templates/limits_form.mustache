@@ -1,0 +1,56 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/limits_form
+
+    The limits as sentences: the money of a month (only with WhatsApp), the notices a family gets a day at most, the
+    quiet hours and days, and the notices that go out in them too. In the wizard of WhatsApp and on a page of its own.
+
+    Context variables required for this template:
+    * formurl, sesskey, submit - The form and the label of its button.
+    * money, capmonth, capemail, capemailerror - The money of a month, with WhatsApp.
+    * capfamily, quietfrom, quietto, days, urgent, hasurgent - For every channel.
+
+    Example context (json):
+    {
+        "formurl": "#", "sesskey": "abc", "submit": "Save", "money": false, "capmonth": "10", "capemail": "",
+        "capemailerror": "", "capfamily": 3, "quietfrom": "20:00", "quietto": "08:00",
+        "days": [{"value": 6, "label": "S", "name": "Saturday", "on": true}], "urgent": [], "hasurgent": false
+    }
+}}
+    <form method="post" action="{{formurl}}" class="mrd-sentences">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="limits">
+        {{#money}}<p class="mrd-sentence">{{#str}} wizard:limits:cap1, local_oksigeniamarandu {{/str}}
+            <input class="mrd-num" type="text" inputmode="decimal" name="capmonth" value="{{capmonth}}" aria-label="{{#str}} wizard:limits:capmonth, local_oksigeniamarandu {{/str}}">
+            {{#str}} wizard:limits:cap2, local_oksigeniamarandu {{/str}}
+            <input class="mrd-mail" type="email" name="capemail" value="{{capemail}}" aria-label="{{#str}} wizard:limits:capemail, local_oksigeniamarandu {{/str}}"></p>
+        {{#capemailerror}}<p class="mrd-err">{{.}}</p>{{/capemailerror}}{{/money}}
+        <p class="mrd-sentence">{{#str}} wizard:limits:family1, local_oksigeniamarandu {{/str}}
+            <input class="mrd-num" type="number" min="0" name="capfamily" value="{{capfamily}}" aria-label="{{#str}} wizard:limits:capfamily, local_oksigeniamarandu {{/str}}">
+            {{#str}} wizard:limits:family2, local_oksigeniamarandu {{/str}}</p>
+        <p class="mrd-sentence">{{#str}} wizard:limits:quiet1, local_oksigeniamarandu {{/str}}
+            <input type="time" name="quietfrom" value="{{quietfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
+            {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
+            <input type="time" name="quietto" value="{{quietto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">{{#str}} wizard:limits:quiet3, local_oksigeniamarandu {{/str}}
+            <span class="mrd-days">{{#days}}<input type="checkbox" id="mrd-day-{{value}}" name="quietdays[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-day-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/days}}</span></p>
+        {{#hasurgent}}
+        <p class="mrd-sub">{{#str}} wizard:limits:urgent, local_oksigeniamarandu {{/str}}
+            {{#urgent}}<input type="checkbox" class="mrd-chipcheck" id="mrd-u-{{key}}" name="urgent[]" value="{{key}}" {{#on}}checked{{/on}}><label for="mrd-u-{{key}}">{{name}}</label> {{/urgent}}</p>
+        {{/hasurgent}}
+        <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{submit}}</button></div>
+    </form>

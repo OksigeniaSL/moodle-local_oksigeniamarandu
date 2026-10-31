@@ -289,6 +289,30 @@ final class panel_test extends \advanced_testcase {
     }
 
     /**
+     * The limits hold for every channel: a site that never set them gets those of the wizard; saving without
+     * WhatsApp leaves the money of the month as it was.
+     */
+    public function test_limits(): void {
+        unset_config('quietfrom', 'local_oksigeniamarandu');
+        unset_config('capfamily', 'local_oksigeniamarandu');
+        limits::defaults();
+        $this->assertSame(['20:00', '3', '08:00'], [get_config('local_oksigeniamarandu', 'quietfrom'),
+            get_config('local_oksigeniamarandu', 'capfamily'), get_config('local_oksigeniamarandu', 'quietto')]);
+
+        set_config('capmonth', 7, 'local_oksigeniamarandu');
+        $_POST = ['capmonth' => '50', 'capfamily' => '2', 'quietfrom' => '21:30', 'quietto' => '07:00',
+            'quietdays' => [0 => 1], 'urgent' => ['local_oksigeniamarandu/notification']];
+        $this->assertSame([], limits::save(false));
+        $this->assertSame(['7', '2', '21:30', '0', 'local_oksigeniamarandu/notification'], [
+            get_config('local_oksigeniamarandu', 'capmonth'), get_config('local_oksigeniamarandu', 'capfamily'),
+            get_config('local_oksigeniamarandu', 'quietfrom'), get_config('local_oksigeniamarandu', 'quietdays'),
+            get_config('local_oksigeniamarandu', 'urgentnotices')]);
+        $context = limits::context(false);
+        $this->assertSame([false, 2, true], [$context['money'], $context['capfamily'], $context['urgent'][0]['on']]);
+        $_POST = [];
+    }
+
+    /**
      * Each channel has its own notices switched on: a notice off for a channel does not go out by it.
      */
     public function test_notices_by_channel(): void {

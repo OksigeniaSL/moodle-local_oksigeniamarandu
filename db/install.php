@@ -23,11 +23,13 @@
  */
 
 /**
- * Gives the site its own verify token for the webhook of Meta, so that nobody has to invent one.
+ * Gives the site its own verify token for the webhook of Meta, so that nobody has to invent one, and the quiet hours
+ * and the limit by family the wizard proposes, for every channel from the start.
  *
  * @return bool
  */
 function xmldb_local_oksigeniamarandu_install() {
     set_config('verifytoken', random_string(32), 'local_oksigeniamarandu');
+    \local_oksigeniamarandu\local\limits::defaults();
     return true;
 }

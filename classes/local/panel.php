@@ -117,7 +117,14 @@ class panel {
                 'icon' => drawings::svg($drawing, 22, $class)] + $more;
         };
         if ($current !== 'panel') {
-            return [$link('index.php', get_string('list:panel', $component), 'en-marcha')];
+            // Back to the panel and, from the notices and the limits, from one to the other: they go together.
+            $links = [$link('index.php', get_string('list:panel', $component), 'en-marcha')];
+            if ($current === 'notices') {
+                $links[] = $link('limits.php', get_string('limits:title', $component), 'silencio');
+            } else if ($current === 'limits') {
+                $links[] = $link('notices.php', get_string('panel:notices', $component), 'elige');
+            }
+            return $links;
         }
         $channels = \local_oksigeniamarandu\api::channels();
         $links = [

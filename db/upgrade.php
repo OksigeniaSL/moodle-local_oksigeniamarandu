@@ -126,5 +126,18 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110300, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110600) {
+        // 0.11.0 and 0.13.0. Each channel has its own notices switched on: Telegram starts with those that were on for
+        // all (0.11.0 shipped without this step). And the quiet hours and the limit by family hold for every channel: a
+        // site that never set them (only the wizard of WhatsApp did) gets the ones the wizard proposes, no notice at
+        // night or at the weekend and three a day at most.
+        $on = get_config('local_oksigeniamarandu', 'enablednotices');
+        if ($on !== false && get_config('local_oksigeniamarandu', 'telegramnotices') === false) {
+            set_config('telegramnotices', $on, 'local_oksigeniamarandu');
+        }
+        \local_oksigeniamarandu\local\limits::defaults();
+        upgrade_plugin_savepoint(true, 2026110600, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

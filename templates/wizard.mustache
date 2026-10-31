@@ -198,7 +198,7 @@
             <input type="hidden" name="action" value="notices">
             {{#rows}}
             <div class="mrd-notice">
-                <input type="checkbox" class="mrd-switch" role="switch" id="{{id}}" name="notice[{{key}}]" value="1" {{#on}}checked{{/on}}>
+                <input type="checkbox" class="mrd-switch" role="switch" id="{{id}}" name="notice[]" value="{{key}}" {{#on}}checked{{/on}}>
                 <label for="{{id}}"><b>{{name}}</b><span>{{description}}</span></label>
                 <span class="mrd-cost">{{cost}}</span>
             </div>
@@ -212,28 +212,7 @@
     {{#limits}}
     <section>
         <p class="mrd-lead">{{#str}} wizard:limits:lead, local_oksigeniamarandu {{/str}}</p>
-        <form method="post" action="{{formurl}}" class="mrd-sentences">
-            <input type="hidden" name="sesskey" value="{{sesskey}}">
-            <input type="hidden" name="action" value="limits">
-            <p class="mrd-sentence">{{#str}} wizard:limits:cap1, local_oksigeniamarandu {{/str}}
-                <input class="mrd-num" type="text" inputmode="decimal" name="capmonth" value="{{capmonth}}" aria-label="{{#str}} wizard:limits:capmonth, local_oksigeniamarandu {{/str}}">
-                {{#str}} wizard:limits:cap2, local_oksigeniamarandu {{/str}}
-                <input class="mrd-mail" type="email" name="capemail" value="{{capemail}}" aria-label="{{#str}} wizard:limits:capemail, local_oksigeniamarandu {{/str}}"></p>
-            {{#capemailerror}}<p class="mrd-err">{{.}}</p>{{/capemailerror}}
-            <p class="mrd-sentence">{{#str}} wizard:limits:family1, local_oksigeniamarandu {{/str}}
-                <input class="mrd-num" type="number" min="0" name="capfamily" value="{{capfamily}}" aria-label="{{#str}} wizard:limits:capfamily, local_oksigeniamarandu {{/str}}">
-                {{#str}} wizard:limits:family2, local_oksigeniamarandu {{/str}}</p>
-            <p class="mrd-sentence">{{#str}} wizard:limits:quiet1, local_oksigeniamarandu {{/str}}
-                <input type="time" name="quietfrom" value="{{quietfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
-                {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
-                <input type="time" name="quietto" value="{{quietto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">{{#str}} wizard:limits:quiet3, local_oksigeniamarandu {{/str}}
-                <span class="mrd-days">{{#days}}<input type="checkbox" id="mrd-day-{{value}}" name="quietdays[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-day-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/days}}</span></p>
-            {{#hasurgent}}
-            <p class="mrd-sub">{{#str}} wizard:limits:urgent, local_oksigeniamarandu {{/str}}
-                {{#urgent}}<input type="checkbox" class="mrd-chipcheck" id="mrd-u-{{key}}" name="urgent[{{key}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-u-{{key}}">{{name}}</label> {{/urgent}}</p>
-            {{/hasurgent}}
-            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} wizard:limits:finish, local_oksigeniamarandu {{/str}}</button></div>
-        </form>
+        {{> local_oksigeniamarandu/limits_form }}
     </section>
     {{/limits}}
 

@@ -17,25 +17,38 @@
 {{!
     @template local_oksigeniamarandu/telegram
 
-    Telegram: connect the bot of the site with its token, and test it from the phone of whoever sets it up.
+    Telegram: connect the bot of the site with its token, and test it from the phone of whoever sets it up. The steps
+    to make the bot as a numbered list, the note on privacy before connecting, and the steps that come after.
 
     Context variables required for this template:
     * editing - Whether the token is asked for.
     * action, sesskey - The forms.
     * error - What went wrong, if anything.
     * privacy - A sentence on where Telegram keeps the messages.
+    * track - The steps (label, done, now).
     * bot, botname, editurl, joinurl, qr, joined, sent - The bot connected, and its test.
 
     Example context (json):
     {
-        "editing": false, "action": "#", "sesskey": "abc", "error": "", "privacy": "Telegram keeps these messages.",
-        "bot": "@marandu_test_bot", "botname": "Marandu", "editurl": "#", "joinurl": "#", "qr": "", "joined": true,
-        "sent": ""
+        "editing": true, "action": "#", "sesskey": "abc", "error": "", "privacy": "Telegram keeps these messages.",
+        "track": [{"label": "Connect the bot", "done": false, "now": true}],
+        "bot": "", "botname": "", "editurl": "#", "joinurl": "#", "qr": "", "joined": false, "sent": ""
     }
 }}
 <div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-telegram">
     {{#editing}}
     <p class="mrd-lead">{{#str}} telegram:lead, local_oksigeniamarandu {{/str}}</p>
+    <ol class="mrd-steps">
+        <li>
+            <span>{{#str}} telegram:step1, local_oksigeniamarandu {{/str}}</span>
+            <a class="btn mrd-btn mrd-second mrd-small" href="https://t.me/BotFather" target="_blank" rel="noopener">{{#str}} telegram:openbotfather, local_oksigeniamarandu {{/str}}</a>
+        </li>
+        <li>
+            <span>{{#str}} telegram:step2, local_oksigeniamarandu {{/str}}</span>
+            <span class="mrd-copy"><code>/newbot</code><button type="button" class="btn mrd-btn mrd-second mrd-small" data-copy="/newbot" data-copied="{{#str}} wizard:copied, local_oksigeniamarandu {{/str}}">{{#str}} wizard:copy, local_oksigeniamarandu {{/str}}</button></span>
+        </li>
+        <li><span>{{#str}} telegram:step3, local_oksigeniamarandu {{/str}}</span></li>
+    </ol>
     <form method="post" action="{{action}}">
         <input type="hidden" name="sesskey" value="{{sesskey}}">
         <input type="hidden" name="action" value="connect">
@@ -43,8 +56,10 @@
             <label for="mrd-tgtoken">{{#str}} telegram:token, local_oksigeniamarandu {{/str}}</label>
             <span class="mrd-help">{{#str}} telegram:token_help, local_oksigeniamarandu {{/str}}</span>
             <input type="text" id="mrd-tgtoken" name="token" autocomplete="off" spellcheck="false"{{#error}} class="bad"{{/error}}>
+            <span class="mrd-tokencheck" data-tokencheck aria-live="polite" data-ok="{{#str}} telegram:token:ok, local_oksigeniamarandu {{/str}}" data-bad="{{#str}} telegram:token:bad, local_oksigeniamarandu {{/str}}"></span>
             {{#error}}<span class="mrd-err">{{error}}</span>{{/error}}
         </div>
+        <p class="mrd-note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
         <div class="mrd-actions">
             <button type="submit" class="btn mrd-btn mrd-primary">{{#str}} telegram:connect, local_oksigeniamarandu {{/str}}</button>
         </div>
@@ -52,6 +67,7 @@
     {{/editing}}
     {{^editing}}
     <p class="mrd-ok">✓ {{#str}} telegram:connected, local_oksigeniamarandu {{/str}} <b>{{botname}}</b> ({{bot}}) · <a href="{{editurl}}">{{#str}} telegram:change, local_oksigeniamarandu {{/str}}</a></p>
+    <p class="mrd-note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11 V17 M12 7.5 V7.6"/></svg><span>{{privacy}}</span></p>
     <h2>{{#str}} telegram:test, local_oksigeniamarandu {{/str}}</h2>
     {{^joined}}
     <p class="mrd-lead">{{#str}} telegram:test:join, local_oksigeniamarandu {{/str}}</p>
@@ -74,5 +90,10 @@
     {{#error}}<p class="mrd-err">{{error}}</p>{{/error}}
     {{/joined}}
     {{/editing}}
-    <p class="mrd-hint">{{privacy}}</p>
+    <h3 class="mrd-group">{{#str}} telegram:track, local_oksigeniamarandu {{/str}}</h3>
+    <ol class="mrd-track">
+        {{#track}}
+            <li class="{{#done}}done{{/done}}{{#now}}now{{/now}}"><i>{{^done}}{{num}}{{/done}}</i><span>{{label}}</span></li>
+        {{/track}}
+    </ol>
 </div>

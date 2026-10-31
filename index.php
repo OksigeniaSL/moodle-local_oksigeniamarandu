@@ -48,7 +48,7 @@ $PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/p
     ['url' => (new moodle_url($wizard, ['step' => 'texts']))->out(false), 'label' => get_string('panel:texts', $component),
         'art' => ['size' => 22, 'stroke' => 4.65, 'texts' => true]],
     ['url' => (new moodle_url('/local/oksigeniamarandu/telegram.php'))->out(false), 'label' => 'Telegram',
-        'art' => ['size' => 22, 'stroke' => 4.65, 'texts' => true]],
+        'art' => ['size' => 22, 'stroke' => 4.65, 'telegram' => true]],
     ['url' => $wizard->out(false), 'label' => get_string('panel:settings', $component),
         'art' => ['size' => 22, 'stroke' => 4.65, 'settings' => true]],
 ]]));

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 (2026-11-01)
+
+- The page of Telegram, from the reread by design: the steps to make the bot numbered, with the link to @BotFather and
+  a button to copy /newbot; the note on privacy before connecting; the form of the token checked as it is pasted; the
+  steps that come after. The Telegram pill of the panel has its own drawing, a paper plane.
+
 ## 0.8.0 (2026-11-01)
 
 - Telegram, the second channel, with the bot of each site:

@@ -82,7 +82,19 @@ $PAGE->set_heading(get_string('telegram:title', $component));
 $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 
+// Where this is going: connect the bot, join from the phone, try it.
+$steps = ['connect' => !$editing, 'join' => !$editing && $chat, 'test' => $sent !== ''];
+$track = [];
+$now = true;
+$num = 0;
+foreach ($steps as $step => $done) {
+    $track[] = ['num' => ++$num, 'label' => get_string('telegram:track:' . $step, $component), 'done' => (bool)$done,
+        'now' => !$done && $now];
+    $now = $now && (bool)$done;
+}
+
 $context = [
+    'track' => $track,
     'editing' => $editing,
     'action' => $baseurl->out(false),
     'sesskey' => sesskey(),
@@ -105,6 +117,34 @@ if (!$editing) {
         'sent' => $sent,
     ];
 }
+
+$PAGE->requires->js_amd_inline(<<<'JS'
+require([], function() {
+    var root = document.querySelector('.local-oksigeniamarandu-telegram');
+    if (!root) {
+        return;
+    }
+    root.querySelectorAll('[data-copy]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            navigator.clipboard.writeText(button.getAttribute('data-copy')).then(function() {
+                button.textContent = button.getAttribute('data-copied');
+            });
+        });
+    });
+    // The form of the token, said as it is pasted: digits, a colon and the rest.
+    var input = root.querySelector('#mrd-tgtoken');
+    var check = root.querySelector('[data-tokencheck]');
+    if (input && check) {
+        input.addEventListener('input', function() {
+            var value = input.value.trim();
+            var ok = /^[0-9]{5,15}:[A-Za-z0-9_-]{30,}$/.test(value);
+            check.textContent = value === '' ? '' : check.getAttribute(ok ? 'data-ok' : 'data-bad');
+            check.className = 'mrd-tokencheck' + (value === '' ? '' : (ok ? ' ok' : ' bad'));
+        });
+    }
+});
+JS
+);
 
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/telegram', $context);

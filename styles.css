@@ -1116,6 +1116,83 @@
     font-size: 13.5px;
 }
 
+/* The steps to make the bot, numbered, each with its link or what to copy. */
+.local-oksigeniamarandu-wizard .mrd-steps {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+    counter-reset: mrd-step;
+}
+
+.local-oksigeniamarandu-wizard .mrd-steps li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    counter-increment: mrd-step;
+}
+
+.local-oksigeniamarandu-wizard .mrd-steps li::before {
+    content: counter(mrd-step);
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--mrd-blue-soft);
+    color: var(--mrd-blue-text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* A note to know before connecting, the size of the text, with its sign. */
+.local-oksigeniamarandu-wizard .mrd-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 6px 0 10px;
+    color: var(--mrd-ink-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-note svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--mrd-blue-text);
+}
+
+/* The form of the token, as it is pasted. */
+.local-oksigeniamarandu-wizard .mrd-tokencheck {
+    grid-column: 1 / -1;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tokencheck.ok {
+    color: var(--mrd-green-text);
+}
+
+.local-oksigeniamarandu-wizard .mrd-tokencheck.ok::before {
+    content: "✓ ";
+}
+
+.local-oksigeniamarandu-wizard .mrd-tokencheck.bad {
+    color: var(--mrd-red-text);
+}
+
+/* The step where one is, among those still to come. */
+.local-oksigeniamarandu-wizard .mrd-track li.now {
+    color: var(--mrd-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-track li.now i {
+    border-color: var(--mrd-blue);
+    color: var(--mrd-blue-text);
+}
+
 /* The panel and the list of numbers, from the mock-up of the house. Text and drawings in the accent take the colour of
    links, which the theme makes readable in each mode; fills take the primary. */
 .local-oksigeniamarandu-panel,

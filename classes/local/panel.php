@@ -226,6 +226,27 @@ class panel {
     }
 
     /**
+     * The last notice that went out, for the quiet hours, when today has little to say.
+     *
+     * @return \stdClass|null With name, time and channel; null if none has gone out.
+     */
+    public static function last(): ?\stdClass {
+        global $DB;
+        $rows = $DB->get_records_sql("SELECT q.id, q.component, q.notice, q.timesent, c.channel
+                                        FROM {" . queue::TABLE . "} q
+                                        JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid
+                                       WHERE q.status IN ('sent', 'delivered', 'read')
+                                    ORDER BY q.timesent DESC, q.id DESC", [], 0, 1);
+        if (!$rows) {
+            return null;
+        }
+        $row = reset($rows);
+        $notice = notices::get($row->component, $row->notice);
+        return (object)['name' => $notice ? notices::text($notice) : $row->notice, 'time' => (int)$row->timesent,
+            'channel' => $row->channel === 'telegram' ? 'telegram' : 'whatsapp'];
+    }
+
+    /**
      * The notices that went out each day of this month until today, by channel.
      *
      * @param int $now The time.

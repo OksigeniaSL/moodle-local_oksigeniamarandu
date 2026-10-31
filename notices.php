@@ -189,7 +189,7 @@ require([], function() {
             total.textContent = data.total;
             root.querySelectorAll('.mrd-switch').forEach(function(sw) {
                 var on = (data.on[sw.getAttribute('data-channel')] || []).indexOf(sw.getAttribute('data-key')) >= 0;
-                sw.setAttribute('aria-checked', on ? 'true' : 'false');
+                sw.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             if (done) {
                 done();
@@ -203,7 +203,7 @@ require([], function() {
         var sw = e.target.closest('.mrd-switch');
         if (sw) {
             e.preventDefault();
-            sw.setAttribute('aria-checked', sw.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+            sw.setAttribute('aria-pressed', sw.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
             send('toggle', sw.value, function() {
                 sw.focus();
             });

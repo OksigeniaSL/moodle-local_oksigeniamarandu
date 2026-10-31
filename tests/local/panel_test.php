@@ -182,6 +182,10 @@ final class panel_test extends \advanced_testcase {
         $this->assertSame([$today, 5, 1], [$days['today'], $days['whatsapp'][$today - 1], $days['whatsapp'][$today - 2]]);
         $this->assertSame(0, array_sum($days['telegram']));
 
+        // The last one that went out, for the quiet hours.
+        $last = panel::last();
+        $this->assertSame(['whatsapp', self::WEDNESDAY - MINSECS], [$last->channel, $last->time]);
+
         $month = panel::month(self::WEDNESDAY);
         $this->assertSame([4, 1], [$month->templates, $month->free]);
         $this->assertEqualsWithDelta(0.08, $month->spent, 0.0001);

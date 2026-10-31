@@ -4793,12 +4793,12 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
     transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.3, 1.3), background 0.2s;
 }
 
-.local-oksigeniamarandu-dash .mrd-switch[aria-checked="true"] {
+.local-oksigeniamarandu-dash .mrd-switch[aria-pressed="true"] {
     background: var(--mrd-accent);
     border-color: var(--mrd-accent);
 }
 
-.local-oksigeniamarandu-dash .mrd-switch[aria-checked="true"]::before {
+.local-oksigeniamarandu-dash .mrd-switch[aria-pressed="true"]::before {
     background: #fff;
     transform: translate(1.2em, -50%);
 }
@@ -5040,3 +5040,22 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     display: none;
 }
 
+/* At the bottom of today, the last notice that went out: in the quiet hours, today has little else to say. */
+.local-oksigeniamarandu-dash .mrd-last {
+    margin: 1em 0 0;
+    padding: 0.7em 0 0;
+    border-top: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-last .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-last .mrd-ico {
+    width: 1.4em;
+    height: 1.4em;
+    margin-top: 0.1em;
+}

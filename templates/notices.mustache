@@ -53,7 +53,7 @@
             <ul>
                 {{#rows}}
                 <li class="mrd-nrow" style="--chs:{{chs}}"><span class="t"><b>{{name}}</b><span>{{desc}}</span></span>
-                    {{#cells}}<span class="mrd-swcell"><button type="submit" class="mrd-switch" role="switch" name="toggle" value="{{value}}" aria-checked="{{on}}" data-key="{{key}}" data-channel="{{channel}}" aria-label="{{label}}"></button><span class="lab">{{{icon}}}{{name}}</span><small{{#review}} class="review"{{/review}}>{{note}}</small></span>{{/cells}}
+                    {{#cells}}<span class="mrd-swcell"><button type="submit" class="mrd-switch" name="toggle" value="{{value}}" aria-pressed="{{on}}" data-key="{{key}}" data-channel="{{channel}}" aria-label="{{label}}"></button><span class="lab">{{{icon}}}{{name}}</span><small{{#review}} class="review"{{/review}}>{{note}}</small></span>{{/cells}}
                 </li>
                 {{/rows}}
             </ul>

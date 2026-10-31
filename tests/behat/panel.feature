@@ -34,7 +34,7 @@ Feature: The panel tells at a glance whether the notices go out, by WhatsApp and
     And I log in as "admin"
     When I visit "/local/oksigeniamarandu/index.php"
     Then I should see "Ready to notify: somebody has to join"
-    And I should see "To start"
+    And I should see "1 notice switched on"
 
   Scenario: A site whose token has expired is told how to fix it
     Given the following config values are set as admin:

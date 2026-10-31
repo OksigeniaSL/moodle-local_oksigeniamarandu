@@ -93,6 +93,12 @@
                 {{#waits.0}}<ul>{{#waits}}<li>{{{icon}}}<b>{{count}}</b><span>{{label}}</span><span>{{when}}</span></li>{{/waits}}</ul>{{/waits.0}}
                 {{#nowait}}<p class="none">{{#str}} panel:waiting:none, local_oksigeniamarandu {{/str}}</p>{{/nowait}}
             </div>
+            {{#last}}
+            <div class="mrd-last">
+                <p class="mrd-label">{{#str}} panel:last, local_oksigeniamarandu {{/str}}</p>
+                <p class="item">{{{icon}}}<span><b>{{name}}</b> · {{when}}, {{#str}} panel:last:by, local_oksigeniamarandu, {{channel}} {{/str}}</span></p>
+            </div>
+            {{/last}}
         </section>
         {{/today}}
 

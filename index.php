@@ -429,6 +429,8 @@ if (!$fresh) {
             'rows' => $rows,
             'waits' => $waits,
             'nowait' => !$waits,
+            'last' => ($last = panel::last()) ? ['icon' => $icon($last->channel), 'name' => $last->name,
+                'when' => panel::when($last->time, $now), 'channel' => $names[$last->channel]] : null,
         ],
         'month' => [
             'name' => $str('panel:month:until', $monthname),

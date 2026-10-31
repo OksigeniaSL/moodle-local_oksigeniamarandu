@@ -151,6 +151,11 @@ class family {
         $adults = [];
         $dropped = 0;
         foreach ($links as $link) {
+            // A chat of Telegram has no number to compare: it joined with a code, or shared its number once. It stays
+            // linked until the adult leaves the records (adult_changed).
+            if (telegram::is_chat($link->phone)) {
+                continue;
+            }
             $adults[$link->phone] = $adults[$link->phone] ?? self::adults($link->phone);
             if (!in_array((int)$link->itemid, $adults[$link->phone], true)) {
                 $DB->delete_records(consent::LINKS, ['id' => $link->id]);
@@ -166,6 +171,12 @@ class family {
      * @param \core\event\base $event adult_removed or adult_updated of local_oksigeniafamily.
      */
     public static function adult_changed(\core\event\base $event): void {
+        global $DB;
+        if ($event instanceof \local_oksigeniafamily\event\adult_removed) {
+            // Gone from the records: no number, whatever its channel, stands for them any more.
+            $DB->delete_records(consent::LINKS, ['component' => self::COMPONENT, 'itemid' => (int)$event->objectid]);
+            return;
+        }
         self::check([(int)$event->objectid]);
     }
 }

@@ -141,7 +141,8 @@ class telegram_menu {
             return $reply + ['text' => self::text('menu:out', $lang)];
         }
         if ($command === 'who') {
-            return $reply + ['text' => self::who($contact, $lang)];
+            $reply['text'] = self::who($contact, $lang);
+            return self::offer($reply, $contact, $lang);
         }
         if ($command === 'mute') {
             $contact->silent = empty($contact->silent) ? 1 : 0;
@@ -161,6 +162,60 @@ class telegram_menu {
             return $reply + ['text' => self::text('menu:language', $lang), 'reply_markup' => ['inline_keyboard' => $buttons]];
         }
         return $reply + ['text' => self::help($lang, $active)];
+    }
+
+    /**
+     * Adds to a reply the button to share one's number, when the site has the family records and the chat stands for
+     * nobody yet: with the number, the chat joins its family, as on WhatsApp when the school already has the number.
+     *
+     * @param array $reply The reply, as a method of the Bot API.
+     * @param \stdClass|null $contact The contact of the chat.
+     * @param string $lang The language.
+     * @return array The reply, with the offer if it makes sense.
+     */
+    public static function offer(array $reply, ?\stdClass $contact, string $lang): array {
+        global $DB;
+        if (
+            !$contact || $contact->status !== 'active' || !family::available()
+                || $DB->record_exists(consent::LINKS, ['contactid' => $contact->id])
+        ) {
+            return $reply;
+        }
+        $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
+        $reply['text'] .= "\n\n" . self::text('share:ask', $lang, $site);
+        $reply['reply_markup'] = ['keyboard' => [[['text' => self::text('share:button', $lang), 'request_contact' => true]]],
+            'resize_keyboard' => true, 'one_time_keyboard' => true];
+        return $reply;
+    }
+
+    /**
+     * A person shared a number with the button: if it is their own and the family records have it, the chat joins the
+     * adults with it. The number is only compared, never kept.
+     *
+     * @param string $address The chat.
+     * @param array $shared The contact Telegram sends.
+     * @param int $fromid Who sent it.
+     * @return array The answer, as a method of the Bot API.
+     */
+    public static function shared(string $address, array $shared, int $fromid): array {
+        global $DB;
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]) ?: null;
+        $lang = self::lang($contact);
+        $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
+        $reply = ['method' => 'sendMessage', 'chat_id' => telegram::chat($address), 'reply_markup' => ['remove_keyboard' => true]];
+        if (!$contact || $contact->status !== 'active') {
+            return $reply + ['text' => self::text('menu:out', $lang)];
+        }
+        // Their own number, not one of their contacts: Telegram says whose it is.
+        if (!$fromid || (int)($shared['user_id'] ?? 0) !== $fromid) {
+            return $reply + ['text' => self::text('share:notyours', $lang, self::text('share:button', $lang))];
+        }
+        $adults = family::adults(preg_replace('/\D/', '', (string)($shared['phone_number'] ?? '')));
+        if (!$adults) {
+            return $reply + ['text' => self::text('share:none', $lang, $site)];
+        }
+        family::link((int)$contact->id, $adults);
+        return $reply + ['text' => self::who($contact, $lang)];
     }
 
     /**

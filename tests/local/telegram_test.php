@@ -434,6 +434,66 @@ final class telegram_test extends \advanced_testcase {
     }
 
     /**
+     * Joining without a code, a chat can share its own number: if the family records have it, the chat joins that
+     * adult; someone else's number does nothing. The link stays at the daily check, and goes when the adult leaves.
+     */
+    public function test_share_number(): void {
+        global $DB;
+        if (!class_exists('\\local_oksigeniafamily\\api')) {
+            $this->markTestSkipped('local_oksigeniafamily is not installed');
+        }
+        $child = $this->getDataGenerator()->create_user(['firstname' => 'Lucas', 'lastname' => 'Ejemplo']);
+        $familyid = \local_oksigeniafamily\api::create_family('csv');
+        $adultid = \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Ana', 'phone' => '+34600111222']);
+        \local_oksigeniafamily\api::add_child($familyid, (int)$child->id);
+
+        $update = function (array $message): array {
+            return ['message' => $message + ['message_id' => 8, 'chat' => ['id' => 570, 'type' => 'private'],
+                'from' => ['id' => 570, 'first_name' => 'Ana']]];
+        };
+        // The offer comes with the reply to «/start» without a code.
+        $answer = telegram::handle($update(['text' => '/start']));
+        $this->assertTrue($answer['reply_markup']['keyboard'][0][0]['request_contact']);
+        $this->assertStringContainsString(
+            get_string('telegram:share:button', 'local_oksigeniamarandu'),
+            $answer['reply_markup']['keyboard'][0][0]['text']
+        );
+
+        // Someone else's number: nothing.
+        $answer = telegram::handle($update(['contact' => ['phone_number' => '34600111222', 'user_id' => 999]]));
+        $this->assertSame(['remove_keyboard' => true], $answer['reply_markup']);
+        $this->assertFalse($DB->record_exists(consent::LINKS, ['component' => 'local_oksigeniafamily']));
+
+        // Their own number, in the records: the chat stands for that adult.
+        $answer = telegram::handle($update(['contact' => ['phone_number' => '+34 600 111 222', 'user_id' => 570]]));
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => 'tg:570']);
+        $this->assertTrue($DB->record_exists(consent::LINKS, ['component' => 'local_oksigeniafamily', 'itemid' => $adultid,
+            'contactid' => $contact->id]));
+        // The answer says whom the notices are about now.
+        $this->assertStringContainsString("\n• ", $answer['text']);
+        $this->assertSame(1, api::notify_child(
+            'local_oksigeniamarandu',
+            'notification',
+            ['Colegio Ejemplo', 'Reunión'],
+            null,
+            (int)$child->id
+        ));
+        // Already linked: no more offers.
+        $this->assertArrayNotHasKey('reply_markup', telegram::handle($update(['text' => '/who'])));
+
+        // The daily check keeps it; the adult leaving the records drops it.
+        $this->assertSame(0, family::check());
+        \local_oksigeniafamily\api::remove_adult($adultid);
+        $this->assertFalse($DB->record_exists(consent::LINKS, ['component' => 'local_oksigeniafamily', 'itemid' => $adultid]));
+
+        // A number that is not in the records.
+        telegram::handle($update(['text' => '/start']));
+        $answer = telegram::handle($update(['contact' => ['phone_number' => '34699999999', 'user_id' => 570]]));
+        $site = format_string(get_site()->fullname, true, ['escape' => false]);
+        $this->assertSame(get_string('telegram:share:none', 'local_oksigeniamarandu', $site), $answer['text']);
+    }
+
+    /**
      * The channels of the site, and how a user is on each, for a screen that lets them choose.
      */
     public function test_channels(): void {

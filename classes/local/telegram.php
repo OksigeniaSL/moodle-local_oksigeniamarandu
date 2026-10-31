@@ -232,11 +232,18 @@ class telegram {
             return null;
         }
         $message = $update['message'] ?? null;
-        if (!is_array($message) || ($message['chat']['type'] ?? '') !== 'private' || !isset($message['text'])) {
+        if (!is_array($message) || ($message['chat']['type'] ?? '') !== 'private') {
             return null;
         }
         $address = self::address((string)$message['chat']['id']);
         $from = $message['from'] ?? [];
+        if (isset($message['contact']) && is_array($message['contact'])) {
+            // The button «Share my number»: to join the family that has it.
+            return telegram_menu::shared($address, $message['contact'], (int)($from['id'] ?? 0));
+        }
+        if (!isset($message['text'])) {
+            return null;
+        }
         $name = trim(($from['first_name'] ?? '') . ' ' . ($from['last_name'] ?? ''));
         $name = $name === '' ? null : $name;
         $detail = 'telegram:' . ($message['message_id'] ?? '');
@@ -268,8 +275,11 @@ class telegram {
      * @return array The answer, as a method of the Bot API.
      */
     private static function reply(string $address, string $reply): array {
-        global $DB;
-        $lang = (string)$DB->get_field(consent::CONTACTS, 'lang', ['phone' => $address]);
-        return ['method' => 'sendMessage', 'chat_id' => self::chat($address), 'text' => send_reply::text($reply, $lang ?: null)];
+        global $DB, $CFG;
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]) ?: null;
+        $lang = $contact && $contact->lang ? $contact->lang : null;
+        $answer = ['method' => 'sendMessage', 'chat_id' => self::chat($address), 'text' => send_reply::text($reply, $lang)];
+        // Joined without a code: if the site has the family records, the number can find the family.
+        return $reply === 'optin' ? telegram_menu::offer($answer, $contact, $lang ?? $CFG->lang) : $answer;
     }
 }

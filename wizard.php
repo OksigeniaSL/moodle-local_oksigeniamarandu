@@ -226,14 +226,19 @@ foreach ($order as $i => $key) {
 
 // The title of the step is the heading of the page, and the progress takes the place of the admin search beside it.
 $PAGE->set_heading(get_string('wizard:' . $step . ':title', $component));
-$PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/wizard_progress', [
+// The progress and, beside it, the way back to the panel, in one row of the header.
+$PAGE->add_header_action(html_writer::div($OUTPUT->render_from_template('local_oksigeniamarandu/wizard_progress', [
     'steps' => $steps,
     'stepinfo' => $step === 'done' ? '' : get_string('wizard:stepof', $component, (object)[
         'num' => $current + 1,
         'total' => count($order),
         'name' => $names[$step],
     ]),
-]));
+])
+    . $OUTPUT->render_from_template(
+        'local_oksigeniamarandu/panel_links',
+        ['links' => \local_oksigeniamarandu\local\panel::links('wizard')]
+    ), 'local-oksigeniamarandu-headrow'));
 
 $context = [
     'formurl' => $baseurl->out(false),

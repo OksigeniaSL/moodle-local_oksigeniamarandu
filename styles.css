@@ -5061,3 +5061,21 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     height: 1.4em;
     margin-top: 0.1em;
 }
+
+/* The wizard and the page of Telegram: their steps and, beside them, the way back to the panel, in one row of the
+   header; on a narrow screen, the way back goes under the steps. */
+.local-oksigeniamarandu-headrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1.25rem;
+}
+
+.local-oksigeniamarandu-headrow > .local-oksigeniamarandu-progress,
+.local-oksigeniamarandu-headrow > .local-oksigeniamarandu-tgsteps {
+    flex: 1 1 20rem;
+}
+
+.local-oksigeniamarandu-headrow > .local-oksigeniamarandu-links {
+    flex: none;
+}

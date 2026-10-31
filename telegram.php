@@ -159,7 +159,15 @@ foreach (['connect', 'join', 'test'] as $i => $step) {
 $PAGE->set_heading(get_string('telegram:title', $component));
 $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
-$PAGE->add_header_action($OUTPUT->render_from_template('local_oksigeniamarandu/telegram_progress', ['steps' => $steps]));
+// The steps and, beside them, the way back to the panel, in one row of the header.
+$PAGE->add_header_action(html_writer::div(
+    $OUTPUT->render_from_template('local_oksigeniamarandu/telegram_progress', ['steps' => $steps])
+    . $OUTPUT->render_from_template(
+        'local_oksigeniamarandu/panel_links',
+        ['links' => \local_oksigeniamarandu\local\panel::links('telegram')]
+    ),
+    'local-oksigeniamarandu-headrow'
+));
 
 $site = format_string(get_site()->fullname, true, ['escape' => false]);
 $hhmm = get_string('strftimetime24', 'langconfig');

@@ -50,6 +50,7 @@ final class telegram_test extends \advanced_testcase {
         set_config('telegrambot', 'marandu_example_bot', 'local_oksigeniamarandu');
         set_config('telegramsecret', 'the-secret', 'local_oksigeniamarandu');
         set_config('enablednotices', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
+        set_config('telegramnotices', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
     }
 
     /**

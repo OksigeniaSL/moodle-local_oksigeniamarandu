@@ -41,6 +41,7 @@ final class panel_test extends \advanced_testcase {
         $this->setTimezone('Europe/Madrid');
         set_config('phonenumberid', '1110000000', 'local_oksigeniamarandu');
         set_config('accesstoken', 'made-up', 'local_oksigeniamarandu');
+        set_config('displayphone', '+34 600 000 000', 'local_oksigeniamarandu');
         set_config('enablednotices', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
         set_config('quietfrom', '20:00', 'local_oksigeniamarandu');
         set_config('quietto', '08:00', 'local_oksigeniamarandu');
@@ -92,10 +93,15 @@ final class panel_test extends \advanced_testcase {
     }
 
     /**
-     * The state: not connected, running (and until when it is quiet), stopped by the account, or at the limit.
+     * The state: no channel yet, running (and until when it is quiet), no notice switched on, stopped by the account, at
+     * the limit, or without a channel any more; and how each channel is.
      */
     public function test_state(): void {
-        $this->assertSame('ok', panel::state(self::WEDNESDAY)->kind);
+        $state = panel::state(self::WEDNESDAY);
+        $this->assertSame(['ok', ['whatsapp' => 'ok'], true], [$state->kind, $state->channels, $state->others]);
+        set_config('enablednotices', '', 'local_oksigeniamarandu');
+        $this->assertSame('choose', panel::state(self::WEDNESDAY)->kind);
+        set_config('enablednotices', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
         $night = self::WEDNESDAY + 10 * HOURSECS;
         $this->assertSame(self::WEDNESDAY + 21 * HOURSECS, panel::state($night)->next);
 
@@ -106,7 +112,8 @@ final class panel_test extends \advanced_testcase {
                 'local_oksigeniamarandu'
             );
             $state = panel::state(self::WEDNESDAY);
-            $this->assertSame(['blocked', $what], [$state->kind, $state->what]);
+            $this->assertSame(['blocked', $what, 'whatsapp', 'stopped'], [$state->kind, $state->what, $state->channel,
+                $state->channels['whatsapp']]);
         }
         unset_config('sendblocked', 'local_oksigeniamarandu');
 
@@ -115,8 +122,35 @@ final class panel_test extends \advanced_testcase {
         $this->row($this->family('34600000001'));
         $this->assertSame('cap', panel::state(self::WEDNESDAY)->kind);
 
+        $this->assertSame('cap', panel::state(self::WEDNESDAY)->channels['whatsapp']);
+
+        // Telegram as well: when WhatsApp is at its limit, Telegram still goes out.
+        set_config('telegramtoken', \core\encryption::encrypt('123456789:' . str_repeat('A', 35)), 'local_oksigeniamarandu');
+        set_config('telegrambot', 'marandu_example_bot', 'local_oksigeniamarandu');
+        $state = panel::state(self::WEDNESDAY);
+        $this->assertSame(['cap', ['whatsapp' => 'cap', 'telegram' => 'ok'], true], [$state->kind, $state->channels,
+            $state->others]);
+        unset_config('telegramtoken', 'local_oksigeniamarandu');
+
+        // There was a channel, and there is none now.
         set_config('accesstoken', '', 'local_oksigeniamarandu');
-        $this->assertSame('notready', panel::state(self::WEDNESDAY)->kind);
+        $this->assertSame('disconnected', panel::state(self::WEDNESDAY)->kind);
+    }
+
+    /**
+     * A brand-new site: no channel yet; the firsts are known when they happen.
+     */
+    public function test_fresh(): void {
+        set_config('accesstoken', '', 'local_oksigeniamarandu');
+        $this->assertSame('connect', panel::state(self::WEDNESDAY)->kind);
+        $firsts = panel::firsts();
+        $this->assertSame([0, 0], [$firsts->join, $firsts->sent]);
+
+        $contact = $this->family('34600000001');
+        $this->row($contact);
+        $firsts = panel::firsts();
+        $this->assertSame([(int)$contact->id, self::WEDNESDAY - MINSECS], [(int)$firsts->joincontact->id, $firsts->sent]);
+        $this->assertSame('+34 6•• •• •• 01', panel::who($contact));
     }
 
     /**
@@ -135,10 +169,18 @@ final class panel_test extends \advanced_testcase {
         $this->row($contact, ['status' => 'failed', 'wamid' => null, 'errorcode' => 100]);
         $this->row($contact, ['timesent' => self::WEDNESDAY - DAYSECS]);
 
-        $this->assertSame(
-            ['sent' => 5, 'delivered' => 3, 'read' => 2, 'failed' => 2, 'telegram' => 0],
-            panel::today(self::WEDNESDAY)
-        );
+        $this->assertSame([
+            'whatsapp' => ['sent' => 5, 'delivered' => 3, 'read' => 2, 'failed' => 2],
+            'telegram' => ['sent' => 0, 'failed' => 0],
+            'sent' => 5,
+            'failed' => 2,
+        ], panel::today(self::WEDNESDAY));
+
+        // Day by day: the 5 of today and the one of yesterday, in their days of the month.
+        $days = panel::days(self::WEDNESDAY);
+        $today = (int)userdate(self::WEDNESDAY, '%d', 'Europe/Madrid');
+        $this->assertSame([$today, 5, 1], [$days['today'], $days['whatsapp'][$today - 1], $days['whatsapp'][$today - 2]]);
+        $this->assertSame(0, array_sum($days['telegram']));
 
         $month = panel::month(self::WEDNESDAY);
         $this->assertSame([4, 1], [$month->templates, $month->free]);
@@ -224,16 +266,41 @@ final class panel_test extends \advanced_testcase {
      */
     public function test_bynotice(): void {
         $notice = notices::get('local_oksigeniamarandu', 'notification');
-        $this->assertSame([[notices::text($notice), 0]], array_map(function ($item) {
-            return [$item->name, $item->count];
-        }, panel::bynotice(self::WEDNESDAY)));
+        $this->assertSame([[notices::text($notice), 0, 'general']], array_map(function ($item) {
+            return [$item->name, $item->count, $item->icon];
+        }, panel::bynotice(self::WEDNESDAY)->on));
+        $this->assertSame([], panel::bynotice(self::WEDNESDAY)->off);
         $this->assertSame(get_string('marandu:notification_label', 'local_oksigeniamarandu'), notices::label($notice));
 
         $contact = $this->family('34600000001');
         $this->row($contact);
         $this->row($contact, ['status' => 'read']);
         $this->row($contact, ['status' => 'failed']);
-        $this->assertSame(2, panel::bynotice(self::WEDNESDAY)[0]->count);
+        $item = panel::bynotice(self::WEDNESDAY)->on[0];
+        $this->assertSame([2, 2, 0], [$item->count, $item->whatsapp, $item->telegram]);
+
+        // Switched off for every channel and not sent this month: apart.
+        set_config('enablednotices', '', 'local_oksigeniamarandu');
+        $this->assertSame(1, count(panel::bynotice(self::WEDNESDAY + 40 * DAYSECS)->off));
+    }
+
+    /**
+     * Each channel has its own notices switched on: a notice off for a channel does not go out by it.
+     */
+    public function test_notices_by_channel(): void {
+        $key = 'local_oksigeniamarandu/notification';
+        notices::set($key, 'telegram', true);
+        $this->assertSame([$key], notices::enabled('telegram'));
+        notices::set($key, 'whatsapp', false);
+        $this->assertSame([], notices::enabled('whatsapp'));
+        $this->assertTrue(notices::chosen('whatsapp'));
+        notices::set('local_oksigeniamarandu/nonexistent', 'telegram', true);
+        $this->assertSame([$key], notices::enabled('telegram'));
+        // Only Telegram has it, and only WhatsApp is ready: nothing goes out.
+        $this->assertFalse(notices::any_on());
+        $this->assertSame('choose', panel::state(self::WEDNESDAY)->kind);
+        $group = notices::group('local_oksigeniamarandu');
+        $this->assertSame(['Marandu', get_string('pluginname', 'local_oksigeniamarandu')], [$group->title, $group->name]);
     }
 
     /**

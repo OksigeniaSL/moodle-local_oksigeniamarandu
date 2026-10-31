@@ -188,13 +188,91 @@ class notices {
         return 'mrd_' . $notice->component . '_' . $notice->notice;
     }
 
+    /** The setting with the notices switched on, by channel. */
+    public const SETTING = ['whatsapp' => 'enablednotices', 'telegram' => 'telegramnotices'];
+
+    /** The drawing of the plugins of the house; any other plugin gets the bell. */
+    private const ICONS = [
+        'local_oksigeniameals' => 'comedor',
+        'local_oksigeniaayvurenda' => 'biblioteca',
+        'local_oksigeniamarandu' => 'general',
+    ];
+
     /**
-     * The notices the site has switched on, as "component/notice" keys.
+     * The notices the site has switched on for a channel, as "component/notice" keys.
      *
+     * @param string $channel whatsapp or telegram.
      * @return string[]
      */
-    public static function enabled(): array {
-        return self::keys('enablednotices');
+    public static function enabled(string $channel = 'whatsapp'): array {
+        return self::keys(self::SETTING[$channel] ?? 'enablednotices');
+    }
+
+    /**
+     * Whether a channel has ever been given its notices (an empty choice is a choice).
+     *
+     * @param string $channel whatsapp or telegram.
+     * @return bool
+     */
+    public static function chosen(string $channel): bool {
+        return get_config('local_oksigeniamarandu', self::SETTING[$channel]) !== false;
+    }
+
+    /**
+     * Switches a notice on or off for a channel.
+     *
+     * @param string $key "component/notice".
+     * @param string $channel whatsapp or telegram.
+     * @param bool $on On or off.
+     */
+    public static function set(string $key, string $channel, bool $on): void {
+        if (!isset(self::SETTING[$channel]) || !isset(self::all()[$key])) {
+            return;
+        }
+        $keys = array_diff(self::enabled($channel), [$key]);
+        if ($on) {
+            $keys[] = $key;
+        }
+        $keys = array_values(array_intersect(array_keys(self::all()), $keys));
+        set_config(self::SETTING[$channel], implode(',', $keys), 'local_oksigeniamarandu');
+    }
+
+    /**
+     * Whether any notice is on for a channel that is ready: if none, nothing goes out.
+     *
+     * @return bool
+     */
+    public static function any_on(): bool {
+        foreach (\local_oksigeniamarandu\api::channels() as $channel => $info) {
+            if ($info['ready'] && array_intersect(self::enabled($channel), array_keys(self::all()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The drawing of a plugin, for its notices.
+     *
+     * @param string $component The plugin.
+     * @return string The name of a drawing of {@see drawings}.
+     */
+    public static function icon(string $component): string {
+        return self::ICONS[$component] ?? 'campana';
+    }
+
+    /**
+     * The heading of the notices of a plugin: what it is, in capitals, and its name.
+     *
+     * @param string $component The plugin.
+     * @return \stdClass With title and name.
+     */
+    public static function group(string $component): \stdClass {
+        $strings = get_string_manager();
+        $name = self::pluginname($component);
+        $title = $strings->string_exists('marandu:label', $component) ? get_string('marandu:label', $component) : $name;
+        $title = \core_text::strtoupper(\core_text::substr($title, 0, 1)) . \core_text::substr($title, 1);
+        return (object)['title' => $title, 'name' => $title === $name ? '' : $name];
     }
 
     /**

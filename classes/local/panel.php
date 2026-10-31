@@ -44,34 +44,57 @@ class panel {
     ];
 
     /**
-     * Whether the notices go out and, if not, why and what to do.
+     * Whether the notices go out and, if not, why and what to do; and how each channel is.
      *
      * @param int $now The time.
-     * @return \stdClass With kind (notready, blocked, cap or ok), what (for blocked: token, restricted, payment or
-     *     account), since, message, waiting (how many) and next (the end of the quiet hours, if now is quiet).
+     * @return \stdClass With kind (connect: no channel yet; disconnected: no channel, but there was one; choose: no notice
+     *     switched on; blocked; cap; ok), what (for blocked: token, restricted, payment, account or telegram), channel (the
+     *     one stopped or capped), since, message, waiting (how many), next (the end of the quiet hours, if now is quiet),
+     *     channels (each ready one with ok, stopped or cap) and others (whether another channel still goes out).
      */
     public static function state(int $now): \stdClass {
         global $DB;
         $waiting = $DB->count_records(queue::TABLE, ['status' => 'queued']);
-        $state = (object)['kind' => 'ok', 'what' => '', 'since' => 0, 'message' => '', 'waiting' => $waiting, 'next' => 0];
-        if (!cloud_api::is_configured() && !telegram_api::is_configured()) {
-            $state->kind = 'notready';
+        $state = (object)['kind' => 'ok', 'what' => '', 'channel' => '', 'since' => 0, 'message' => '', 'waiting' => $waiting,
+            'next' => 0, 'channels' => [], 'others' => false];
+        foreach (\local_oksigeniamarandu\api::channels() as $channel => $info) {
+            if ($info['ready']) {
+                $state->channels[$channel] = 'ok';
+            }
+        }
+        if (!$state->channels) {
+            $before = $DB->record_exists(consent::CONTACTS, []) || $DB->record_exists(queue::TABLE, []);
+            $state->kind = $before ? 'disconnected' : 'connect';
             return $state;
         }
-        $blocked = queue::blocked('whatsapp');
-        $what = $blocked ? self::BLOCKED[(int)$blocked->code] ?? 'account' : '';
-        if (!$blocked && ($blocked = queue::blocked('telegram'))) {
-            $what = 'telegram';
+        $blocked = null;
+        foreach (array_keys($state->channels) as $channel) {
+            $stop = queue::blocked($channel);
+            if ($stop) {
+                $state->channels[$channel] = 'stopped';
+                $blocked = $blocked ?? [$channel, $stop];
+            }
+        }
+        if (isset($state->channels['whatsapp']) && $state->channels['whatsapp'] === 'ok' && self::capreached($now)) {
+            $state->channels['whatsapp'] = 'cap';
+        }
+        $state->others = in_array('ok', $state->channels, true);
+        if (!notices::any_on()) {
+            $state->kind = 'choose';
+            return $state;
         }
         if ($blocked) {
+            [$channel, $stop] = $blocked;
             $state->kind = 'blocked';
-            $state->what = $what;
-            $state->since = (int)$blocked->time;
-            $state->message = (string)$blocked->message;
+            $state->channel = $channel;
+            $state->what = $channel === 'telegram' ? 'telegram' : (self::BLOCKED[(int)$stop->code] ?? 'account');
+            $state->since = (int)$stop->time;
+            $state->message = (string)$stop->message;
             return $state;
         }
-        if (self::capreached($now)) {
+        if (($state->channels['whatsapp'] ?? '') === 'cap') {
             $state->kind = 'cap';
+            $state->channel = 'whatsapp';
             return $state;
         }
         if (queue::is_quiet($now)) {
@@ -81,26 +104,159 @@ class panel {
     }
 
     /**
-     * What went out today, since midnight in the time zone of the site.
+     * The links in the header of the panel and of the page of the notices, as pills with their drawing.
+     *
+     * @param string $current panel or notices.
+     * @return array For local_oksigeniamarandu/panel_links.
+     */
+    public static function links(string $current): array {
+        global $DB;
+        $component = 'local_oksigeniamarandu';
+        $link = function (string $path, string $label, string $drawing, string $class = '', array $more = []): array {
+            return ['url' => (new \moodle_url('/local/oksigeniamarandu/' . $path))->out(false), 'label' => $label,
+                'icon' => drawings::svg($drawing, 22, $class)] + $more;
+        };
+        if ($current !== 'panel') {
+            return [$link('index.php', get_string('list:panel', $component), 'en-marcha')];
+        }
+        $channels = \local_oksigeniamarandu\api::channels();
+        $links = [
+            $link(
+                'contacts.php',
+                get_string('panel:numbers', $component),
+                'numeros',
+                '',
+                ['count' => $DB->count_records(consent::CONTACTS)]
+            ),
+            $link('notices.php', get_string('panel:notices', $component), 'elige'),
+            $link('wizard.php', 'WhatsApp', 'whatsapp', 'wa'),
+            $link('telegram.php', 'Telegram', 'telegram', 'tg'),
+        ];
+        if ($channels['whatsapp']['ready']) {
+            $links[] = $link('wizard.php?step=texts', get_string('panel:texts', $component), 'textos');
+        }
+        return $links;
+    }
+
+    /**
+     * The firsts of the site: when the first number joined and when the first notice went out, to celebrate them.
+     *
+     * @return \stdClass With join and sent (times, or 0), joincontact and sentrow (the records, or null).
+     */
+    public static function firsts(): \stdClass {
+        global $DB;
+        $join = $DB->get_records(consent::LOG, ['action' => 'optin'], 'timecreated ASC, id ASC', '*', 0, 1);
+        $join = $join ? reset($join) : null;
+        $sent = $DB->get_records_select(
+            queue::TABLE,
+            "status IN ('sent', 'delivered', 'read')",
+            [],
+            'timesent ASC, id ASC',
+            '*',
+            0,
+            1
+        );
+        $sent = $sent ? reset($sent) : null;
+        return (object)[
+            'join' => $join ? (int)$join->timecreated : 0,
+            'joincontact' => $join ? $DB->get_record(consent::CONTACTS, ['id' => $join->contactid]) : null,
+            'sent' => $sent ? (int)$sent->timesent : 0,
+            'sentrow' => $sent,
+        ];
+    }
+
+    /**
+     * Whom a contact stands for, in a few words: the first one it stands for, or its masked number.
+     *
+     * @param \stdClass $contact The contact.
+     * @return string
+     */
+    public static function who(\stdClass $contact): string {
+        $whom = self::standsfor([(int)$contact->id])[$contact->id] ?? [];
+        $name = $whom ? $whom[0]->name : '';
+        return $name !== '' ? $name : self::mask($contact->phone);
+    }
+
+    /**
+     * The channel of a contact.
+     *
+     * @param string $phone Its address.
+     * @return string whatsapp or telegram.
+     */
+    public static function channel(string $phone): string {
+        return telegram::is_chat($phone) ? 'telegram' : 'whatsapp';
+    }
+
+    /**
+     * What went out today, since midnight in the time zone of the site, by channel: WhatsApp with what got delivered and
+     * read; Telegram, which does not tell a bot, only with what it sent.
      *
      * @param int $now The time.
-     * @return array sent, delivered, read and failed.
+     * @return array whatsapp (sent, delivered, read, failed), telegram (sent, failed), and sent and failed in all.
      */
     public static function today(int $now): array {
         global $DB;
-        $params = ['start' => self::midnight($now)];
-        $count = function (string $where) use ($DB, $params): int {
-            return $DB->count_records_select(queue::TABLE, "timesent >= :start AND $where", $params);
+        $start = self::midnight($now);
+        $count = function (string $channel, string $where) use ($DB, $start): int {
+            return $DB->count_records_sql(
+                "SELECT COUNT(1)
+                                             FROM {" . queue::TABLE . "} q
+                                             JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid
+                                            WHERE q.timesent >= :start AND c.channel = :channel AND $where",
+                ['start' => $start, 'channel' => $channel]
+            );
         };
-        return [
-            // A notice that Meta could not deliver after taking it was sent all the same.
-            'sent' => $count("(status IN ('sent', 'delivered', 'read') OR (status = 'failed' AND wamid IS NOT NULL))"),
-            'delivered' => $count("status IN ('delivered', 'read')"),
-            'read' => $count("status = 'read'"),
-            'failed' => $count("status = 'failed'"),
-            // Telegram does not tell a bot whether a message was delivered or read: those stay as sent.
-            'telegram' => $count("kind = 'telegram' AND status = 'sent'"),
+        // A notice that the channel could not deliver after taking it was sent all the same.
+        $sent = "(q.status IN ('sent', 'delivered', 'read') OR (q.status = 'failed' AND q.wamid IS NOT NULL))";
+        $today = [
+            'whatsapp' => [
+                'sent' => $count('whatsapp', $sent),
+                'delivered' => $count('whatsapp', "q.status IN ('delivered', 'read')"),
+                'read' => $count('whatsapp', "q.status = 'read'"),
+                'failed' => $count('whatsapp', "q.status = 'failed'"),
+            ],
+            'telegram' => [
+                'sent' => $count('telegram', $sent),
+                'failed' => $count('telegram', "q.status = 'failed'"),
+            ],
         ];
+        $today['sent'] = $today['whatsapp']['sent'] + $today['telegram']['sent'];
+        $today['failed'] = $today['whatsapp']['failed'] + $today['telegram']['failed'];
+        return $today;
+    }
+
+    /**
+     * The notices that went out each day of this month until today, by channel.
+     *
+     * @param int $now The time.
+     * @return array whatsapp and telegram, each a list by day (the first is the 1st), and today (its number) and length
+     *     (the days of the month).
+     */
+    public static function days(int $now): array {
+        global $DB;
+        $zone = \core_date::get_server_timezone();
+        $today = (int)userdate($now, '%d', $zone);
+        $length = (int)userdate(self::nextmonth($now) - DAYSECS, '%d', $zone);
+        $days = ['whatsapp' => array_fill(0, $today, 0), 'telegram' => array_fill(0, $today, 0), 'today' => $today,
+            'length' => $length];
+        $rows = $DB->get_recordset_sql(
+            "SELECT q.id, q.timesent, c.channel
+                                          FROM {" . queue::TABLE . "} q
+                                          JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid
+                                         WHERE q.timesent >= :start AND q.timesent <= :now
+                                           AND (q.status IN ('sent', 'delivered', 'read')
+                                                OR (q.status = 'failed' AND q.wamid IS NOT NULL))",
+            ['start' => self::monthstart($now), 'now' => $now]
+        );
+        foreach ($rows as $row) {
+            $day = (int)userdate((int)$row->timesent, '%d', $zone) - 1;
+            $channel = $row->channel === 'telegram' ? 'telegram' : 'whatsapp';
+            if (isset($days[$channel][$day])) {
+                $days[$channel][$day]++;
+            }
+        }
+        $rows->close();
+        return $days;
     }
 
     /**
@@ -214,7 +370,7 @@ class panel {
      * The last notices that failed or expired, newest first.
      *
      * @param int $limit How many.
-     * @return \stdClass[] Each with time, name (of the notice), phone (masked) and why (a reason in plain words).
+     * @return \stdClass[] Each with time, name (of the notice), phone (masked), channel and why (a reason in plain words).
      */
     public static function failed(int $limit = self::LAST): array {
         global $DB;
@@ -237,6 +393,7 @@ class panel {
                 'time' => (int)($row->status === 'expired' ? $row->timeexpires : $row->timesent),
                 'name' => $notice ? notices::text($notice) : $row->component . '/' . $row->notice,
                 'phone' => self::mask($row->phone),
+                'channel' => self::channel($row->phone),
                 'why' => self::why($row),
             ];
         }
@@ -250,7 +407,8 @@ class panel {
      * Who receives the notices, who wrote without joining, who left, and the last moves.
      *
      * @param int $limit How many moves.
-     * @return \stdClass With active, pending, optedout and moves (each with time, action, who and how).
+     * @return \stdClass With active, pending, optedout, bychannel (active ones by channel) and moves (each with time,
+     *     action, who, how and channel).
      */
     public static function people(int $limit = self::LAST): \stdClass {
         global $DB;
@@ -267,43 +425,69 @@ class panel {
                 'action' => $entry->action,
                 'who' => $who !== '' ? $who : ($contact ? self::mask($contact->phone) : ''),
                 'how' => self::how($entry),
+                'channel' => $contact ? self::channel($contact->phone) : 'whatsapp',
             ];
         }
         return (object)[
             'active' => (int)($counts['active'] ?? 0),
             'pending' => (int)($counts['pending'] ?? 0),
             'optedout' => (int)($counts['optedout'] ?? 0),
+            'bychannel' => $DB->get_records_sql_menu('SELECT channel, COUNT(1) FROM {' . consent::CONTACTS . "}
+                                                        WHERE status = 'active' GROUP BY channel"),
             'moves' => $moves,
         ];
     }
 
     /**
-     * How many notices of each kind went out this month, the switched-on ones too when none did.
+     * How many notices of each kind went out this month, by channel: those switched on (even if none went out) and
+     * those that went out, and apart the ones switched off.
      *
      * @param int $now The time.
-     * @return \stdClass[] Each with name, label and count; the most first.
+     * @return \stdClass With on (each with key, component, name, label, icon, whatsapp, telegram and count; the most first)
+     *     and off (each with key, name and icon).
      */
-    public static function bynotice(int $now): array {
+    public static function bynotice(int $now): \stdClass {
         global $DB;
-        $counts = $DB->get_records_sql("SELECT " . $DB->sql_concat('component', "'/'", 'notice') . " AS notice, COUNT(1) AS total
-                                          FROM {" . queue::TABLE . "}
-                                         WHERE timesent >= :start AND status IN ('sent', 'delivered', 'read')
-                                      GROUP BY component, notice", ['start' => self::monthstart($now)]);
-        $keys = array_unique(array_merge(notices::enabled(), array_keys($counts)));
-        $list = [];
-        foreach ($keys as $key) {
-            [$component, $name] = array_pad(explode('/', $key, 2), 2, '');
-            $notice = notices::get($component, $name);
-            if (!$notice) {
-                continue;
-            }
-            $list[] = (object)[
+        $rows = $DB->get_recordset_sql(
+            "SELECT q.id, q.component, q.notice, c.channel
+                                          FROM {" . queue::TABLE . "} q
+                                          JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid
+                                         WHERE q.timesent >= :start AND q.status IN ('sent', 'delivered', 'read')",
+            ['start' => self::monthstart($now)]
+        );
+        $counts = [];
+        foreach ($rows as $row) {
+            $channel = $row->channel === 'telegram' ? 'telegram' : 'whatsapp';
+            $key = $row->component . '/' . $row->notice;
+            $counts[$key][$channel] = ($counts[$key][$channel] ?? 0) + 1;
+        }
+        $rows->close();
+        $ready = array_keys(array_filter(\local_oksigeniamarandu\api::channels(), function ($info) {
+            return $info['ready'];
+        })) ?: ['whatsapp', 'telegram'];
+        $on = [];
+        foreach ($ready as $channel) {
+            $on = array_merge($on, notices::enabled($channel));
+        }
+        $list = (object)['on' => [], 'off' => []];
+        foreach (notices::all() as $key => $notice) {
+            $item = (object)[
+                'key' => $key,
+                'component' => $notice->component,
                 'name' => notices::text($notice),
                 'label' => notices::label($notice),
-                'count' => (int)($counts[$key]->total ?? 0),
+                'icon' => notices::icon($notice->component),
+                'whatsapp' => (int)($counts[$key]['whatsapp'] ?? 0),
+                'telegram' => (int)($counts[$key]['telegram'] ?? 0),
             ];
+            $item->count = $item->whatsapp + $item->telegram;
+            if (in_array($key, $on, true) || $item->count) {
+                $list->on[] = $item;
+            } else {
+                $list->off[] = $item;
+            }
         }
-        usort($list, function ($a, $b) {
+        usort($list->on, function ($a, $b) {
             return [$b->count, $a->name] <=> [$a->count, $b->name];
         });
         return $list;

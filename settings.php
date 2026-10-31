@@ -135,6 +135,12 @@ if ($hassiteconfig) {
     ));
 
     $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
+        'local_oksigeniamarandu_notices',
+        new lang_string('notices:title', 'local_oksigeniamarandu'),
+        new moodle_url('/local/oksigeniamarandu/notices.php')
+    ));
+
+    $ADMIN->add('local_oksigeniamarandu', new admin_externalpage(
         'local_oksigeniamarandu_contacts',
         new lang_string('contacts', 'local_oksigeniamarandu'),
         new moodle_url('/local/oksigeniamarandu/contacts.php')

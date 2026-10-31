@@ -114,7 +114,7 @@ class queue {
         $cap = (float)($config->capmonth ?? 0);
         $perday = (int)($config->capfamily ?? 0);
         $quiet = self::is_quiet($now);
-        $enabled = notices::enabled();
+        $enabled = ['whatsapp' => notices::enabled('whatsapp'), 'telegram' => notices::enabled('telegram')];
         $urgent = notices::urgent();
         $spent = self::spent($now);
         $clients = ['whatsapp' => $api, 'telegram' => $telegram];
@@ -138,13 +138,14 @@ class queue {
             $notice = notices::get($row->component, $row->notice);
             $contact = $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]);
             $active = $contact && $contact->status === 'active';
-            if (!$notice || !$active || !in_array($key, $enabled, true)) {
+            // Each channel has its own notices switched on.
+            $channel = $contact && telegram::is_chat($contact->phone) ? 'telegram' : 'whatsapp';
+            if (!$notice || !$active || !in_array($key, $enabled[$channel], true)) {
                 $why = !$notice ? 'undeclared' : (!$active ? 'notactive' : 'disabled');
                 self::finish($row, $now, 'skipped', null, null, $why);
                 $counts['skipped']++;
                 continue;
             }
-            $channel = telegram::is_chat($contact->phone) ? 'telegram' : 'whatsapp';
             if ($paused[$channel] || !$clients[$channel]) {
                 $counts['waiting']++;
                 continue;

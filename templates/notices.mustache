@@ -1,0 +1,66 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/notices
+
+    Which notices go out: the notices of each plugin, a switch per channel that saves as it is pressed, what each one
+    costs a month by WhatsApp, and the total. From the mock-up of the house.
+
+    Context variables required for this template:
+    * action, sesskey - The form.
+    * lead, saved, chs, heads, groups, none, total, alltg - The page.
+    * next - What comes next on a brand-new site, or null.
+
+    Example context (json):
+    {
+        "action": "#", "sesskey": "abc", "lead": "Switch on the notices.", "saved": "", "chs": 1,
+        "heads": [{"icon": "", "name": "Telegram", "note": "free"}],
+        "groups": [{"title": "Marandu", "name": "Oksigenia Marandu", "icon": "", "rows": [{"name": "General notice",
+            "desc": "Of what has no notice of its own", "cells": [{"key": "a/b", "channel": "telegram", "value": "a/b|telegram",
+            "on": "true", "label": "General notice, by Telegram", "icon": "", "name": "Telegram", "note": "free", "review": false}]}]}],
+        "none": false, "total": "1 notice.", "alltg": true, "next": null
+    }
+}}
+<div class="local-oksigeniamarandu-dash local-oksigeniamarandu-notices">
+    <form method="post" action="{{action}}" data-notices>
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <p class="mrd-lead">{{lead}}</p>
+        {{#next}}
+        <div class="mrd-next">{{{icon}}}<div><h2>{{#str}} notices:next, local_oksigeniamarandu {{/str}}</h2><p>{{#str}} notices:next_desc, local_oksigeniamarandu {{/str}}</p></div>
+            <a class="btn mrd-btn primary" href="{{url}}">{{#str}} notices:back, local_oksigeniamarandu {{/str}}</a></div>
+        {{/next}}
+        <p class="mrd-saved" role="status" data-saved{{^saved}} hidden{{/saved}}>{{saved}}</p>
+        {{#none}}<p>{{#str}} wizard:notices:none, local_oksigeniamarandu {{/str}}</p>{{/none}}
+        {{^none}}
+        <div class="mrd-cols-head" style="--chs:{{chs}}" aria-hidden="true"><span></span>{{#heads}}<span>{{{icon}}}{{name}}<small>· {{note}}</small></span>{{/heads}}</div>
+        {{#groups}}
+        <section class="mrd-group">
+            <h2><span class="mrd-nicon">{{{icon}}}</span>{{title}}{{#name}} <small>· {{name}}</small>{{/name}}</h2>
+            <ul>
+                {{#rows}}
+                <li class="mrd-nrow" style="--chs:{{chs}}"><span class="t"><b>{{name}}</b><span>{{desc}}</span></span>
+                    {{#cells}}<span class="mrd-swcell"><button type="submit" class="mrd-switch" role="switch" name="toggle" value="{{value}}" aria-checked="{{on}}" data-key="{{key}}" data-channel="{{channel}}" aria-label="{{label}}"></button><span class="lab">{{{icon}}}{{name}}</span><small{{#review}} class="review"{{/review}}>{{note}}</small></span>{{/cells}}
+                </li>
+                {{/rows}}
+            </ul>
+        </section>
+        {{/groups}}
+        <div class="mrd-total"><span aria-live="polite" data-total>{{total}}</span>
+            {{#alltg}}<button type="submit" class="btn mrd-btn second small" name="allon" value="telegram" data-all>{{#str}} notices:alltg, local_oksigeniamarandu {{/str}}</button>{{/alltg}}</div>
+        {{/none}}
+    </form>
+</div>

@@ -1170,58 +1170,7 @@
     color: var(--mrd-accent-ink);
 }
 
-/* 1. The state, first and alone: what is happening and, if something is wrong, the one thing to do. */
-.local-oksigeniamarandu-panel .mrd-state {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 4px 18px;
-    align-items: center;
-    margin: 0 0 16px;
-    padding: 14px 18px;
-    border: 1px solid var(--mrd-line);
-    border-radius: 16px;
-}
-
-.local-oksigeniamarandu-panel .mrd-state .mrd-art {
-    color: var(--mrd-ok-ink);
-}
-
-.local-oksigeniamarandu-panel .mrd-state h2 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.25;
-}
-
-.local-oksigeniamarandu-panel .mrd-state p {
-    margin: 2px 0 0;
-}
-
-.local-oksigeniamarandu-panel .mrd-state.bad {
-    background: var(--mrd-bad-soft);
-    border-color: var(--mrd-bad-line);
-}
-
-.local-oksigeniamarandu-panel .mrd-state.bad .mrd-art {
-    color: var(--mrd-bad-ink);
-}
-
-.local-oksigeniamarandu-panel .mrd-state.cap {
-    background: var(--mrd-warn-soft);
-    border-color: var(--mrd-warn-line);
-}
-
-.local-oksigeniamarandu-panel .mrd-state.cap .mrd-art {
-    color: var(--mrd-warn-ink);
-}
-
-.local-oksigeniamarandu-panel .mrd-act {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-}
-
+/* The buttons of the list of numbers. */
 .local-oksigeniamarandu-panel .mrd-btn {
     display: inline-block;
     padding: 9px 16px;
@@ -1267,378 +1216,6 @@
     color: var(--mrd-accent-ink);
     font-weight: 600;
     text-decoration: underline;
-}
-
-/* The boxes of the panel. */
-.local-oksigeniamarandu-panel .mrd-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    gap: 16px;
-}
-
-.local-oksigeniamarandu-panel .mrd-box {
-    min-width: 0;
-    padding: 12px 16px 14px;
-    border: 1px solid var(--mrd-line);
-    border-radius: 14px;
-}
-
-.local-oksigeniamarandu-panel .mrd-box h3 {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    margin: 0 0 10px;
-    font-size: 16px;
-}
-
-.local-oksigeniamarandu-panel .mrd-box h3 span {
-    color: var(--mrd-muted);
-    font-size: 13.5px;
-    font-weight: 500;
-}
-
-.local-oksigeniamarandu-panel .mrd-wide {
-    grid-column: 1 / -1;
-}
-
-.local-oksigeniamarandu-panel .mrd-none {
-    margin: 0;
-    color: var(--mrd-muted);
-}
-
-/* 2. Today: a flow left to right, each figure with its word; what failed apart, without an arrow. */
-.local-oksigeniamarandu-panel .mrd-flow {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.9fr);
-    gap: 10px;
-    margin: 0 0 12px;
-    padding: 0;
-    list-style: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-flow li {
-    position: relative;
-    padding: 8px 12px;
-    border: 1px solid var(--mrd-line);
-    border-radius: 12px;
-    background: var(--mrd-raise);
-}
-
-.local-oksigeniamarandu-panel .mrd-flow li + li::before {
-    content: "→";
-    position: absolute;
-    left: -11px;
-    top: 36%;
-    color: var(--mrd-muted);
-    font-weight: 700;
-}
-
-.local-oksigeniamarandu-panel .mrd-flow li.off {
-    margin-left: 8px;
-    border-style: dashed;
-    background: var(--mrd-card);
-}
-
-.local-oksigeniamarandu-panel .mrd-flow li.off::before {
-    display: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-flow b {
-    display: block;
-    font-size: 26px;
-    line-height: 1.15;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-flow span {
-    font-size: 13px;
-}
-
-.local-oksigeniamarandu-panel .mrd-flow li.off b {
-    color: var(--mrd-bad-ink);
-}
-
-/* Telegram does not say whether a message was delivered or read: a line under the flow says so. */
-.local-oksigeniamarandu-panel .mrd-flownote {
-    margin: -4px 0 12px;
-    color: var(--mrd-muted);
-    font-size: 13.5px;
-}
-
-.local-oksigeniamarandu-panel .mrd-wait {
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--mrd-line);
-    list-style: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-wait li {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) auto;
-    gap: 2px 10px;
-    align-items: baseline;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--mrd-sub);
-}
-
-.local-oksigeniamarandu-panel .mrd-wait li > b {
-    font-size: 17px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-wait li > span:last-child {
-    color: var(--mrd-muted);
-    font-size: 14px;
-    text-align: right;
-}
-
-.local-oksigeniamarandu-panel .mrd-wait li.lead,
-.local-oksigeniamarandu-panel .mrd-wait li.none {
-    display: block;
-    padding: 6px 0 0;
-    border: 0;
-    color: var(--mrd-muted);
-    font-size: 13.5px;
-}
-
-/* 3. The month: the money against the limit, as one bar; the likely end of the month, hatched. */
-.local-oksigeniamarandu-panel .mrd-money {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px;
-}
-
-.local-oksigeniamarandu-panel .mrd-money b {
-    font-size: 34px;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-money span,
-.local-oksigeniamarandu-panel .mrd-scale,
-.local-oksigeniamarandu-panel .mrd-fine,
-.local-oksigeniamarandu-panel .mrd-split small {
-    color: var(--mrd-muted);
-}
-
-.local-oksigeniamarandu-panel .mrd-gauge {
-    position: relative;
-    height: 16px;
-    margin: 8px 0 4px;
-    overflow: hidden;
-    border-radius: 8px;
-    background: var(--mrd-sub);
-}
-
-.local-oksigeniamarandu-panel .mrd-gauge i {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    border-radius: 8px;
-    background: var(--mrd-accent);
-}
-
-.local-oksigeniamarandu-panel .mrd-gauge i.likely {
-    background: repeating-linear-gradient(135deg, var(--mrd-accent) 0 3px, transparent 3px 7px);
-    opacity: 0.55;
-}
-
-.local-oksigeniamarandu-panel .mrd-gauge.full i {
-    background: var(--mrd-bad);
-}
-
-.local-oksigeniamarandu-panel .mrd-scale {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12.5px;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-split {
-    display: grid;
-    gap: 4px;
-    margin: 10px 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-split li {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 10px;
-    align-items: baseline;
-}
-
-.local-oksigeniamarandu-panel .mrd-split b {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-fine {
-    margin: 8px 0 0;
-    font-size: 13px;
-}
-
-/* 4. What failed: one line each, the reason in plain words. */
-.local-oksigeniamarandu-panel .mrd-failed {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-failed li {
-    display: grid;
-    grid-template-columns: 82px minmax(0, 1fr);
-    gap: 0 12px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--mrd-sub);
-}
-
-.local-oksigeniamarandu-panel .mrd-failed li:last-child {
-    border: 0;
-}
-
-.local-oksigeniamarandu-panel .mrd-failed .mrd-when,
-.local-oksigeniamarandu-panel .mrd-moves .mrd-when {
-    color: var(--mrd-muted);
-    font-size: 13.5px;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-failed b {
-    font-weight: 600;
-}
-
-.local-oksigeniamarandu-panel .mrd-failed .num {
-    color: var(--mrd-muted);
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-failed .why {
-    display: block;
-}
-
-.local-oksigeniamarandu-panel .mrd-failed .why::before {
-    content: "✕ ";
-    color: var(--mrd-bad-ink);
-    font-weight: 700;
-}
-
-/* 5. People: three figures, the last moves, the way to the list. */
-.local-oksigeniamarandu-panel .mrd-people {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin: 0 0 10px;
-}
-
-.local-oksigeniamarandu-panel .mrd-people div {
-    padding: 6px 10px;
-    border-radius: 10px;
-    background: var(--mrd-raise);
-}
-
-.local-oksigeniamarandu-panel .mrd-people b {
-    display: block;
-    font-size: 24px;
-    line-height: 1.15;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-people span {
-    font-size: 13px;
-}
-
-.local-oksigeniamarandu-panel .mrd-moves {
-    margin: 0 0 10px;
-    padding: 0;
-    list-style: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-moves li {
-    display: grid;
-    grid-template-columns: 96px 46px minmax(0, 1fr);
-    gap: 0 10px;
-    padding: 4px 0;
-    border-bottom: 1px solid var(--mrd-sub);
-    font-size: 14px;
-}
-
-.local-oksigeniamarandu-panel .mrd-moves small {
-    color: var(--mrd-muted);
-}
-
-.local-oksigeniamarandu-panel .mrd-tag {
-    justify-self: start;
-    align-self: start;
-    padding: 1px 6px;
-    border-radius: 6px;
-    font-size: 12.5px;
-    font-weight: 700;
-}
-
-.local-oksigeniamarandu-panel .mrd-tag.in {
-    background: var(--mrd-ok-soft);
-    color: var(--mrd-ok-ink);
-}
-
-.local-oksigeniamarandu-panel .mrd-tag.out {
-    background: var(--mrd-sub);
-    color: var(--mrd-ink);
-}
-
-/* 6. By notice: bars of one colour, the number on the right, what it is about beside its name. */
-.local-oksigeniamarandu-panel .mrd-bars {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 28px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.local-oksigeniamarandu-panel .mrd-bars li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 44px;
-    gap: 2px 10px;
-    align-items: center;
-}
-
-.local-oksigeniamarandu-panel .mrd-bars span {
-    font-size: 14.5px;
-    font-weight: 600;
-}
-
-.local-oksigeniamarandu-panel .mrd-bars small {
-    color: var(--mrd-muted);
-    font-weight: 400;
-}
-
-.local-oksigeniamarandu-panel .mrd-bars b {
-    grid-row: 1 / span 2;
-    grid-column: 2;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-.local-oksigeniamarandu-panel .mrd-bars em {
-    display: block;
-    height: 10px;
-    overflow: hidden;
-    border-radius: 5px;
-    background: var(--mrd-sub);
-}
-
-.local-oksigeniamarandu-panel .mrd-bars em i {
-    display: block;
-    height: 100%;
-    border-radius: 5px;
-    background: var(--mrd-accent);
 }
 
 /* The list of numbers. */
@@ -3420,5 +2997,2046 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::before,
 body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
     /* stylelint-disable-next-line declaration-no-important */
     animation: none !important;
+}
+
+/* The panel and the page of the notices, with more life: from the mock-up of the house (marandu-panel-alegria). */
+/* The tokens of Marandu (the names of the plugin's styles.css), from the theme, with Boost's light value for a theme
+   without them. The soft tints are mixed from each colour of the theme with the card, the same formula in both modes. */
+.local-oksigeniamarandu-dash,
+.local-oksigeniamarandu-links {
+    --mrd-ink: var(--bs-body-color, #1d2125);
+    --mrd-muted: var(--bs-secondary-color, #5f6b76);
+    --mrd-line: var(--bs-border-color, #dee2e6);
+    --mrd-card: var(--bs-body-bg, #fff);
+    --mrd-raise: var(--bs-tertiary-bg, #f8f9fa);
+    --mrd-sub: var(--bs-secondary-bg, #e9ecef);
+    --mrd-edge: color-mix(in srgb, var(--mrd-ink) 50%, var(--mrd-card));
+    --mrd-accent: var(--bs-primary, #0f6cbf);
+    --mrd-accent-ink: var(--bs-link-color, #0f6cbf);
+    --mrd-ok: var(--bs-success, #357a32);
+    --mrd-ok-ink: var(--bs-success-text-emphasis, #152f14);
+    --mrd-warn: var(--bs-warning, #f0ad4e);
+    --mrd-warn-ink: var(--bs-warning-text-emphasis, #604520);
+    --mrd-bad: var(--bs-danger, #ca3120);
+    --mrd-bad-ink: var(--bs-danger-text-emphasis, #51140d);
+    --mrd-tint-p: 10%;
+    --mrd-fill-p: 24%;
+    --mrd-line-p: 36%;
+    --mrd-accent-tint: color-mix(in srgb, var(--mrd-accent) var(--mrd-tint-p), var(--mrd-card));
+    --mrd-accent-fill: color-mix(in srgb, var(--mrd-accent) var(--mrd-fill-p), var(--mrd-card));
+    --mrd-accent-line: color-mix(in srgb, var(--mrd-accent) var(--mrd-line-p), var(--mrd-card));
+    --mrd-ok-tint: color-mix(in srgb, var(--mrd-ok) var(--mrd-tint-p), var(--mrd-card));
+    --mrd-ok-fill: color-mix(in srgb, var(--mrd-ok) var(--mrd-fill-p), var(--mrd-card));
+    --mrd-ok-line: color-mix(in srgb, var(--mrd-ok) var(--mrd-line-p), var(--mrd-card));
+    --mrd-warn-tint: color-mix(in srgb, var(--mrd-warn) calc(var(--mrd-tint-p) * 1.6), var(--mrd-card));
+    --mrd-warn-fill: color-mix(in srgb, var(--mrd-warn) calc(var(--mrd-fill-p) * 1.6), var(--mrd-card));
+    --mrd-warn-line: color-mix(in srgb, var(--mrd-warn) calc(var(--mrd-line-p) * 1.4), var(--mrd-card));
+    --mrd-bad-tint: color-mix(in srgb, var(--mrd-bad) var(--mrd-tint-p), var(--mrd-card));
+    --mrd-bad-fill: color-mix(in srgb, var(--mrd-bad) var(--mrd-fill-p), var(--mrd-card));
+    --mrd-bad-line: color-mix(in srgb, var(--mrd-bad) var(--mrd-line-p), var(--mrd-card));
+
+    /* The solid of each state (badges, the ribbon, done steps): the theme's fill in light, its emphasis colour in
+       dark,
+       with the card's colour on it. */
+    --mrd-accent-solid: var(--mrd-accent);
+    --mrd-ok-solid: var(--mrd-ok);
+    --mrd-bad-solid: var(--mrd-bad);
+    --mrd-warn-solid: var(--mrd-warn-ink);
+    --mrd-on-solid: #fff;
+
+    /* The channels: the same hue on every site, because it says which channel it is (as the bubble and the plane
+       do), not
+       the theme. Checked as a pair with the data-viz validator: light on #fff and #f4f7fb, dark on #212529 and #172235. */
+    --mrd-wa: #13a06f;
+    --mrd-tg: #2a78d6;
+
+    /* The track of WhatsApp's bars: light enough for its fill to keep 3:1 against it (9% in light, 22% in dark). */
+    --mrd-wa-mid: color-mix(in srgb, var(--mrd-wa) 55%, var(--mrd-card));
+    --mrd-wa-track: color-mix(in srgb, var(--mrd-wa) 9%, var(--mrd-card));
+    --mrd-tg-track: color-mix(in srgb, var(--mrd-tg) 14%, var(--mrd-card));
+    --mrd-c1: var(--mrd-accent);
+    --mrd-c2: var(--mrd-ok);
+    --mrd-c3: var(--mrd-warn);
+    color: var(--mrd-ink);
+}
+
+[data-bs-theme="dark"] .local-oksigeniamarandu-dash,
+[data-bs-theme="dark"] .local-oksigeniamarandu-links {
+    --mrd-tint-p: 16%;
+    --mrd-fill-p: 34%;
+    --mrd-line-p: 48%;
+    --mrd-accent-solid: var(--mrd-accent-ink);
+    --mrd-ok-solid: var(--mrd-ok-ink);
+    --mrd-bad-solid: var(--mrd-bad-ink);
+    --mrd-on-solid: var(--mrd-card);
+    --mrd-wa: #199e70;
+    --mrd-tg: #3987e5;
+    --mrd-wa-mid: color-mix(in srgb, var(--mrd-wa) 68%, var(--mrd-card));
+    --mrd-wa-track: color-mix(in srgb, var(--mrd-wa) 22%, var(--mrd-card));
+    --mrd-tg-track: color-mix(in srgb, var(--mrd-tg) 22%, var(--mrd-card));
+    --mrd-c1: var(--mrd-accent-ink);
+    --mrd-c2: var(--mrd-ok-ink);
+    --mrd-c3: var(--mrd-warn-ink);
+}
+
+/* The links of the panel (Moodle's header actions): one row of pills with their drawing; a channel's drawing in its
+   hue. */
+.local-oksigeniamarandu-links {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.local-oksigeniamarandu-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 44px;
+    padding: 5px 14px 5px 10px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--mrd-ink);
+    font-weight: 600;
+    font-size: 14.5px;
+    background: var(--mrd-card);
+}
+
+.local-oksigeniamarandu-links a:hover {
+    border-color: var(--mrd-accent);
+}
+
+.local-oksigeniamarandu-links a[aria-current="page"] {
+    border-color: var(--mrd-accent-line);
+    background: var(--mrd-accent-tint);
+}
+
+.local-oksigeniamarandu-links svg {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    color: var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-links svg.wa {
+    color: var(--mrd-wa);
+}
+
+.local-oksigeniamarandu-links svg.tg {
+    color: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-links small {
+    color: var(--mrd-muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The panel and the page of notices: their type grows with the screen so the whiteboard reads from the back;
+   everything
+   inside is in em, and the layout follows the width of the block itself (with the drawers open or closed). */
+.local-oksigeniamarandu-dash {
+    /* stylelint-disable-next-line csstree/validator */
+    container: mrdp / inline-size;
+    /* stylelint-disable-next-line csstree/validator */
+    font-size: clamp(15px, calc(7px + 0.62vw), 20px);
+}
+
+.local-oksigeniamarandu-dash .mrd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    /* stylelint-disable-next-line csstree/validator */
+    min-height: max(44px, 2.75em);
+    padding: 0.45em 1.15em;
+    border: 1px solid transparent;
+    border-radius: 0.65em;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-dash .mrd-btn.primary {
+    background: var(--mrd-accent);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-dash .mrd-btn.primary:hover,
+.local-oksigeniamarandu-dash .mrd-btn.primary:focus-visible {
+    background: color-mix(in srgb, var(--mrd-accent) 84%, #000);
+}
+
+.local-oksigeniamarandu-dash .mrd-btn.second {
+    background: var(--mrd-card);
+    color: var(--mrd-ink);
+    border-color: var(--mrd-edge);
+}
+
+.local-oksigeniamarandu-dash .mrd-btn.second:hover {
+    border-color: var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-btn.small {
+    min-height: 44px;
+    padding: 0.3em 0.9em;
+    font-size: 0.92em;
+}
+
+.local-oksigeniamarandu-dash .mrd-btn.link {
+    padding: 0.4em 0.2em;
+    background: none;
+    color: var(--mrd-accent-ink);
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-dash .mrd-ico {
+    width: 1.35em;
+    height: 1.35em;
+    flex: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-ico.wa {
+    color: var(--mrd-wa);
+}
+
+.local-oksigeniamarandu-dash .mrd-ico.tg {
+    color: var(--mrd-tg);
+}
+
+/* 1. The state: the hero of the panel. A soft tint of its colour, the scene big and filled, a dotted trail behind
+   (the
+   path of the notices, Marandu's own line) and, when something good happens for the first time, a little confetti. */
+.local-oksigeniamarandu-dash .mrd-hero {
+    --mrd-glow: color-mix(in srgb, var(--t-fill) 55%, transparent);
+    --t-tint: var(--mrd-ok-tint);
+    --t-fill: var(--mrd-ok-fill);
+    --t-line: var(--mrd-ok-line);
+    --t-ink: var(--mrd-ok-ink);
+    --t-solid: var(--mrd-ok-solid);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.5em 1.6em;
+    align-items: center;
+    margin: 0 0 1em;
+    padding: 1.1em 1.6em 1.1em 1.2em;
+    border: 1px solid var(--t-line);
+    border-radius: 1.25em;
+    overflow: hidden;
+    background: radial-gradient(circle 7.5em at 5.9em 50%, var(--mrd-glow), transparent) var(--t-tint);
+}
+
+.local-oksigeniamarandu-dash .mrd-hero.accent {
+    --t-tint: var(--mrd-accent-tint);
+    --t-fill: var(--mrd-accent-fill);
+    --t-line: var(--mrd-accent-line);
+    --t-ink: var(--mrd-accent-ink);
+    --t-solid: var(--mrd-accent-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-hero.bad {
+    --t-tint: var(--mrd-bad-tint);
+    --t-fill: var(--mrd-bad-fill);
+    --t-line: var(--mrd-bad-line);
+    --t-ink: var(--mrd-bad-ink);
+    --t-solid: var(--mrd-bad-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-hero.warn {
+    --t-tint: var(--mrd-warn-tint);
+    --t-fill: var(--mrd-warn-fill);
+    --t-line: var(--mrd-warn-line);
+    --t-ink: var(--mrd-warn-ink);
+    --t-solid: var(--mrd-warn-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-trail {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: var(--t-ink);
+    opacity: 0.28;
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-hero-art {
+    position: relative;
+    width: 9.4em;
+    height: 7.5em;
+}
+
+.local-oksigeniamarandu-dash .mrd-scene {
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: var(--t-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene [fill-opacity] {
+    fill: var(--t-fill);
+    fill-opacity: 1;
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .in {
+    fill: var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .k {
+    fill: var(--t-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .kn {
+    stroke: var(--mrd-on-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .knf {
+    fill: var(--mrd-on-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .c1 {
+    stroke: var(--mrd-c1);
+    fill: var(--mrd-c1);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene path.c1,
+.local-oksigeniamarandu-dash .mrd-scene path.c2,
+.local-oksigeniamarandu-dash .mrd-scene path.c3 {
+    fill: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .c2 {
+    stroke: var(--mrd-c2);
+    fill: var(--mrd-c2);
+}
+
+.local-oksigeniamarandu-dash .mrd-scene .c3 {
+    stroke: var(--mrd-c3);
+    fill: var(--mrd-c3);
+}
+
+.local-oksigeniamarandu-dash .mrd-hero h2 {
+    margin: 0;
+    font-size: 1.5em;
+    line-height: 1.2;
+}
+
+.local-oksigeniamarandu-dash .mrd-hero h2:focus {
+    outline: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-hero p {
+    margin: 0.3em 0 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-hero p.mrd-ribbon {
+    display: inline-block;
+    margin: 0 0 0.35em;
+    padding: 0.1em 0.75em;
+    border-radius: 999px;
+    background: var(--t-solid);
+    color: var(--mrd-on-solid);
+    font-size: 0.82em;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.local-oksigeniamarandu-dash .mrd-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 0.5em;
+    margin: 0.7em 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-chips li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.2em 0.75em 0.2em 0.4em;
+    border: 1px solid var(--t-line);
+    border-radius: 999px;
+    background: var(--mrd-card);
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-chips b {
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-dash .mrd-chips .st::before {
+    content: "✓ ";
+    color: var(--mrd-ok-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-chips .st.off::before {
+    content: "❚❚ ";
+    color: var(--mrd-bad-ink);
+    font-size: 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-chips .st.cap::before {
+    content: "! ";
+    color: var(--mrd-warn-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-hero-act {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35em;
+}
+
+.local-oksigeniamarandu-dash .mrd-hero .mrd-btn.link {
+    color: var(--mrd-ink);
+}
+
+/* With no channel, the two to choose from, as two tiles inside the state. */
+.local-oksigeniamarandu-dash .mrd-choices {
+    grid-column: 2 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75em;
+    margin: 0.3em 0 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-choice {
+    display: grid;
+    text-align: left;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.1em 0.8em;
+    align-items: center;
+    padding: 0.75em 1em;
+    border: 1px solid var(--mrd-edge);
+    border-radius: 1em;
+    background: var(--mrd-card);
+    color: var(--mrd-ink);
+    text-decoration: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-choice:hover {
+    border-color: var(--mrd-accent-ink);
+    box-shadow: 0 0 0 1px var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-choice .mrd-ico {
+    grid-row: span 3;
+    width: 2.6em;
+    height: 2.6em;
+}
+
+.local-oksigeniamarandu-dash .mrd-choice b {
+    font-size: 1.08em;
+}
+
+.local-oksigeniamarandu-dash .mrd-choice span {
+    font-size: 0.92em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-choice em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--mrd-accent-ink);
+}
+
+/* The confetti: a few pieces that leave the drawing once and fade; never with reduced motion or Access's pause. */
+.local-oksigeniamarandu-dash .mrd-confetti {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-confetti i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0.45em;
+    height: 0.45em;
+    border-radius: 50%;
+    background: var(--c);
+    opacity: 0;
+    animation: mrd-pop 1.5s cubic-bezier(0.15, 0.7, 0.3, 1) var(--d) both;
+}
+
+.local-oksigeniamarandu-dash .mrd-confetti i:nth-child(3n) {
+    width: 0.6em;
+    height: 0.22em;
+    border-radius: 0.1em;
+}
+
+@keyframes mrd-pop {
+    0% {
+        opacity: 0;
+        transform: rotate(var(--a)) translate(0) scale(0.3);
+    }
+
+    12% {
+        opacity: 1;
+    }
+
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: rotate(var(--a)) translate(var(--r)) rotate(140deg) scale(1);
+    }
+}
+
+.local-oksigeniamarandu-dash .mrd-hero .mrd-scene {
+    animation: mrd-rise 0.55s ease-out both;
+}
+
+@keyframes mrd-rise {
+    from {
+        opacity: 0;
+        transform: translateY(0.4em) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* 2. A brand-new site: the way to the first notice, four steps, the one now in the accent; the done ones ticked. */
+.local-oksigeniamarandu-dash .mrd-path {
+    list-style: none;
+    margin: 0 0 1em;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-path li {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0 0.7em;
+    align-items: center;
+    padding: 0.75em 0.9em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1em;
+    background: var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-path li + li::before {
+    content: "";
+    position: absolute;
+    left: -.9em;
+    top: 50%;
+    width: 0.9em;
+    border-top: 3px dotted var(--mrd-edge);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .num {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: grid;
+    place-items: center;
+    width: 2em;
+    height: 2em;
+    border-radius: 50%;
+    background: var(--mrd-sub);
+    font-weight: 800;
+}
+
+.local-oksigeniamarandu-dash .mrd-path b {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    line-height: 1.25;
+}
+
+.local-oksigeniamarandu-dash .mrd-path small {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    color: var(--mrd-muted);
+    font-size: 0.88em;
+    line-height: 1.3;
+}
+
+.local-oksigeniamarandu-dash .mrd-path svg {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    width: 2.4em;
+    height: 2.4em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .done .num {
+    background: var(--mrd-ok-solid);
+    color: var(--mrd-on-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .done svg {
+    color: var(--mrd-ok-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .done::before {
+    border-top-style: solid;
+    border-color: var(--mrd-ok-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .now {
+    border-color: var(--mrd-accent-line);
+    background: var(--mrd-accent-tint);
+    box-shadow: inset 0 0 0 1px var(--mrd-accent-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .now .num {
+    background: var(--mrd-accent-solid);
+    color: var(--mrd-on-solid);
+}
+
+.local-oksigeniamarandu-dash .mrd-path .now svg {
+    color: var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-path svg [fill-opacity] {
+    fill-opacity: 0.2;
+}
+
+/* What will appear here: one tile per box of the panel, drawn faint, with what it will tell. */
+.local-oksigeniamarandu-dash .mrd-preview {
+    margin: 0 0 0.5em;
+    font-size: 1.05em;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghosts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost {
+    min-width: 0;
+    padding: 0.9em 1em 1em;
+    border: 1.5px dashed var(--mrd-edge);
+    border-radius: 1em;
+    background: var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost h3 {
+    margin: 0 0 0.5em;
+    font-size: 1em;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost p {
+    margin: 0.6em 0 0;
+    color: var(--mrd-muted);
+    font-size: 0.92em;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .viz {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 3.2em;
+    padding: 0 0 2px;
+    border-bottom: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .viz i {
+    flex: 1;
+    max-width: 0.9em;
+    border-radius: 3px 3px 0 0;
+    background: var(--mrd-sub);
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows {
+    display: grid;
+    gap: 0.45em;
+    height: 3.2em;
+    align-content: center;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows i {
+    display: block;
+    height: 0.5em;
+    border-radius: 0.25em;
+    background: var(--mrd-sub);
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .who {
+    display: flex;
+    gap: 0.5em;
+    align-items: center;
+    height: 3.2em;
+    color: var(--mrd-edge);
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .who svg {
+    width: 3em;
+    height: 3em;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .who svg [fill-opacity] {
+    fill-opacity: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .who svg * {
+    stroke-dasharray: 1 5;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost.real {
+    border-style: solid;
+    border-color: var(--mrd-ok-line);
+    background: var(--mrd-ok-tint);
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost.real .big {
+    color: var(--mrd-ink);
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    margin: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost.real .big b {
+    font-size: 2em;
+    line-height: 1.1;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost.real .tag {
+    display: inline-block;
+    margin: 0.3em 0 0;
+    padding: 0.05em 0.6em;
+    border-radius: 999px;
+    background: var(--mrd-ok-solid);
+    color: var(--mrd-on-solid);
+    font-size: 0.82em;
+    font-weight: 800;
+}
+
+.local-oksigeniamarandu-dash .mrd-join {
+    list-style: none;
+    margin: 0.6em 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35em;
+    font-size: 0.92em;
+}
+
+.local-oksigeniamarandu-dash .mrd-join li {
+    display: flex;
+    gap: 0.5em;
+    align-items: flex-start;
+}
+
+.local-oksigeniamarandu-dash .mrd-join .mrd-ico {
+    margin-top: 0.1em;
+}
+
+/* 3. The boxes of the panel. */
+.local-oksigeniamarandu-dash .mrd-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1em;
+}
+
+.local-oksigeniamarandu-dash .mrd-box {
+    min-width: 0;
+    padding: 1em 1.25em 1.15em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1.1em;
+    background: var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-box > h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75em;
+    flex-wrap: wrap;
+    margin: 0 0 0.7em;
+    font-size: 1.1em;
+}
+
+.local-oksigeniamarandu-dash .mrd-box > h3 span {
+    color: var(--mrd-muted);
+    font-weight: 500;
+    font-size: 0.82em;
+}
+
+.local-oksigeniamarandu-dash .mrd-label {
+    margin: 0 0 0.3em;
+    color: var(--mrd-muted);
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-dash .mrd-fine {
+    margin: 0.5em 0 0;
+    color: var(--mrd-muted);
+    font-size: 0.86em;
+}
+
+.local-oksigeniamarandu-dash .mrd-headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3em 1em;
+    margin: 0 0 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-headline .fig {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+}
+
+.local-oksigeniamarandu-dash .mrd-big {
+    font-size: 2.5em;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.local-oksigeniamarandu-dash .mrd-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    min-height: 2em;
+    padding: 0.1em 0.8em;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.92em;
+    text-decoration: none;
+    color: var(--mrd-ink);
+    margin-left: auto;
+}
+
+.local-oksigeniamarandu-dash .mrd-pill.bad {
+    background: var(--mrd-bad-tint);
+    border: 1px solid var(--mrd-bad-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-pill.bad::before {
+    content: "✕";
+    color: var(--mrd-bad-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-pill.ok {
+    background: var(--mrd-ok-tint);
+    border: 1px solid var(--mrd-ok-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-pill.ok::before {
+    content: "✓";
+    color: var(--mrd-ok-ink);
+}
+
+/* Today, by channel: WhatsApp with what got delivered and read (three steps of its hue), Telegram with what it
+   sent. */
+.local-oksigeniamarandu-dash .mrd-chan {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-chan > li {
+    display: grid;
+    grid-template-columns: 2.4em minmax(0, 1fr);
+    gap: 0 0.75em;
+    align-items: start;
+}
+
+.local-oksigeniamarandu-dash .mrd-chico {
+    display: grid;
+    place-items: center;
+    width: 2.4em;
+    height: 2.4em;
+    border-radius: 50%;
+}
+
+.local-oksigeniamarandu-dash .mrd-chico.wa {
+    background: var(--mrd-wa-track);
+}
+
+.local-oksigeniamarandu-dash .mrd-chico.tg {
+    background: var(--mrd-tg-track);
+}
+
+.local-oksigeniamarandu-dash .mrd-chico .mrd-ico {
+    width: 1.45em;
+    height: 1.45em;
+}
+
+.local-oksigeniamarandu-dash .mrd-chan .name {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5em;
+    margin: 0.25em 0 0.3em;
+}
+
+.local-oksigeniamarandu-dash .mrd-chan .name b:last-child {
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-funnel {
+    position: relative;
+    height: 0.75em;
+    border-radius: 0.375em;
+    background: var(--mrd-wa-track);
+    overflow: hidden;
+}
+
+.local-oksigeniamarandu-dash .mrd-funnel i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 0.375em;
+    transform-origin: left;
+    animation: mrd-grow-x 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.local-oksigeniamarandu-dash .mrd-funnel i.d {
+    background: var(--mrd-wa-mid);
+    box-shadow: 2px 0 0 var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-funnel i.r {
+    background: var(--mrd-wa);
+    box-shadow: 2px 0 0 var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15em 1em;
+    margin: 0.35em 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-keys li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.local-oksigeniamarandu-dash .mrd-keys b {
+    color: var(--mrd-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-sw {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 0.2em;
+    flex: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-sw.wa {
+    background: var(--mrd-wa);
+}
+
+.local-oksigeniamarandu-dash .mrd-sw.wa-mid {
+    background: var(--mrd-wa-mid);
+}
+
+.local-oksigeniamarandu-dash .mrd-sw.wa-track {
+    background: var(--mrd-wa-track);
+    box-shadow: inset 0 0 0 1px var(--mrd-wa-mid);
+}
+
+.local-oksigeniamarandu-dash .mrd-sw.tg {
+    background: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-dash .mrd-chan .note {
+    margin: 0.1em 0 0;
+    color: var(--mrd-muted);
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-wait {
+    margin: 1em 0 0;
+    padding: 0.7em 0 0;
+    border-top: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-wait ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35em;
+}
+
+.local-oksigeniamarandu-dash .mrd-wait li {
+    display: grid;
+    grid-template-columns: 1.6em 2em minmax(0, 1fr) auto;
+    gap: 0 0.5em;
+    align-items: center;
+}
+
+.local-oksigeniamarandu-dash .mrd-wait li .mrd-ico {
+    width: 1.4em;
+    height: 1.4em;
+    color: var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-wait li > b {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-wait li > span:last-child {
+    color: var(--mrd-muted);
+    font-size: 0.9em;
+    text-align: right;
+}
+
+.local-oksigeniamarandu-dash .mrd-wait .none {
+    margin: 0;
+    color: var(--mrd-muted);
+}
+
+/* This month: the notices of each day as thin columns (stacked by channel, with a 2px gap of the card between); the
+   busiest day and today labelled; hover or the arrow keys tell each day, and the numbers are also in a table. */
+.local-oksigeniamarandu-dash .mrd-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2em 1.1em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.local-oksigeniamarandu-dash .mrd-legend b {
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-days {
+    position: relative;
+    margin: 0.4em 0 0;
+    padding: 1.4em 0 0;
+    border-radius: 0.4em;
+}
+
+.local-oksigeniamarandu-dash .mrd-cols,
+.local-oksigeniamarandu-dash .mrd-axis {
+    display: flex;
+    gap: 2px;
+}
+
+.local-oksigeniamarandu-dash .mrd-cols {
+    height: 5.5em;
+    align-items: stretch;
+    border-bottom: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-col {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-col i {
+    display: block;
+    /* stylelint-disable-next-line csstree/validator */
+    width: min(100%, 24px);
+    transform-origin: bottom;
+    animation: mrd-grow-y 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    /* The columns grow one after another, 14 ms apart. */
+    /* stylelint-disable-next-line time-min-milliseconds */
+    animation-delay: calc(var(--n) * 14ms);
+}
+
+.local-oksigeniamarandu-dash .mrd-col i.wa {
+    background: var(--mrd-wa);
+}
+
+.local-oksigeniamarandu-dash .mrd-col i.tg {
+    background: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-dash .mrd-col i:last-of-type {
+    border-radius: 4px 4px 0 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-col .gap {
+    flex: 1;
+}
+
+.local-oksigeniamarandu-dash .mrd-col.sel i {
+    filter: brightness(1.12) saturate(1.1);
+}
+
+.local-oksigeniamarandu-dash .mrd-col.sel::after {
+    content: "";
+    position: absolute;
+    inset: -1.2em -1px 0;
+    border-radius: 0.3em;
+    background: color-mix(in srgb, var(--mrd-ink) 7%, transparent);
+    z-index: -1;
+}
+
+.local-oksigeniamarandu-dash .mrd-col .peak {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8em;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-dash .mrd-axis {
+    margin: 0.25em 0 0;
+    font-size: 0.78em;
+    color: var(--mrd-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-axis span {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.local-oksigeniamarandu-dash .mrd-axis span.today {
+    color: var(--mrd-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-dash .mrd-tip {
+    position: absolute;
+    z-index: 2;
+    top: -.4em;
+    transform: translateX(-50%);
+    padding: 0.35em 0.65em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 0.5em;
+    background: var(--mrd-card);
+    box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.15);
+    font-size: 0.85em;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-tip b {
+    display: block;
+}
+
+.local-oksigeniamarandu-dash .mrd-tip span {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-tableview {
+    margin: 0.6em 0 0;
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-tableview summary {
+    color: var(--mrd-accent-ink);
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.local-oksigeniamarandu-dash .mrd-tableview table {
+    border-collapse: collapse;
+    width: 100%;
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-tableview th,
+.local-oksigeniamarandu-dash .mrd-tableview td {
+    padding: 0.2em 0.5em;
+    border-bottom: 1px solid var(--mrd-sub);
+    text-align: right;
+}
+
+.local-oksigeniamarandu-dash .mrd-tableview th:first-child,
+.local-oksigeniamarandu-dash .mrd-tableview td:first-child {
+    text-align: left;
+}
+
+.local-oksigeniamarandu-dash .mrd-tablewrap {
+    max-height: 14em;
+    overflow: auto;
+}
+
+/* What WhatsApp costs: a meter in its hue against the limit; the likely end of the month hatched; amber near the
+   limit,
+   red at it. Telegram costs nothing, and says so. */
+.local-oksigeniamarandu-dash .mrd-cost {
+    margin: 1em 0 0;
+    padding: 0.8em 0 0;
+    border-top: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-cost .money {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2em 0.5em;
+    margin: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-cost .money b {
+    font-size: 1.7em;
+    line-height: 1.1;
+}
+
+.local-oksigeniamarandu-dash .mrd-cost .money span {
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-meter {
+    position: relative;
+    height: 0.9em;
+    margin: 0.5em 0 0.25em;
+    border-radius: 0.45em;
+    background: var(--mrd-wa-track);
+    overflow: hidden;
+}
+
+.local-oksigeniamarandu-dash .mrd-meter i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 0.45em;
+    background: var(--m, var(--mrd-wa));
+    box-shadow: 2px 0 0 var(--mrd-card);
+    transform-origin: left;
+    animation: mrd-grow-x 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.local-oksigeniamarandu-dash .mrd-meter i.likely {
+    background: repeating-linear-gradient(135deg, var(--m, var(--mrd-wa)) 0 3px, transparent 3px 7px);
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+.local-oksigeniamarandu-dash .mrd-meter.near {
+    --m: color-mix(in srgb, var(--mrd-warn) 55%, var(--mrd-warn-ink));
+}
+
+.local-oksigeniamarandu-dash .mrd-meter.full {
+    --m: var(--mrd-bad);
+}
+
+[data-bs-theme="dark"] .local-oksigeniamarandu-dash .mrd-meter.full {
+    --m: var(--mrd-bad-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82em;
+    color: var(--mrd-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-free {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 1em 0 0;
+    padding: 0.6em 0.8em;
+    border-radius: 0.8em;
+    background: var(--mrd-tg-track);
+}
+
+.local-oksigeniamarandu-dash .mrd-free .mrd-ico {
+    width: 1.6em;
+    height: 1.6em;
+}
+
+/* People: three figures on the soft tint of what they mean, the split by channel, the last moves. */
+.local-oksigeniamarandu-dash .mrd-people {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6em;
+    margin: 0 0 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-people div {
+    padding: 0.5em 0.75em 0.6em;
+    border-radius: 0.8em;
+    background: var(--mrd-sub);
+}
+
+.local-oksigeniamarandu-dash .mrd-people div.ok {
+    background: var(--mrd-ok-tint);
+    box-shadow: inset 0 0 0 1px var(--mrd-ok-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-people div.warn {
+    background: var(--mrd-warn-tint);
+    box-shadow: inset 0 0 0 1px var(--mrd-warn-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-people b {
+    display: block;
+    font-size: 1.7em;
+    line-height: 1.15;
+}
+
+.local-oksigeniamarandu-dash .mrd-people span {
+    font-size: 0.88em;
+    line-height: 1.25;
+    display: block;
+}
+
+.local-oksigeniamarandu-dash .mrd-split {
+    margin: 0 0 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-split .bar {
+    display: flex;
+    gap: 2px;
+    height: 0.5em;
+    margin: 0 0 0.35em;
+}
+
+.local-oksigeniamarandu-dash .mrd-split .bar i {
+    border-radius: 0.25em;
+    transform-origin: left;
+    animation: mrd-grow-x 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.local-oksigeniamarandu-dash .mrd-split .bar i.wa {
+    background: var(--mrd-wa);
+}
+
+.local-oksigeniamarandu-dash .mrd-split .bar i.tg {
+    background: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-dash .mrd-moves {
+    list-style: none;
+    margin: 0 0 0.8em;
+    padding: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-moves li {
+    display: grid;
+    grid-template-columns: 5.6em 3.6em 1.4em minmax(0, 1fr);
+    gap: 0 0.55em;
+    align-items: center;
+    padding: 0.35em 0;
+    border-bottom: 1px solid var(--mrd-sub);
+    font-size: 0.94em;
+}
+
+.local-oksigeniamarandu-dash .mrd-moves .when {
+    color: var(--mrd-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-moves small {
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-moves .mrd-ico {
+    width: 1.3em;
+    height: 1.3em;
+}
+
+.local-oksigeniamarandu-dash .mrd-tag {
+    justify-self: start;
+    padding: 0.05em 0.5em;
+    border-radius: 0.4em;
+    font-size: 0.85em;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-dash .mrd-tag.in {
+    background: var(--mrd-ok-tint);
+    color: var(--mrd-ink);
+    box-shadow: inset 0 0 0 1px var(--mrd-ok-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-tag.out {
+    background: var(--mrd-sub);
+    color: var(--mrd-ink);
+}
+
+/* What failed: one line each, the channel's drawing, the reason in plain words. */
+.local-oksigeniamarandu-dash .mrd-failed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-failed li {
+    display: grid;
+    grid-template-columns: 5.6em 1.4em minmax(0, 1fr);
+    gap: 0 0.6em;
+    padding: 0.45em 0;
+    border-bottom: 1px solid var(--mrd-sub);
+}
+
+.local-oksigeniamarandu-dash .mrd-failed li:last-child {
+    border: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-failed .when {
+    color: var(--mrd-muted);
+    font-size: 0.92em;
+    font-variant-numeric: tabular-nums;
+    padding-top: 0.1em;
+}
+
+.local-oksigeniamarandu-dash .mrd-failed .mrd-ico {
+    width: 1.3em;
+    height: 1.3em;
+    margin-top: 0.15em;
+}
+
+.local-oksigeniamarandu-dash .mrd-failed .num {
+    white-space: nowrap;
+    color: var(--mrd-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-dash .mrd-failed .why {
+    display: block;
+}
+
+.local-oksigeniamarandu-dash .mrd-failed .why::before {
+    content: "✕ ";
+    color: var(--mrd-bad-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-dash .mrd-allgood {
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    margin: 0;
+    padding: 0.7em 0.9em;
+    border-radius: 0.9em;
+    background: var(--mrd-ok-tint);
+}
+
+.local-oksigeniamarandu-dash .mrd-allgood svg {
+    width: 2.6em;
+    height: 2.6em;
+    flex: none;
+    color: var(--mrd-ok-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-allgood svg [fill-opacity] {
+    fill: var(--mrd-ok-fill);
+    fill-opacity: 1;
+}
+
+/* By notice: each notice with its plugin's drawing on a soft tile of the accent, its number and a bar in the
+   channels'
+   hues (split when there are two, with the legend above). The ones switched off, as chips that lead to switch them on. */
+.local-oksigeniamarandu-dash .mrd-notices {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75em 2.2em;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices li {
+    display: grid;
+    grid-template-columns: 2.6em minmax(0, 1fr) auto;
+    gap: 0.15em 0.8em;
+    align-items: center;
+}
+
+.local-oksigeniamarandu-dash .mrd-nicon {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 2.6em;
+    height: 2.6em;
+    border-radius: 0.8em;
+    background: var(--mrd-accent-tint);
+    color: var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-nicon svg {
+    width: 1.6em;
+    height: 1.6em;
+}
+
+.local-oksigeniamarandu-dash .mrd-nicon svg [fill-opacity] {
+    fill: var(--mrd-accent-fill);
+    fill-opacity: 1;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .t {
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .t b {
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .t small {
+    color: var(--mrd-muted);
+    font-size: 0.86em;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .v {
+    font-size: 1.2em;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .bar {
+    grid-column: 2 / -1;
+    display: flex;
+    gap: 2px;
+    height: 0.55em;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .bar i {
+    border-radius: 0 0.275em 0.275em 0;
+    transform-origin: left;
+    animation: mrd-grow-x 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .bar i:not(:last-child) {
+    border-radius: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .bar i.wa {
+    background: var(--mrd-wa);
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .bar i.tg {
+    background: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-dash .mrd-notices .bar.empty {
+    border: 1px dashed var(--mrd-edge);
+    border-radius: 0.275em;
+    height: 0.55em;
+}
+
+.local-oksigeniamarandu-dash .mrd-off {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4em 0.5em;
+    margin: 1em 0 0;
+    padding: 0.8em 0 0;
+    border-top: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-off > span:first-child {
+    color: var(--mrd-muted);
+    font-weight: 600;
+    margin-right: 0.2em;
+}
+
+.local-oksigeniamarandu-dash .mrd-offchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.15em 0.7em 0.15em 0.4em;
+    border: 1.5px dashed var(--mrd-edge);
+    border-radius: 999px;
+    font-size: 0.92em;
+}
+
+.local-oksigeniamarandu-dash .mrd-offchip svg {
+    width: 1.2em;
+    height: 1.2em;
+    color: var(--mrd-muted);
+}
+
+@keyframes mrd-grow-y {
+    from {
+        transform: scaleY(0);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+@keyframes mrd-grow-x {
+    from {
+        transform: scaleX(0);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+/* The page «Qué avisos salen»: the notices by plugin, a switch per channel; each switch saves as it is pressed. */
+.local-oksigeniamarandu-dash .mrd-lead {
+    margin: 0 0 1em;
+    font-size: 1.05em;
+}
+
+.local-oksigeniamarandu-dash .mrd-saved {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0 0 1em;
+    padding: 0.6em 0.9em;
+    border-radius: 0.8em;
+    background: var(--mrd-ok-tint);
+    box-shadow: inset 0 0 0 1px var(--mrd-ok-line);
+}
+
+.local-oksigeniamarandu-dash .mrd-saved::before {
+    content: "✓";
+    color: var(--mrd-ok-ink);
+    font-weight: 800;
+}
+
+.local-oksigeniamarandu-dash .mrd-next {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.3em 1.2em;
+    align-items: center;
+    margin: 0 0 1em;
+    padding: 0.9em 1.2em;
+    border: 1px solid var(--mrd-accent-line);
+    border-radius: 1.1em;
+    background: var(--mrd-accent-tint);
+}
+
+.local-oksigeniamarandu-dash .mrd-next svg {
+    width: 3.4em;
+    height: 3.4em;
+    color: var(--mrd-accent-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-next svg [fill-opacity] {
+    fill: var(--mrd-accent-fill);
+    fill-opacity: 1;
+}
+
+.local-oksigeniamarandu-dash .mrd-next h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.local-oksigeniamarandu-dash .mrd-next p {
+    margin: 0.2em 0 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-cols-head,
+.local-oksigeniamarandu-dash .mrd-nrow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(var(--chs), 11.5em);
+    gap: 0.3em 1em;
+    align-items: center;
+}
+
+.local-oksigeniamarandu-dash .mrd-cols-head {
+    padding: 0 1.25em 0.4em;
+    color: var(--mrd-muted);
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-cols-head > span {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    font-weight: 700;
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-cols-head small {
+    font-weight: 500;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-dash .mrd-group {
+    margin: 0 0 0.9em;
+    padding: 0.9em 1.25em 0.5em;
+    border: 1px solid var(--mrd-line);
+    border-radius: 1.1em;
+    background: var(--mrd-card);
+}
+
+.local-oksigeniamarandu-dash .mrd-group h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0 0 0.4em;
+    font-size: 1.1em;
+}
+
+.local-oksigeniamarandu-dash .mrd-group h2 small {
+    color: var(--mrd-muted);
+    font-weight: 500;
+    font-size: 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-group h2 .mrd-nicon {
+    grid-row: auto;
+    width: 2.2em;
+    height: 2.2em;
+}
+
+.local-oksigeniamarandu-dash .mrd-group ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-nrow {
+    padding: 0.55em 0;
+    border-top: 1px solid var(--mrd-sub);
+}
+
+.local-oksigeniamarandu-dash .mrd-nrow .t b {
+    display: block;
+}
+
+.local-oksigeniamarandu-dash .mrd-nrow .t span {
+    color: var(--mrd-muted);
+    font-size: 0.9em;
+}
+
+.local-oksigeniamarandu-dash .mrd-swcell {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    min-height: 44px;
+}
+
+.local-oksigeniamarandu-dash .mrd-swcell .lab {
+    display: none;
+    align-items: center;
+    gap: 0.35em;
+    font-weight: 600;
+    font-size: 0.92em;
+}
+
+.local-oksigeniamarandu-dash .mrd-swcell small {
+    display: block;
+    color: var(--mrd-muted);
+    font-size: 0.82em;
+    line-height: 1.25;
+}
+
+.local-oksigeniamarandu-dash .mrd-swcell small.review {
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-swcell small.review::before {
+    content: "⧗ ";
+    color: var(--mrd-warn-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-switch {
+    position: relative;
+    flex: none;
+    width: 3em;
+    height: 1.75em;
+    padding: 0;
+    border: 2px solid var(--mrd-edge);
+    border-radius: 999px;
+    background: var(--mrd-card);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.local-oksigeniamarandu-dash .mrd-switch::before {
+    content: "";
+    position: absolute;
+    left: 0.2em;
+    top: 50%;
+    width: 1.05em;
+    height: 1.05em;
+    border-radius: 50%;
+    background: var(--mrd-edge);
+    transform: translateY(-50%);
+    transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.3, 1.3), background 0.2s;
+}
+
+.local-oksigeniamarandu-dash .mrd-switch[aria-checked="true"] {
+    background: var(--mrd-accent);
+    border-color: var(--mrd-accent);
+}
+
+.local-oksigeniamarandu-dash .mrd-switch[aria-checked="true"]::before {
+    background: #fff;
+    transform: translate(1.2em, -50%);
+}
+
+.local-oksigeniamarandu-dash .mrd-switch::after {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
+}
+
+.local-oksigeniamarandu-dash .mrd-total {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5em 1.5em;
+    margin: 0.2em 0 0;
+    padding: 0.8em 1.25em;
+    border-radius: 1em;
+    background: var(--mrd-raise);
+}
+
+.local-oksigeniamarandu-dash .mrd-total b {
+    font-variant-numeric: tabular-nums;
+}
+
+/* The layout follows the width of the block: two columns of boxes when it is wide, everything in one when it is
+   narrow. */
+
+/* stylelint-disable-next-line csstree/validator */
+@container mrdp (min-width:50em) {
+    .local-oksigeniamarandu-dash .mrd-grid {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-wide {
+        grid-column: 1 / -1;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-notices {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* stylelint-disable-next-line csstree/validator */
+@container mrdp (max-width:56em) {
+    .local-oksigeniamarandu-dash .mrd-ghosts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .local-oksigeniamarandu-dash .mrd-path {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .local-oksigeniamarandu-dash .mrd-path li:nth-child(3)::before {
+        display: none;
+    }
+}
+
+/* stylelint-disable-next-line csstree/validator */
+@container mrdp (max-width:40em) {
+    .local-oksigeniamarandu-dash .mrd-hero {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 0.9em 1.1em 1.1em;
+        gap: 0.4em;
+        background: radial-gradient(circle 5em at 4em 3.2em, var(--mrd-glow), transparent) var(--t-tint);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-hero-art {
+        width: 8em;
+        height: 6.4em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-trail {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-hero h2 {
+        font-size: 1.3em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-hero-act {
+        align-items: stretch;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-choices {
+        grid-column: 1 / -1;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-path {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.5em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-path li + li::before {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-path li {
+        padding: 0.5em 0.8em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-path svg {
+        width: 2em;
+        height: 2em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-ghosts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-people b {
+        font-size: 1.4em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-moves li {
+        grid-template-columns: auto auto 1.3em minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-moves li > span:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-cols-head {
+        display: none;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-nrow {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-swcell .lab {
+        display: inline-flex;
+        min-width: 6.5em;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-next {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-dash .mrd-next .mrd-btn {
+        grid-column: 1 / -1;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-headline .mrd-pill {
+        margin-left: 0;
+    }
+}
+
+/* Motion: none with reduced motion, nor with the pause of the Access panel (oksiacSettings.pauseAnim puts this
+   class on
+   the body); the confetti then does not appear at all, and the scene keeps its still sparks. */
+
+@media (prefers-reduced-motion: reduce) {
+    .local-oksigeniamarandu-dash *,
+    .local-oksigeniamarandu-dash *::before,
+    .local-oksigeniamarandu-dash *::after {
+        /* stylelint-disable-next-line declaration-no-important */
+        animation: none !important;
+        /* stylelint-disable-next-line declaration-no-important */
+        transition: none !important;
+    }
+
+    .local-oksigeniamarandu-dash .mrd-confetti {
+        display: none;
+    }
+}
+
+body.oks-a11y-pause .local-oksigeniamarandu-dash *,
+body.oks-a11y-pause .local-oksigeniamarandu-dash *::before,
+body.oks-a11y-pause .local-oksigeniamarandu-dash *::after {
+    /* stylelint-disable-next-line declaration-no-important */
+    animation: none !important;
+    /* stylelint-disable-next-line declaration-no-important */
+    transition: none !important;
+}
+
+body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
+    display: none;
+}
+
+/* What the plugin's markup adds: widths of the faint rows, a few inline styles of the mock-up, and the link button.
+   */
+.local-oksigeniamarandu-dash .mrd-ghost .rows i.w92 {
+    width: 92%;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows i.w74 {
+    width: 74%;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows i.w55 {
+    width: 55%;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows i.w80 {
+    width: 80%;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows i.w62 {
+    width: 62%;
+}
+
+.local-oksigeniamarandu-dash .mrd-ghost .rows i.w35 {
+    width: 35%;
+}
+
+.local-oksigeniamarandu-dash .mrd-headline .fig {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-dash .mrd-light {
+    font-weight: 500;
+}
+
+.local-oksigeniamarandu-dash .mrd-ink {
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-dash .mrd-legendgap {
+    margin: 0 0 0.8em;
+}
+
+.local-oksigeniamarandu-dash .mrd-cols-head > span:first-child {
+    visibility: hidden;
+}
+
+.local-oksigeniamarandu-dash .mrd-tableview table {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-dash h2,
+.local-oksigeniamarandu-dash h3 {
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-dash [hidden] {
+    display: none;
 }
 

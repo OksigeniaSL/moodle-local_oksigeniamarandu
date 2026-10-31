@@ -20,7 +20,8 @@
     The links of the panel and the list, in the header of the page: one row of pills with their drawing.
 
     Context variables required for this template:
-    * links - Each with url, label, count (optional) and art (the context of local_oksigeniamarandu/art).
+    * links - Each with url, label, count (optional), current (optional), and icon (an SVG of the drawings of Marandu) or
+      art (the context of local_oksigeniamarandu/art).
 
     Example context (json):
     {
@@ -29,6 +30,6 @@
 }}
 <nav class="local-oksigeniamarandu-links" aria-label="{{#str}} pluginname, local_oksigeniamarandu {{/str}}">
     {{#links}}
-        <a class="btn" href="{{url}}">{{#art}}{{> local_oksigeniamarandu/art }}{{/art}}{{label}}{{#count}} <small>{{count}}</small>{{/count}}</a>
+        <a class="btn" href="{{url}}"{{#current}} aria-current="page"{{/current}}>{{#icon}}{{{icon}}}{{/icon}}{{^icon}}{{#art}}{{> local_oksigeniamarandu/art }}{{/art}}{{/icon}}{{label}}{{#count}} <small>{{count}}</small>{{/count}}</a>
     {{/links}}
 </nav>

@@ -1,12 +1,49 @@
 # Changelog
 
-## 0.8.1 (2026-11-01)
+## 0.13.1 (2026-11-01)
+
+- The icon of Oksigenia Marandu, by the house: "The school notifies".
+
+## 0.13.0 (2026-10-31)
+
+- "Quiet hours and limits", a page of its own, for every channel; the money of the month, only with WhatsApp. A site
+  that never set them gets those the wizard proposes: no notice at night or at the weekend, three a day at most.
+- Fix: the notices of step 4 of the wizard and the urgent ones of step 5 never saved (Moodle drops the keys of a form
+  array that have a slash). Fix: the upgrade of 0.11.0 shipped without its step.
+
+## 0.12.0 (2026-10-31)
+
+- Telegram: "Share my number", to join one's family without a code, when the site has the family records; the number
+  is only compared, never kept.
+- Fix: the daily check of the family records dropped the family links of every Telegram chat.
+
+## 0.11.0 to 0.11.3 (2026-10-31)
+
+- The panel with more life, from the mock-up of the house: the state with its scene and each channel; the way to the
+  first notice on a brand-new site, and the firsts celebrated once; today, the month day by day and each notice, by
+  channel; what WhatsApp costs, apart. Today ends with the last notice that went out.
+- Each channel has its own notices switched on, on a page of its own, "Which notices go out".
+- The way back to the panel from the wizard and the page of Telegram; room under the header; WhatsApp answers in the
+  24-hour window are free only up to 1,000 a month.
+
+## 0.10.0 (2026-10-31)
+
+- The menu of the bot of Telegram, in each language of the site: help, whom the notices are about, their language,
+  without sound except the urgent ones, and leaving. The bot answers at once, in the reply to the webhook.
+
+## 0.9.0 and 0.9.1 (2026-10-31)
+
+- The page of Telegram in three moments, from the mock-up of the house, and changing the bot: a new token of the same
+  bot keeps everyone; another bot asks first and can tell the people of the old one where to go.
+- The list of numbers and chats can show one channel; the panel title names the channels the site has.
+
+## 0.8.1 (2026-10-31)
 
 - The page of Telegram, from the reread by design: the steps to make the bot numbered, with the link to @BotFather and
   a button to copy /newbot; the note on privacy before connecting; the form of the token checked as it is pasted; the
   steps that come after. The Telegram pill of the panel has its own drawing, a paper plane.
 
-## 0.8.0 (2026-11-01)
+## 0.8.0 (2026-10-31)
 
 - Telegram, the second channel, with the bot of each site:
   - A page connects the bot with its token: the plugin checks it with Telegram and tells it where the webhook is, with

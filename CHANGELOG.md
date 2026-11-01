@@ -2,7 +2,7 @@
 
 ## 0.13.1 (2026-11-01)
 
-- The icon of Oksigenia Marandu, by the house: "The school notifies".
+- The icon of Oksigenia Marandu, by the house: "the centre notifies", a speech bubble with a roof and a bell.
 
 ## 0.13.0 (2026-10-31)
 

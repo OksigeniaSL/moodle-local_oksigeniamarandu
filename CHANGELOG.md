@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.2 (2026-11-02)
+
+- The panel: who was already active and joins again no longer shows as a new sign-up (the log keeps it, as proof). The pill
+  of the quiet hours and the limits is on the panel. «The latest» goes when nothing has failed, and that card fills its box.
+  On a phone, the number next to «today» on the axis of the month gives way, so they do not overlap.
+
 ## 0.14.1 (2026-11-02)
 
 - The clients of Telegram and WhatsApp load Moodle's class of requests themselves: it worked because other plugins happened

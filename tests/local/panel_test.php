@@ -242,6 +242,24 @@ final class panel_test extends \advanced_testcase {
     }
 
     /**
+     * Who was already active and joins again is no new move on the panel, though the log keeps it.
+     */
+    public function test_a_second_join_is_no_new_move(): void {
+        global $DB;
+        $contact = $this->family('34600000001');
+        consent::optin_from_message('34600000001', null, 'wamid.AGAIN');
+        $people = panel::people();
+        $this->assertCount(1, $people->moves);
+        $this->assertSame('optin', $people->moves[0]->action);
+
+        // Leaving and coming back are moves; the log keeps all of them.
+        consent::optout('34600000001', 'keyword', 'wamid.OUT');
+        consent::optin_from_message('34600000001', null, 'wamid.BACK');
+        $this->assertSame(['optin', 'optout', 'optin'], array_column(panel::people()->moves, 'action'));
+        $this->assertSame(4, $DB->count_records(consent::LOG, ['contactid' => $contact->id]));
+    }
+
+    /**
      * Who joined and left, and how: by writing the word, or by hand on the site, by whom and why.
      */
     public function test_people(): void {

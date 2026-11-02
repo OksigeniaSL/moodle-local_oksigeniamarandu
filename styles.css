@@ -4443,8 +4443,15 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
     font-weight: 700;
 }
 
-.local-oksigeniamarandu-dash .mrd-allgood {
+.local-oksigeniamarandu-dash .mrd-failedbox {
     display: flex;
+    flex-direction: column;
+}
+
+.local-oksigeniamarandu-dash .mrd-allgood {
+    flex: 1;
+    display: flex;
+    justify-content: center;
     align-items: center;
     gap: 0.8em;
     margin: 0;

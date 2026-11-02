@@ -136,6 +136,7 @@ class panel {
                 ['count' => $DB->count_records(consent::CONTACTS)]
             ),
             $link('notices.php', get_string('panel:notices', $component), 'elige'),
+            $link('limits.php', get_string('limits:title', $component), 'silencio'),
             $link('wizard.php', 'WhatsApp', 'whatsapp', 'wa'),
             $link('telegram.php', 'Telegram', 'telegram', 'tg'),
         ];
@@ -442,7 +443,7 @@ class panel {
         global $DB;
         $counts = $DB->get_records_sql_menu('SELECT status, COUNT(1) FROM {' . consent::CONTACTS . '} GROUP BY status');
         $moves = [];
-        $log = $DB->get_records(consent::LOG, null, 'timecreated DESC, id DESC', '*', 0, $limit);
+        $log = self::changes($limit);
         $contacts = $log ? $DB->get_records_list(consent::CONTACTS, 'id', array_column($log, 'contactid')) : [];
         $whom = self::standsfor(array_keys($contacts));
         foreach ($log as $entry) {
@@ -464,6 +465,27 @@ class panel {
                                                         WHERE status = 'active' GROUP BY channel"),
             'moves' => $moves,
         ];
+    }
+
+    /**
+     * The last changes of status. Who was already active and joins again, with another code, say, is no new move: the log
+     * keeps all of them as proof, and the panel shows when each one really joined or left.
+     *
+     * @param int $limit How many.
+     * @return \stdClass[] The entries of the log, the newest first.
+     */
+    private static function changes(int $limit): array {
+        global $DB;
+        $log = $DB->get_records(consent::LOG, null, 'timecreated DESC, id DESC', '*', 0, $limit * 20);
+        $newer = [];
+        foreach ($log as $id => $entry) {
+            $last = $newer[$entry->contactid] ?? null;
+            if ($last && $last->action === $entry->action) {
+                unset($log[$last->id]);
+            }
+            $newer[$entry->contactid] = $entry;
+        }
+        return array_slice($log, 0, $limit);
     }
 
     /**

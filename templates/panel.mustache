@@ -133,8 +133,8 @@
         </section>
         {{/month}}
 
-        <section class="mrd-box" id="mrd-failed">
-            <h3>{{#str}} panel:failed, local_oksigeniamarandu {{/str}} <span>{{#str}} panel:failed:last, local_oksigeniamarandu {{/str}}</span></h3>
+        <section class="mrd-box mrd-failedbox" id="mrd-failed">
+            <h3>{{#str}} panel:failed, local_oksigeniamarandu {{/str}}{{#failed.0}} <span>{{#str}} panel:failed:last, local_oksigeniamarandu {{/str}}</span>{{/failed.0}}</h3>
             {{#failed.0}}<ul class="mrd-failed">{{#failed}}<li><span class="when">{{time}}</span>{{{icon}}}<div><b>{{name}}</b> · <span class="num">{{phone}}</span><span class="why">{{why}}</span></div></li>{{/failed}}</ul>{{/failed.0}}
             {{#nofailed}}<p class="mrd-allgood">{{{allgood}}}<span>{{#str}} panel:failed:none, local_oksigeniamarandu {{/str}}</span></p>{{/nofailed}}
         </section>

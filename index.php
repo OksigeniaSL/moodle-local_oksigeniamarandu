@@ -340,9 +340,10 @@ if (!$fresh) {
     }
     $axis = [];
     for ($i = 0; $i < $days['length']; $i++) {
+        // The word for today is wider than a day on a phone: the number next to it gives way.
+        $numbered = in_array($i, [0, 7, 14, $days['length'] - 1], true) && abs($i + 1 - $days['today']) > 1;
         $axis[] = ['today' => $i + 1 === $days['today'],
-            'label' => $i + 1 === $days['today'] ? $str('panel:month:todayshort') : (in_array($i, [0, 7, 14], true)
-                || $i === $days['length'] - 1 ? $i + 1 : '')];
+            'label' => $i + 1 === $days['today'] ? $str('panel:month:todayshort') : ($numbered ? $i + 1 : '')];
     }
     $legend = [];
     if (count($monthshown) > 1) {

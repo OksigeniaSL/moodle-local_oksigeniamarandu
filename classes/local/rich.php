@@ -140,6 +140,7 @@ class rich {
         if ($file !== false && strpos($file, realpath($CFG->dirroot) . DIRECTORY_SEPARATOR) === 0) {
             $bytes = (string)file_get_contents($file);
         } else {
+            require_once($CFG->libdir . '/filelib.php');
             $curl = new \curl(['ignoresecurity' => true]);
             $bytes = (string)$curl->get($url, [], ['CURLOPT_TIMEOUT' => 10, 'CURLOPT_FOLLOWLOCATION' => 0]);
         }

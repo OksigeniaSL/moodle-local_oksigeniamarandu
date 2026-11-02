@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.1 (2026-11-02)
+
+- The clients of Telegram and WhatsApp load Moodle's class of requests themselves: it worked because other plugins happened
+  to load it, and in a script without them it failed. Found with the first real card, sent from the command line.
+
 ## 0.14.0 (2026-11-02)
 
 - `api::notify()` and `api::notify_child()` take a last argument, `array $rich`: on Telegram, the notice goes as a card (a

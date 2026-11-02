@@ -225,6 +225,9 @@ class telegram_api {
      * @throws api_exception If Telegram cannot be reached.
      */
     protected function request(string $method, string $body): string {
+        global $CFG;
+        // The class of the requests: not every script has it loaded.
+        require_once($CFG->libdir . '/filelib.php');
         $curl = new \curl();
         $curl->setHeader(['Content-Type: application/json']);
         $answer = $curl->post('https://api.telegram.org/bot' . $this->token . '/' . $method, $body, ['CURLOPT_TIMEOUT' => 20]);
@@ -245,6 +248,9 @@ class telegram_api {
      * @throws api_exception If Telegram cannot be reached.
      */
     protected function request_file(string $method, array $fields, string $name, string $bytes): string {
+        global $CFG;
+        // The class of the requests: not every script has it loaded.
+        require_once($CFG->libdir . '/filelib.php');
         $path = make_request_directory() . '/' . $name;
         file_put_contents($path, $bytes);
         $fields[$name] = new \CURLFile($path, (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes), $name);

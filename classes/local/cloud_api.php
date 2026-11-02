@@ -250,6 +250,9 @@ class cloud_api {
      * @throws api_exception If Meta cannot be reached.
      */
     protected function request(string $url, ?string $body = null): string {
+        global $CFG;
+        // The class of the requests: not every script has it loaded.
+        require_once($CFG->libdir . '/filelib.php');
         $curl = new \curl();
         $curl->setHeader([
             'Authorization: Bearer ' . $this->accesstoken,

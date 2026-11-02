@@ -72,6 +72,7 @@ class provider implements
         $collection->add_database_table('local_oksigeniamarandu_queue', [
             'contactid' => 'privacy:metadata:queue:contactid',
             'params' => 'privacy:metadata:queue:params',
+            'rich' => 'privacy:metadata:queue:rich',
             'status' => 'privacy:metadata:queue:status',
             'timesent' => 'privacy:metadata:queue:timesent',
             'timeclicked' => 'privacy:metadata:queue:timeclicked',
@@ -136,6 +137,7 @@ class provider implements
                 $notices[] = (object)[
                     'notice' => $row->component . '/' . $row->notice,
                     'values' => json_decode($row->params, true),
+                    'card' => empty($row->rich) ? null : json_decode($row->rich, true),
                     'status' => $row->status,
                     'sent' => $row->timesent ? transform::datetime($row->timesent) : null,
                 ];

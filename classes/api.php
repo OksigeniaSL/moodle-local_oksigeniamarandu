@@ -299,6 +299,9 @@ class api {
      * @param int|null $userid The user, if it is for a user: then every number linked to the user gets it.
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
+     * @param array $rich A card on Telegram instead of its text: any of title, image (a URL of this site with a PNG or a
+     *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
+     *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
      * @return int How many numbers it was queued for.
      */
     public static function notify(
@@ -309,7 +312,8 @@ class api {
         int $itemid = 0,
         ?int $userid = null,
         bool $urgent = false,
-        int $validfor = 2 * DAYSECS
+        int $validfor = 2 * DAYSECS,
+        array $rich = []
     ): int {
         global $DB;
         [$declared, $params] = self::prepare($component, $notice, $params);
@@ -324,7 +328,7 @@ class api {
                                                FROM {" . consent::LINKS . "} l
                                                JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
                                               WHERE $where AND c.status = :active", $sqlparams + ['active' => 'active']);
-        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor);
+        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich);
     }
 
     /**
@@ -338,6 +342,9 @@ class api {
      * @param int $childuserid The student.
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
+     * @param array $rich A card on Telegram instead of its text: any of title, image (a URL of this site with a PNG or a
+     *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
+     *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
      * @return int How many numbers it was queued for.
      */
     public static function notify_child(
@@ -347,7 +354,8 @@ class api {
         ?\moodle_url $url,
         int $childuserid,
         bool $urgent = false,
-        int $validfor = 2 * DAYSECS
+        int $validfor = 2 * DAYSECS,
+        array $rich = []
     ): int {
         global $DB;
         [$declared, $params] = self::prepare($component, $notice, $params);
@@ -362,7 +370,7 @@ class api {
             "id $insql AND status = :active",
             $inparams + ['active' => 'active']
         );
-        return self::queue_for($active, $declared, $params, $url, $urgent, $validfor);
+        return self::queue_for($active, $declared, $params, $url, $urgent, $validfor, $rich);
     }
 
     /**
@@ -419,6 +427,7 @@ class api {
      * @param \moodle_url|null $url Where its button goes.
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
+     * @param array $rich The parts of its card on Telegram, if it has one.
      * @return int How many.
      */
     private static function queue_for(
@@ -427,10 +436,12 @@ class api {
         array $params,
         ?\moodle_url $url,
         bool $urgent,
-        int $validfor
+        int $validfor,
+        array $rich
     ): int {
+        $rich = local\rich::clean($rich);
         foreach ($contactids as $contactid) {
-            queue::add((int)$contactid, $declared, $params, $url ? $url->out(false) : null, $urgent, $validfor);
+            queue::add((int)$contactid, $declared, $params, $url ? $url->out(false) : null, $urgent, $validfor, null, $rich);
         }
         return count($contactids);
     }

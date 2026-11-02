@@ -342,6 +342,29 @@ final class queue_test extends \advanced_testcase {
     }
 
     /**
+     * WhatsApp has no card: a notice with one goes with its template, as always.
+     */
+    public function test_card_is_only_for_telegram(): void {
+        global $DB;
+        $this->approve();
+        $contact = $this->family('34600000001');
+        queue::add(
+            (int)$contact->id,
+            notices::get('local_oksigeniamarandu', 'notification'),
+            ['Colegio Ejemplo', 'Reunión el jueves'],
+            null,
+            false,
+            DAYSECS,
+            self::WEDNESDAY,
+            ['title' => 'Menú']
+        );
+        $api = $this->fake_api();
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY)['sent']);
+        $this->assertSame('template', $api->sent[0][0]);
+        $this->assertSame('template', $DB->get_field(queue::TABLE, 'kind', []));
+    }
+
+    /**
      * The quiet hours and the notices a day hold back a notice unless it is urgent, by the plugin or by the site, or each
      * person asks for it.
      */

@@ -94,6 +94,7 @@
         <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="notice" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="params" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Values of the template, JSON"/>
+        <FIELD NAME="rich" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Parts of its card on Telegram, if it has one, JSON"/>
         <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Where the button of the notice goes, on this site"/>
         <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="The end of the link of the button"/>
         <FIELD NAME="urgent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

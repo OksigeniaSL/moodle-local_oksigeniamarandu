@@ -54,6 +54,7 @@ $string['blockmail:telegrambody'] = 'Telegram no longer accepts the bot of {$a->
 
 The notices wait in the queue and go out as soon as it is fixed. Connect the bot again: {$a->url}';
 $string['blockmail:telegramsubject'] = 'Telegram notices of {$a->site}: the bot has stopped';
+$string['cachedef_telegramphotos'] = 'Images of the notices already on Telegram, so as not to upload them again for each person';
 $string['cachedef_wrongcodes'] = 'Wrong codes written on WhatsApp, to slow down guessing';
 $string['capmail:body'] = 'The WhatsApp notices of {$a->site} have reached the limit of {$a->cap} € for this month. The rest wait for next month, or for the limit to go up in the set-up wizard.';
 $string['capmail:subject'] = 'WhatsApp notices of {$a->site}: limit of the month reached';
@@ -365,6 +366,7 @@ $string['privacy:metadata:preference:party'] = 'The firsts of the site (the firs
 $string['privacy:metadata:queue'] = 'The notices of each number: waiting, sent, delivered or not.';
 $string['privacy:metadata:queue:contactid'] = 'The number that gets it.';
 $string['privacy:metadata:queue:params'] = 'The details of the notice, such as a name or a date.';
+$string['privacy:metadata:queue:rich'] = 'The card of the notice on Telegram: its title, its list and its text';
 $string['privacy:metadata:queue:status'] = 'Whether it was sent, delivered or failed.';
 $string['privacy:metadata:queue:timeclicked'] = 'When its button was tapped.';
 $string['privacy:metadata:queue:timesent'] = 'When it was sent.';

@@ -157,5 +157,15 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110606, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110700) {
+        // 0.14.0: a notice can have a card on Telegram.
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $field = new xmldb_field('rich', XMLDB_TYPE_TEXT, null, null, null, null, null, 'params');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026110700, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

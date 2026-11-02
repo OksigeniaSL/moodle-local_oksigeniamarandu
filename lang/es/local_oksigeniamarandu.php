@@ -54,6 +54,7 @@ $string['blockmail:telegrambody'] = 'Telegram ya no acepta el bot de {$a->site}:
 
 Los avisos esperan en la cola y salen en cuanto se arregle. Conecta el bot otra vez: {$a->url}';
 $string['blockmail:telegramsubject'] = 'Avisos por Telegram de {$a->site}: el bot se ha parado';
+$string['cachedef_telegramphotos'] = 'Imágenes de los avisos que ya están en Telegram, para no subirlas otra vez para cada persona';
 $string['cachedef_wrongcodes'] = 'Códigos mal escritos por WhatsApp, para frenar a quien intenta adivinarlos';
 $string['capmail:body'] = 'Los avisos por WhatsApp de {$a->site} han llegado al tope de {$a->cap} € de este mes. Los que quedan esperan al mes que viene o a que se suba el tope en el asistente de configuración.';
 $string['capmail:subject'] = 'Avisos por WhatsApp de {$a->site}: tope del mes alcanzado';
@@ -365,6 +366,7 @@ $string['privacy:metadata:preference:party'] = 'Las primeras veces del sitio (la
 $string['privacy:metadata:queue'] = 'Los avisos de cada número: en espera, enviados, entregados o no.';
 $string['privacy:metadata:queue:contactid'] = 'El número que lo recibe.';
 $string['privacy:metadata:queue:params'] = 'Los datos del aviso, como un nombre o una fecha.';
+$string['privacy:metadata:queue:rich'] = 'La tarjeta del aviso en Telegram: su título, su lista y su texto';
 $string['privacy:metadata:queue:status'] = 'Si se envió, se entregó o falló.';
 $string['privacy:metadata:queue:timeclicked'] = 'Cuándo se pulsó su botón.';
 $string['privacy:metadata:queue:timesent'] = 'Cuándo se envió.';

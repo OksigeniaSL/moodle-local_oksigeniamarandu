@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0 (2026-11-02)
+
+- `api::notify()` and `api::notify_child()` take a last argument, `array $rich`: on Telegram, the notice goes as a card (a
+  rich message) with its title, image, list, text and the button inside. The image is a URL of the site: Marandu reads it
+  and uploads it once for each bot, so it also works on a site Telegram cannot reach. If Telegram refuses the card, the
+  text of the notice goes. Without it nothing changes, and WhatsApp ignores it.
+- With `local_oksigeniafamily` 0.2.2: the code of a second student from the same chat of Telegram joins the adult the chat
+  already stands for, instead of creating another one.
+
 ## 0.13.6 (2026-11-02)
 
 - An urgent notice, by its plugin or by the site, and one that each person asks for, neither stop at the daily limit nor

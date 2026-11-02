@@ -55,19 +55,38 @@ class family {
         if (!self::available()) {
             return null;
         }
-        // A chat of Telegram has no phone to give the records. A number of WhatsApp is proved: Meta says who writes from it.
-        // The third argument counts from Family 0.2.1 on; an older one ignores it, as PHP does with an argument of more.
+        // A number of WhatsApp is proved: Meta says who writes from it. A chat of Telegram has no phone to give the records,
+        // so they cannot know it by that: the chat says whom it already stands for, and the code of a second student joins
+        // the same adult. Both count from Family 0.2.2 on; an older one ignores them.
         $proved = !telegram::is_chat($phone);
+        $adult = array_filter([
+            'phone' => $proved ? '+' . $phone : '',
+            'firstname' => $name,
+            'adultid' => $proved ? null : self::adult_of_chat($phone),
+        ]);
         try {
-            $adult = \local_oksigeniafamily\api::claim(
-                $code,
-                array_filter(['phone' => $proved ? '+' . $phone : '', 'firstname' => $name]),
-                $proved
-            );
+            $adult = \local_oksigeniafamily\api::claim($code, $adult, $proved);
         } catch (\moodle_exception $e) {
             return null;
         }
         return (int)$adult->id;
+    }
+
+    /**
+     * The adult of the records a chat of Telegram already stands for, the first if there are several. It comes from a link
+     * made before, never from what somebody writes.
+     *
+     * @param string $chat The chat, as Marandu keeps it.
+     * @return int|null The adult.
+     */
+    private static function adult_of_chat(string $chat): ?int {
+        global $DB;
+        $adults = $DB->get_fieldset_sql('SELECT l.itemid
+                                           FROM {' . consent::LINKS . '} l
+                                           JOIN {' . consent::CONTACTS . '} c ON c.id = l.contactid
+                                          WHERE c.phone = ? AND l.component = ?
+                                       ORDER BY l.id', [$chat, self::COMPONENT]);
+        return $adults ? (int)reset($adults) : null;
     }
 
     /**

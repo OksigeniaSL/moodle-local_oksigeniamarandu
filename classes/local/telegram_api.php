@@ -123,6 +123,45 @@ class telegram_api {
     }
 
     /**
+     * Sends a card to a chat: a rich message with the button inside. An image goes up once for each bot: Telegram gives it
+     * an id for the next ones, so a notice for a whole school does not upload it for each person.
+     *
+     * @param string $chatid The chat.
+     * @param array $rich The clean parts of the card (rich::clean()).
+     * @param string|null $url Where the button goes.
+     * @param string $label The label of the button.
+     * @param bool $silent Without sound, for what does not hurry.
+     * @return string The id of the message.
+     */
+    public function send_rich(string $chatid, array $rich, ?string $url = null, string $label = '', bool $silent = false): string {
+        $bytes = empty($rich['image']) ? null : rich::image($rich['image']);
+        $cache = \cache::make('local_oksigeniamarandu', 'telegramphotos');
+        // The id of a file only works for the bot that uploaded it.
+        $key = $bytes === null ? null : sha1(strstr($this->token, ':', true) . ':' . sha1($bytes));
+        $fileid = $key === null ? false : $cache->get($key);
+        $media = $bytes === null ? null : ($fileid ?: 'attach://image');
+        $params = [
+            'chat_id' => $chatid,
+            'rich_message' => ['blocks' => rich::blocks($rich, $media, $url, $label)],
+            'disable_notification' => $silent,
+        ];
+        try {
+            $answer = $bytes === null || $fileid ? $this->call('sendRichMessage', $params)
+                : $this->answer($this->request_file('sendRichMessage', self::fields($params), 'image', $bytes));
+        } catch (api_exception $e) {
+            if ($fileid) {
+                // Perhaps Telegram no longer has it: the next one uploads it again.
+                $cache->delete($key);
+            }
+            throw $e;
+        }
+        if ($key !== null && !$fileid && ($new = self::photo_id($answer))) {
+            $cache->set($key, $new);
+        }
+        return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
      * The menu of the bot, for the phones in a language or for all the rest; only in private chats.
      *
      * @param array $commands Each with command and description.
@@ -154,7 +193,18 @@ class telegram_api {
      * @throws api_exception If Telegram refuses it or cannot be reached.
      */
     protected function call(string $method, array $params = []): array {
-        $answer = json_decode($this->request($method, json_encode($params)), true);
+        return $this->answer($this->request($method, json_encode($params)));
+    }
+
+    /**
+     * What Telegram answered, or the error it gave.
+     *
+     * @param string $body The answer.
+     * @return array The result.
+     * @throws api_exception If Telegram refuses it.
+     */
+    private function answer(string $body): array {
+        $answer = json_decode($body, true);
         if (!is_array($answer)) {
             throw new api_exception('error:unexpected');
         }
@@ -182,5 +232,55 @@ class telegram_api {
             throw new api_exception('error:telegramnetwork', s($curl->error));
         }
         return (string)$answer;
+    }
+
+    /**
+     * Sends a request with a file to Telegram. Kept apart so that the tests can answer for Telegram.
+     *
+     * @param string $method The method.
+     * @param array $fields The parameters, each as text.
+     * @param string $name The name of the file, which the parameters refer to as attach://name.
+     * @param string $bytes The file.
+     * @return string What Telegram answered.
+     * @throws api_exception If Telegram cannot be reached.
+     */
+    protected function request_file(string $method, array $fields, string $name, string $bytes): string {
+        $path = make_request_directory() . '/' . $name;
+        file_put_contents($path, $bytes);
+        $fields[$name] = new \CURLFile($path, (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes), $name);
+        $curl = new \curl();
+        $answer = $curl->post('https://api.telegram.org/bot' . $this->token . '/' . $method, $fields, ['CURLOPT_TIMEOUT' => 60]);
+        if ($curl->get_errno()) {
+            throw new api_exception('error:telegramnetwork', s($curl->error));
+        }
+        return (string)$answer;
+    }
+
+    /**
+     * The parameters of a method as the fields of a form, where what is not text goes as JSON.
+     *
+     * @param array $params The parameters.
+     * @return string[]
+     */
+    private static function fields(array $params): array {
+        return array_map(function ($value) {
+            return is_string($value) ? $value : json_encode($value);
+        }, $params);
+    }
+
+    /**
+     * The id Telegram gave to the photo of a card it has just sent.
+     *
+     * @param array $message The message.
+     * @return string|null The id of its largest size.
+     */
+    private static function photo_id(array $message): ?string {
+        foreach ($message['rich_message']['blocks'] ?? [] as $block) {
+            if (($block['type'] ?? '') === 'photo' && !empty($block['photo'])) {
+                $largest = end($block['photo']);
+                return $largest['file_id'] ?? null;
+            }
+        }
+        return null;
     }
 }

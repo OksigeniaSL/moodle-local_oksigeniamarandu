@@ -27,6 +27,9 @@ namespace local_oksigeniamarandu\local;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class queue {
+    /** The code of a request of Telegram refused for what it has inside, as an error of the client gives it. */
+    private const TELEGRAM_REFUSED = -400;
+
     /** Table of the queue. */
     public const TABLE = 'local_oksigeniamarandu_queue';
 
@@ -67,6 +70,7 @@ class queue {
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @param int|null $now The time, for the tests.
+     * @param array $rich The clean parts of its card on Telegram, if it has one.
      * @return int The id in the queue.
      */
     public static function add(
@@ -76,7 +80,8 @@ class queue {
         ?string $url,
         bool $urgent,
         int $validfor,
-        ?int $now = null
+        ?int $now = null,
+        array $rich = []
     ): int {
         global $DB;
         do {
@@ -88,6 +93,7 @@ class queue {
             'component' => $notice->component,
             'notice' => $notice->notice,
             'params' => json_encode(array_values($params)),
+            'rich' => $rich ? json_encode($rich) : null,
             'url' => $url,
             'token' => $token,
             'urgent' => (int)$urgent,
@@ -162,17 +168,19 @@ class queue {
             $params = json_decode($row->params, true) ?: [];
             $lang = $contact->lang ?: null;
             if ($channel === 'telegram') {
-                // Telegram has no templates and no window: the text of the notice, with its link as a button. It is free.
+                // Telegram has no templates and no window: the notice, with its link as a button. It is free.
                 try {
                     // Without sound if the person asked for it, unless the notice is urgent.
-                    $id = $telegram->send_text(
+                    [$id, $refused] = self::send_telegram(
+                        $telegram,
+                        $row,
+                        $notice,
+                        $params,
                         telegram::chat($contact->phone),
-                        self::render($notice, $params, $lang),
-                        $row->url ? templates::button_url($row->token) : null,
-                        notices::text($notice, 'button', $lang),
+                        $lang,
                         !empty($contact->silent) && !$row->urgent && !in_array($key, $urgent, true)
                     );
-                    self::finish($row, $now, 'sent', 'telegram', 'tg.' . $id);
+                    self::finish($row, $now, 'sent', 'telegram', 'tg.' . $id, $refused);
                     $counts['sent']++;
                     self::unblock('telegram', $wasblocked);
                 } catch (api_exception $e) {
@@ -274,6 +282,45 @@ class queue {
             self::finish($row, $now, 'failed', $kind, null, $e->getMessage(), $e->metacode);
             $counts['failed']++;
         }
+    }
+
+    /**
+     * Sends a notice by Telegram: its card if it has one, or else its text. A card that Telegram refuses for what it has
+     * inside goes as its text, so that a notice is never lost; any other problem would stop the text as well.
+     *
+     * @param telegram_api $telegram The client.
+     * @param \stdClass $row The row of the queue.
+     * @param \stdClass $notice The notice.
+     * @param string[] $params Its values.
+     * @param string $chat The chat.
+     * @param string|null $lang The language of the person.
+     * @param bool $silent Without sound.
+     * @return array The id of the message, and why the card did not go, if it did not.
+     */
+    private static function send_telegram(
+        telegram_api $telegram,
+        \stdClass $row,
+        \stdClass $notice,
+        array $params,
+        string $chat,
+        ?string $lang,
+        bool $silent
+    ): array {
+        $url = $row->url ? templates::button_url($row->token) : null;
+        $label = notices::text($notice, 'button', $lang);
+        $rich = empty($row->rich) ? [] : json_decode($row->rich, true);
+        $refused = null;
+        if ($rich) {
+            try {
+                return [$telegram->send_rich($chat, $rich, $url, $label, $silent), null];
+            } catch (api_exception $e) {
+                if ($e->metacode !== self::TELEGRAM_REFUSED) {
+                    throw $e;
+                }
+                $refused = $e->getMessage();
+            }
+        }
+        return [$telegram->send_text($chat, self::render($notice, $params, $lang), $url, $label, $silent), $refused];
     }
 
     /**

@@ -133,6 +133,33 @@ final class family_test extends \advanced_testcase {
     }
 
     /**
+     * The code of a second student from the same chat goes to the adult the chat stands for, in their family; another chat
+     * is another adult. If that adult left the records, the chat starts again.
+     */
+    public function test_second_code_from_a_chat(): void {
+        $children = [];
+        $adults = [];
+        foreach (['tg:555', 'tg:555', 'tg:556'] as $i => $chat) {
+            $children[$i] = $this->getDataGenerator()->create_user();
+            $code = \local_oksigeniafamily\api::issue_claim_code((int)$children[$i]->id);
+            $this->assertSame('optin', consent::optin_from_message($chat, $code, 'wamid.T' . $i, 'Ana'));
+            $adults[$i] = array_keys(\local_oksigeniafamily\api::adults_of_child((int)$children[$i]->id));
+            $this->assertCount(1, $adults[$i]);
+        }
+        $this->assertSame($adults[0], $adults[1]);
+        $this->assertNotSame($adults[0], $adults[2]);
+        $this->assertSame($adults[0], $this->linked('tg:555'));
+
+        \local_oksigeniafamily\api::remove_adult($adults[0][0]);
+        $last = $this->getDataGenerator()->create_user();
+        $code = \local_oksigeniafamily\api::issue_claim_code((int)$last->id);
+        consent::optin_from_message('tg:555', $code, 'wamid.T9', 'Ana');
+        $again = array_keys(\local_oksigeniafamily\api::adults_of_child((int)$last->id));
+        $this->assertCount(1, $again);
+        $this->assertNotSame($adults[0], $again);
+    }
+
+    /**
      * A number that was only typed on the claim page proves nothing: writing from it does not make it stand for that adult.
      */
     public function test_number_only_typed(): void {

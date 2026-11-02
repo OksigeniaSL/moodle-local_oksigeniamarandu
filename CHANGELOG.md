@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.2 (2026-11-02)
+
+- `api::item_channels()`: where an item of a plugin (a family, for example) gets the notices, and the links to join
+  the channels still to join.
+
 ## 0.13.1 (2026-11-01)
 
 - The icon of Oksigenia Marandu, by the house: "the centre notifies", a speech bubble with a roof and a bell.

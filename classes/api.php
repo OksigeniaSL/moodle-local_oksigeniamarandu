@@ -172,6 +172,19 @@ class api {
     }
 
     /**
+     * The same for an item of a plugin, such as a family of the canteen, to tell whoever it stands for where the notices
+     * reach them and offer the channels still to join. The links carry a code: show them only to whoever the item stands
+     * for, as with signup_url().
+     *
+     * @param string $component The plugin, such as local_oksigeniameals.
+     * @param int $itemid Its item.
+     * @return array By channel, with name, joined, where and url.
+     */
+    public static function item_channels(string $component, int $itemid): array {
+        return self::channel_list($component, $itemid, null);
+    }
+
+    /**
      * Whom a channel list is for, and how they are on each channel.
      *
      * @param string $component The plugin of the links.

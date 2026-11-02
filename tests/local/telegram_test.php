@@ -510,5 +510,17 @@ final class telegram_test extends \advanced_testcase {
         $channels = api::user_channels((int)$user->id);
         $this->assertSame([true, 'Telegram'], [$channels['telegram']['joined'], $channels['telegram']['where']]);
         $this->assertSame('https://wa.me/', substr((string)api::join_url('whatsapp', 'X') ?: 'https://wa.me/', 0, 14));
+
+        // The same for an item of a plugin: the page of a family can say where it is and offer what is left. The link
+        // keeps its code while nobody has used it.
+        $channels = api::item_channels('local_example', 42);
+        $this->assertSame(['telegram'], array_keys($channels));
+        $this->assertFalse($channels['telegram']['joined']);
+        $this->assertSame($channels['telegram']['url'], api::item_channels('local_example', 42)['telegram']['url']);
+        $code = substr($channels['telegram']['url'], strlen('https://t.me/marandu_example_bot?start='));
+        telegram::handle($this->message(559, '/start ' . $code));
+        $channels = api::item_channels('local_example', 42);
+        $this->assertSame([true, 'Telegram'], [$channels['telegram']['joined'], $channels['telegram']['where']]);
+        $this->assertFalse(api::item_channels('local_example', 43)['telegram']['joined']);
     }
 }

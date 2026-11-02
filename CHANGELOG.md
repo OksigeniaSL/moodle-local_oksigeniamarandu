@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.3 (2026-11-02)
+
+- The texts speak of people, not of families, wherever the notices can be for anybody: an academy or a company fits too.
+  The family records keep their name where they are the subject.
+
 ## 0.13.2 (2026-11-02)
 
 - `api::item_channels()`: where an item of a plugin (a family, for example) gets the notices, and the links to join

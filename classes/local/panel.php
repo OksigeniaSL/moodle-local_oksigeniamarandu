@@ -332,7 +332,7 @@ class panel {
                 continue;
             }
             $notice = notices::get($row->component, $row->notice);
-            if ($quiet && queue::waits_for_quiet($row, $notice, $urgent)) {
+            if ($quiet && queue::can_wait($row, $notice, $urgent)) {
                 $add('quiet', 'quiet', $quietend);
                 continue;
             }

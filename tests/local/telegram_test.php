@@ -444,7 +444,8 @@ final class telegram_test extends \advanced_testcase {
         }
         $child = $this->getDataGenerator()->create_user(['firstname' => 'Lucas', 'lastname' => 'Ejemplo']);
         $familyid = \local_oksigeniafamily\api::create_family('csv');
-        $adultid = \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Ana', 'phone' => '+34600111222']);
+        $adultid = \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Ana', 'phone' => '+34600111222',
+            'phoneverified' => true]);
         \local_oksigeniafamily\api::add_child($familyid, (int)$child->id);
 
         $update = function (array $message): array {

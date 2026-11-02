@@ -342,16 +342,17 @@ final class queue_test extends \advanced_testcase {
     }
 
     /**
-     * The quiet hours hold back a notice unless it is urgent, by the plugin or by the site, or each person asks for it.
+     * The quiet hours and the notices a day hold back a notice unless it is urgent, by the plugin or by the site, or each
+     * person asks for it.
      */
-    public function test_waits_for_quiet(): void {
+    public function test_can_wait(): void {
         $row = (object)['component' => 'local_example', 'notice' => 'tomorrow', 'urgent' => 0];
         $notice = (object)['askedfor' => false];
-        $this->assertTrue(queue::waits_for_quiet($row, $notice, []));
-        $this->assertTrue(queue::waits_for_quiet($row, null, []));
-        $this->assertFalse(queue::waits_for_quiet($row, $notice, ['local_example/tomorrow']));
-        $this->assertFalse(queue::waits_for_quiet((object)(['urgent' => 1] + (array)$row), $notice, []));
-        $this->assertFalse(queue::waits_for_quiet($row, (object)['askedfor' => true], []));
+        $this->assertTrue(queue::can_wait($row, $notice, []));
+        $this->assertTrue(queue::can_wait($row, null, []));
+        $this->assertFalse(queue::can_wait($row, $notice, ['local_example/tomorrow']));
+        $this->assertFalse(queue::can_wait((object)(['urgent' => 1] + (array)$row), $notice, []));
+        $this->assertFalse(queue::can_wait($row, (object)['askedfor' => true], []));
         $this->assertFalse(notices::get('local_oksigeniamarandu', 'notification')->askedfor);
     }
 
@@ -393,6 +394,33 @@ final class queue_test extends \advanced_testcase {
         $counts = queue::process($this->fake_api(), self::WEDNESDAY);
 
         $this->assertSame([2, 1], [$counts['sent'], $counts['waiting']]);
+    }
+
+    /**
+     * What is urgent, by the plugin or by the site, neither stops at the notices a day nor counts for them.
+     */
+    public function test_urgent_over_the_notices_a_day(): void {
+        set_config('capfamily', 1, 'local_oksigeniamarandu');
+        $this->approve();
+        $this->family('34600000001');
+        $api = $this->fake_api();
+
+        // The urgent one does not use up the only one of the day.
+        $this->notify(42, true);
+        $this->notify();
+        $counts = queue::process($api, self::WEDNESDAY);
+        $this->assertSame([2, 0], [$counts['sent'], $counts['waiting']]);
+
+        // With the day used up, an urgent one still goes out and another one waits.
+        $this->notify();
+        $this->notify(42, true);
+        $counts = queue::process($api, self::WEDNESDAY);
+        $this->assertSame([1, 1], [$counts['sent'], $counts['waiting']]);
+
+        // The site marks it as urgent: it does not wait any longer.
+        set_config('urgentnotices', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
+        $counts = queue::process($api, self::WEDNESDAY);
+        $this->assertSame([1, 0], [$counts['sent'], $counts['waiting']]);
     }
 
     /**

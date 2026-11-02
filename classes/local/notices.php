@@ -41,8 +41,8 @@ namespace local_oksigeniamarandu\local;
  *
  * The examples are the values Meta sees when it reviews the text: made up, one for each {{n}}. Perweek is how many of
  * these notices a family gets in a usual week, to estimate the cost. With 'askedfor' => true, each person asks for the
- * notice at a time they choose: the quiet hours do not hold it back, and it is not urgent, so it keeps the choice of
- * notices without sound.
+ * notice at a time they choose: the quiet hours do not hold it back and it does not count for the notices a day. It is
+ * not urgent, so it keeps the choice of notices without sound.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.13.6 (2026-11-02)
+
+- An urgent notice, by its plugin or by the site, and one that each person asks for, neither stop at the daily limit nor
+  count towards it: a family that asked for three menus still hears at once that a dish changed. The page of the limits
+  says so.
+- With `local_oksigeniafamily` 0.2.1: WhatsApp vouches for the number that writes a student's code, so it goes to the
+  adult who has that number instead of creating another one each time. A number only typed on its claim page stands for
+  nobody until the school confirms it.
+- The daily check of the family records no longer drops what joined with the adult's own code (`api::adult_channels()`)
+  when the records have another number, or none. It stays until the adult leaves.
+
 ## 0.13.5 (2026-11-02)
 
 - On Telegram, a notice of several lines goes with its first line in bold. WhatsApp does not change.

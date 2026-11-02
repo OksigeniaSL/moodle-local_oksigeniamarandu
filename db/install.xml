@@ -36,6 +36,7 @@
         <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="core" SEQUENCE="false" COMMENT="Plugin that asked for the link"/>
         <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Item of that plugin, such as a family"/>
         <FIELD NAME="code" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="Code the family writes after the opt-in keyword"/>
+        <FIELD NAME="bynumber" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether it stands because the family records say the number is that adult's, not because of a code"/>
         <FIELD NAME="timeclaimed" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>

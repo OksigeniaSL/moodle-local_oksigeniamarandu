@@ -55,7 +55,8 @@ final class family_test extends \advanced_testcase {
     private function family(string $phone): array {
         $child = $this->getDataGenerator()->create_user();
         $familyid = \local_oksigeniafamily\api::create_family('csv');
-        $adultid = \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Lucía', 'phone' => $phone]);
+        $adultid = \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Lucía', 'phone' => $phone,
+            'phoneverified' => true]);
         \local_oksigeniafamily\api::add_child($familyid, (int)$child->id);
         return [$child, $adultid];
     }
@@ -88,6 +89,85 @@ final class family_test extends \advanced_testcase {
         $this->assertCount(1, $adults);
         $this->assertSame('+34600000001', reset($adults)->phone);
         $this->assertSame(array_keys($adults), $this->linked('34600000001'));
+    }
+
+    /**
+     * WhatsApp proves the number: the code of a second student from the same number goes to the same adult, and an adult
+     * the school has with that number is the one who joins.
+     */
+    public function test_claim_proves_the_number(): void {
+        global $DB;
+        $first = $this->getDataGenerator()->create_user();
+        $second = $this->getDataGenerator()->create_user();
+        $code = \local_oksigeniafamily\api::issue_claim_code((int)$first->id);
+        $this->assertSame('optin', consent::optin_from_message('34600000001', $code, 'wamid.A', 'Lucía'));
+        $code = \local_oksigeniafamily\api::issue_claim_code((int)$second->id);
+        $this->assertSame('optin', consent::optin_from_message('34600000001', $code, 'wamid.B', 'Lucía'));
+
+        $adults = \local_oksigeniafamily\api::adults_of_child((int)$first->id);
+        $this->assertCount(1, $adults);
+        $this->assertSame(array_keys($adults), array_keys(\local_oksigeniafamily\api::adults_of_child((int)$second->id)));
+        $this->assertEquals(1, $DB->get_field('local_oksigeniafamily_adult', 'phoneverified', ['id' => key($adults)]));
+        $this->assertSame(array_keys($adults), $this->linked('34600000001'));
+        // The daily check keeps it: the number is theirs.
+        $this->assertSame(0, family::check());
+
+        [, $adultid] = $this->family('+34600000002');
+        $third = $this->getDataGenerator()->create_user();
+        $code = \local_oksigeniafamily\api::issue_claim_code((int)$third->id);
+        consent::optin_from_message('34600000002', $code, 'wamid.C');
+        $this->assertSame([$adultid], array_keys(\local_oksigeniafamily\api::adults_of_child((int)$third->id)));
+        $this->assertSame(2, $DB->count_records('local_oksigeniafamily_adult'));
+    }
+
+    /**
+     * A chat of Telegram gives the records no phone, and so vouches for none.
+     */
+    public function test_claim_from_a_chat(): void {
+        global $DB;
+        $child = $this->getDataGenerator()->create_user();
+        $code = \local_oksigeniafamily\api::issue_claim_code((int)$child->id);
+        $adult = $DB->get_record('local_oksigeniafamily_adult', ['id' => family::claim('tg:555', $code, 'Ana')]);
+        $this->assertEmpty($adult->phone);
+        $this->assertEquals(0, $adult->phoneverified);
+    }
+
+    /**
+     * A number that was only typed on the claim page proves nothing: writing from it does not make it stand for that adult.
+     */
+    public function test_number_only_typed(): void {
+        $familyid = \local_oksigeniafamily\api::create_family('claim');
+        \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Ana', 'phone' => '+34600000002']);
+        $this->assertSame('optin', consent::optin_from_message('34600000002', null, 'wamid.B'));
+        $this->assertSame([], $this->linked('34600000002'));
+    }
+
+    /**
+     * What joins with the adult's own code stays, whatever number the records have, until the adult leaves.
+     */
+    public function test_own_code_stays(): void {
+        // With another number in the records, and with one only typed, which the records do not count.
+        [$child, $adultid] = $this->family('+34600000002');
+        $familyid = \local_oksigeniafamily\api::create_family('claim');
+        $typed = \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Ana', 'phone' => '+34600000003']);
+        consent::optin_from_message('34600000008', api::invite(family::COMPONENT, $adultid), 'wamid.G');
+        consent::optin_from_message('34600000003', api::invite(family::COMPONENT, $typed), 'wamid.H');
+        $this->assertSame(0, family::check());
+        $this->assertSame([$adultid], $this->linked('34600000008'));
+        $this->assertSame([$typed], $this->linked('34600000003'));
+        $this->assertSame(1, api::notify_child(
+            'local_oksigeniamarandu',
+            'notification',
+            ['Colegio Ejemplo', 'Reunión'],
+            null,
+            (int)$child->id
+        ));
+
+        // Changing the records' number does not touch it; the adult leaving does.
+        \local_oksigeniafamily\api::update_adult($adultid, ['phone' => '+34600000009']);
+        $this->assertSame([$adultid], $this->linked('34600000008'));
+        \local_oksigeniafamily\api::remove_adult($adultid);
+        $this->assertSame([], $this->linked('34600000008'));
     }
 
     /**

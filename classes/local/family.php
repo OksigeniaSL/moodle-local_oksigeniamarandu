@@ -19,10 +19,12 @@ namespace local_oksigeniamarandu\local;
 /**
  * The family records of Oksigenia Family (local_oksigeniafamily), when the site has them.
  *
- * A number that joins with a student's code, or that the school already has for an adult, stands for that adult; the
- * notices about a student reach the numbers of the student's adults. When an adult leaves the records or changes their
- * phone, the old number stops standing for them. Being in the records never makes a number receive anything: only
- * writing the opt-in word does. Marandu works the same without the records.
+ * A number that joins with a student's code, or that the records know to be an adult's, stands for that adult; a number
+ * only typed on the claim page of the records proves nothing. So does whatever joins with the adult's own code, from the
+ * pages of channels. The notices about a student reach what stands for the student's adults. When an adult leaves the
+ * records, nothing stands for them; when their phone changes, the old number stops if it stood because of being theirs.
+ * Being in the records never makes a number receive anything: only writing the opt-in word does. Marandu works the same
+ * without the records.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -53,10 +55,15 @@ class family {
         if (!self::available()) {
             return null;
         }
-        // A chat of Telegram has no phone to give the records.
-        $phone = telegram::is_chat($phone) ? '' : '+' . $phone;
+        // A chat of Telegram has no phone to give the records. A number of WhatsApp is proved: Meta says who writes from it.
+        // The third argument counts from Family 0.2.1 on; an older one ignores it, as PHP does with an argument of more.
+        $proved = !telegram::is_chat($phone);
         try {
-            $adult = \local_oksigeniafamily\api::claim($code, array_filter(['phone' => $phone, 'firstname' => $name]));
+            $adult = \local_oksigeniafamily\api::claim(
+                $code,
+                array_filter(['phone' => $proved ? '+' . $phone : '', 'firstname' => $name]),
+                $proved
+            );
         } catch (\moodle_exception $e) {
             return null;
         }
@@ -64,7 +71,7 @@ class family {
     }
 
     /**
-     * The adults of the records with a number.
+     * The adults of the records whose number this is known to be: the records do not count one that was only typed.
      *
      * @param string $phone Digits with the country code.
      * @return int[]
@@ -77,7 +84,7 @@ class family {
     }
 
     /**
-     * Makes a number stand for adults of the records, once each.
+     * Makes a number stand for adults of the records, once each, because the records say it is theirs.
      *
      * @param int $contactid The contact.
      * @param int[] $adultids The adults.
@@ -95,6 +102,7 @@ class family {
             } while ($DB->record_exists(consent::LINKS, ['code' => $code]));
             $DB->insert_record(consent::LINKS, (object)($params + [
                 'code' => $code,
+                'bynumber' => 1,
                 'timeclaimed' => $now,
                 'timecreated' => $now,
             ]));
@@ -126,8 +134,9 @@ class family {
     }
 
     /**
-     * Drops the links of adults that no longer have that number in the records: they left, their family closed, or
-     * their phone changed (and the old number may belong to somebody else by now).
+     * Drops the links that stood because of the number, for adults that no longer have it in the records: they left, their
+     * family closed, or their phone changed (and the old number may belong to somebody else by now). What joined with the
+     * adult's own code may be another number than the one in the records, and stays until the adult leaves (adult_changed).
      *
      * @param int[]|null $adultids Only these adults; all if null.
      * @return int How many links were dropped.
@@ -137,7 +146,7 @@ class family {
         if (!self::available() || $adultids === []) {
             return 0;
         }
-        $where = 'l.component = :component';
+        $where = 'l.component = :component AND l.bynumber = 1';
         $params = ['component' => self::COMPONENT];
         if ($adultids !== null) {
             [$insql, $inparams] = $DB->get_in_or_equal($adultids, SQL_PARAMS_NAMED);

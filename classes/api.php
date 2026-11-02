@@ -287,8 +287,9 @@ class api {
     /**
      * Queues a notice for everyone who joined for an item of a plugin, or for a user.
      *
-     * It goes out when it can: with its template approved, out of the quiet hours (unless it is urgent) and within the
-     * limits of the site. Inside the 24 hours after a family last wrote, it goes as plain text, which is free.
+     * It goes out when it can: with its template approved, within the limit of the month and, unless it is urgent, out of
+     * the quiet hours and within the notices a day. Inside the 24 hours after a family last wrote, it goes as plain text,
+     * which is free.
      *
      * @param string $component The plugin that declares the notice.
      * @param string $notice The notice.
@@ -296,7 +297,7 @@ class api {
      * @param \moodle_url|null $url Where its button goes, on this site.
      * @param int $itemid The item of the plugin, such as a family; 0 if the notice is for a user.
      * @param int|null $userid The user, if it is for a user: then every number linked to the user gets it.
-     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @return int How many numbers it was queued for.
      */
@@ -335,7 +336,7 @@ class api {
      * @param string[] $params One value for each {{n}} of its text, in order; plain text.
      * @param \moodle_url|null $url Where its button goes, on this site.
      * @param int $childuserid The student.
-     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @return int How many numbers it was queued for.
      */
@@ -416,7 +417,7 @@ class api {
      * @param \stdClass $declared The notice.
      * @param string[] $params Its values.
      * @param \moodle_url|null $url Where its button goes.
-     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @return int How many.
      */

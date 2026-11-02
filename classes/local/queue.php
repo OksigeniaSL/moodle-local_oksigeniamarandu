@@ -64,7 +64,7 @@ class queue {
      * @param \stdClass $notice The notice.
      * @param string[] $params Values of the template.
      * @param string|null $url Where the button goes, on this site.
-     * @param bool $urgent Whether it goes out in the quiet hours too.
+     * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @param int|null $now The time, for the tests.
      * @return int The id in the queue.
@@ -150,11 +150,12 @@ class queue {
                 $counts['waiting']++;
                 continue;
             }
-            if ($quiet && self::waits_for_quiet($row, $notice, $urgent)) {
+            $canwait = self::can_wait($row, $notice, $urgent);
+            if ($quiet && $canwait) {
                 $counts['waiting']++;
                 continue;
             }
-            if ($perday > 0 && self::sent_today($contact->id, $now) >= $perday) {
+            if ($canwait && $perday > 0 && self::sent_today($contact->id, $now, $urgent) >= $perday) {
                 $counts['waiting']++;
                 continue;
             }
@@ -419,15 +420,16 @@ class queue {
     }
 
     /**
-     * Whether the quiet hours hold a notice back: not if it is urgent, by the plugin or by the site, nor if each person
-     * asks for it at a time they choose.
+     * Whether the quiet hours and the notices a day hold a notice back: not if it is urgent, by the plugin or by the site,
+     * nor if each person asks for it at a time they choose. A notice that cannot wait does not count for the notices a day
+     * either: a family that asked for three menus still hears at once that a dish changed.
      *
      * @param \stdClass $row The row of the queue.
      * @param \stdClass|null $notice The notice, if it is still declared.
      * @param string[] $urgent The notices the site marked as urgent.
      * @return bool
      */
-    public static function waits_for_quiet(\stdClass $row, ?\stdClass $notice, array $urgent): bool {
+    public static function can_wait(\stdClass $row, ?\stdClass $notice, array $urgent): bool {
         $key = $row->component . '/' . $row->notice;
         return !$row->urgent && !in_array($key, $urgent, true) && empty($notice->askedfor);
     }
@@ -507,22 +509,28 @@ class queue {
     }
 
     /**
-     * How many notices a number has received today.
+     * How many notices a number has received today, of those that count for the notices a day.
      *
      * @param int $contactid The contact.
      * @param int $now The time.
+     * @param string[] $urgent The notices the site marked as urgent.
      * @return int
      */
-    private static function sent_today(int $contactid, int $now): int {
+    private static function sent_today(int $contactid, int $now, array $urgent): int {
         global $DB;
         $start = new \DateTime('@' . $now);
         $start->setTimezone(\core_date::get_server_timezone_object());
         $start->modify('midnight');
-        return $DB->count_records_select(
+        $rows = $DB->get_records_select(
             self::TABLE,
-            "contactid = ? AND timesent >= ? AND status <> 'failed'",
-            [$contactid, $start->getTimestamp()]
+            "contactid = ? AND timesent >= ? AND status <> 'failed' AND urgent = 0",
+            [$contactid, $start->getTimestamp()],
+            '',
+            'id, component, notice, urgent'
         );
+        return count(array_filter($rows, function ($row) use ($urgent) {
+            return self::can_wait($row, notices::get($row->component, $row->notice), $urgent);
+        }));
     }
 
     /**

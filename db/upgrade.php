@@ -139,5 +139,23 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110600, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110606) {
+        // 0.13.6. The daily check of the family records only looks at the links that stand because of the number; those
+        // that joined with the adult's own code stay. The former were created already claimed.
+        $table = new xmldb_table('local_oksigeniamarandu_link');
+        $field = new xmldb_field('bynumber', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'code');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $DB->set_field_select(
+            'local_oksigeniamarandu_link',
+            'bynumber',
+            1,
+            'component = ? AND timeclaimed = timecreated',
+            ['local_oksigeniafamily']
+        );
+        upgrade_plugin_savepoint(true, 2026110606, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

@@ -291,7 +291,10 @@ final class panel_test extends \advanced_testcase {
         $this->assertSame([[notices::text($notice), 0, 'general']], array_map(function ($item) {
             return [$item->name, $item->count, $item->icon];
         }, panel::bynotice(self::WEDNESDAY)->on));
-        $this->assertSame([], panel::bynotice(self::WEDNESDAY)->off);
+        // Other plugins of the site may declare notices of their own, switched off here.
+        $this->assertSame([], array_filter(panel::bynotice(self::WEDNESDAY)->off, function ($item) {
+            return $item->component === 'local_oksigeniamarandu';
+        }));
         $this->assertSame(get_string('marandu:notification_label', 'local_oksigeniamarandu'), notices::label($notice));
 
         $contact = $this->family('34600000001');
@@ -303,7 +306,12 @@ final class panel_test extends \advanced_testcase {
 
         // Switched off for every channel and not sent this month: apart.
         set_config('enablednotices', '', 'local_oksigeniamarandu');
-        $this->assertSame(1, count(panel::bynotice(self::WEDNESDAY + 40 * DAYSECS)->off));
+        $this->assertSame(['local_oksigeniamarandu/notification'], array_values(array_filter(
+            array_column(panel::bynotice(self::WEDNESDAY + 40 * DAYSECS)->off, 'key'),
+            function ($key) {
+                return str_starts_with($key, 'local_oksigeniamarandu/');
+            }
+        )));
     }
 
     /**

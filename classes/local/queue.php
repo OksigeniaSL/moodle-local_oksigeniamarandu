@@ -150,7 +150,7 @@ class queue {
                 $counts['waiting']++;
                 continue;
             }
-            if ($quiet && !$row->urgent && !in_array($key, $urgent, true)) {
+            if ($quiet && self::waits_for_quiet($row, $notice, $urgent)) {
                 $counts['waiting']++;
                 continue;
             }
@@ -416,6 +416,20 @@ class queue {
             $text = str_replace('{{' . ($i + 1) . '}}', $value, $text);
         }
         return $text;
+    }
+
+    /**
+     * Whether the quiet hours hold a notice back: not if it is urgent, by the plugin or by the site, nor if each person
+     * asks for it at a time they choose.
+     *
+     * @param \stdClass $row The row of the queue.
+     * @param \stdClass|null $notice The notice, if it is still declared.
+     * @param string[] $urgent The notices the site marked as urgent.
+     * @return bool
+     */
+    public static function waits_for_quiet(\stdClass $row, ?\stdClass $notice, array $urgent): bool {
+        $key = $row->component . '/' . $row->notice;
+        return !$row->urgent && !in_array($key, $urgent, true) && empty($notice->askedfor);
     }
 
     /**

@@ -342,6 +342,20 @@ final class queue_test extends \advanced_testcase {
     }
 
     /**
+     * The quiet hours hold back a notice unless it is urgent, by the plugin or by the site, or each person asks for it.
+     */
+    public function test_waits_for_quiet(): void {
+        $row = (object)['component' => 'local_example', 'notice' => 'tomorrow', 'urgent' => 0];
+        $notice = (object)['askedfor' => false];
+        $this->assertTrue(queue::waits_for_quiet($row, $notice, []));
+        $this->assertTrue(queue::waits_for_quiet($row, null, []));
+        $this->assertFalse(queue::waits_for_quiet($row, $notice, ['local_example/tomorrow']));
+        $this->assertFalse(queue::waits_for_quiet((object)(['urgent' => 1] + (array)$row), $notice, []));
+        $this->assertFalse(queue::waits_for_quiet($row, (object)['askedfor' => true], []));
+        $this->assertFalse(notices::get('local_oksigeniamarandu', 'notification')->askedfor);
+    }
+
+    /**
      * In the quiet hours and days only urgent notices go out; the rest wait, and expire if they wait too long.
      */
     public function test_quiet_hours(): void {

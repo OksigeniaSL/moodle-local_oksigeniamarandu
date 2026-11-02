@@ -331,7 +331,8 @@ class panel {
                 $add('retry', 'retry', (int)$row->timeretry);
                 continue;
             }
-            if ($quiet && !$row->urgent && !in_array($key, $urgent, true)) {
+            $notice = notices::get($row->component, $row->notice);
+            if ($quiet && queue::waits_for_quiet($row, $notice, $urgent)) {
                 $add('quiet', 'quiet', $quietend);
                 continue;
             }
@@ -341,7 +342,6 @@ class panel {
                 $add('now', 'now');
                 continue;
             }
-            $notice = notices::get($row->component, $row->notice);
             $lang = $contact->lang ?? '';
             if (!isset($approved[$key . '|' . $lang])) {
                 $approved[$key . '|' . $lang] = $notice && templates::approved($notice, $lang ?: null);

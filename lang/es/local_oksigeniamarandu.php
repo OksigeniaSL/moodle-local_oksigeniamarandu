@@ -547,6 +547,7 @@ $string['wizard:error:nosecret'] = 'Pega la clave secreta de la app: sin ella el
 $string['wizard:error:notoken'] = 'Pega el token de acceso.';
 $string['wizard:hookbad'] = 'Meta aún no ha llamado a la dirección. Mira que pulsaste «Verificar y guardar» y que «messages» está suscrito.';
 $string['wizard:hookok'] = 'Meta ya habla con Marandu.';
+$string['wizard:limits:askedfor'] = 'No esperan al silencio, porque cada persona los pide a la hora que elige: {$a}.';
 $string['wizard:limits:bademail'] = 'Ese correo no parece válido.';
 $string['wizard:limits:cap1'] = 'No gastar más de';
 $string['wizard:limits:cap2'] = '€ al mes. Si se llega, Marandu para los envíos y avisa a';

@@ -327,6 +327,10 @@ final class panel_test extends \advanced_testcase {
         // Only Telegram has it, and only WhatsApp is ready: nothing goes out.
         $this->assertFalse(notices::any_on());
         $this->assertSame('choose', panel::state(self::WEDNESDAY)->kind);
+        $this->assertTrue(api::notices_on('local_oksigeniamarandu', 'telegram'));
+        $this->assertFalse(api::notices_on('local_oksigeniamarandu', 'whatsapp'));
+        $this->assertFalse(api::notices_on('local_example', 'telegram'));
+        $this->assertFalse(api::notices_on('local_oksigeniamarandu', 'sms'));
         $group = notices::group('local_oksigeniamarandu');
         $this->assertSame(['Marandu', get_string('pluginname', 'local_oksigeniamarandu')], [$group->title, $group->name]);
     }

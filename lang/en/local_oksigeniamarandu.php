@@ -547,6 +547,7 @@ $string['wizard:error:nosecret'] = 'Paste the app secret: without it the site ca
 $string['wizard:error:notoken'] = 'Paste the access token.';
 $string['wizard:hookbad'] = 'Meta has not called the address yet. Check that you pressed «Verify and save» and that «messages» is subscribed.';
 $string['wizard:hookok'] = 'Meta is already talking to Marandu.';
+$string['wizard:limits:askedfor'] = 'These do not wait for the quiet hours, because each person asks for them at the time they choose: {$a}.';
 $string['wizard:limits:bademail'] = 'That email does not look right.';
 $string['wizard:limits:cap1'] = 'Do not spend more than';
 $string['wizard:limits:cap2'] = '€ a month. If it is reached, Marandu stops sending and tells';

@@ -172,6 +172,26 @@ class api {
     }
 
     /**
+     * Whether a plugin has any notice switched on for a channel: if not, whoever joins that channel gets nothing from it.
+     * The site switches them on in notices.php.
+     *
+     * @param string $component The plugin.
+     * @param string $channel whatsapp or telegram.
+     * @return bool
+     */
+    public static function notices_on(string $component, string $channel): bool {
+        if (!isset(notices::SETTING[$channel])) {
+            return false;
+        }
+        foreach (array_intersect(notices::enabled($channel), array_keys(notices::all())) as $key) {
+            if (strpos($key, $component . '/') === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * The same for an item of a plugin, such as a family of the canteen, to tell whoever it stands for where the notices
      * reach them and offer the channels still to join. The links carry a code: show them only to whoever the item stands
      * for, as with signup_url().

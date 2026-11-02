@@ -23,13 +23,13 @@
     Context variables required for this template:
     * formurl, sesskey, submit - The form and the label of its button.
     * money, capmonth, capemail, capemailerror - The money of a month, with WhatsApp.
-    * capfamily, quietfrom, quietto, days, urgent, hasurgent - For every channel.
+    * capfamily, quietfrom, quietto, days, urgent, hasurgent, askedfor - For every channel.
 
     Example context (json):
     {
         "formurl": "#", "sesskey": "abc", "submit": "Save", "money": false, "capmonth": "10", "capemail": "",
         "capemailerror": "", "capfamily": 3, "quietfrom": "20:00", "quietto": "08:00",
-        "days": [{"value": 6, "label": "S", "name": "Saturday", "on": true}], "urgent": [], "hasurgent": false
+        "days": [{"value": 6, "label": "S", "name": "Saturday", "on": true}], "urgent": [], "hasurgent": false, "askedfor": ""
     }
 }}
     <form method="post" action="{{formurl}}" class="mrd-sentences">
@@ -52,5 +52,6 @@
         <p class="mrd-sub">{{#str}} wizard:limits:urgent, local_oksigeniamarandu {{/str}}
             {{#urgent}}<input type="checkbox" class="mrd-chipcheck" id="mrd-u-{{key}}" name="urgent[]" value="{{key}}" {{#on}}checked{{/on}}><label for="mrd-u-{{key}}">{{name}}</label> {{/urgent}}</p>
         {{/hasurgent}}
+        {{#askedfor}}<p class="mrd-sub">{{askedfor}}</p>{{/askedfor}}
         <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{submit}}</button></div>
     </form>

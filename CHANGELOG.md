@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.4 (2026-11-02)
+
+- A plugin can declare a notice with `'askedfor' => true`: each person asks for it at a time they choose, so the quiet
+  hours do not hold it back. It is not urgent, so it keeps the choice of notices without sound. The page of the limits
+  says which ones are.
+- `api::notices_on()`: whether a plugin has any notice switched on for a channel, so that it does not offer a channel
+  by which nothing would reach the person.
+
 ## 0.13.3 (2026-11-02)
 
 - The texts speak of people, not of families, wherever the notices can be for anybody: an academy or a company fits too.

@@ -100,7 +100,12 @@ class limits {
             ];
         }
         $urgentrows = [];
+        $askedfor = [];
         foreach (self::switchedon() as $key) {
+            if ($all[$key]->askedfor) {
+                $askedfor[] = notices::text($all[$key]);
+                continue;
+            }
             $urgentrows[] = ['key' => $key, 'name' => notices::text($all[$key]), 'on' => in_array($key, $urgent, true)];
         }
         return [
@@ -113,6 +118,7 @@ class limits {
             'days' => $daynames,
             'urgent' => $urgentrows,
             'hasurgent' => !empty($urgentrows),
+            'askedfor' => $askedfor ? get_string('wizard:limits:askedfor', $component, implode(', ', $askedfor)) : '',
             'capemailerror' => $errors['capemail'] ?? '',
         ];
     }

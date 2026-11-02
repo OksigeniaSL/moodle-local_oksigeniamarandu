@@ -40,7 +40,9 @@ namespace local_oksigeniamarandu\local;
  *     $string['marandu:item'] = 'a family of the canteen';     // Under whom a number stands for, in the list.
  *
  * The examples are the values Meta sees when it reviews the text: made up, one for each {{n}}. Perweek is how many of
- * these notices a family gets in a usual week, to estimate the cost.
+ * these notices a family gets in a usual week, to estimate the cost. With 'askedfor' => true, each person asks for the
+ * notice at a time they choose: the quiet hours do not hold it back, and it is not urgent, so it keeps the choice of
+ * notices without sound.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -50,7 +52,7 @@ class notices {
     /**
      * Every notice declared on the site, by "component/notice".
      *
-     * @return \stdClass[] Each with component, notice, key, examples and perweek.
+     * @return \stdClass[] Each with component, notice, key, examples, perweek and askedfor.
      */
     public static function all(): array {
         $all = [];
@@ -67,6 +69,7 @@ class notices {
                         'key' => $component . '/' . $notice,
                         'examples' => array_map('strval', array_values((array)($definition['examples'] ?? []))),
                         'perweek' => max(0.0, (float)($definition['perweek'] ?? 1)),
+                        'askedfor' => !empty($definition['askedfor']),
                     ];
                 }
             }

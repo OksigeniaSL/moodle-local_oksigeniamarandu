@@ -102,12 +102,19 @@ class telegram_api {
      * @return string The id of the message.
      */
     public function send_text(string $chatid, string $text, ?string $url = null, string $label = '', bool $silent = false): string {
+        $text = \core_text::substr($text, 0, 4096);
         $params = [
             'chat_id' => $chatid,
-            'text' => \core_text::substr($text, 0, 4096),
+            'text' => $text,
             'link_preview_options' => ['is_disabled' => true],
             'disable_notification' => $silent,
         ];
+        // With several lines, the first one is the title, in bold. Entities need nothing escaped; Telegram measures in UTF-16.
+        $first = strstr($text, "\n", true);
+        if ($first !== false && trim($first) !== '') {
+            $length = intdiv(strlen(mb_convert_encoding($first, 'UTF-16LE', 'UTF-8')), 2);
+            $params['entities'] = [['type' => 'bold', 'offset' => 0, 'length' => $length]];
+        }
         if ($url !== null) {
             $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $url]]]];
         }

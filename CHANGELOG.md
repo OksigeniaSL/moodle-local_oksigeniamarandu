@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.5 (2026-11-02)
+
+- On Telegram, a notice of several lines goes with its first line in bold. WhatsApp does not change.
+
 ## 0.13.4 (2026-11-02)
 
 - A plugin can declare a notice with `'askedfor' => true`: each person asks for it at a time they choose, so the quiet

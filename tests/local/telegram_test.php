@@ -494,6 +494,35 @@ final class telegram_test extends \advanced_testcase {
     }
 
     /**
+     * A text of several lines goes with its first line in bold, measured in UTF-16; one of a single line, as it is.
+     */
+    public function test_first_line_in_bold(): void {
+        $api = new class ('123456789:fake') extends telegram_api {
+            /** @var array What each call sent. */
+            public $bodies = [];
+
+            /**
+             * Keeps what would go to Telegram.
+             *
+             * @param string $method The method.
+             * @param string $body Its parameters.
+             * @return string
+             */
+            protected function request(string $method, string $body): string {
+                $this->bodies[] = json_decode($body, true);
+                return '{"ok":true,"result":{"message_id":1}}';
+            }
+        };
+        $api->send_text('555', "Menú 🍝 de mañana\nLeo come sopa.\nPuedes cambiarlo en el enlace.");
+        // The 🍝 takes two units of UTF-16, and the rest one each.
+        $this->assertSame([['type' => 'bold', 'offset' => 0, 'length' => 17]], $api->bodies[0]['entities']);
+        $api->send_text('555', 'Una sola línea');
+        $this->assertArrayNotHasKey('entities', $api->bodies[1]);
+        $api->send_text('555', "\nEmpieza en blanco");
+        $this->assertArrayNotHasKey('entities', $api->bodies[2]);
+    }
+
+    /**
      * The channels of the site, and how a user is on each, for a screen that lets them choose.
      */
     public function test_channels(): void {

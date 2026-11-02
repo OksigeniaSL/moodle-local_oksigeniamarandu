@@ -71,6 +71,8 @@ class queue {
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @param int|null $now The time, for the tests.
      * @param array $rich The clean parts of its card on Telegram, if it has one.
+     * @param string|null $ref For a question, what the plugin needs to know it again when it is answered.
+     * @param int $itemid For a question, the item of the plugin it goes to.
      * @return int The id in the queue.
      */
     public static function add(
@@ -81,7 +83,9 @@ class queue {
         bool $urgent,
         int $validfor,
         ?int $now = null,
-        array $rich = []
+        array $rich = [],
+        ?string $ref = null,
+        int $itemid = 0
     ): int {
         global $DB;
         do {
@@ -94,6 +98,8 @@ class queue {
             'notice' => $notice->notice,
             'params' => json_encode(array_values($params)),
             'rich' => $rich ? json_encode($rich) : null,
+            'ref' => $ref,
+            'itemid' => $itemid,
             'url' => $url,
             'token' => $token,
             'urgent' => (int)$urgent,
@@ -201,19 +207,22 @@ class queue {
                 continue;
             }
             try {
+                $question = !empty($row->ref) && $notice->options;
                 if ($free) {
                     $text = self::render($notice, $params, $lang);
                     if ($row->url) {
                         $text .= "\n" . templates::button_url($row->token);
                     }
-                    $wamid = $api->send_text($contact->phone, $text);
+                    $wamid = $question ? $api->send_buttons($contact->phone, $text, answers::whatsapp_buttons($row, $notice, $lang))
+                        : $api->send_text($contact->phone, $text);
                     self::finish($row, $now, 'sent', 'text', $wamid);
                 } else {
+                    // The quick replies of a question go before the link, which comes after them in the template.
                     $wamid = $api->send_template($contact->phone, $template->name, notices::metalang($template->lang), [
                         ['type' => 'body', 'parameters' => array_map(function ($value) {
                             return ['type' => 'text', 'text' => $value];
                         }, $params)],
-                        ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [
+                        ['type' => 'button', 'sub_type' => 'url', 'index' => (string)count($notice->options), 'parameters' => [
                             ['type' => 'text', 'text' => $row->token],
                         ]],
                     ]);
@@ -308,6 +317,10 @@ class queue {
     ): array {
         $url = $row->url ? templates::button_url($row->token) : null;
         $label = notices::text($notice, 'button', $lang);
+        if (!empty($row->ref) && $notice->options) {
+            $choices = answers::telegram_choices($row, $notice, $lang);
+            return [$telegram->send_question($chat, self::render($notice, $params, $lang), $choices, $url, $label, $silent), null];
+        }
         $rich = empty($row->rich) ? [] : json_decode($row->rich, true);
         $refused = null;
         if ($rich) {

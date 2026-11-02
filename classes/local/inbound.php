@@ -116,6 +116,9 @@ class inbound {
         $wamid = (string)($message['id'] ?? '');
         consent::touch($phone, $name);
         test_message::inbound($phone);
+        if (answers::from_whatsapp($message, $phone)) {
+            return;
+        }
 
         $type = $message['type'] ?? '';
         if ($type === 'text') {

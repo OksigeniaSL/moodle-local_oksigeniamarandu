@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 (2026-11-02)
+
+- Questions with buttons: a plugin declares a notice with `'options'` and sends it with `api::ask()`. On WhatsApp, the
+  answers are the quick replies of its template, or reply buttons inside the 24 hours; on Telegram, a button each. An
+  answer counts only from the number or chat the question went to, is kept with the ids and times of both messages, and
+  reaches the plugin with the hook `\local_oksigeniamarandu\hook\answer_received`, which can say what to answer.
+
 ## 0.14.2 (2026-11-02)
 
 - The panel: who was already active and joins again no longer shows as a new sign-up (the log keeps it, as proof). The pill

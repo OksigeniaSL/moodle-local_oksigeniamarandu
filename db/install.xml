@@ -95,6 +95,8 @@
         <FIELD NAME="notice" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="params" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Values of the template, JSON"/>
         <FIELD NAME="rich" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Parts of its card on Telegram, if it has one, JSON"/>
+        <FIELD NAME="ref" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="For a question, what the plugin that asked needs to know it again"/>
+        <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="For a question, the item of the plugin it went to"/>
         <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Where the button of the notice goes, on this site"/>
         <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="The end of the link of the button"/>
         <FIELD NAME="urgent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -119,6 +121,31 @@
         <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
         <INDEX NAME="wamid" UNIQUE="false" FIELDS="wamid"/>
         <INDEX NAME="token" UNIQUE="true" FIELDS="token"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_answer" COMMENT="Every answer to a question, as it came: who, which button, when and the ids of the messages">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="queueid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The question, in the queue"/>
+        <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="notice" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="ref" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="choice" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The key of the answer"/>
+        <FIELD NAME="channel" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="messageid" TYPE="char" LENGTH="128" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the answer: wamid, or tgq. and the id of the press"/>
+        <FIELD NAME="contextid" TYPE="char" LENGTH="128" NOTNULL="false" SEQUENCE="false" COMMENT="The id of the message it answers"/>
+        <FIELD NAME="timeanswered" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Meta's time; on Telegram, the arrival"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="queueid" TYPE="foreign" FIELDS="queueid" REFTABLE="local_oksigeniamarandu_queue" REFFIELDS="id"/>
+        <KEY NAME="contactid" TYPE="foreign" FIELDS="contactid" REFTABLE="local_oksigeniamarandu_contact" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="messageid" UNIQUE="false" FIELDS="messageid"/>
+        <INDEX NAME="componentref" UNIQUE="false" FIELDS="component, ref"/>
       </INDEXES>
     </TABLE>
   </TABLES>

@@ -167,5 +167,41 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110700, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026110800) {
+        // 0.15.0: questions with buttons, and their answers.
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $fields = [
+            new xmldb_field('ref', XMLDB_TYPE_CHAR, '64', null, null, null, null, 'rich'),
+            new xmldb_field('itemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'ref'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        $table = new xmldb_table('local_oksigeniamarandu_answer');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('queueid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('contactid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('notice', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('ref', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('choice', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('channel', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('messageid', XMLDB_TYPE_CHAR, '128', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('contextid', XMLDB_TYPE_CHAR, '128', null, null, null, null);
+        $table->add_field('timeanswered', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('queueid', XMLDB_KEY_FOREIGN, ['queueid'], 'local_oksigeniamarandu_queue', ['id']);
+        $table->add_key('contactid', XMLDB_KEY_FOREIGN, ['contactid'], 'local_oksigeniamarandu_contact', ['id']);
+        $table->add_index('messageid', XMLDB_INDEX_NOTUNIQUE, ['messageid']);
+        $table->add_index('componentref', XMLDB_INDEX_NOTUNIQUE, ['component', 'ref']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+        upgrade_plugin_savepoint(true, 2026110800, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

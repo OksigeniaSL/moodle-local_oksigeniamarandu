@@ -139,6 +139,31 @@ class cloud_api {
     }
 
     /**
+     * Sends a text with buttons to answer it, up to three. Only inside the 24 hours after the number last wrote.
+     *
+     * @param string $to Digits with the country code.
+     * @param string $text The text, up to 1024 characters.
+     * @param array $buttons Each with id (up to 256 characters) and title (up to 20).
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    public function send_buttons(string $to, string $text, array $buttons): string {
+        return $this->send_message([
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => 'interactive',
+            'interactive' => [
+                'type' => 'button',
+                'body' => ['text' => \core_text::substr($text, 0, 1024)],
+                'action' => ['buttons' => array_map(function ($button) {
+                    return ['type' => 'reply', 'reply' => ['id' => $button['id'], 'title' => $button['title']]];
+                }, array_slice($buttons, 0, 3))],
+            ],
+        ]);
+    }
+
+    /**
      * Posts a message and returns its id.
      *
      * @param array $payload The message, in the shape of the API.

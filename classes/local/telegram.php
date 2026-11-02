@@ -221,7 +221,8 @@ class telegram {
      */
     public static function handle(array $update, ?telegram_api $api = null): ?array {
         if (isset($update['callback_query'])) {
-            return telegram_menu::callback($update['callback_query'], $api);
+            return answers::from_telegram($update['callback_query'], $api)
+                ?? telegram_menu::callback($update['callback_query'], $api);
         }
         if (isset($update['my_chat_member'])) {
             $member = $update['my_chat_member'];

@@ -69,20 +69,22 @@ class templates {
         if ($notice->examples) {
             $body['example'] = ['body_text' => [$notice->examples]];
         }
+        // A question has its answers as quick replies, before the link: Meta takes them grouped, and in that order.
+        $buttons = array_map(function ($option) use ($notice, $lang) {
+            return ['type' => 'QUICK_REPLY', 'text' => notices::option_label($notice, $option, $lang)];
+        }, $notice->options ?? []);
+        $buttons[] = [
+            'type' => 'URL',
+            'text' => \core_text::substr(notices::text($notice, 'button', $lang), 0, 25),
+            'url' => self::button_url(),
+            // Meta takes the example of the end of the link, not the whole link.
+            'example' => ['K7M2Q9XA'],
+        ];
         return [
             'name' => notices::template_name($notice),
             'language' => notices::metalang($lang),
             'category' => 'UTILITY',
-            'components' => [
-                $body,
-                ['type' => 'BUTTONS', 'buttons' => [[
-                    'type' => 'URL',
-                    'text' => \core_text::substr(notices::text($notice, 'button', $lang), 0, 25),
-                    'url' => self::button_url(),
-                    // Meta takes the example of the end of the link, not the whole link.
-                    'example' => ['K7M2Q9XA'],
-                ]]],
-            ],
+            'components' => [$body, ['type' => 'BUTTONS', 'buttons' => $buttons]],
         ];
     }
 

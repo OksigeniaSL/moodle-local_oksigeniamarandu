@@ -315,20 +315,63 @@ class api {
         int $validfor = 2 * DAYSECS,
         array $rich = []
     ): int {
-        global $DB;
         [$declared, $params] = self::prepare($component, $notice, $params);
-        if ($userid !== null) {
-            $where = 'l.userid = :userid';
-            $sqlparams = ['userid' => $userid];
-        } else {
-            $where = 'l.component = :component AND l.itemid = :itemid AND l.userid IS NULL';
-            $sqlparams = ['component' => $component, 'itemid' => $itemid];
-        }
-        $contactids = $DB->get_fieldset_sql("SELECT DISTINCT c.id
-                                               FROM {" . consent::LINKS . "} l
-                                               JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
-                                              WHERE $where AND c.status = :active", $sqlparams + ['active' => 'active']);
+        $contactids = self::joined($component, $itemid, $userid);
         return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich);
+    }
+
+    /**
+     * Sends a question with buttons to answer it to everyone who joined for an item of a plugin, or for a user, as
+     * notify() does a notice. The question is a notice declared with 'options'. The answer comes back with the hook
+     * \\local_oksigeniamarandu\\hook\\answer_received, with the reference given here.
+     *
+     * On WhatsApp, outside the 24 hours it goes with its template, whose quick replies are the answers; inside, as a text
+     * with reply buttons. On Telegram, with a button for each answer. Below them, the button to its link.
+     *
+     * @param string $component The plugin that declares the question.
+     * @param string $notice The question.
+     * @param string[] $params One value for each {{n}} of its text, in order; plain text.
+     * @param string $ref What the plugin needs to know the question again when it is answered, up to 64 characters.
+     * @param int $itemid The item of the plugin, such as an adult of the family records; 0 if it is for a user.
+     * @param int|null $userid The user, if it is for a user.
+     * @param \moodle_url|null $url Where its link goes, on this site.
+     * @param int $validfor Seconds after which it is no longer worth sending, such as until the deadline of the answer.
+     * @return int How many numbers and chats it was queued for.
+     * @throws \coding_exception If the notice is not a question or the reference is not valid.
+     */
+    public static function ask(
+        string $component,
+        string $notice,
+        array $params,
+        string $ref,
+        int $itemid = 0,
+        ?int $userid = null,
+        ?\moodle_url $url = null,
+        int $validfor = 2 * DAYSECS
+    ): int {
+        [$declared, $params] = self::prepare($component, $notice, $params);
+        if (!$declared->options) {
+            throw new \coding_exception("The notice {$component}/{$notice} has no options to answer");
+        }
+        if ($ref === '' || \core_text::strlen($ref) > 64) {
+            throw new \coding_exception('The reference of a question has from 1 to 64 characters');
+        }
+        $contactids = self::joined($component, $itemid, $userid);
+        foreach ($contactids as $contactid) {
+            queue::add(
+                (int)$contactid,
+                $declared,
+                $params,
+                $url ? $url->out(false) : null,
+                false,
+                $validfor,
+                null,
+                [],
+                $ref,
+                $userid === null ? $itemid : 0
+            );
+        }
+        return count($contactids);
     }
 
     /**
@@ -416,6 +459,29 @@ class api {
             return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, 200);
         }, array_values($params));
         return [$declared, $params];
+    }
+
+    /**
+     * The active numbers and chats that joined for an item of a plugin, or for a user.
+     *
+     * @param string $component The plugin.
+     * @param int $itemid The item; 0 for a user.
+     * @param int|null $userid The user, if it is for a user.
+     * @return int[]
+     */
+    private static function joined(string $component, int $itemid, ?int $userid): array {
+        global $DB;
+        if ($userid !== null) {
+            $where = 'l.userid = :userid';
+            $sqlparams = ['userid' => $userid];
+        } else {
+            $where = 'l.component = :component AND l.itemid = :itemid AND l.userid IS NULL';
+            $sqlparams = ['component' => $component, 'itemid' => $itemid];
+        }
+        return $DB->get_fieldset_sql("SELECT DISTINCT c.id
+                                        FROM {" . consent::LINKS . "} l
+                                        JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+                                       WHERE $where AND c.status = :active", $sqlparams + ['active' => 'active']);
     }
 
     /**

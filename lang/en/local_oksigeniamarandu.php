@@ -46,6 +46,7 @@ $string['alta:title'] = 'Notices from {$a} on WhatsApp';
 $string['alta:wait'] = 'Waiting for your message';
 $string['alta:wait_help'] = 'If you have already tapped Send in WhatsApp, this changes by itself in a few seconds.';
 $string['alta:yourphone'] = 'Your mobile';
+$string['answer:received'] = 'Received: «{$a}».';
 $string['blockmail:body'] = 'Meta does not let {$a->site} send WhatsApp messages: {$a->problem}
 
 The notices wait in the queue and go out as soon as it is fixed. Check the account in the set-up wizard: {$a->url}';
@@ -345,6 +346,10 @@ $string['panel:why:nowhatsapp'] = 'That number has no WhatsApp, or its app is ou
 $string['panel:why:paused'] = 'The text was paused by Meta.';
 $string['panel:why:tgblocked'] = 'The person blocked the bot of Telegram.';
 $string['pluginname'] = 'Oksigenia Marandu';
+$string['privacy:metadata:answer'] = 'The answers to the questions with buttons that a plugin sends, as they came.';
+$string['privacy:metadata:answer:choice'] = 'The button that was pressed.';
+$string['privacy:metadata:answer:contactid'] = 'The number or chat that answered.';
+$string['privacy:metadata:answer:timeanswered'] = 'When it was answered.';
 $string['privacy:metadata:consent'] = 'Every opt-in and opt-out of a number, kept as proof of consent.';
 $string['privacy:metadata:consent:action'] = 'Whether the number opted in or out.';
 $string['privacy:metadata:consent:source'] = 'How it happened: a word written on WhatsApp, a page or the administrator.';

@@ -31,6 +31,7 @@ use core_privacy\local\request\contextlist;
 use core_privacy\local\request\transform;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
+use local_oksigeniamarandu\local\answers;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\telegram;
 
@@ -77,6 +78,11 @@ class provider implements
             'timesent' => 'privacy:metadata:queue:timesent',
             'timeclicked' => 'privacy:metadata:queue:timeclicked',
         ], 'privacy:metadata:queue');
+        $collection->add_database_table(answers::TABLE, [
+            'contactid' => 'privacy:metadata:answer:contactid',
+            'choice' => 'privacy:metadata:answer:choice',
+            'timeanswered' => 'privacy:metadata:answer:timeanswered',
+        ], 'privacy:metadata:answer');
         $collection->add_external_location_link('whatsapp', [
             'phone' => 'privacy:metadata:whatsapp:phone',
             'message' => 'privacy:metadata:whatsapp:message',
@@ -138,6 +144,10 @@ class provider implements
                     'notice' => $row->component . '/' . $row->notice,
                     'values' => json_decode($row->params, true),
                     'card' => empty($row->rich) ? null : json_decode($row->rich, true),
+                    'answers' => array_values(array_map(function ($answer) {
+                        return ['answer' => $answer->choice, 'channel' => $answer->channel,
+                            'time' => transform::datetime($answer->timeanswered)];
+                    }, $DB->get_records(answers::TABLE, ['queueid' => $row->id], 'id'))),
                     'status' => $row->status,
                     'sent' => $row->timesent ? transform::datetime($row->timesent) : null,
                 ];
@@ -215,6 +225,7 @@ class provider implements
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);
+                $DB->delete_records(answers::TABLE, ['contactid' => $link->contactid]);
                 $DB->delete_records('local_oksigeniamarandu_queue', ['contactid' => $link->contactid]);
                 $DB->delete_records(consent::CONTACTS, ['id' => $link->contactid]);
             }

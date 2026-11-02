@@ -102,6 +102,53 @@ class telegram_api {
      * @return string The id of the message.
      */
     public function send_text(string $chatid, string $text, ?string $url = null, string $label = '', bool $silent = false): string {
+        $params = self::text_params($chatid, $text, $silent);
+        if ($url !== null) {
+            $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $url]]]];
+        }
+        $answer = $this->call('sendMessage', $params);
+        return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
+     * Sends a question to a chat: its text, a row with a button for each answer and, below, the button to its link.
+     *
+     * @param string $chatid The chat.
+     * @param string $text The text.
+     * @param array $choices Each with data (what comes back, up to 64 bytes) and text (the label).
+     * @param string|null $url Where the button of the link goes.
+     * @param string $label The label of that button.
+     * @param bool $silent Without sound.
+     * @return string The id of the message.
+     */
+    public function send_question(
+        string $chatid,
+        string $text,
+        array $choices,
+        ?string $url = null,
+        string $label = '',
+        bool $silent = false
+    ): string {
+        $rows = [array_map(function ($choice) {
+            return ['text' => $choice['text'], 'callback_data' => $choice['data']];
+        }, $choices)];
+        if ($url !== null) {
+            $rows[] = [['text' => $label, 'url' => $url]];
+        }
+        $params = self::text_params($chatid, $text, $silent) + ['reply_markup' => ['inline_keyboard' => $rows]];
+        $answer = $this->call('sendMessage', $params);
+        return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
+     * The parameters of a text: with several lines, the first one in bold.
+     *
+     * @param string $chatid The chat.
+     * @param string $text The text, cut to 4096 characters.
+     * @param bool $silent Without sound.
+     * @return array
+     */
+    private static function text_params(string $chatid, string $text, bool $silent): array {
         $text = \core_text::substr($text, 0, 4096);
         $params = [
             'chat_id' => $chatid,
@@ -115,11 +162,7 @@ class telegram_api {
             $length = intdiv(strlen(mb_convert_encoding($first, 'UTF-16LE', 'UTF-8')), 2);
             $params['entities'] = [['type' => 'bold', 'offset' => 0, 'length' => $length]];
         }
-        if ($url !== null) {
-            $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $url]]]];
-        }
-        $answer = $this->call('sendMessage', $params);
-        return (string)($answer['message_id'] ?? '');
+        return $params;
     }
 
     /**
@@ -182,6 +225,19 @@ class telegram_api {
      */
     public function answer_callback(string $id): void {
         $this->call('answerCallbackQuery', ['callback_query_id' => $id]);
+    }
+
+    /**
+     * Sends a text in reply to a message of a chat, without buttons.
+     *
+     * @param string $chatid The chat.
+     * @param string $text The text.
+     * @param int $replyto The message it answers.
+     */
+    public function reply_to(string $chatid, string $text, int $replyto): void {
+        $this->call('sendMessage', self::text_params($chatid, $text, false) + [
+            'reply_parameters' => ['message_id' => $replyto, 'allow_sending_without_reply' => true],
+        ]);
     }
 
     /**

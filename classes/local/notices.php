@@ -44,38 +44,93 @@ namespace local_oksigeniamarandu\local;
  * notice at a time they choose: the quiet hours do not hold it back and it does not count for the notices a day. It is
  * not urgent, so it keeps the choice of notices without sound.
  *
+ * A notice can be a question with buttons to answer it, sent with api::ask(): 'options' => ['yes', 'no'] (up to three,
+ * short keys), each with its label in the language pack, up to 20 characters:
+ *
+ *     $string['marandu:consent_option_yes'] = 'I authorise';
+ *     $string['marandu:consent_option_no'] = 'I do not authorise';
+ *
+ * The answer reaches the plugin with the hook \local_oksigeniamarandu\hook\answer_received.
+ *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class notices {
+    /** @var array Notices declared by the tests, by component. */
+    private static $fortests = [];
+
     /**
      * Every notice declared on the site, by "component/notice".
      *
-     * @return \stdClass[] Each with component, notice, key, examples, perweek and askedfor.
+     * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor and options.
      */
     public static function all(): array {
         $all = [];
+        $declared = [];
         foreach (get_plugins_with_function('oksigeniamarandu_notices', 'lib.php') as $type => $plugins) {
             foreach ($plugins as $plugin => $function) {
-                $component = $type . '_' . $plugin;
-                foreach ((array)$function() as $notice => $definition) {
-                    if (!is_string($notice) || !preg_match('/^[a-z0-9_]{1,40}$/', $notice)) {
-                        continue;
-                    }
-                    $all[$component . '/' . $notice] = (object)[
-                        'component' => $component,
-                        'notice' => $notice,
-                        'key' => $component . '/' . $notice,
-                        'examples' => array_map('strval', array_values((array)($definition['examples'] ?? []))),
-                        'perweek' => max(0.0, (float)($definition['perweek'] ?? 1)),
-                        'askedfor' => !empty($definition['askedfor']),
-                    ];
+                $declared[$type . '_' . $plugin] = (array)$function();
+            }
+        }
+        foreach (self::$fortests as $component => $notices) {
+            $declared[$component] = $notices + ($declared[$component] ?? []);
+        }
+        foreach ($declared as $component => $notices) {
+            foreach ($notices as $notice => $definition) {
+                if (!is_string($notice) || !preg_match('/^[a-z0-9_]{1,40}$/', $notice)) {
+                    continue;
                 }
+                $all[$component . '/' . $notice] = (object)[
+                    'component' => $component,
+                    'notice' => $notice,
+                    'key' => $component . '/' . $notice,
+                    'examples' => array_map('strval', array_values((array)($definition['examples'] ?? []))),
+                    'perweek' => max(0.0, (float)($definition['perweek'] ?? 1)),
+                    'askedfor' => !empty($definition['askedfor']),
+                    'options' => self::options((array)($definition['options'] ?? [])),
+                ];
             }
         }
         ksort($all);
         return $all;
+    }
+
+    /**
+     * The answers of a question, as declared: short keys, at most three, as WhatsApp takes its buttons.
+     *
+     * @param array $options The keys.
+     * @return string[]
+     */
+    private static function options(array $options): array {
+        $keys = array_values(array_unique(array_filter(array_map('strval', $options), function ($key) {
+            return (bool)preg_match('/^[a-z0-9]{1,10}$/', $key);
+        })));
+        return array_slice($keys, 0, 3);
+    }
+
+    /**
+     * Notices declared by the tests, as a plugin would; only while the tests run.
+     *
+     * @param array $notices By component, the declarations; [] to forget them.
+     */
+    public static function declare_for_tests(array $notices): void {
+        if (!defined('PHPUNIT_TEST') || !PHPUNIT_TEST) {
+            throw new \coding_exception('Only for the tests');
+        }
+        self::$fortests = $notices;
+    }
+
+    /**
+     * The label of an answer of a question, as its button shows it.
+     *
+     * @param \stdClass $notice The notice.
+     * @param string $option The key of the answer.
+     * @param string|null $lang The language; the current one if null.
+     * @return string Up to 20 characters.
+     */
+    public static function option_label(\stdClass $notice, string $option, ?string $lang = null): string {
+        return \core_text::substr(self::text($notice, 'option_' . $option, $lang), 0, 20);
     }
 
     /**

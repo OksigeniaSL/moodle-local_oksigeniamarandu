@@ -48,6 +48,18 @@ class send_reply extends \core\task\adhoc_task {
     }
 
     /**
+     * Queues a reply with a text of its own, such as what a plugin answers to an answer.
+     *
+     * @param string $phone Digits with the country code.
+     * @param string $text The text.
+     */
+    public static function queue_text(string $phone, string $text): void {
+        $task = new static();
+        $task->set_custom_data(['phone' => $phone, 'text' => \core_text::substr($text, 0, 4096)]);
+        \core\task\manager::queue_adhoc_task($task);
+    }
+
+    /**
      * The text of a reply, in the language of the contact or of the site.
      *
      * @param string $reply One of REPLIES.
@@ -71,11 +83,12 @@ class send_reply extends \core\task\adhoc_task {
     public function execute() {
         global $DB;
         $data = $this->get_custom_data();
-        if (empty($data->phone) || !in_array($data->reply ?? '', self::REPLIES, true)) {
+        $own = isset($data->text) && trim((string)$data->text) !== '';
+        if (empty($data->phone) || (!$own && !in_array($data->reply ?? '', self::REPLIES, true))) {
             return;
         }
         $lang = $DB->get_field('local_oksigeniamarandu_contact', 'lang', ['phone' => $data->phone]);
-        $text = self::text($data->reply, $lang ?: null);
+        $text = $own ? (string)$data->text : self::text($data->reply, $lang ?: null);
         try {
             if (telegram::is_chat($data->phone)) {
                 $this->telegram()->send_text(telegram::chat($data->phone), $text);

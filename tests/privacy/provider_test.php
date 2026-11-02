@@ -51,7 +51,7 @@ final class provider_test extends provider_testcase {
     }
 
     /**
-     * The tables, WhatsApp and Telegram are declared.
+     * The tables, the answers among them, WhatsApp and Telegram are declared.
      */
     public function test_get_metadata(): void {
         $items = provider::get_metadata(new \core_privacy\local\metadata\collection('local_oksigeniamarandu'))
@@ -60,7 +60,7 @@ final class provider_test extends provider_testcase {
             return $item->get_name();
         }, $items);
         $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
-            'telegram', 'whatsapp'], $names);
+            'local_oksigeniamarandu_answer', 'telegram', 'whatsapp'], $names);
     }
 
     /**
@@ -86,7 +86,7 @@ final class provider_test extends provider_testcase {
     }
 
     /**
-     * Deleting a user deletes their link and the number, unless another link still uses it.
+     * Deleting a user deletes their link and the number, with its notices and answers, unless another link still uses it.
      */
     public function test_delete(): void {
         global $DB;
@@ -101,12 +101,17 @@ final class provider_test extends provider_testcase {
             'local_oksigeniamarandu',
             'notification'
         ), ['Colegio Ejemplo', 'Reunión'], null, false, DAYSECS);
+        // An answer of that number to a question.
+        $DB->insert_record(\local_oksigeniamarandu\local\answers::TABLE, (object)['queueid' => 1, 'contactid' => $first,
+            'component' => 'local_example', 'notice' => 'question', 'ref' => 'r1', 'choice' => 'yes', 'channel' => 'whatsapp',
+            'messageid' => 'wamid.A', 'timeanswered' => time(), 'timecreated' => time()]);
 
         provider::delete_data_for_user(new approved_contextlist($user, 'local_oksigeniamarandu', [$system->id]));
         $this->assertFalse($DB->record_exists(consent::CONTACTS, ['phone' => '34600000001']));
         $this->assertFalse($DB->record_exists(consent::LINKS, ['userid' => $user->id]));
         $this->assertFalse($DB->record_exists(consent::LOG, ['contactid' => $first]));
         $this->assertFalse($DB->record_exists('local_oksigeniamarandu_queue', ['contactid' => $first]));
+        $this->assertFalse($DB->record_exists(\local_oksigeniamarandu\local\answers::TABLE, ['contactid' => $first]));
 
         provider::delete_data_for_users(new approved_userlist($system, 'local_oksigeniamarandu', [$kept->id]));
         $this->assertFalse($DB->record_exists(consent::LINKS, ['userid' => $kept->id]));

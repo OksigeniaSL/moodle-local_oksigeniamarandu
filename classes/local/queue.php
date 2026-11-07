@@ -37,7 +37,7 @@ class queue {
     public const DEFAULT_COST = 0.02;
 
     /** Free replies are possible until 24 hours after the family last wrote; a margin, so as not to arrive late. */
-    private const WINDOW = DAYSECS - 30 * MINSECS;
+    public const WINDOW = DAYSECS - 30 * MINSECS;
 
     /** How long a notice waits before each new try after an error that passes; after the last, it has failed. */
     private const RETRY = [MINSECS, 5 * MINSECS, 15 * MINSECS, HOURSECS];

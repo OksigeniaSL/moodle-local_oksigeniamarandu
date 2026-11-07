@@ -40,6 +40,9 @@ use local_oksigeniamarandu\local\telegram_api;
  *     $url = \local_oksigeniamarandu\api::optin_url($code); // Opens WhatsApp with «ALTA <code>» written.
  *     \local_oksigeniamarandu\api::notify('local_example', 'reminder', ['Ana', 'lunes 3'], $pageurl, $item->id);
  *
+ * What whoever joined with that code writes of their own reaches the plugin with the hook
+ * \local_oksigeniamarandu\hook\message_received, and the plugin answers with send_text().
+ *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -372,6 +375,57 @@ class api {
             );
         }
         return count($contactids);
+    }
+
+    /**
+     * Sends a text of the plugin now, such as what its team answers to what a person wrote, to the numbers and chats that
+     * joined for one of its items. What people write of their own reaches the plugin with the hook
+     * \\local_oksigeniamarandu\\hook\\message_received.
+     *
+     * It is a conversation, not a notice: it goes at once, without the quiet hours or the limits, and does not count in
+     * the panel. On Telegram it always goes. On WhatsApp only inside the 24 hours after the person last wrote, when it is
+     * free; outside them it does not try (closed), and only a notice with its template can reach them, with notify().
+     *
+     * @param string $component The plugin.
+     * @param int $itemid Its item, such as a household.
+     * @param string $text Plain text, up to 4096 characters.
+     * @param \moodle_url|null $url A link on this site: a button on Telegram, a line below the text on WhatsApp.
+     * @param string|null $address Only to whoever wrote: the number (E.164) or chat (tg:<chat>) of the hook.
+     * @param string $label The label of the button on Telegram; «Open», in the language of the person, if empty.
+     * @return array One for each number or chat, with channel (whatsapp or telegram), address, status (sent, closed or
+     *               failed), messageid (the wamid, or tg.<chat>.<message>) and error. Empty if nobody joined for it.
+     * @throws \coding_exception If the text is empty.
+     */
+    public static function send_text(
+        string $component,
+        int $itemid,
+        string $text,
+        ?\moodle_url $url = null,
+        ?string $address = null,
+        string $label = ''
+    ): array {
+        $whatsapp = null;
+        $bot = null;
+        try {
+            $whatsapp = cloud_api::is_configured() ? cloud_api::from_config() : null;
+        } catch (local\api_exception $e) {
+            $whatsapp = null;
+        }
+        try {
+            $bot = telegram_api::is_configured() ? telegram_api::from_config() : null;
+        } catch (local\api_exception $e) {
+            $bot = null;
+        }
+        return local\conversation::send(
+            $component,
+            $itemid,
+            $text,
+            $url ? $url->out(false) : null,
+            $label,
+            $address,
+            $whatsapp,
+            $bot
+        );
     }
 
     /**

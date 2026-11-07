@@ -126,10 +126,16 @@ class inbound {
         } else if ($type === 'button') {
             $text = (string)($message['button']['text'] ?? '');
         } else {
+            // An image, a voice note, a location…: to the plugins the number joined with, if they want it.
+            $other = conversation::whatsapp_kind($message);
+            if ($other !== null) {
+                self::own($phone, $other[0], $other[1], $message, $name);
+            }
             return;
         }
         $match = keywords::match($text);
         if ($match === null) {
+            self::own($phone, 'text', trim($text), $message, $name);
             return;
         }
         if ($match['action'] === 'optout') {
@@ -139,5 +145,29 @@ class inbound {
             $reply = consent::optin_from_message($phone, $match['code'], $wamid, $name);
         }
         send_reply::queue($phone, $reply);
+    }
+
+    /**
+     * Something the person wrote of their own: the plugins they joined with hear of it, and what one answers goes back.
+     * If none answers, nothing goes, as before.
+     *
+     * @param string $phone Digits with the country code.
+     * @param string $kind What it is, as conversation::KINDS.
+     * @param string $text The text or the caption.
+     * @param array $message The message, as Meta sends it.
+     * @param string|null $name Profile name WhatsApp sent, if any.
+     */
+    private static function own(string $phone, string $kind, string $text, array $message, ?string $name): void {
+        [, $reply] = conversation::received(
+            $phone,
+            $kind,
+            $text,
+            (int)($message['timestamp'] ?? 0) ?: time(),
+            (string)($message['id'] ?? ''),
+            $name
+        );
+        if ($reply !== null) {
+            send_reply::queue_text($phone, $reply);
+        }
     }
 }

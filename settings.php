@@ -125,6 +125,21 @@ if ($hassiteconfig) {
             new lang_string('settings:optoutkeywords_desc', 'local_oksigeniamarandu'),
             \local_oksigeniamarandu\local\keywords::DEFAULT_OPTOUT
         ));
+
+        // Only on a site with the family records: without them, nothing is said of them.
+        if (class_exists('\local_oksigeniafamily\api')) {
+            $settings->add(new admin_setting_heading(
+                'local_oksigeniamarandu/familyheading',
+                new lang_string('settings:family', 'local_oksigeniamarandu'),
+                ''
+            ));
+            $settings->add(new admin_setting_configcheckbox(
+                'local_oksigeniamarandu/usefamily',
+                new lang_string('settings:usefamily', 'local_oksigeniamarandu'),
+                new lang_string('settings:usefamily_desc', 'local_oksigeniamarandu'),
+                1
+            ));
+        }
     }
     $ADMIN->add('local_oksigeniamarandu', $settings);
 

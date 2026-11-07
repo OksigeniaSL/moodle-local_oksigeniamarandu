@@ -35,12 +35,14 @@ class family {
     public const COMPONENT = 'local_oksigeniafamily';
 
     /**
-     * Whether the site has the family records.
+     * Whether the site has the family records and uses them: they are used by themselves, unless the site switches
+     * them off in the settings (usefamily).
      *
      * @return bool
      */
     public static function available(): bool {
-        return class_exists('\local_oksigeniafamily\api') && \local_oksigeniafamily\api::is_available();
+        return get_config('local_oksigeniamarandu', 'usefamily') !== '0'
+            && class_exists('\local_oksigeniafamily\api') && \local_oksigeniafamily\api::is_available();
     }
 
     /**

@@ -212,8 +212,9 @@ class telegram {
 
     /**
      * Handles what reaches the bot: a person who starts it (with a code or without), writes the opt-in or opt-out word
-     * or «/stop», blocks it, uses its menu or presses a button of it. Only private chats count. The answer goes back in
-     * the reply to the webhook, so it arrives at once.
+     * or «/stop», blocks it, uses its menu, presses a button of it or writes something of their own, which goes to the
+     * plugins of the codes the chat joined with. Only private chats count. The answer goes back in the reply to the
+     * webhook, so it arrives at once.
      *
      * @param array $update The update of Telegram.
      * @param telegram_api|null $api The bot, for what cannot wait for the reply (the button that is waiting).
@@ -242,11 +243,13 @@ class telegram {
             // The button «Share my number»: to join the family that has it.
             return telegram_menu::shared($address, $message['contact'], (int)($from['id'] ?? 0));
         }
-        if (!isset($message['text'])) {
-            return null;
-        }
         $name = trim(($from['first_name'] ?? '') . ' ' . ($from['last_name'] ?? ''));
         $name = $name === '' ? null : $name;
+        if (!isset($message['text'])) {
+            // A photo, a voice note, a location…: to the plugins the chat joined with, if they want it.
+            $other = conversation::telegram_kind($message);
+            return $other === null ? null : self::own($address, $other[0], $other[1], $message, $name)[1];
+        }
         $detail = 'telegram:' . ($message['message_id'] ?? '');
         $text = trim((string)$message['text']);
         if (preg_match('/^\/start(?:@\w+)?(?:\s+([A-Za-z0-9_-]{1,64}))?$/', $text, $parts)) {
@@ -259,13 +262,38 @@ class telegram {
         }
         $match = keywords::match($text);
         if ($match === null) {
-            return telegram_menu::nobody($address);
+            // Something of their own: the plugins the chat joined with may take it; if none does, nobody reads it.
+            [$handled, $answer] = self::own($address, 'text', $text, $message, $name);
+            return $handled ? $answer : telegram_menu::nobody($address);
         }
         if ($match['action'] === 'optout') {
             consent::optout($address, 'keyword', $detail);
             return self::reply($address, 'optout');
         }
         return self::reply($address, consent::optin_from_message($address, $match['code'], $detail, $name));
+    }
+
+    /**
+     * Something the person wrote of their own, for the plugins the chat joined with.
+     *
+     * @param string $address The chat.
+     * @param string $kind What it is, as conversation::KINDS.
+     * @param string $text The text or the caption.
+     * @param array $message The message, as Telegram sends it.
+     * @param string|null $name The name of the person on Telegram.
+     * @return array Whether a plugin took it, and the answer as a method of the Bot API (null for none).
+     */
+    private static function own(string $address, string $kind, string $text, array $message, ?string $name): array {
+        [$handled, $reply] = conversation::received(
+            $address,
+            $kind,
+            $text,
+            (int)($message['date'] ?? 0) ?: time(),
+            'tg.' . self::chat($address) . '.' . ($message['message_id'] ?? ''),
+            $name
+        );
+        $answer = $reply === null ? null : ['method' => 'sendMessage', 'chat_id' => self::chat($address), 'text' => $reply];
+        return [$handled, $answer];
     }
 
     /**

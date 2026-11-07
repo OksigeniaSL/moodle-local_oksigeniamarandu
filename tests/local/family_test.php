@@ -92,6 +92,21 @@ final class family_test extends \advanced_testcase {
     }
 
     /**
+     * The site can switch the records off: then a student's code is not known, and no notice goes to a family.
+     */
+    public function test_switched_off(): void {
+        $this->assertTrue(family::available());
+        set_config('usefamily', '0', 'local_oksigeniamarandu');
+        $this->assertFalse(family::available());
+        $child = $this->getDataGenerator()->create_user();
+        $code = \local_oksigeniafamily\api::issue_claim_code((int)$child->id);
+        $this->assertSame('unknowncode', consent::optin_from_message('34600000001', $code, 'wamid.A'));
+        $this->assertSame([], $this->linked('34600000001'));
+        set_config('usefamily', '1', 'local_oksigeniamarandu');
+        $this->assertTrue(family::available());
+    }
+
+    /**
      * WhatsApp proves the number: the code of a second student from the same number goes to the same adult, and an adult
      * the school has with that number is the one who joins.
      */

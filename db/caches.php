@@ -30,6 +30,12 @@ $definitions = [
         'mode' => cache_store::MODE_APPLICATION,
         'simplekeys' => true,
     ],
+    // The messages of their own already passed to the plugins, for a day: a webhook can come twice.
+    'inbound' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'ttl' => DAYSECS,
+    ],
     // The id Telegram gave to each image of a card, so that it goes up only once for each bot.
     'telegramphotos' => [
         'mode' => cache_store::MODE_APPLICATION,

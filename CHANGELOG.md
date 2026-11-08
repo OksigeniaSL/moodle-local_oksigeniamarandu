@@ -3,6 +3,8 @@
 ## 0.30.0 (2026-11-08)
 
 - `api::channel_members($from, $to)`: how many people the channel had each day it was counted, for a series over time.
+- The queue keeps the item a notice went to, and `api::notice_stats()` takes a list of items, to count those of one
+  centre of a plugin.
 - The card of «Your work» also shows the life of the channel: how many joined this week, and what went out this week with
   its reactions.
 

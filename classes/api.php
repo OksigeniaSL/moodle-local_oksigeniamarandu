@@ -341,8 +341,9 @@ class api {
         string $lang = ''
     ): int {
         [$declared, $params] = self::prepare($component, $notice, $params);
-        $contactids = self::joined($component, $itemid, $userid, self::area($area));
-        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich, $lang);
+        $area = self::area($area);
+        $contactids = self::joined($component, $itemid, $userid, $area);
+        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich, $lang, $itemid, $area);
     }
 
     /**
@@ -639,15 +640,22 @@ class api {
      * @param int $from From this time (queued).
      * @param int $to Until this one, not included.
      * @param string $notice One notice; every one if empty.
+     * @param int[] $itemids Only those of these items of the plugin (since 0.30.0, which keeps the item of each notice);
+     *                       every one if empty.
      * @return array[] Each with notice, channel, day (Y-m-d), queued, sent, delivered, read, clicked and failed.
      */
-    public static function notice_stats(string $component, int $from, int $to, string $notice = ''): array {
+    public static function notice_stats(string $component, int $from, int $to, string $notice = '', array $itemids = []): array {
         global $DB;
         $where = 'q.component = :component AND q.timequeued >= :timefrom AND q.timequeued < :timeto';
         $params = ['component' => $component, 'timefrom' => $from, 'timeto' => $to];
         if ($notice !== '') {
             $where .= ' AND q.notice = :notice';
             $params['notice'] = $notice;
+        }
+        if ($itemids) {
+            [$insql, $inparams] = $DB->get_in_or_equal(array_map('intval', $itemids), SQL_PARAMS_NAMED, 'item');
+            $where .= " AND q.itemid $insql";
+            $params += $inparams;
         }
         $rows = $DB->get_recordset_sql("SELECT q.id, q.notice, q.status, q.timequeued, q.timeclicked, c.channel
                                           FROM {" . local\queue::TABLE . "} q
@@ -812,6 +820,8 @@ class api {
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @param array $rich The parts of its card on Telegram, if it has one.
      * @param string $lang The language its plugin asked for.
+     * @param int $itemid The item of the plugin it goes to, to count its notices.
+     * @param string $area The kind of that item.
      * @return int How many.
      */
     private static function queue_for(
@@ -822,7 +832,9 @@ class api {
         bool $urgent,
         int $validfor,
         array $rich,
-        string $lang = ''
+        string $lang = '',
+        int $itemid = 0,
+        string $area = ''
     ): int {
         $rich = local\rich::clean($rich);
         // Only a language the site has: the texts of the notices are in its language packs.
@@ -838,8 +850,8 @@ class api {
                 null,
                 $rich,
                 null,
-                0,
-                '',
+                $itemid,
+                $area,
                 $lang
             );
         }

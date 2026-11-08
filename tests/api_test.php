@@ -199,5 +199,10 @@ final class api_test extends \advanced_testcase {
                 'delivered' => 1, 'read' => 1, 'clicked' => 1, 'failed' => 0],
         ], $stats);
         $this->assertSame([], api::notice_stats('local_oksigeniamarandu', $day + DAYSECS, $day + 2 * DAYSECS));
+
+        // The notices of one item: the queue keeps it.
+        $this->assertEquals([7, 7], array_values($DB->get_fieldset_select(local\queue::TABLE, 'itemid', '1 = 1 ORDER BY id')));
+        $this->assertCount(2, api::notice_stats('local_oksigeniamarandu', $day - DAYSECS, $day + DAYSECS, '', [7, 8]));
+        $this->assertSame([], api::notice_stats('local_oksigeniamarandu', $day - DAYSECS, $day + DAYSECS, '', [8]));
     }
 }

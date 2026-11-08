@@ -60,7 +60,8 @@ class links {
         if (!$add) {
             return $url . $fragment;
         }
-        return $url . ($query === '' && strpos($url, '?') === false ? '?' : '&') . http_build_query($add) . $fragment;
+        // Joined with &, whatever separator Moodle sets for PHP (&amp; on some versions).
+        return $url . ($query === '' && strpos($url, '?') === false ? '?' : '&') . http_build_query($add, '', '&') . $fragment;
     }
 
     /**

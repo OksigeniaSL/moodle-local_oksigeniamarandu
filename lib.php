@@ -55,6 +55,17 @@ function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
 }
 
 /**
+ * What Marandu has for a user on their dashboard («Your work», of the Oksigenia plugins): the channel of Telegram, for
+ * whoever may review it, with its figures and what is waiting for them. Kept for a minute; nothing without the block.
+ *
+ * @param int $userid The user.
+ * @return array The cards: key, title, url, status, alerts (text, url, level urgent or today) and actions (label, url).
+ */
+function local_oksigeniamarandu_oksigenia_work(int $userid): array {
+    return \local_oksigeniamarandu\local\work::for_user($userid);
+}
+
+/**
  * Serves the cards Marandu made for the posts of the channel. They are for everyone, as the channel: no login.
  *
  * @param stdClass $course The course (the site).

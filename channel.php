@@ -16,7 +16,8 @@
 
 /**
  * The channel of Telegram of the site: which one, what goes there by itself and what is reviewed first, the hours of
- * review and of the channel, and what is waiting or went out.
+ * review and of the channel, and what is waiting or went out. Whoever may review (local/oksigeniamarandu:channel) sees
+ * what is waiting and decides it here too; the rest is for whoever runs the site.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -34,10 +35,21 @@ use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\panel;
 use local_oksigeniamarandu\local\telegram_api;
 
-admin_externalpage_setup('local_oksigeniamarandu_channel', '', null, '', ['nosearch' => true]);
-
 $component = 'local_oksigeniamarandu';
 $baseurl = new moodle_url('/local/oksigeniamarandu/channel.php');
+$system = context_system::instance();
+$canconfig = has_capability('moodle/site:config', $system);
+if ($canconfig) {
+    admin_externalpage_setup('local_oksigeniamarandu_channel', '', null, '', ['nosearch' => true]);
+} else {
+    // Whoever reviews without running the site: the page is not in the administration they see.
+    require_login();
+    require_capability('local/oksigeniamarandu:channel', $system);
+    $PAGE->set_context($system);
+    $PAGE->set_url($baseurl);
+    $PAGE->set_pagelayout('admin');
+    $PAGE->set_title(get_string('channel:title', $component));
+}
 $action = optional_param('action', '', PARAM_ALPHA);
 $error = '';
 $bot = null;
@@ -49,6 +61,9 @@ try {
 
 if ($action !== '' && confirm_sesskey()) {
     try {
+        if (!$canconfig && !in_array($action, ['publish', 'skip'], true)) {
+            throw new required_capability_exception($system, 'moodle/site:config', 'nopermissions', '');
+        }
         if ($action === 'connect' && $bot) {
             channel::connect($bot, optional_param('chat', '', PARAM_RAW_TRIMMED));
             redirect(new moodle_url($baseurl, ['saved' => 1]));
@@ -127,10 +142,12 @@ if ($action !== '' && confirm_sesskey()) {
 $PAGE->set_heading(get_string('channel:title', $component));
 $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
-$PAGE->add_header_action($OUTPUT->render_from_template(
-    'local_oksigeniamarandu/panel_links',
-    ['links' => panel::links('channel')]
-));
+if ($canconfig) {
+    $PAGE->add_header_action($OUTPUT->render_from_template(
+        'local_oksigeniamarandu/panel_links',
+        ['links' => panel::links('channel')]
+    ));
+}
 
 $now = time();
 $current = channel::current();
@@ -138,13 +155,14 @@ $context = [
     'lead' => get_string('channel:lead', $component),
     'saved' => optional_param('saved', 0, PARAM_BOOL) ? get_string('limits:saved', $component) : '',
     'error' => $error,
+    'canconfig' => $canconfig,
     'nobot' => !$bot,
     'boturl' => (new moodle_url('/local/oksigeniamarandu/telegram.php'))->out(false),
     'formurl' => $baseurl->out(false),
     'sesskey' => sesskey(),
 ];
 
-if ($bot && !$current) {
+if ($bot && !$current && $canconfig) {
     $candidate = channel::candidate();
     $context['connect'] = [
         'botname' => '@' . get_config($component, 'telegrambot'),
@@ -257,7 +275,7 @@ if ($current) {
     $context['channel']['empty'] = !$context['channel']['review'] && !$context['channel']['ready']
         && !$context['channel']['published'] && !$context['channel']['failed'];
     // The seven cards with the colour and the name of the site, from the example texts of each template.
-    if (optional_param('preview', 0, PARAM_BOOL) && cards::can_draw()) {
+    if ($canconfig && optional_param('preview', 0, PARAM_BOOL) && cards::can_draw()) {
         $previews = [];
         foreach (cards::TYPES as $type) {
             $sample = cards::template($type)['sample'];

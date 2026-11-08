@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.21.0 (2026-11-08)
+
+- The card of the channel on the dashboard: `local_oksigeniamarandu_oksigenia_work($userid)` gives whoever may review the
+  channel a door to its page, a line with its figures and what is waiting for them (each post to review, a channel that
+  cannot post, a bot with a problem, posts that did not go out), urgent first. It is kept for a minute and forgotten as
+  soon as a post changes.
+- Whoever may review the channel (`local/oksigeniamarandu:channel`) without running the site opens its page too, sees what
+  is waiting and decides it there; the settings stay for whoever runs the site.
+
+## 0.20.0 (2026-11-08)
+
+- The cards of the channel: Marandu draws each post as a still card and, with ffmpeg 6.1 or later, an animated one, from
+  seven templates, with the colour of the theme and the name of the site unless the page of the channel says others.
+
+## 0.19.0 (2026-11-08)
+
+- The calendar of the channel: «This week» on Monday and «No class tomorrow» on the eve of a day without class, from an
+  iCal or the events of the site. Measured links: UTM marks and, optionally, a shortener with the API of YOURLS.
+  Animations as MP4.
+
+## 0.18.1 (2026-11-08)
+
+- The review says when a post really goes out, with the hours of the channel.
+
+## 0.18.0 (2026-11-08)
+
+- The channel of Telegram of the site: what goes by itself and what is reviewed first, in the chat of whoever reviews,
+  in the hours of review; the announcements of the front page go by themselves.
+
+## 0.17.0 (2026-11-08)
+
+- Areas for the kinds of item of a plugin (`area`, last parameter of the API), and notices that follow another one
+  (`'follows'`).
+
+## 0.16.0 (2026-11-07)
+
+- What people write of their own reaches the plugin of their code by the hook `message_received`, and a plugin answers
+  with `api::send_text()`. A switch for the family records.
+
 ## 0.15.0 (2026-11-02)
 
 - Questions with buttons: a plugin declares a notice with `'options'` and sends it with `api::ask()`. On WhatsApp, the

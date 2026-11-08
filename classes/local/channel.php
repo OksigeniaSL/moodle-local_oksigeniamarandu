@@ -228,6 +228,7 @@ class channel {
             } else {
                 set_config('channelproblem', 'norights', self::COMPONENT);
             }
+            work::changed();
             return;
         }
         $candidate = self::candidate();
@@ -271,6 +272,7 @@ class channel {
         set_config('channelusername', (string)($info['username'] ?? ''), self::COMPONENT);
         unset_config('channelproblem', self::COMPONENT);
         unset_config('channelcandidate', self::COMPONENT);
+        work::changed();
         return self::current();
     }
 
@@ -281,6 +283,7 @@ class channel {
         foreach (['channelid', 'channeltitle', 'channelusername', 'channelproblem'] as $name) {
             unset_config($name, self::COMPONENT);
         }
+        work::changed();
     }
 
     /**
@@ -360,13 +363,14 @@ class channel {
                         'timedecided' => null, 'token' => self::new_token()];
                 }
                 $DB->update_record(self::TABLE, (object)$update);
+                work::changed();
                 return (int)$waiting->id;
             }
             if ($DB->record_exists(self::TABLE, $source + ['status' => 'published'])) {
                 return 0;
             }
         }
-        return (int)$DB->insert_record(self::TABLE, (object)($fields + [
+        $id = (int)$DB->insert_record(self::TABLE, (object)($fields + [
             'component' => $component,
             'kind' => $kind,
             'sourcekey' => $key,
@@ -374,6 +378,8 @@ class channel {
             'token' => self::new_token(),
             'timecreated' => $now,
         ]));
+        work::changed();
+        return $id;
     }
 
     /**
@@ -397,6 +403,9 @@ class channel {
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'remove', 'timemodified' => time()]);
                 $count++;
             }
+        }
+        if ($count) {
+            work::changed();
         }
         return $count;
     }
@@ -496,7 +505,7 @@ class channel {
 
         $channel = self::current();
         if (!$channel || $channel->problem !== '') {
-            return $counts;
+            return self::done($counts);
         }
         $open = self::open('post', $now);
         $ready = $DB->get_records_select(
@@ -532,7 +541,8 @@ class channel {
             } catch (api_exception $e) {
                 if (self::channel_error($e)) {
                     set_config('channelproblem', 'norights', self::COMPONENT);
-                    return $counts;
+                    work::changed();
+                    return self::done($counts);
                 }
                 $attempts = (int)$post->attempts + 1;
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'attempts' => $attempts,
@@ -556,7 +566,7 @@ class channel {
         }
 
         self::count_members($api, $channel->id, $now);
-        return $counts;
+        return self::done($counts);
     }
 
     /**
@@ -581,6 +591,7 @@ class channel {
         $post->timedecided = $now;
         $post->timemodified = $now;
         $DB->update_record(self::TABLE, $post);
+        work::changed();
         if ($api) {
             $user = \core_user::get_user($userid);
             $a = (object)['name' => $user ? fullname($user) : '', 'when' => self::when($post, $now, true)];
@@ -841,14 +852,36 @@ class channel {
      * @return string
      */
     private static function when(\stdClass $post, int $now, bool $decided = false): string {
-        $time = max((int)$post->timeplanned, $now);
-        if (!$post->urgent) {
-            $time = self::next_open('post', $time);
-        }
+        $time = self::goes_at($post, $now);
         if ($time <= $now) {
             return get_string($decided ? 'channel:review:soon' : 'channel:review:now', self::COMPONENT);
         }
         return get_string('channel:review:at', self::COMPONENT, userdate($time, get_string('strftimedaydatetime', 'langconfig')));
+    }
+
+    /**
+     * What process() did, after forgetting what the dashboard kept if it changed anything.
+     *
+     * @param array $counts The counts of process().
+     * @return array The same.
+     */
+    private static function done(array $counts): array {
+        if (array_sum($counts)) {
+            work::changed();
+        }
+        return $counts;
+    }
+
+    /**
+     * When a post goes out if it is said yes now: at its time, in the hours of the channel unless it is urgent.
+     *
+     * @param \stdClass $post The post.
+     * @param int $now The time.
+     * @return int Now, or later.
+     */
+    public static function goes_at(\stdClass $post, int $now): int {
+        $time = max((int)$post->timeplanned, $now);
+        return $post->urgent ? $time : self::next_open('post', $time);
     }
 
     /**

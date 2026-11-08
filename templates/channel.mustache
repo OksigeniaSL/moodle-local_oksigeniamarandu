@@ -22,6 +22,7 @@
 
     Context variables required for this template:
     * lead, saved, error - What it is for, the line after saving and an error.
+    * canconfig - Whether the user runs the site: the settings are for them; whoever only reviews sees what is waiting.
     * nobot, boturl - Without a bot, the link to its page.
     * formurl, sesskey - Where the forms go.
     * connect - Without a channel: botname and candidate (id, title, username), the channel Telegram said the bot can post in.
@@ -34,7 +35,8 @@
 
     Example context (json):
     {
-        "lead": "What everyone may read.", "saved": "", "error": "", "nobot": false, "boturl": "#", "formurl": "#",
+        "lead": "What everyone may read.", "saved": "", "error": "", "canconfig": true, "nobot": false, "boturl": "#",
+        "formurl": "#",
         "sesskey": "abc", "connect": {"botname": "@example_bot", "candidate": {"id": "-100123", "title": "Example school",
         "username": "@exampleschool"} }
     }
@@ -45,10 +47,13 @@
         {{#saved}}<p class="mrd-saved" role="status">{{saved}}</p>{{/saved}}
         {{#error}}<p class="mrd-err" role="alert">{{error}}</p>{{/error}}
 
+        {{#canconfig}}
         {{#nobot}}
         <p>{{#str}} channel:nobot, local_oksigeniamarandu {{/str}}</p>
         <div class="mrd-actions"><a class="btn mrd-btn mrd-primary" href="{{boturl}}">{{#str}} channel:gobot, local_oksigeniamarandu {{/str}}</a></div>
         {{/nobot}}
+        {{/canconfig}}
+        {{^canconfig}}{{^channel}}<p class="mrd-warn">{{#str}} channel:notconnected, local_oksigeniamarandu {{/str}}</p>{{/channel}}{{/canconfig}}
 
         {{#connect}}
         <h3>{{#str}} channel:connect, local_oksigeniamarandu {{/str}}</h3>
@@ -80,17 +85,19 @@
                 <h3>{{title}} {{#url}}<a href="{{url}}" target="_blank" rel="noopener">{{username}}</a>{{/url}}</h3>
                 <p class="mrd-muted">{{members}}{{#growth}} · {{.}}{{/growth}}</p>
             </div>
+            {{#canconfig}}
             <form method="post" action="{{formurl}}">
                 <input type="hidden" name="sesskey" value="{{sesskey}}">
                 <input type="hidden" name="action" value="disconnect">
                 <button type="submit" class="mrd-btn mrd-second">{{#str}} channel:disconnect, local_oksigeniamarandu {{/str}}</button>
             </form>
+            {{/canconfig}}
         </div>
         {{#problem}}<p class="mrd-err" role="alert">{{.}}</p>{{/problem}}
         <p class="{{#noreviewers}}mrd-warn{{/noreviewers}}{{^noreviewers}}mrd-muted{{/noreviewers}}">{{reviewers}}</p>
 
         {{#review.0}}
-        <h3>{{#str}} channel:waiting, local_oksigeniamarandu {{/str}}</h3>
+        <h3 id="mrd-review">{{#str}} channel:waiting, local_oksigeniamarandu {{/str}}</h3>
         <ul class="mrd-posts">
             {{#review}}
             <li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}}{{#urgent}} · {{#str}} channel:urgent, local_oksigeniamarandu {{/str}}{{/urgent}}</small></span>
@@ -113,11 +120,12 @@
         <ul class="mrd-posts">{{#published}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}{{#clicks}} · {{.}}{{/clicks}}</small></span></li>{{/published}}</ul>
         {{/published.0}}
         {{#failed.0}}
-        <h3>{{#str}} channel:failed, local_oksigeniamarandu {{/str}}</h3>
+        <h3 id="mrd-failed">{{#str}} channel:failed, local_oksigeniamarandu {{/str}}</h3>
         <ul class="mrd-posts">{{#failed}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{error}}</small></span></li>{{/failed}}</ul>
         {{/failed.0}}
         {{#empty}}<p class="mrd-muted">{{#str}} channel:empty, local_oksigeniamarandu {{/str}}</p>{{/empty}}
 
+        {{#canconfig}}
         <form method="post" action="{{formurl}}" class="mrd-sentences">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
             <input type="hidden" name="action" value="save">
@@ -194,6 +202,7 @@
         <p class="mrd-muted">{{#str}} channel:cards:sample, local_oksigeniamarandu {{/str}}</p>
         <div class="mrd-previews">{{#previews}}<img src="{{src}}" alt="{{alt}}" width="640" height="360">{{/previews}}</div>
         {{/previews.0}}
+        {{/canconfig}}
         {{/channel}}
     </section>
 </div>

@@ -177,8 +177,9 @@ class work {
         $members = $current ? channel::members($now) : null;
         if ($members) {
             $diff = $members->before === null ? 0 : $members->now - $members->before;
-            $figures[] = $diff ? get_string('work:status:membersweek', self::COMPONENT, (object)['now' => $members->now,
-                'diff' => ($diff > 0 ? '+' : '−') . abs($diff)]) : get_string('work:status:members', self::COMPONENT, $members->now);
+            $joined = (object)['now' => $members->now, 'diff' => ($diff > 0 ? '+' : '−') . abs($diff)];
+            $figures[] = $diff ? get_string('work:status:membersweek', self::COMPONENT, $joined)
+                : get_string('work:status:members', self::COMPONENT, $members->now);
         }
         $week = $DB->get_records_select(
             channel::TABLE,

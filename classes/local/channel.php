@@ -780,7 +780,8 @@ class channel {
     }
 
     /**
-     * When a post goes, in words: as soon as it is said yes, in a moment once it was, or the day and the time.
+     * When a post goes, in words: as soon as it is said yes, in a moment once it was, or the day and the time, which out
+     * of the hours of the channel is when they start again, unless it is urgent.
      *
      * @param \stdClass $post The post.
      * @param int $now The time.
@@ -788,13 +789,38 @@ class channel {
      * @return string
      */
     private static function when(\stdClass $post, int $now, bool $decided = false): string {
-        if ((int)$post->timeplanned <= $now) {
+        $time = max((int)$post->timeplanned, $now);
+        if (!$post->urgent) {
+            $time = self::next_open('post', $time);
+        }
+        if ($time <= $now) {
             return get_string($decided ? 'channel:review:soon' : 'channel:review:now', self::COMPONENT);
         }
-        return get_string('channel:review:at', self::COMPONENT, userdate(
-            (int)$post->timeplanned,
-            get_string('strftimedaydatetime', 'langconfig')
-        ));
+        return get_string('channel:review:at', self::COMPONENT, userdate($time, get_string('strftimedaydatetime', 'langconfig')));
+    }
+
+    /**
+     * The first time from a time on in the hours of review or of the channel, to the minute; the time itself if it is in
+     * them.
+     *
+     * @param string $which review or post.
+     * @param int $time The time.
+     * @return int
+     */
+    public static function next_open(string $which, int $time): int {
+        $open = $time;
+        // A week and a day is longer than any closed time the site can set.
+        while (!self::open($which, $open) && $open < $time + 8 * DAYSECS) {
+            $open += 5 * MINSECS;
+        }
+        if ($open === $time) {
+            return $time;
+        }
+        // On the minute they open, not five minutes after it.
+        while ($open - MINSECS > $time && self::open($which, $open - MINSECS)) {
+            $open -= MINSECS;
+        }
+        return $open;
     }
 
     /**

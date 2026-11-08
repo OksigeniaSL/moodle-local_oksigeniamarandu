@@ -277,6 +277,27 @@ final class channel_test extends \advanced_testcase {
             $bot->of('sendRichMessage')[0]['disable_notification']]);
         $this->assertSame(['ready', 'published'], [$DB->get_field(channel::TABLE, 'status', ['id' => $book]),
             $DB->get_field(channel::TABLE, 'status', ['id' => $closure])]);
+
+        // Said yes at night: it goes when the channel opens in the morning, and the review says so; urgent, at once.
+        $morning = self::WEDNESDAY + 21 * HOURSECS;
+        $this->assertSame($morning, channel::next_open('post', $night));
+        $this->assertSame(self::WEDNESDAY, channel::next_open('post', self::WEDNESDAY));
+        $review = api::channel_post('local_example', 'open_day', ['title' => 'Salida al museo'], $night);
+        $DB->set_field(channel::TABLE, 'reviews', json_encode(['555' => [1, 2]]), ['id' => $review]);
+        $bot = $this->bot();
+        channel::decide($DB->get_record(channel::TABLE, ['id' => $review]), true, (int)get_admin()->id, $bot, $night);
+        $this->assertStringContainsString(
+            userdate($morning, get_string('strftimedaydatetime', 'langconfig')),
+            $bot->of('editMessageText')[0]['text']
+        );
+        $DB->set_field(channel::TABLE, 'status', 'review', ['id' => $urgent]);
+        $DB->set_field(channel::TABLE, 'timeplanned', $night - MINSECS, ['id' => $urgent]);
+        $DB->set_field(channel::TABLE, 'reviews', json_encode(['555' => [3, 4]]), ['id' => $urgent]);
+        channel::decide($DB->get_record(channel::TABLE, ['id' => $urgent]), true, (int)get_admin()->id, $bot, $night);
+        $this->assertStringContainsString(
+            get_string('channel:review:soon', 'local_oksigeniamarandu'),
+            $bot->of('editMessageText')[1]['text']
+        );
     }
 
     /**

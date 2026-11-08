@@ -34,6 +34,7 @@
         <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Empty until somebody writes the code"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle user, if the link is for one"/>
         <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="core" SEQUENCE="false" COMMENT="Plugin that asked for the link"/>
+        <FIELD NAME="area" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="What kind of item of that plugin, such as the kitchen beside the diners; empty for its usual items"/>
         <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Item of that plugin, such as a family"/>
         <FIELD NAME="code" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="Code the family writes after the opt-in keyword"/>
         <FIELD NAME="bynumber" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether it stands because the family records say the number is that adult's, not because of a code"/>
@@ -47,7 +48,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="code" UNIQUE="true" FIELDS="code"/>
-        <INDEX NAME="componentitem" UNIQUE="false" FIELDS="component, itemid"/>
+        <INDEX NAME="componentareaitem" UNIQUE="false" FIELDS="component, area, itemid"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_oksigeniamarandu_consent" COMMENT="Every opt-in and opt-out, kept as proof">
@@ -97,6 +98,7 @@
         <FIELD NAME="rich" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Parts of its card on Telegram, if it has one, JSON"/>
         <FIELD NAME="ref" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="For a question, what the plugin that asked needs to know it again"/>
         <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="For a question, the item of the plugin it went to"/>
+        <FIELD NAME="area" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="For a question, the kind of that item"/>
         <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Where the button of the notice goes, on this site"/>
         <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="The end of the link of the button"/>
         <FIELD NAME="urgent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

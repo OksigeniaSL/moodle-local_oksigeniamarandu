@@ -77,7 +77,11 @@ if ($link && $link->userid) {
     $user = core_user::get_user($link->userid);
     $for = $user ? fullname($user) : '';
 } else if ($link && $link->component !== 'core') {
-    $for = (string)\local_oksigeniamarandu\local\notices::item_label($link->component, (int)$link->itemid);
+    $for = (string)\local_oksigeniamarandu\local\notices::item_label(
+        $link->component,
+        (int)$link->itemid,
+        (string)$link->area
+    );
 }
 
 $initials = '';

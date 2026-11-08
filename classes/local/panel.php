@@ -569,8 +569,8 @@ class panel {
             } else if (!$link->userid && $link->component !== 'core') {
                 // The plugin names its item, if it can (the family of Ana); if not, only what it is.
                 $whom[$link->contactid][] = (object)[
-                    'name' => (string)notices::item_label($link->component, (int)$link->itemid),
-                    'kind' => notices::item($link->component),
+                    'name' => (string)notices::item_label($link->component, (int)$link->itemid, (string)$link->area),
+                    'kind' => notices::item($link->component, (string)$link->area),
                 ];
             }
         }

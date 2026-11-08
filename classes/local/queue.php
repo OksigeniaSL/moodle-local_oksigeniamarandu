@@ -73,6 +73,7 @@ class queue {
      * @param array $rich The clean parts of its card on Telegram, if it has one.
      * @param string|null $ref For a question, what the plugin needs to know it again when it is answered.
      * @param int $itemid For a question, the item of the plugin it goes to.
+     * @param string $area For a question, the kind of that item.
      * @return int The id in the queue.
      */
     public static function add(
@@ -85,7 +86,8 @@ class queue {
         ?int $now = null,
         array $rich = [],
         ?string $ref = null,
-        int $itemid = 0
+        int $itemid = 0,
+        string $area = ''
     ): int {
         global $DB;
         do {
@@ -100,6 +102,7 @@ class queue {
             'rich' => $rich ? json_encode($rich) : null,
             'ref' => $ref,
             'itemid' => $itemid,
+            'area' => $area,
             'url' => $url,
             'token' => $token,
             'urgent' => (int)$urgent,

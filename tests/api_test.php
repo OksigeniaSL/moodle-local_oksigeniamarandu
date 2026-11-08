@@ -100,4 +100,59 @@ final class api_test extends \advanced_testcase {
         consent::optout('34600000001', 'admin', 'test');
         $this->assertFalse(api::has_active_contact('core', 0, $user->id));
     }
+
+    /**
+     * A plugin with two kinds of item, such as the diners of a canteen and its kitchen: each kind has its own codes and
+     * its own numbers, and the notices of one do not reach the other.
+     */
+    public function test_areas(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $diners = api::invite('local_oksigeniamarandu', 7);
+        $kitchen = api::invite('local_oksigeniamarandu', 7, null, 'kitchen');
+        $this->assertNotSame($diners, $kitchen);
+        $this->assertSame($kitchen, api::invite('local_oksigeniamarandu', 7, null, 'kitchen'));
+        $this->assertSame('kitchen', $DB->get_field(consent::LINKS, 'area', ['code' => $kitchen]));
+        $this->assertSame('', $DB->get_field(consent::LINKS, 'area', ['code' => $diners]));
+
+        consent::optin_from_message('34600000001', $diners, 'join');
+        consent::optin_from_message('34600000002', $kitchen, 'join');
+        $this->assertTrue(api::has_active_contact('local_oksigeniamarandu', 7));
+        $this->assertTrue(api::has_active_contact('local_oksigeniamarandu', 7, null, 'kitchen'));
+        $this->assertFalse(api::has_active_contact('local_oksigeniamarandu', 8, null, 'kitchen'));
+
+        set_config('telegramtoken', \core\encryption::encrypt('123456789:' . str_repeat('A', 35)), 'local_oksigeniamarandu');
+        set_config('telegrambot', 'marandu_example_bot', 'local_oksigeniamarandu');
+        $channels = api::item_channels('local_oksigeniamarandu', 8, 'kitchen');
+        $this->assertSame(['telegram'], array_keys($channels));
+        $this->assertFalse($channels['telegram']['joined']);
+        $this->assertStringEndsWith(
+            'start=' . api::invite('local_oksigeniamarandu', 8, null, 'kitchen'),
+            $channels['telegram']['url']
+        );
+
+        $count = api::notify(
+            'local_oksigeniamarandu',
+            'notification',
+            ['Comedor Ejemplo', 'el resumen de cocina de hoy'],
+            null,
+            7,
+            area: 'kitchen'
+        );
+        $this->assertSame(1, $count);
+        $contactid = $DB->get_field(consent::CONTACTS, 'id', ['phone' => '34600000002']);
+        $this->assertEquals($contactid, $DB->get_field(local\queue::TABLE, 'contactid', []));
+
+        $this->assertSame(1, api::unlink('local_oksigeniamarandu', 7, null, 'kitchen'));
+        $this->assertFalse(api::has_active_contact('local_oksigeniamarandu', 7, null, 'kitchen'));
+        $this->assertTrue(api::has_active_contact('local_oksigeniamarandu', 7));
+    }
+
+    /**
+     * An area is a short name, as a plugin would write it in its code.
+     */
+    public function test_area_is_a_short_name(): void {
+        $this->expectException(\coding_exception::class);
+        api::invite('local_oksigeniamarandu', 7, null, 'Kitchen of the north');
+    }
 }

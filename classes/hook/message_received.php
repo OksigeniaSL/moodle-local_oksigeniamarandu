@@ -55,6 +55,7 @@ final class message_received {
      * @param int $time When it was written: Meta's time on WhatsApp, Telegram's on Telegram.
      * @param string $messageid The id of the message on its channel: the wamid, or tg.<chat>.<message>.
      * @param string|null $name The name the person has on WhatsApp or Telegram, if it came.
+     * @param string $area The kind of item of the code, if the plugin has more than one; empty for its usual items.
      */
     public function __construct(
         /** @var string The plugin. */
@@ -76,7 +77,9 @@ final class message_received {
         /** @var string The id of the message. */
         private readonly string $messageid,
         /** @var string|null The name of the person. */
-        private readonly ?string $name
+        private readonly ?string $name,
+        /** @var string The kind of item. */
+        private readonly string $area = ''
     ) {
     }
 
@@ -96,6 +99,15 @@ final class message_received {
      */
     public function get_itemid(): int {
         return $this->itemid;
+    }
+
+    /**
+     * The kind of item of the code, as the plugin gave it to api::invite(); empty for its usual items.
+     *
+     * @return string
+     */
+    public function get_area(): string {
+        return $this->area;
     }
 
     /**

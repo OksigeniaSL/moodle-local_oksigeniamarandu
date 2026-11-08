@@ -203,5 +203,28 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026110800, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026111000) {
+        // 0.17.0: the kind of item of a link, such as the kitchen beside the diners of the same plugin.
+        $table = new xmldb_table('local_oksigeniamarandu_link');
+        $field = new xmldb_field('area', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null, 'component');
+        $old = new xmldb_index('componentitem', XMLDB_INDEX_NOTUNIQUE, ['component', 'itemid']);
+        if ($dbman->index_exists($table, $old)) {
+            $dbman->drop_index($table, $old);
+        }
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $index = new xmldb_index('componentareaitem', XMLDB_INDEX_NOTUNIQUE, ['component', 'area', 'itemid']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $field = new xmldb_field('area', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null, 'itemid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026111000, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

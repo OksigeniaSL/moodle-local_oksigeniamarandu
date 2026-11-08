@@ -104,7 +104,7 @@ class conversation {
             "contactid = :contactid AND component <> 'core'",
             ['contactid' => $contact->id],
             'timeclaimed DESC, id DESC',
-            'id, component, itemid, userid'
+            'id, component, area, itemid, userid'
         );
         if (!$links) {
             return [false, null];
@@ -124,7 +124,7 @@ class conversation {
         $heard = [];
         foreach ($links as $link) {
             $userid = $link->userid === null ? null : (int)$link->userid;
-            $key = $link->component . '/' . $link->itemid . '/' . $userid;
+            $key = $link->component . '/' . $link->area . '/' . $link->itemid . '/' . $userid;
             if (isset($heard[$key])) {
                 continue;
             }
@@ -139,7 +139,8 @@ class conversation {
                 \core_text::substr($text, 0, self::MAXTEXT),
                 $time,
                 $messageid,
-                $name
+                $name,
+                (string)$link->area
             );
             try {
                 \core\di::get(\core\hook\manager::class)->dispatch($hook);
@@ -169,6 +170,7 @@ class conversation {
      * @param cloud_api|null $api The client of WhatsApp; null if the site has none.
      * @param telegram_api|null $telegram The client of Telegram; null if the site has no bot.
      * @param int|null $now The time, for the tests.
+     * @param string $area The kind of item, if the plugin has more than one.
      * @return array One for each number or chat, with channel, address, status (sent; closed, when the 24 hours of
      *               WhatsApp have passed and only a notice with its template can reach them; or failed), messageid and
      *               error.
@@ -182,7 +184,8 @@ class conversation {
         ?string $address,
         ?cloud_api $api,
         ?telegram_api $telegram,
-        ?int $now = null
+        ?int $now = null,
+        string $area = ''
     ): array {
         global $DB, $CFG;
         $text = trim($text);
@@ -190,7 +193,7 @@ class conversation {
             throw new \coding_exception('send_text() needs a text');
         }
         $now = $now ?? time();
-        $params = ['component' => $component, 'itemid' => $itemid, 'active' => 'active'];
+        $params = ['component' => $component, 'area' => $area, 'itemid' => $itemid, 'active' => 'active'];
         $only = '';
         if ($address !== null) {
             $only = ' AND c.phone = :phone';
@@ -201,8 +204,8 @@ class conversation {
                                            WHERE c.status = :active $only
                                              AND c.id IN (SELECT l.contactid
                                                             FROM {" . consent::LINKS . "} l
-                                                           WHERE l.component = :component AND l.itemid = :itemid
-                                                                 AND l.userid IS NULL)
+                                                           WHERE l.component = :component AND l.area = :area
+                                                                 AND l.itemid = :itemid AND l.userid IS NULL)
                                         ORDER BY c.id", $params);
         $results = [];
         foreach ($contacts as $contact) {

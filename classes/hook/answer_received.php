@@ -44,6 +44,7 @@ final class answer_received {
      * @param string $channel whatsapp or telegram.
      * @param string $address The number in E.164, or tg:<chat>.
      * @param int $time When it was answered: Meta's time on WhatsApp, the arrival on Telegram.
+     * @param string $area The kind of item it went to, if the plugin has more than one; empty for its usual items.
      */
     public function __construct(
         /** @var string The plugin that asked. */
@@ -61,7 +62,9 @@ final class answer_received {
         /** @var string The number or chat. */
         private readonly string $address,
         /** @var int When it was answered. */
-        private readonly int $time
+        private readonly int $time,
+        /** @var string The kind of item it went to. */
+        private readonly string $area = ''
     ) {
     }
 
@@ -99,6 +102,15 @@ final class answer_received {
      */
     public function get_itemid(): int {
         return $this->itemid;
+    }
+
+    /**
+     * The kind of item it went to, as the plugin gave it to api::ask(); empty for its usual items.
+     *
+     * @return string
+     */
+    public function get_area(): string {
+        return $this->area;
     }
 
     /**

@@ -38,11 +38,16 @@ namespace local_oksigeniamarandu\local;
  *
  *     $string['marandu:label'] = 'canteen';                    // Beside the name of each notice, in the panel.
  *     $string['marandu:item'] = 'a family of the canteen';     // Under whom a number stands for, in the list.
+ *     $string['marandu:item_kitchen'] = 'the kitchen of a canteen';  // The same, for the items of an area.
  *
  * The examples are the values Meta sees when it reviews the text: made up, one for each {{n}}. Perweek is how many of
  * these notices a family gets in a usual week, to estimate the cost. With 'askedfor' => true, each person asks for the
  * notice at a time they choose: the quiet hours do not hold it back and it does not count for the notices a day. It is
  * not urgent, so it keeps the choice of notices without sound.
+ *
+ * A notice that takes over from another of the same plugin, such as a day without canteen that went before as a change
+ * of menu, says so with 'follows' => 'menu_changed': the first time the site sees it, it is switched on in each channel
+ * where that one is on. After that, it is a notice like any other, which the site switches on or off.
  *
  * A notice can be a question with buttons to answer it, sent with api::ask(): 'options' => ['yes', 'no'] (up to three,
  * short keys), each with its label in the language pack, up to 20 characters:
@@ -60,10 +65,14 @@ class notices {
     /** @var array Notices declared by the tests, by component. */
     private static $fortests = [];
 
+    /** @var bool Whether this request has already switched on the notices that follow another. */
+    private static $followed = false;
+
     /**
      * Every notice declared on the site, by "component/notice".
      *
-     * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor and options.
+     * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor, options and follows (the notice
+     *                     of the same plugin it takes over from, or empty).
      */
     public static function all(): array {
         $all = [];
@@ -89,6 +98,7 @@ class notices {
                     'perweek' => max(0.0, (float)($definition['perweek'] ?? 1)),
                     'askedfor' => !empty($definition['askedfor']),
                     'options' => self::options((array)($definition['options'] ?? [])),
+                    'follows' => self::follows((string)($definition['follows'] ?? ''), $notice),
                 ];
             }
         }
@@ -110,6 +120,17 @@ class notices {
     }
 
     /**
+     * The notice another takes over from: a name like that of any notice, and not itself.
+     *
+     * @param string $follows The notice, as declared.
+     * @param string $notice The notice that takes over.
+     * @return string Empty if it follows none.
+     */
+    private static function follows(string $follows, string $notice): string {
+        return $follows !== $notice && preg_match('/^[a-z0-9_]{1,40}$/', $follows) ? $follows : '';
+    }
+
+    /**
      * Notices declared by the tests, as a plugin would; only while the tests run.
      *
      * @param array $notices By component, the declarations; [] to forget them.
@@ -119,6 +140,7 @@ class notices {
             throw new \coding_exception('Only for the tests');
         }
         self::$fortests = $notices;
+        self::$followed = false;
     }
 
     /**
@@ -174,14 +196,17 @@ class notices {
     }
 
     /**
-     * What the items of a plugin are, under whom a number stands for: «a family of the canteen».
+     * What the items of a plugin are, under whom a number stands for: «a family of the canteen», or «the kitchen of a
+     * canteen» for its area kitchen (marandu:item_kitchen).
      *
      * @param string $component The plugin.
+     * @param string $area The kind of item, if the plugin has more than one.
      * @return string
      */
-    public static function item(string $component): string {
+    public static function item(string $component, string $area = ''): string {
         $strings = get_string_manager();
-        foreach (['marandu:item', 'marandu:label'] as $id) {
+        $ids = $area === '' ? ['marandu:item', 'marandu:label'] : ['marandu:item_' . $area, 'marandu:label'];
+        foreach ($ids as $id) {
             if ($strings->string_exists($id, $component)) {
                 return get_string($id, $component);
             }
@@ -190,18 +215,20 @@ class notices {
     }
 
     /**
-     * Whom an item of a plugin stands for, as the plugin names it in <component>_oksigeniamarandu_label(int $itemid) in
-     * its lib.php (for example, «Family of Ana»); null if it does not, or if the plugin is not installed any more.
+     * Whom an item of a plugin stands for, as the plugin names it in
+     * <component>_oksigeniamarandu_label(int $itemid, string $area = '') in its lib.php (for example, «Family of Ana»);
+     * null if it does not, or if the plugin is not installed any more.
      *
      * @param string $component The plugin.
      * @param int $itemid Its item.
+     * @param string $area The kind of item, if the plugin has more than one.
      * @return string|null
      */
-    public static function item_label(string $component, int $itemid): ?string {
+    public static function item_label(string $component, int $itemid, string $area = ''): ?string {
         if ($component === 'core' || \core_component::get_component_directory($component) === null) {
             return null;
         }
-        $label = component_callback($component, 'oksigeniamarandu_label', [$itemid], null);
+        $label = component_callback($component, 'oksigeniamarandu_label', [$itemid, $area], null);
         return is_string($label) && $label !== '' ? $label : null;
     }
 
@@ -263,7 +290,40 @@ class notices {
      * @return string[]
      */
     public static function enabled(string $channel = 'whatsapp'): array {
+        self::follow();
         return self::keys(self::SETTING[$channel] ?? 'enablednotices');
+    }
+
+    /**
+     * Switches on, once, each notice that takes over from another in the channels where that one is on, so that a
+     * plugin that splits a notice in two does not leave the site without it. Only the notices that declare 'follows'
+     * are written down, once, in followednotices; the rest never touch the settings.
+     */
+    private static function follow(): void {
+        if (self::$followed) {
+            return;
+        }
+        self::$followed = true;
+        $done = self::keys('followednotices');
+        $new = array_filter(self::all(), function ($notice) use ($done) {
+            return $notice->follows !== '' && !in_array($notice->key, $done, true);
+        });
+        if (!$new) {
+            return;
+        }
+        foreach (self::SETTING as $setting) {
+            $keys = self::keys($setting);
+            $add = [];
+            foreach ($new as $notice) {
+                if (in_array($notice->component . '/' . $notice->follows, $keys, true) && !in_array($notice->key, $keys, true)) {
+                    $add[] = $notice->key;
+                }
+            }
+            if ($add) {
+                set_config($setting, implode(',', array_merge($keys, $add)), 'local_oksigeniamarandu');
+            }
+        }
+        set_config('followednotices', implode(',', array_merge($done, array_keys($new))), 'local_oksigeniamarandu');
     }
 
     /**

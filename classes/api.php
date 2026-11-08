@@ -43,6 +43,11 @@ use local_oksigeniamarandu\local\telegram_api;
  * What whoever joined with that code writes of their own reaches the plugin with the hook
  * \local_oksigeniamarandu\hook\message_received, and the plugin answers with send_text().
  *
+ * A plugin with more than one kind of item, such as the diners of a canteen and its kitchen, gives each kind but the
+ * usual one an area, as the files of Moodle do, and passes it, last, to every call for those items:
+ *     $code = \local_oksigeniamarandu\api::invite('local_oksigeniameals', $key->id, null, 'kitchen');
+ *     \local_oksigeniamarandu\api::notify('local_oksigeniameals', 'kitchen_summary', $values, $url, $key->id, area: 'kitchen');
+ *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -57,22 +62,24 @@ class api {
      * @param string $component The plugin, such as local_oksigeniameals.
      * @param int $itemid Its item, such as a family; 0 if the link is only for a user.
      * @param int|null $userid The Moodle user, if there is one.
+     * @param string $area The kind of item, if the plugin has more than one (such as kitchen); empty for its usual items.
      * @return string The code.
      */
-    public static function invite(string $component, int $itemid = 0, ?int $userid = null): string {
+    public static function invite(string $component, int $itemid = 0, ?int $userid = null, string $area = ''): string {
         global $DB;
         $component = clean_param($component, PARAM_COMPONENT);
         if ($component === '') {
             throw new \coding_exception('invite() needs the name of a plugin');
         }
-        $params = ['component' => $component, 'itemid' => $itemid];
+        $area = self::area($area);
+        $params = ['component' => $component, 'area' => $area, 'itemid' => $itemid];
         $usersql = 'userid IS NULL';
         if ($userid !== null) {
             $usersql = 'userid = :userid';
             $params['userid'] = $userid;
         }
-        $open = $DB->get_records_select(consent::LINKS, "component = :component AND itemid = :itemid AND $usersql
-            AND contactid IS NULL", $params, 'id ASC', 'id, code', 0, 1);
+        $open = $DB->get_records_select(consent::LINKS, "component = :component AND area = :area AND itemid = :itemid
+            AND $usersql AND contactid IS NULL", $params, 'id ASC', 'id, code', 0, 1);
         if ($open) {
             return reset($open)->code;
         }
@@ -81,6 +88,7 @@ class api {
         } while ($DB->record_exists(consent::LINKS, ['code' => $code]));
         $DB->insert_record(consent::LINKS, (object)[
             'component' => $component,
+            'area' => $area,
             'itemid' => $itemid,
             'userid' => $userid,
             'code' => $code,
@@ -201,10 +209,11 @@ class api {
      *
      * @param string $component The plugin, such as local_oksigeniameals.
      * @param int $itemid Its item.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @return array By channel, with name, joined, where and url.
      */
-    public static function item_channels(string $component, int $itemid): array {
-        return self::channel_list($component, $itemid, null);
+    public static function item_channels(string $component, int $itemid, string $area = ''): array {
+        return self::channel_list($component, $itemid, null, self::area($area));
     }
 
     /**
@@ -213,12 +222,13 @@ class api {
      * @param string $component The plugin of the links.
      * @param int $itemid Its item.
      * @param int|null $userid The user, if they are one.
+     * @param string $area The kind of item.
      * @return array By channel, with name, joined, where and url.
      */
-    private static function channel_list(string $component, int $itemid, ?int $userid): array {
+    private static function channel_list(string $component, int $itemid, ?int $userid, string $area = ''): array {
         global $DB;
-        $params = ['active' => 'active', 'component' => $component, 'itemid' => $itemid];
-        $where = 'l.component = :component AND l.itemid = :itemid AND ';
+        $params = ['active' => 'active', 'component' => $component, 'area' => $area, 'itemid' => $itemid];
+        $where = 'l.component = :component AND l.area = :area AND l.itemid = :itemid AND ';
         if ($userid !== null) {
             $where = 'l.userid = :userid AND ';
             $params['userid'] = $userid;
@@ -237,7 +247,7 @@ class api {
                 return $contact->channel === $channel;
             });
             $contact = reset($contacts);
-            $code = $code ?? self::invite($component, $itemid, $userid);
+            $code = $code ?? self::invite($component, $itemid, $userid, $area);
             $list[$channel] = [
                 'name' => $info['name'],
                 'joined' => (bool)$contact,
@@ -255,7 +265,8 @@ class api {
      * It goes in a letter or a message, never in a public place: whoever has it can join for that family.
      *
      * The page names whom the code stands for: the user, or what the plugin answers to the callback
-     * <component>_oksigeniamarandu_label(int $itemid): ?string in its lib.php (for example, "Family of Ana").
+     * <component>_oksigeniamarandu_label(int $itemid, string $area = ''): ?string in its lib.php (for example,
+     * "Family of Ana", or "Kitchen of the North canteen" for the area kitchen).
      *
      * @param string $code A code from invite().
      * @return \moodle_url
@@ -270,11 +281,17 @@ class api {
      * @param string $component The plugin.
      * @param int $itemid Its item; 0 if the link is only for a user.
      * @param int|null $userid The Moodle user, if there is one.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @return bool
      */
-    public static function has_active_contact(string $component, int $itemid = 0, ?int $userid = null): bool {
+    public static function has_active_contact(
+        string $component,
+        int $itemid = 0,
+        ?int $userid = null,
+        string $area = ''
+    ): bool {
         global $DB;
-        $params = ['component' => $component, 'itemid' => $itemid, 'active' => 'active'];
+        $params = ['component' => $component, 'area' => self::area($area), 'itemid' => $itemid, 'active' => 'active'];
         $usersql = 'l.userid IS NULL';
         if ($userid !== null) {
             $usersql = 'l.userid = :userid';
@@ -283,8 +300,8 @@ class api {
         return $DB->record_exists_sql("SELECT 1
                                          FROM {" . consent::LINKS . "} l
                                          JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
-                                        WHERE l.component = :component AND l.itemid = :itemid AND $usersql
-                                              AND c.status = :active", $params);
+                                        WHERE l.component = :component AND l.area = :area AND l.itemid = :itemid
+                                              AND $usersql AND c.status = :active", $params);
     }
 
     /**
@@ -305,6 +322,7 @@ class api {
      * @param array $rich A card on Telegram instead of its text: any of title, image (a URL of this site with a PNG or a
      *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
      *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @return int How many numbers it was queued for.
      */
     public static function notify(
@@ -316,10 +334,11 @@ class api {
         ?int $userid = null,
         bool $urgent = false,
         int $validfor = 2 * DAYSECS,
-        array $rich = []
+        array $rich = [],
+        string $area = ''
     ): int {
         [$declared, $params] = self::prepare($component, $notice, $params);
-        $contactids = self::joined($component, $itemid, $userid);
+        $contactids = self::joined($component, $itemid, $userid, self::area($area));
         return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich);
     }
 
@@ -339,6 +358,8 @@ class api {
      * @param int|null $userid The user, if it is for a user.
      * @param \moodle_url|null $url Where its link goes, on this site.
      * @param int $validfor Seconds after which it is no longer worth sending, such as until the deadline of the answer.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items. The answer
+     *                     comes back with it.
      * @return int How many numbers and chats it was queued for.
      * @throws \coding_exception If the notice is not a question or the reference is not valid.
      */
@@ -350,16 +371,18 @@ class api {
         int $itemid = 0,
         ?int $userid = null,
         ?\moodle_url $url = null,
-        int $validfor = 2 * DAYSECS
+        int $validfor = 2 * DAYSECS,
+        string $area = ''
     ): int {
         [$declared, $params] = self::prepare($component, $notice, $params);
+        $area = self::area($area);
         if (!$declared->options) {
             throw new \coding_exception("The notice {$component}/{$notice} has no options to answer");
         }
         if ($ref === '' || \core_text::strlen($ref) > 64) {
             throw new \coding_exception('The reference of a question has from 1 to 64 characters');
         }
-        $contactids = self::joined($component, $itemid, $userid);
+        $contactids = self::joined($component, $itemid, $userid, $area);
         foreach ($contactids as $contactid) {
             queue::add(
                 (int)$contactid,
@@ -371,7 +394,8 @@ class api {
                 null,
                 [],
                 $ref,
-                $userid === null ? $itemid : 0
+                $userid === null ? $itemid : 0,
+                $userid === null ? $area : ''
             );
         }
         return count($contactids);
@@ -392,6 +416,7 @@ class api {
      * @param \moodle_url|null $url A link on this site: a button on Telegram, a line below the text on WhatsApp.
      * @param string|null $address Only to whoever wrote: the number (E.164) or chat (tg:<chat>) of the hook.
      * @param string $label The label of the button on Telegram; «Open», in the language of the person, if empty.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @return array One for each number or chat, with channel (whatsapp or telegram), address, status (sent, closed or
      *               failed), messageid (the wamid, or tg.<chat>.<message>) and error. Empty if nobody joined for it.
      * @throws \coding_exception If the text is empty.
@@ -402,8 +427,10 @@ class api {
         string $text,
         ?\moodle_url $url = null,
         ?string $address = null,
-        string $label = ''
+        string $label = '',
+        string $area = ''
     ): array {
+        $area = self::area($area);
         $whatsapp = null;
         $bot = null;
         try {
@@ -424,7 +451,9 @@ class api {
             $label,
             $address,
             $whatsapp,
-            $bot
+            $bot,
+            null,
+            $area
         );
     }
 
@@ -477,18 +506,34 @@ class api {
      * @param string $component The plugin.
      * @param int $itemid Its item; 0 if the link is only for a user.
      * @param int|null $userid The user, if the links are for one.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @return int How many links were dropped.
      */
-    public static function unlink(string $component, int $itemid = 0, ?int $userid = null): int {
+    public static function unlink(string $component, int $itemid = 0, ?int $userid = null, string $area = ''): int {
         global $DB;
-        $params = ['component' => $component, 'itemid' => $itemid];
-        $where = 'component = :component AND itemid = :itemid AND ' . ($userid === null ? 'userid IS NULL' : 'userid = :userid');
+        $params = ['component' => $component, 'area' => self::area($area), 'itemid' => $itemid];
+        $where = 'component = :component AND area = :area AND itemid = :itemid AND '
+            . ($userid === null ? 'userid IS NULL' : 'userid = :userid');
         if ($userid !== null) {
             $params['userid'] = $userid;
         }
         $count = $DB->count_records_select(consent::LINKS, $where, $params);
         $DB->delete_records_select(consent::LINKS, $where, $params);
         return $count;
+    }
+
+    /**
+     * The kind of item a plugin gives, checked: empty, or a short name such as kitchen.
+     *
+     * @param string $area The kind of item.
+     * @return string
+     * @throws \coding_exception If it is not a short name of lowercase letters, digits and underscores.
+     */
+    private static function area(string $area): string {
+        if (!preg_match('/^([a-z][a-z0-9_]{0,39})?$/', $area)) {
+            throw new \coding_exception('An area is a short name of lowercase letters, digits and underscores, such as kitchen');
+        }
+        return $area;
     }
 
     /**
@@ -521,16 +566,17 @@ class api {
      * @param string $component The plugin.
      * @param int $itemid The item; 0 for a user.
      * @param int|null $userid The user, if it is for a user.
+     * @param string $area The kind of item.
      * @return int[]
      */
-    private static function joined(string $component, int $itemid, ?int $userid): array {
+    private static function joined(string $component, int $itemid, ?int $userid, string $area): array {
         global $DB;
         if ($userid !== null) {
             $where = 'l.userid = :userid';
             $sqlparams = ['userid' => $userid];
         } else {
-            $where = 'l.component = :component AND l.itemid = :itemid AND l.userid IS NULL';
-            $sqlparams = ['component' => $component, 'itemid' => $itemid];
+            $where = 'l.component = :component AND l.area = :area AND l.itemid = :itemid AND l.userid IS NULL';
+            $sqlparams = ['component' => $component, 'area' => $area, 'itemid' => $itemid];
         }
         return $DB->get_fieldset_sql("SELECT DISTINCT c.id
                                         FROM {" . consent::LINKS . "} l

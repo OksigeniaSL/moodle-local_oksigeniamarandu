@@ -337,4 +337,33 @@ final class answers_test extends \advanced_testcase {
         $this->assertSame('answerCallbackQuery', end($bot->calls)[0]);
         $this->assertSame('tg.5', $DB->get_field(answers::TABLE, 'contextid', []));
     }
+
+    /**
+     * A question for one kind of item of a plugin, such as its kitchen: only whoever joined for it gets it, and the
+     * answer comes back with the area.
+     */
+    public function test_area(): void {
+        global $DB;
+        set_config('telegramtoken', \core\encryption::encrypt('123456789:' . str_repeat('A', 35)), 'local_oksigeniamarandu');
+        set_config('telegrambot', 'marandu_example_bot', 'local_oksigeniamarandu');
+        $this->join('tg:555');
+        consent::optin_from_message('tg:557', api::invite('local_oksigeniamarandu', 7, null, 'kitchen'), 'join');
+        $count = api::ask(
+            'local_oksigeniamarandu',
+            'question',
+            ['Lucas', 'outing to the museum'],
+            'kitchen7',
+            7,
+            area: 'kitchen'
+        );
+        $this->assertSame(1, $count);
+        $row = $DB->get_record(queue::TABLE, []);
+        $this->assertSame('kitchen', $row->area);
+        $bot = $this->telegram();
+        $this->assertSame(1, queue::process(null, self::WEDNESDAY, $bot)['sent']);
+        telegram::handle(['callback_query' => ['id' => 'cb557', 'data' => 'a:' . $row->token . ':no', 'from' => ['id' => 557],
+            'message' => ['message_id' => 6, 'chat' => ['id' => 557, 'type' => 'private']]]], $bot);
+        $this->assertSame(['no', 7, 'kitchen', 'kitchen7'], [$this->heard[0]->get_option(), $this->heard[0]->get_itemid(),
+            $this->heard[0]->get_area(), $this->heard[0]->get_ref()]);
+    }
 }

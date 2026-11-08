@@ -203,7 +203,8 @@ class answers {
             $option,
             $channel,
             $channel === 'telegram' ? $contact->phone : '+' . $contact->phone,
-            $time
+            $time,
+            (string)$row->area
         );
         \core\di::get(\core\hook\manager::class)->dispatch($hook);
         $lang = $contact->lang ?: null;

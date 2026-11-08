@@ -71,16 +71,18 @@ final class conversation_test extends \advanced_testcase {
      * @param int $itemid The item of the plugin, such as a household.
      * @param string $component The plugin.
      * @param int|null $lastinbound When they last wrote, if they did.
+     * @param string $area The kind of item, if the plugin has more than one.
      * @return \stdClass The contact.
      */
     private function join(
         string $address,
         int $itemid = 7,
         string $component = 'local_example',
-        ?int $lastinbound = null
+        ?int $lastinbound = null,
+        string $area = ''
     ): \stdClass {
         global $DB;
-        consent::optin_from_message($address, api::invite($component, $itemid), 'join');
+        consent::optin_from_message($address, api::invite($component, $itemid, null, $area), 'join');
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address], '*', MUST_EXIST);
         $DB->set_field(consent::CONTACTS, 'lastinbound', $lastinbound, ['id' => $contact->id]);
         return $contact;
@@ -328,6 +330,36 @@ final class conversation_test extends \advanced_testcase {
         $this->assertEqualsCanonicalizing(['local_example', 'local_other'], array_map(function (message_received $hook) {
             return $hook->get_component();
         }, $this->heard));
+    }
+
+    /**
+     * A plugin with two kinds of item, such as the diners and the kitchen: the hook says which one wrote, and the texts
+     * for one kind do not reach the other.
+     */
+    public function test_area(): void {
+        $this->join('tg:557', 7);
+        $this->join('tg:558', 7, 'local_example', null, 'kitchen');
+        telegram::handle($this->update(558, 1, ['text' => 'Faltan dos raciones']));
+        telegram::handle($this->update(557, 1, ['text' => 'Hola']));
+        $this->assertSame([['local_example', 7, 'kitchen'], ['local_example', 7, '']], array_map(function (message_received $hook) {
+            return [$hook->get_component(), $hook->get_itemid(), $hook->get_area()];
+        }, $this->heard));
+
+        $results = conversation::send(
+            'local_example',
+            7,
+            'Mañana, 40 raciones.',
+            null,
+            '',
+            null,
+            null,
+            $this->bot(),
+            self::WEDNESDAY,
+            'kitchen'
+        );
+        $this->assertSame([['tg:558', 'sent']], array_map(function ($result) {
+            return [$result['address'], $result['status']];
+        }, $results));
     }
 
     /**

@@ -209,6 +209,19 @@ class cloud_api {
     }
 
     /**
+     * Changes the text of a template Meta has already: it goes back to its review. An approved one, once a day and ten
+     * times a month at most, as Meta says.
+     *
+     * @param string $templateid The id of the template in Meta.
+     * @param array $components Its components, as when it was created.
+     * @return array What Meta answers.
+     * @throws api_exception If Meta does not take it.
+     */
+    public function edit_template(string $templateid, array $components): array {
+        return $this->post($templateid, ['components' => $components]);
+    }
+
+    /**
      * The templates of the account, with their status, category and why they were rejected.
      *
      * @param string $wabaid The WhatsApp Business account.

@@ -52,6 +52,15 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    // The templates of the new notices of the plugins, and the new texts of those that changed, to Meta: every hour.
+    [
+        'classname' => 'local_oksigeniamarandu\task\sync_templates',
+        'minute' => 'R',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
     // The sky over the place of the site: every hour, so that its posts are ready the same afternoon.
     [
         'classname' => 'local_oksigeniamarandu\task\channel_sky',

@@ -125,6 +125,84 @@ class templates {
     }
 
     /**
+     * What is wrong with the text of a template for Meta, if anything: Meta refuses one that starts or ends with a value
+     * (its error 2388299), and wants the values numbered from {{1}} with none missing.
+     *
+     * @param string $text The text.
+     * @return string|null edge or numbers; null if it is good.
+     */
+    public static function problem(string $text): ?string {
+        $text = trim($text);
+        if (preg_match('/^\{\{\d+\}\}/', $text) || preg_match('/\{\{\d+\}\}$/', $text)) {
+            return 'edge';
+        }
+        preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
+        $numbers = array_values(array_unique(array_map('intval', $matches[1])));
+        sort($numbers);
+        return $numbers && $numbers !== range(1, count($numbers)) ? 'numbers' : null;
+    }
+
+    /**
+     * Whether the text of the template of a notice changed since it went to Meta.
+     *
+     * @param \stdClass $template The stored template.
+     * @param \stdClass $notice The notice.
+     * @param string $lang Moodle language.
+     * @return bool
+     */
+    public static function changed(\stdClass $template, \stdClass $notice, string $lang): bool {
+        return (string)$template->body !== notices::text($notice, 'template', $lang);
+    }
+
+    /**
+     * Sends to Meta what it does not have yet: the template of each new notice and the new text of those that changed
+     * (approved, rejected or paused; one still in review waits). A text Meta would refuse does not go.
+     *
+     * @param cloud_api $api The client.
+     * @param string $wabaid The WhatsApp Business account.
+     * @param int $max The most it sends.
+     * @return array Counts: created, edited, failed and wrong (texts Meta would refuse).
+     */
+    public static function sync(cloud_api $api, string $wabaid, int $max = 20): array {
+        global $DB;
+        $counts = ['created' => 0, 'edited' => 0, 'failed' => 0, 'wrong' => 0];
+        foreach (notices::all() as $notice) {
+            foreach (notices::languages() as $lang) {
+                if ($counts['created'] + $counts['edited'] + $counts['failed'] >= $max) {
+                    return $counts;
+                }
+                if (self::problem(notices::text($notice, 'template', $lang)) !== null) {
+                    $counts['wrong']++;
+                    continue;
+                }
+                $template = self::get($notice, $lang);
+                try {
+                    $metaid = $template ? (string)$template->metaid : '';
+                    if (!$template || ($metaid === '' && $template->status === 'rejected')) {
+                        self::submit($api, $wabaid, $notice, $lang);
+                        $counts['created']++;
+                    } else if (
+                        in_array($template->status, ['approved', 'rejected', 'paused'], true)
+                            && self::changed($template, $notice, $lang) && $metaid !== ''
+                    ) {
+                        $payload = self::payload($notice, $lang);
+                        $api->edit_template($metaid, $payload['components']);
+                        $DB->update_record(self::TABLE, (object)['id' => $template->id, 'status' => 'pending',
+                            'reason' => null, 'body' => $payload['components'][0]['text'], 'timesubmitted' => time(),
+                            'timemodified' => time()]);
+                        $counts['edited']++;
+                    }
+                } catch (api_exception $e) {
+                    // It is tried again in the next run; Meta says why on the page of the texts.
+                    debugging('Marandu: a template did not go to Meta: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                    $counts['failed']++;
+                }
+            }
+        }
+        return $counts;
+    }
+
+    /**
      * Asks Meta how the templates of the site are, for when its webhook of templates is not subscribed.
      *
      * @param cloud_api $api The client.

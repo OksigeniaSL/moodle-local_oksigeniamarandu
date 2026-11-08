@@ -124,6 +124,10 @@ foreach ($all as $key => $notice) {
         if ($channel === 'telegram') {
             $note = get_string('notices:free', $component);
             $review = false;
+        } else if (templates::problem(notices::text($notice, 'template', $CFG->lang)) !== null) {
+            // Meta would refuse its text: it is for whoever makes the plugin to fix it.
+            $note = get_string('notices:wrongtext', $component);
+            $review = true;
         } else if (templates::approved($notice)) {
             $note = get_string('notices:cost', $component, $money($monthly($notice)));
             $review = false;

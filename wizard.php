@@ -132,13 +132,10 @@ if ($action === 'connect' && confirm_sesskey()) {
         try {
             $api = cloud_api::from_config();
             if ($action === 'submit') {
-                foreach (notices::all() as $notice) {
-                    foreach (notices::languages() as $lang) {
-                        $template = templates::get($notice, $lang);
-                        if (!$template || $template->status === 'rejected') {
-                            templates::submit($api, $wabaid, $notice, $lang);
-                        }
-                    }
+                // The new ones, and the new text of those that changed; what Meta would refuse does not go.
+                $counts = templates::sync($api, $wabaid, 100);
+                if ($counts['failed']) {
+                    throw new api_exception('wizard:texts:somefailed', $counts['failed']);
                 }
             } else {
                 templates::refresh($api, $wabaid);
@@ -279,7 +276,13 @@ if ($step === 'account') {
         foreach (notices::languages() as $lang) {
             $template = templates::get($notice, $lang);
             $status = $template ? $template->status : 'todo';
-            if ($status === 'todo' || $status === 'rejected') {
+            $problem = templates::problem(notices::text($notice, 'template', $lang));
+            if ($problem !== null) {
+                $status = 'wrong';
+            } else if ($template && $status !== 'pending' && templates::changed($template, $notice, $lang)) {
+                $status = 'changed';
+            }
+            if ($status === 'todo' || $status === 'changed') {
                 $counts['todo']++;
             } else if ($status === 'pending') {
                 $counts['pending']++;
@@ -295,8 +298,9 @@ if ($step === 'account') {
                 'body' => $body,
                 'button' => notices::text($notice, 'button', $lang),
                 'status' => get_string('wizard:texts:status:' . $status, $component),
-                'statusclass' => $status,
-                'reason' => $template && $template->reason ? $template->reason : '',
+                'statusclass' => ['wrong' => 'rejected', 'changed' => 'todo'][$status] ?? $status,
+                'reason' => $problem !== null ? get_string('templates:problem:' . $problem, $component)
+                    : ($template && $template->reason ? $template->reason : ''),
                 'marketing' => $template && $template->category === 'marketing',
             ];
         }

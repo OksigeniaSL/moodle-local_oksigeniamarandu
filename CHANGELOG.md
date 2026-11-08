@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.25.0 (2026-11-08)
+
+- On a site with WhatsApp that already sent its texts from the wizard, the templates of the notices a plugin brings in a
+  new version go to Meta by themselves, every hour, without going back to the wizard; and the new text of a template
+  that changed goes as an edit of the one Meta has (approved, rejected or paused; one still in review waits).
+- A text Meta would refuse (it starts or ends with a value, or its values skip a number) does not go: the wizard says why
+  and «What notices go out» marks it, for whoever makes the plugin to fix it.
+
 ## 0.24.0 (2026-11-08)
 
 - Work of a class for the channel: in a course, «To the channel», for whoever teaches it

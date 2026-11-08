@@ -36,6 +36,9 @@ class rich {
     /** The largest photo Telegram takes, in bytes. */
     private const MAX_BYTES = 10485760;
 
+    /** The biggest animation it sends (Telegram takes up to 50 MB from a bot). */
+    private const MAX_VIDEO = 20971520;
+
     /** How many lines and paragraphs a card keeps, and how long each is: well within the limits of a rich message. */
     private const MAX_LINES = 30;
 
@@ -124,6 +127,16 @@ class rich {
     }
 
     /**
+     * The file of an animation of this site, an MP4 without sound, as image() reads an image.
+     *
+     * @param string $url A URL of this site.
+     * @return string|null Its bytes; null if it is not an MP4 that Telegram would take.
+     */
+    public static function video(string $url): ?string {
+        return self::file($url, '/\.mp4$/i', ['video/mp4'], self::MAX_VIDEO);
+    }
+
+    /**
      * The file of an image of this site: from the disk if it is a file of the code, which needs no address that works from
      * the server itself, or else from its address. Without following redirections: a page that asks to log in is no image.
      *
@@ -131,12 +144,25 @@ class rich {
      * @return string|null Its bytes; null if it is not a PNG or a JPEG that Telegram would take.
      */
     public static function image(string $url): ?string {
+        return self::file($url, '/\.(png|jpe?g)$/i', self::IMAGES, self::MAX_BYTES);
+    }
+
+    /**
+     * A file of this site, from the disk if it is a file of the code, or else from its address.
+     *
+     * @param string $url A URL of this site.
+     * @param string $extensions The pattern of the names of the files of the code it may read.
+     * @param string[] $types The types it takes.
+     * @param int $max The most bytes it takes.
+     * @return string|null Its bytes; null if it is not of those types or is too big.
+     */
+    private static function file(string $url, string $extensions, array $types, int $max): ?string {
         global $CFG;
         if (strpos($url, $CFG->wwwroot . '/') !== 0) {
             return null;
         }
         $path = rawurldecode((string)strtok(substr($url, strlen($CFG->wwwroot)), '?#'));
-        $file = preg_match('/\.(png|jpe?g)$/i', $path) ? realpath($CFG->dirroot . $path) : false;
+        $file = preg_match($extensions, $path) ? realpath($CFG->dirroot . $path) : false;
         if ($file !== false && strpos($file, realpath($CFG->dirroot) . DIRECTORY_SEPARATOR) === 0) {
             $bytes = (string)file_get_contents($file);
         } else {
@@ -145,8 +171,8 @@ class rich {
             $bytes = (string)$curl->get($url, [], ['CURLOPT_TIMEOUT' => 10, 'CURLOPT_FOLLOWLOCATION' => 0]);
         }
         $type = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
-        if (!in_array($type, self::IMAGES, true) || strlen($bytes) > self::MAX_BYTES) {
-            debugging('Marandu: the image of a rich message cannot be sent: ' . s($url), DEBUG_DEVELOPER);
+        if (!in_array($type, $types, true) || strlen($bytes) > $max) {
+            debugging('Marandu: this file cannot be sent to Telegram: ' . s($url), DEBUG_DEVELOPER);
             return null;
         }
         return $bytes;

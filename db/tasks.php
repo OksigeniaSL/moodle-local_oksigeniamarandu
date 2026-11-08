@@ -43,4 +43,13 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    [
+        // The calendar of the channel: every hour, so that its posts are ready a few days before and follow its changes.
+        'classname' => 'local_oksigeniamarandu\task\channel_calendar',
+        'minute' => 'R',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

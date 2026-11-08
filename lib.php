@@ -41,12 +41,15 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
 
 /**
  * What Marandu posts by itself in the channel of Telegram of the site: the announcements of the front page, written by a
- * person already, so they go without review unless the site says otherwise.
+ * person already, so they go without review unless the site says otherwise; and, from the calendar of the site, «This
+ * week» on Monday and «No class tomorrow» on the eve of a day without class, reviewed first.
  *
  * @return array By kind of post.
  */
 function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
     return [
         'news' => ['review' => false],
+        'week' => [],
+        'dayoff' => [],
     ];
 }

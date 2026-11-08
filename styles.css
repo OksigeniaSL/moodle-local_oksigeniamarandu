@@ -5263,3 +5263,43 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
         border-color: var(--mrd-ink);
     }
 }
+
+/* The page of the channel: the fields of the calendar and of the links, a label above each. */
+.local-oksigeniamarandu-channel .mrd-fields {
+    display: grid;
+    gap: 4px;
+    max-width: 100%;
+    margin: 0 0 12px;
+}
+
+.local-oksigeniamarandu-channel .mrd-fields label {
+    margin: 8px 0 0;
+    color: var(--mrd-ink-soft);
+}
+
+.local-oksigeniamarandu-channel .mrd-fields input[type="url"],
+.local-oksigeniamarandu-channel .mrd-fields input[type="text"],
+.local-oksigeniamarandu-channel .mrd-fields input[type="password"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 10px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-channel .mrd-fields small {
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-channel .mrd-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.local-oksigeniamarandu-channel .mrd-check label {
+    margin: 0;
+    color: var(--mrd-ink);
+}

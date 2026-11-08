@@ -28,7 +28,8 @@
     * channel - With a channel: title, username, url, problem, members, growth, reviewers, noreviewers, kinds (name, desc,
       field, choices with value, id, label, on), reviewfrom, reviewto, reviewdays and postfrom, postto, postdays (group,
       value, label, name, on), and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
-      urgent), and empty.
+      urgent), and empty; the calendar: calendarical, calendarsite, calendarlink, calendarkeywords, classdays, weekhour and
+      evehour; the links: utm, utmsource, utmmedium, shortener and hassignature.
 
     Example context (json):
     {
@@ -140,6 +141,39 @@
                 <input type="time" name="postto" value="{{postto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">
                 <span class="mrd-days">{{#postdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/postdays}}</span></p>
             <p class="mrd-sub">{{#str}} channel:hours:post2, local_oksigeniamarandu {{/str}}</p>
+
+            <h3>{{#str}} channel:calendar, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sub">{{#str}} channel:calendar:desc, local_oksigeniamarandu {{/str}}</p>
+            <div class="mrd-fields">
+                <label for="mrd-ical">{{#str}} channel:calendar:ical, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-ical" type="url" name="calendarical" value="{{calendarical}}" placeholder="https://" autocomplete="off">
+                <span class="mrd-check"><input type="checkbox" id="mrd-calsite" name="calendarsite" value="1" {{#calendarsite}}checked{{/calendarsite}}><label for="mrd-calsite">{{#str}} channel:calendar:site, local_oksigeniamarandu {{/str}}</label></span>
+                <label for="mrd-callink">{{#str}} channel:calendar:link, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-callink" type="url" name="calendarlink" value="{{calendarlink}}" placeholder="https://" autocomplete="off">
+                <label for="mrd-keywords">{{#str}} channel:calendar:keywords, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-keywords" type="text" name="calendarkeywords" value="{{calendarkeywords}}" aria-describedby="mrd-keywords-desc">
+                <small id="mrd-keywords-desc">{{#str}} channel:calendar:keywords_desc, local_oksigeniamarandu {{/str}}</small>
+            </div>
+            <p class="mrd-sentence">{{#str}} channel:calendar:classdays, local_oksigeniamarandu {{/str}}
+                <span class="mrd-days">{{#classdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/classdays}}</span></p>
+            <p class="mrd-sentence">{{#str}} channel:calendar:weekhour, local_oksigeniamarandu {{/str}}
+                <input type="time" name="weekhour" value="{{weekhour}}" aria-label="{{#str}} channel:calendar:weekhour, local_oksigeniamarandu {{/str}}"></p>
+            <p class="mrd-sentence">{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}
+                <input type="time" name="evehour" value="{{evehour}}" aria-label="{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}"></p>
+
+            <h3>{{#str}} channel:links, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sub">{{#str}} channel:links:desc, local_oksigeniamarandu {{/str}}</p>
+            <div class="mrd-fields">
+                <span class="mrd-check"><input type="checkbox" id="mrd-utm" name="utm" value="1" {{#utm}}checked{{/utm}}><label for="mrd-utm">{{#str}} channel:links:utm, local_oksigeniamarandu {{/str}}</label></span>
+                <label for="mrd-utmsource">utm_source</label>
+                <input id="mrd-utmsource" type="text" name="utmsource" value="{{utmsource}}" autocomplete="off">
+                <label for="mrd-utmmedium">utm_medium</label>
+                <input id="mrd-utmmedium" type="text" name="utmmedium" value="{{utmmedium}}" autocomplete="off">
+                <label for="mrd-shortener">{{#str}} channel:links:shortener, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-shortener" type="url" name="shortener" value="{{shortener}}" placeholder="https://" autocomplete="off">
+                <label for="mrd-signature">{{#str}} channel:links:signature, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-signature" type="password" name="shortenersignature" value="" autocomplete="new-password" {{#hassignature}}placeholder="{{#str}} channel:links:signatureset, local_oksigeniamarandu {{/str}}"{{/hassignature}}>
+            </div>
             <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button></div>
         </form>
         {{/channel}}

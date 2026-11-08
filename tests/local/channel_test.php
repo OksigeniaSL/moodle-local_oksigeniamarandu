@@ -84,12 +84,30 @@ final class channel_test extends \advanced_testcase {
              */
             protected function request(string $method, string $body): string {
                 $this->calls[] = [$method, json_decode($body, true)];
+                if ($method === 'getChatMemberCount' && !isset($this->answers[$method])) {
+                    return '{"ok":true,"result":1}';
+                }
                 $answer = $this->answers[$method] ?? ['message_id' => 40 + count($this->calls)];
                 if (is_array($answer) && isset($answer['error'])) {
                     return json_encode(['ok' => false, 'error_code' => $answer['error'][0],
                         'description' => $answer['error'][1]]);
                 }
                 return json_encode(['ok' => true, 'result' => $answer]);
+            }
+
+            /**
+             * Keeps a request with a file, as Telegram would take it.
+             *
+             * @param string $method The method.
+             * @param array $fields Its parameters.
+             * @param string $name The name of the file.
+             * @param string $bytes The file.
+             * @return string
+             */
+            protected function request_file(string $method, array $fields, string $name, string $bytes): string {
+                $this->calls[] = [$method, $fields + ['file' => $name . ':' . strlen($bytes)]];
+                return json_encode(['ok' => true, 'result' => ['message_id' => 40 + count($this->calls),
+                    'animation' => ['file_id' => 'anim1']]]);
             }
 
             /**
@@ -190,7 +208,10 @@ final class channel_test extends \advanced_testcase {
         channel::disconnect();
         $this->assertSame(0, api::channel_post('local_example', 'open_day', ['title' => 'Sin canal']));
 
-        foreach ([[], ['title' => 'x', 'url' => 'https://example.org/'], ['title' => 'x', 'colour' => 'red']] as $bad) {
+        foreach (
+            [[], ['title' => 'x', 'url' => 'javascript:alert(1)'], ['title' => 'x', 'colour' => 'red'],
+                ['title' => 'x', 'animation' => 'https://example.org/a.mp4']] as $bad
+        ) {
             try {
                 api::channel_post('local_example', 'open_day', $bad);
                 $this->fail('Not a valid post');
@@ -393,5 +414,74 @@ final class channel_test extends \advanced_testcase {
         $other = $generator->create_discussion(['course' => $course->id, 'forum' => $forum->id, 'userid' => $user->id]);
         $created($other, $forum, (int)$forum->cmid);
         $this->assertFalse($DB->record_exists(channel::TABLE, ['sourcekey' => 'd' . $other->id]));
+    }
+
+    /**
+     * A post changed after its review is reviewed again, and the old buttons do nothing.
+     */
+    public function test_review_again(): void {
+        global $DB;
+        $id = api::channel_post('local_example', 'open_day', ['title' => 'Jornada'], self::WEDNESDAY, false, 'day14');
+        $bot = $this->bot();
+        channel::process($bot, self::WEDNESDAY);
+        $old = $DB->get_record(channel::TABLE, ['id' => $id]);
+        channel::decide($old, true, (int)get_admin()->id, null, self::WEDNESDAY);
+        api::channel_post('local_example', 'open_day', ['title' => 'Jornada, a las 10:00'], self::WEDNESDAY, false, 'day14');
+        $new = $DB->get_record(channel::TABLE, ['id' => $id]);
+        $this->assertSame(['review', null, null], [$new->status, $new->timereview, $new->decidedby]);
+        $this->assertNotSame($old->token, $new->token);
+        $press = ['callback_query' => ['id' => 'cb', 'data' => 'p:' . $old->token . ':pub', 'from' => ['id' => 555],
+            'message' => ['message_id' => 9, 'chat' => ['id' => 555, 'type' => 'private']]]];
+        telegram::handle($press, $bot);
+        $this->assertSame('review', $DB->get_field(channel::TABLE, 'status', ['id' => $id]));
+    }
+
+    /**
+     * The button of a post carries the UTM marks of the site; with a shortener, its short link, which counts the visits;
+     * a link that must go as it is, without marks. An animation goes with its text below and the same button.
+     */
+    public function test_links_and_animation(): void {
+        global $CFG, $DB;
+        set_config('utm', 1, 'local_oksigeniamarandu');
+        set_config('utmmedium', 'canal', 'local_oksigeniamarandu');
+        $plain = api::channel_post('local_example', 'book', ['title' => 'El libro del mes',
+            'url' => 'https://example.org/libro?id=4#ficha'], self::WEDNESDAY);
+        $this->assertSame(
+            'https://example.org/libro?id=4&utm_source=telegram&utm_medium=canal&utm_campaign=book#ficha',
+            channel::click($DB->get_field(channel::TABLE, 'token', ['id' => $plain]))
+        );
+        $this->assertSame(
+            'https://example.org/x?utm_source=otra&utm_medium=canal&utm_campaign=book',
+            links::utm('https://example.org/x?utm_source=otra', 'book')
+        );
+
+        $asked = [];
+        links::fake_for_tests(function (array $params) use (&$asked) {
+            $asked[] = $params['url'];
+            return json_encode(['status' => 'fail', 'code' => 'error:url', 'shorturl' => 'https://sho.rt/abc']);
+        });
+        $calendar = api::channel_post('local_example', 'book', ['title' => 'Esta semana',
+            'url' => 'https://example.org/calendar.ics', 'utm' => false], self::WEDNESDAY);
+        $animated = api::channel_post('local_example', 'book', ['title' => 'Jornada de puertas abiertas',
+            'text' => 'El sábado, de 10:00 a 13:00.', 'url' => 'https://example.org/visita', 'label' => 'Reservar visita',
+            'animation' => $CFG->wwwroot . '/local/oksigeniamarandu/tests/fixtures/animation.mp4'], self::WEDNESDAY);
+        $bot = $this->bot();
+        try {
+            channel::process($bot, self::WEDNESDAY);
+        } finally {
+            links::fake_for_tests(null);
+        }
+        $this->assertSame(['https://example.org/libro?id=4&utm_source=telegram&utm_medium=canal&utm_campaign=book#ficha',
+            'https://example.org/calendar.ics',
+            'https://example.org/visita?utm_source=telegram&utm_medium=canal&utm_campaign=book'], $asked);
+        $sent = $bot->of('sendAnimation')[0];
+        $this->assertSame([self::CHANNEL, 'animation:1770'], [$sent['chat_id'], $sent['file']]);
+        $this->assertSame("Jornada de puertas abiertas\n\nEl sábado, de 10:00 a 13:00.", $sent['caption']);
+        $this->assertSame(
+            '{"inline_keyboard":[[{"text":"Reservar visita","url":"https:\/\/sho.rt\/abc"}]]}',
+            $sent['reply_markup']
+        );
+        $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $animated]));
+        $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $calendar]));
     }
 }

@@ -241,6 +241,57 @@ class telegram_api {
     }
 
     /**
+     * Sends an animation (an MP4 without sound) with its text below and a button to a link, such as a post of the channel.
+     * It goes up once for each bot, as the image of a card.
+     *
+     * @param string $chatid The chat.
+     * @param string $url The animation: a URL of this site with an MP4.
+     * @param string $caption The text below, up to 1024 characters; the first line, in bold.
+     * @param string|null $link Where the button goes.
+     * @param string $label The label of the button.
+     * @param bool $silent Without sound.
+     * @return string The id of the message.
+     * @throws api_exception If it is not an MP4 Telegram takes, or Telegram refuses it.
+     */
+    public function send_animation(
+        string $chatid,
+        string $url,
+        string $caption,
+        ?string $link = null,
+        string $label = '',
+        bool $silent = false
+    ): string {
+        $bytes = rich::video($url);
+        if ($bytes === null) {
+            throw new api_exception('error:unexpected');
+        }
+        $cache = \cache::make('local_oksigeniamarandu', 'telegramphotos');
+        $key = sha1(strstr($this->token, ':', true) . ':' . sha1($bytes));
+        $fileid = $cache->get($key);
+        $text = self::text_params($chatid, \core_text::substr($caption, 0, 1024), $silent);
+        $params = ['chat_id' => $chatid, 'caption' => $text['text'], 'disable_notification' => $silent]
+            + (isset($text['entities']) ? ['caption_entities' => $text['entities']] : []);
+        if ($link !== null) {
+            $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $link]]]];
+        }
+        try {
+            $answer = $fileid ? $this->call('sendAnimation', $params + ['animation' => $fileid])
+                : $this->answer($this->request_file('sendAnimation', self::fields($params), 'animation', $bytes));
+        } catch (api_exception $e) {
+            if ($fileid) {
+                // Perhaps Telegram no longer has it: the next one uploads it again.
+                $cache->delete($key);
+            }
+            throw $e;
+        }
+        $new = (string)($answer['animation']['file_id'] ?? $answer['document']['file_id'] ?? '');
+        if (!$fileid && $new !== '') {
+            $cache->set($key, $new);
+        }
+        return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
      * A chat as Telegram has it: a channel, by its id or by its name after an at sign.
      *
      * @param string $chatid The id, or @ and its name.

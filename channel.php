@@ -27,7 +27,9 @@ require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
 use local_oksigeniamarandu\local\api_exception;
+use local_oksigeniamarandu\local\calendar;
 use local_oksigeniamarandu\local\channel;
+use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\panel;
 use local_oksigeniamarandu\local\telegram_api;
 
@@ -69,6 +71,35 @@ if ($action !== '' && confirm_sesskey()) {
                 }
                 $days = array_keys(array_filter(optional_param_array($which . 'days', [], PARAM_INT)));
                 set_config($which . 'days', implode(',', array_intersect($days, range(0, 6))), $component);
+            }
+            // The calendar: its addresses, the words of the days without class, the days with class and the hours.
+            $address = function (string $name): string {
+                $value = optional_param($name, '', PARAM_RAW_TRIMMED);
+                return preg_match('~^https?://\S+$~i', $value) ? $value : '';
+            };
+            set_config('calendarical', $address('calendarical'), $component);
+            set_config('calendarlink', $address('calendarlink'), $component);
+            set_config('calendarsite', optional_param('calendarsite', 0, PARAM_BOOL) ? 1 : 0, $component);
+            set_config('calendarkeywords', trim(optional_param('calendarkeywords', '', PARAM_TEXT)), $component);
+            $days = array_keys(array_filter(optional_param_array('classdays', [], PARAM_INT)));
+            set_config('classdays', implode(',', array_intersect($days, range(1, 7))), $component);
+            foreach (['weekhour', 'evehour'] as $name) {
+                $time = optional_param($name, '', PARAM_RAW_TRIMMED);
+                if (preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time)) {
+                    set_config($name, $time, $component);
+                }
+            }
+            // The links: the UTM marks and the shortener, whose signature is kept encrypted and never shown.
+            set_config('utm', optional_param('utm', 0, PARAM_BOOL) ? 1 : 0, $component);
+            foreach (['utmsource', 'utmmedium'] as $name) {
+                set_config($name, optional_param($name, '', PARAM_ALPHANUMEXT), $component);
+            }
+            set_config('shortener', $address('shortener'), $component);
+            $signature = optional_param('shortenersignature', '', PARAM_RAW_TRIMMED);
+            if ($signature !== '') {
+                set_config('shortenersignature', \core\encryption::encrypt($signature), $component);
+            } else if ($address('shortener') === '') {
+                unset_config('shortenersignature', $component);
             }
             redirect(new moodle_url($baseurl, ['saved' => 1]));
         } else if (in_array($action, ['publish', 'skip'], true)) {
@@ -118,11 +149,14 @@ if ($current) {
         $names[] = fullname(core_user::get_user($userid));
     }
     $config = get_config($component);
-    $days = function (string $which) use ($config, $component): array {
-        $on = array_filter(explode(',', (string)($config->{$which . 'days'} ?? channel::DEFAULTS[$which . 'days'])), 'strlen');
+    $days = function (string $which, ?string $default = null, bool $iso = false) use ($config, $component): array {
+        $default = $default ?? channel::DEFAULTS[$which . 'days'];
+        $on = array_filter(explode(',', (string)($config->{$which . 'days'} ?? $default)), 'strlen');
         $list = [];
         foreach ([1, 2, 3, 4, 5, 6, 0] as $day) {
-            $list[] = ['group' => $which, 'value' => $day, 'on' => in_array((string)$day, $on, true),
+            // The days with class count from Monday as 1 to Sunday as 7; the hours, from Sunday as 0.
+            $value = $iso && $day === 0 ? 7 : $day;
+            $list[] = ['group' => $which, 'value' => $value, 'on' => in_array((string)$value, $on, true),
                 'label' => get_string('wizard:limits:day' . $day, $component),
                 'name' => get_string(
                     ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][$day],
@@ -181,6 +215,19 @@ if ($current) {
         'postfrom' => $config->postfrom ?? channel::DEFAULTS['postfrom'],
         'postto' => $config->postto ?? channel::DEFAULTS['postto'],
         'postdays' => $days('post'),
+        'calendarical' => (string)($config->calendarical ?? ''),
+        'calendarsite' => !empty($config->calendarsite),
+        'calendarlink' => (string)($config->calendarlink ?? ''),
+        'calendarkeywords' => isset($config->calendarkeywords) ? (string)$config->calendarkeywords
+            : get_string('channel:calendar:keywordsdefault', $component),
+        'classdays' => $days('class', calendar::DEFAULTS['classdays'], true),
+        'weekhour' => $config->weekhour ?? calendar::DEFAULTS['weekhour'],
+        'evehour' => $config->evehour ?? calendar::DEFAULTS['evehour'],
+        'utm' => !empty($config->utm),
+        'utmsource' => (string)($config->utmsource ?? links::DEFAULTS['utmsource']),
+        'utmmedium' => (string)($config->utmmedium ?? links::DEFAULTS['utmmedium']),
+        'shortener' => (string)($config->shortener ?? ''),
+        'hassignature' => !empty($config->shortenersignature),
         'review' => $list("status = 'review'", 'timecreated ASC'),
         'ready' => $list("status = 'ready'", 'timeplanned ASC'),
         'published' => $list("status = 'published'", 'timepublished DESC'),

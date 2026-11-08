@@ -289,8 +289,10 @@ class channel {
      *
      * @param string $component The plugin.
      * @param string $kind The kind of post, as declared.
-     * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), lines, text, url (a link of
-     *                       this site, for its button) and label (of the button); a title or a text at least.
+     * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), animation (a URL of this site
+     *                       with an MP4, which goes instead of the card), lines, text, url (a web address, for its button),
+     *                       label (of the button) and utm (false for a link that must go as it is); a title or a text at
+     *                       least.
      * @param int|null $when Not before this time; now if null.
      * @param bool $urgent Whether it goes at any hour, and its review too.
      * @param string $key What the plugin knows it by, up to 100 characters, to change it or take it back.
@@ -341,22 +343,26 @@ class channel {
                 IGNORE_MULTIPLE
             );
             if ($waiting) {
-                $DB->update_record(self::TABLE, (object)(['id' => $waiting->id] + $fields));
+                $update = ['id' => $waiting->id] + $fields;
+                // Changed after it was reviewed or sent to review: it is reviewed again, and the old buttons do nothing.
+                $changed = $waiting->content !== $fields['content'];
+                if ($changed && ($waiting->status === 'review' || $policy === 'review')) {
+                    $update += ['status' => 'review', 'timereview' => null, 'reviews' => null, 'decidedby' => null,
+                        'timedecided' => null, 'token' => self::new_token()];
+                }
+                $DB->update_record(self::TABLE, (object)$update);
                 return (int)$waiting->id;
             }
             if ($DB->record_exists(self::TABLE, $source + ['status' => 'published'])) {
                 return 0;
             }
         }
-        do {
-            $token = random_string(10);
-        } while ($DB->record_exists(self::TABLE, ['token' => $token]));
         return (int)$DB->insert_record(self::TABLE, (object)($fields + [
             'component' => $component,
             'kind' => $kind,
             'sourcekey' => $key,
             'status' => $policy === 'auto' ? 'ready' : 'review',
-            'token' => $token,
+            'token' => self::new_token(),
             'timecreated' => $now,
         ]));
     }
@@ -367,9 +373,10 @@ class channel {
      * @param string $component The plugin.
      * @param string $kind The kind of post.
      * @param string $key What the plugin knows it by.
+     * @param bool $waitingonly Only if it has not gone out: what is in the channel stays.
      * @return int How many posts it took back.
      */
-    public static function cancel(string $component, string $kind, string $key): int {
+    public static function cancel(string $component, string $kind, string $key, bool $waitingonly = false): int {
         global $DB;
         $count = 0;
         $posts = $DB->get_records(self::TABLE, ['component' => $component, 'kind' => $kind, 'sourcekey' => $key]);
@@ -377,7 +384,7 @@ class channel {
             if (in_array($post->status, ['review', 'ready'], true)) {
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'cancelled', 'timemodified' => time()]);
                 $count++;
-            } else if ($post->status === 'published') {
+            } else if ($post->status === 'published' && !$waitingonly) {
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'remove', 'timemodified' => time()]);
                 $count++;
             }
@@ -394,7 +401,7 @@ class channel {
      */
     public static function clean(array $content): array {
         global $CFG;
-        $unknown = array_diff(array_keys($content), ['title', 'image', 'lines', 'text', 'url', 'label']);
+        $unknown = array_diff(array_keys($content), ['title', 'image', 'animation', 'lines', 'text', 'url', 'label', 'utm']);
         if ($unknown) {
             throw new \coding_exception('A post has no ' . implode(', ', $unknown));
         }
@@ -403,12 +410,21 @@ class channel {
             throw new \coding_exception('A post needs a title or a text');
         }
         $url = $content['url'] ?? '';
-        $url = $url instanceof \moodle_url ? $url->out(false) : (string)$url;
-        if ($url !== '' && strpos($url, $CFG->wwwroot . '/') !== 0) {
-            throw new \coding_exception('The link of a post has to be on this site');
+        $url = $url instanceof \moodle_url ? $url->out(false) : trim((string)$url);
+        if ($url !== '' && !preg_match('~^https?://[^\s]+$~i', $url)) {
+            throw new \coding_exception('The link of a post has to be a web address');
+        }
+        $animation = $content['animation'] ?? '';
+        $animation = $animation instanceof \moodle_url ? $animation->out(false) : (string)$animation;
+        if ($animation !== '' && strpos($animation, $CFG->wwwroot . '/') !== 0) {
+            throw new \coding_exception('The animation of a post has to be on this site');
         }
         $label = \core_text::substr(trim(strip_tags((string)($content['label'] ?? ''))), 0, 40);
-        return $clean + array_filter(['url' => $url, 'label' => $label]);
+        $clean += array_filter(['animation' => $animation, 'url' => $url, 'label' => $label]);
+        if (array_key_exists('utm', $content) && !$content['utm']) {
+            $clean['utm'] = false;
+        }
+        return $clean;
     }
 
     /**
@@ -477,13 +493,17 @@ class channel {
             }
             $content = json_decode($post->content, true) ?: [];
             try {
-                $messageid = $api->send_rich(
-                    $channel->id,
-                    self::rich($content),
-                    empty($content['url']) ? null : self::link($post),
-                    self::label($content),
-                    !$post->urgent
-                );
+                $button = empty($content['url']) ? null : self::button($post, $content);
+                $messageid = empty($content['animation']) || rich::video($content['animation']) === null
+                    ? $api->send_rich($channel->id, self::rich($content), $button, self::label($content), !$post->urgent)
+                    : $api->send_animation(
+                        $channel->id,
+                        $content['animation'],
+                        self::caption($content),
+                        $button,
+                        self::label($content),
+                        !$post->urgent
+                    );
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'published', 'messageid' => $messageid,
                     'error' => null, 'timepublished' => $now, 'timemodified' => $now]);
                 $counts['published']++;
@@ -673,14 +693,15 @@ class channel {
      * @return string|null Where it goes; null if the post or its link are not known.
      */
     public static function click(string $token): ?string {
-        global $DB, $CFG;
-        $post = $token === '' ? false : $DB->get_record(self::TABLE, ['token' => $token], 'id, content');
-        $url = $post ? (string)(json_decode($post->content, true)['url'] ?? '') : '';
-        if ($url === '' || strpos($url, $CFG->wwwroot . '/') !== 0) {
+        global $DB;
+        $post = $token === '' ? false : $DB->get_record(self::TABLE, ['token' => $token], 'id, kind, content');
+        $content = $post ? (json_decode($post->content, true) ?: []) : [];
+        $url = (string)($content['url'] ?? '');
+        if (!preg_match('~^https?://~i', $url)) {
             return null;
         }
         $DB->execute('UPDATE {' . self::TABLE . '} SET clicks = clicks + 1 WHERE id = ?', [$post->id]);
-        return $url;
+        return isset($content['utm']) && !$content['utm'] ? $url : links::utm($url, $post->kind);
     }
 
     /**
@@ -739,7 +760,16 @@ class channel {
      */
     private static function ask(telegram_api $api, \stdClass $post, string $chat, int $now): array {
         $content = json_decode($post->content, true) ?: [];
-        $preview = $api->send_rich($chat, self::rich($content), $content['url'] ?? null, self::label($content), true);
+        $preview = empty($content['animation']) || rich::video($content['animation']) === null
+            ? $api->send_rich($chat, self::rich($content), $content['url'] ?? null, self::label($content), true)
+            : $api->send_animation(
+                $chat,
+                $content['animation'],
+                self::caption($content),
+                $content['url'] ?? null,
+                self::label($content),
+                true
+            );
         $kind = self::kinds()[$post->component . '/' . $post->kind] ?? (object)['component' => $post->component,
             'kind' => $post->kind];
         $channel = self::current();
@@ -841,6 +871,49 @@ class channel {
      */
     private static function label(array $content): string {
         return ($content['label'] ?? '') !== '' ? $content['label'] : get_string('channel:open', self::COMPONENT);
+    }
+
+    /**
+     * Where the button of a post goes in the channel: the short link of the shortener of the site, which counts the
+     * visits, of the link with its UTM marks; without a shortener, the link of Marandu, which counts them.
+     *
+     * @param \stdClass $post The post.
+     * @param array $content Its content.
+     * @return string
+     */
+    private static function button(\stdClass $post, array $content): string {
+        $target = isset($content['utm']) && !$content['utm'] ? $content['url'] : links::utm($content['url'], $post->kind);
+        return links::shorten($target) ?? self::link($post);
+    }
+
+    /**
+     * The text under an animation: the title, then the lines and the text.
+     *
+     * @param array $content The content of the post.
+     * @return string
+     */
+    private static function caption(array $content): string {
+        $parts = array_filter([
+            (string)($content['title'] ?? ''),
+            implode("\n", array_map(function ($line) {
+                return '• ' . $line;
+            }, (array)($content['lines'] ?? []))),
+            implode("\n", (array)($content['text'] ?? [])),
+        ], 'strlen');
+        return implode("\n\n", $parts);
+    }
+
+    /**
+     * A token no other post has.
+     *
+     * @return string
+     */
+    private static function new_token(): string {
+        global $DB;
+        do {
+            $token = random_string(10);
+        } while ($DB->record_exists(self::TABLE, ['token' => $token]));
+        return $token;
     }
 
     /**

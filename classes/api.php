@@ -467,6 +467,31 @@ class api {
     }
 
     /**
+     * The channel of Telegram of the site, as anyone may find it: for a QR on a screen or a link on a page.
+     *
+     * @return array|null With url (https://t.me/<name>), title and members (how many it had the last time it was
+     *                    counted, or null); null if the site has no channel ready or its channel is private.
+     */
+    public static function channel(): ?array {
+        $channel = local\channel::current();
+        if (!$channel || $channel->username === '' || !local\channel::is_ready()) {
+            return null;
+        }
+        $members = local\channel::members(time());
+        return ['url' => 'https://t.me/' . $channel->username, 'title' => $channel->title,
+            'members' => $members ? $members->now : null];
+    }
+
+    /**
+     * The public link of the channel of Telegram of the site.
+     *
+     * @return string|null https://t.me/<name>; null if the site has no channel ready or its channel is private.
+     */
+    public static function channel_link(): ?string {
+        return self::channel()['url'] ?? null;
+    }
+
+    /**
      * Posts in the channel of Telegram of the site something everyone may read, such as an open day or a book of the
      * library: never anything of one person. The plugin declares the kind in its lib.php,
      * <component>_oksigeniamarandu_posts() (see local\channel), and the site says whether it goes by itself, after whoever
@@ -475,9 +500,12 @@ class api {
      *
      * @param string $component The plugin.
      * @param string $kind The kind of post, as declared.
-     * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), lines, text, url (a link of
-     *                       this site, for its button, which counts the visits) and label (of the button); a title or a
-     *                       text at least.
+     * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), lines, text, url (a web
+     *                       address, for its button, which counts the visits), label (of the button), card (a card Marandu
+     *                       draws from its templates, still and animated: ['type' => open_day, outing, this_week, no_class,
+     *                       book, big_number or sky, 'zones' => [...]], see local\cards), animation (a URL of this site
+     *                       with an MP4, instead of the card) and utm (false for a link that must go as it is); a title or
+     *                       a text at least.
      * @param int|null $when Not before this time; now if null.
      * @param bool $urgent Whether it goes at any hour, such as classes called off.
      * @param string $key What the plugin knows it by, to change it while it waits or take it back with channel_cancel().

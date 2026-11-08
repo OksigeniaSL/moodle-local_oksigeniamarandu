@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample data: a made-up warning of a made-up area, in two languages. -->
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>2.49.0.0.999.0.XX.1</identifier>
+  <sender>https://warnings.example.org</sender>
+  <sent>2026-10-28T08:00:00+00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>es-ES</language>
+    <category>Met</category>
+    <event>Aviso de viento de nivel naranja</event>
+    <urgency>Future</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-10-29T07:00:00+01:00</onset>
+    <expires>2026-10-29T23:59:59+01:00</expires>
+    <senderName>Servicio Meteorológico de Ejemplo</senderName>
+    <headline>Aviso de viento de nivel naranja. Costa de Ejemplo</headline>
+    <description>Rachas máximas de 90 km/h en la costa.</description>
+    <instruction>Evite los paseos marítimos y asegure los objetos que el viento pueda arrastrar.</instruction>
+    <web>https://warnings.example.org/avisos</web>
+    <area>
+      <areaDesc>Costa de Ejemplo</areaDesc>
+      <geocode>
+        <valueName>EMMA_ID</valueName>
+        <value>XX101</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>en-GB</language>
+    <category>Met</category>
+    <event>Orange wind warning</event>
+    <urgency>Future</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-10-29T07:00:00+01:00</onset>
+    <expires>2026-10-29T23:59:59+01:00</expires>
+    <senderName>Sample Weather Service</senderName>
+    <headline>Orange wind warning. Costa de Ejemplo</headline>
+    <description>Maximum gusts of 90 km/h on the coast.</description>
+    <instruction>Keep away from the seafront and secure anything the wind can carry.</instruction>
+    <web>https://warnings.example.org/warnings</web>
+    <area>
+      <areaDesc>Costa de Ejemplo</areaDesc>
+      <geocode>
+        <valueName>EMMA_ID</valueName>
+        <value>XX101</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

@@ -302,8 +302,8 @@ class channel {
      * @param string $key What the plugin knows it by, up to 100 characters, to change it or take it back.
      * @param int|null $expires After this time it is no longer worth posting.
      * @param int|null $now The time, for the tests.
-     * @return int The id of the post; 0 if it does not go (no channel, the site switched the kind off, or it is in the
-     *             channel already).
+     * @return int The id of the post; 0 if it does not go (no channel, the site switched the kind off, it is in the
+     *             channel already, or it was skipped or could not go out and has not changed).
      * @throws \coding_exception If the kind is not declared or the content is not valid.
      */
     public static function post(
@@ -349,11 +349,7 @@ class channel {
             if ($waiting) {
                 $update = ['id' => $waiting->id] + $fields;
                 // The same as before, but for its card already made: it keeps its card.
-                $old = json_decode($waiting->content, true) ?: [];
-                if (isset($old['cardhash'])) {
-                    unset($old['image'], $old['animation'], $old['cardhash']);
-                }
-                $changed = json_encode($old) !== $fields['content'];
+                $changed = !self::same($waiting->content, $fields['content']);
                 if (!$changed) {
                     unset($update['content']);
                 }
@@ -367,6 +363,12 @@ class channel {
                 return (int)$waiting->id;
             }
             if ($DB->record_exists(self::TABLE, $source + ['status' => 'published'])) {
+                return 0;
+            }
+            // What was said no to, or could not go out, does not come back as it was: only if it changed.
+            $last = $DB->get_records(self::TABLE, $source, 'id DESC', 'id, status, content', 0, 1);
+            $last = $last ? reset($last) : null;
+            if ($last && in_array($last->status, ['skipped', 'failed'], true) && self::same($last->content, $fields['content'])) {
                 return 0;
             }
         }
@@ -857,6 +859,21 @@ class channel {
             return get_string($decided ? 'channel:review:soon' : 'channel:review:now', self::COMPONENT);
         }
         return get_string('channel:review:at', self::COMPONENT, userdate($time, get_string('strftimedaydatetime', 'langconfig')));
+    }
+
+    /**
+     * Whether two contents of a post are the same, but for the card Marandu made for the first one.
+     *
+     * @param string $old The content kept, as JSON.
+     * @param string $new The content now, as JSON.
+     * @return bool
+     */
+    private static function same(string $old, string $new): bool {
+        $old = json_decode($old, true) ?: [];
+        if (isset($old['cardhash'])) {
+            unset($old['image'], $old['animation'], $old['cardhash']);
+        }
+        return json_encode($old) === $new;
     }
 
     /**

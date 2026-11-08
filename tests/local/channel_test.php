@@ -511,4 +511,53 @@ final class channel_test extends \advanced_testcase {
         $again = $DB->get_record(channel::TABLE, ['id' => $id]);
         $this->assertSame([$post->token, $post->content], [$again->token, $again->content]);
     }
+
+    /**
+     * What whoever reviews said no to does not come back as it was, nor what could not go out; changed, it is reviewed
+     * again.
+     */
+    public function test_skipped_stays(): void {
+        global $DB;
+        $admin = (int)get_admin()->id;
+        $content = ['title' => 'Mañana no hay clase'];
+        $id = api::channel_post('local_example', 'open_day', $content, null, false, 'day14');
+        channel::decide($DB->get_record(channel::TABLE, ['id' => $id]), false, $admin);
+        $this->assertSame(0, api::channel_post('local_example', 'open_day', $content, null, false, 'day14'));
+        $this->assertSame(1, $DB->count_records(channel::TABLE));
+
+        $again = api::channel_post(
+            'local_example',
+            'open_day',
+            ['title' => 'Mañana no hay clase, por la nieve'],
+            null,
+            false,
+            'day14'
+        );
+        $this->assertNotSame($id, $again);
+        $this->assertSame('review', $DB->get_field(channel::TABLE, 'status', ['id' => $again]));
+
+        $DB->set_field(channel::TABLE, 'status', 'failed', ['id' => $again]);
+        $this->assertSame(0, api::channel_post(
+            'local_example',
+            'open_day',
+            ['title' => 'Mañana no hay clase, por la nieve'],
+            null,
+            false,
+            'day14'
+        ));
+    }
+
+    /**
+     * The channel as anyone may find it: only with a public name.
+     */
+    public function test_public_channel(): void {
+        $this->assertNull(api::channel());
+        $this->assertNull(api::channel_link());
+        set_config('channelusername', 'escuelaejemplo', 'local_oksigeniamarandu');
+        $this->assertSame(
+            ['url' => 'https://t.me/escuelaejemplo', 'title' => 'Escuela Ejemplo', 'members' => null],
+            api::channel()
+        );
+        $this->assertSame('https://t.me/escuelaejemplo', api::channel_link());
+    }
 }

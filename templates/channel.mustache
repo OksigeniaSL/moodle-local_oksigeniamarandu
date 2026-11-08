@@ -30,7 +30,8 @@
       field, choices with value, id, label, on), reviewfrom, reviewto, reviewdays and postfrom, postto, postdays (group,
       value, label, name, on), and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
       urgent), and empty; the calendar: calendarical, calendarsite, calendarlink, calendarkeywords, classdays, weekhour and
-      evehour; the links: utm, utmsource, utmmedium, shortener and hassignature; the cards: cardcolor, cardorg,
+      evehour; the weather warnings: weatherfeed, weatherareas, weatherlevels (value, id, label, on) and weatherstatus;
+      the place: latitude and longitude; the links: utm, utmsource, utmmedium, shortener and hassignature; the cards: cardcolor, cardorg,
       cardorgdefault, cardanimated, ffmpeg, cardstatus, previewurl and previews (alt, src).
 
     Example context (json):
@@ -169,6 +170,27 @@
                 <input type="time" name="weekhour" value="{{weekhour}}" aria-label="{{#str}} channel:calendar:weekhour, local_oksigeniamarandu {{/str}}"></p>
             <p class="mrd-sentence">{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}
                 <input type="time" name="evehour" value="{{evehour}}" aria-label="{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}"></p>
+
+            <h3>{{#str}} channel:weather, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sub">{{#str}} channel:weather:desc, local_oksigeniamarandu {{/str}}{{#weatherstatus}} <strong>{{.}}</strong>{{/weatherstatus}}</p>
+            <div class="mrd-fields">
+                <label for="mrd-weatherfeed">{{#str}} channel:weather:feed, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-weatherfeed" type="url" name="weatherfeed" value="{{weatherfeed}}" placeholder="https://" autocomplete="off">
+                <label for="mrd-weatherareas">{{#str}} channel:weather:areas, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-weatherareas" type="text" name="weatherareas" value="{{weatherareas}}" autocomplete="off" aria-describedby="mrd-weatherareas-desc">
+                <small id="mrd-weatherareas-desc">{{#str}} channel:weather:areas_desc, local_oksigeniamarandu {{/str}}</small>
+            </div>
+            <p class="mrd-sentence">{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}
+                <span class="mrd-choices" role="radiogroup" aria-label="{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}">{{#weatherlevels}}<input type="radio" class="mrd-choice" id="{{id}}" name="weatherseverity" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}">{{label}}</label>{{/weatherlevels}}</span></p>
+
+            <h3>{{#str}} channel:place, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sub">{{#str}} channel:place:desc, local_oksigeniamarandu {{/str}}</p>
+            <div class="mrd-fields">
+                <label for="mrd-latitude">{{#str}} channel:place:latitude, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-latitude" type="text" inputmode="decimal" name="latitude" value="{{latitude}}" autocomplete="off">
+                <label for="mrd-longitude">{{#str}} channel:place:longitude, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-longitude" type="text" inputmode="decimal" name="longitude" value="{{longitude}}" autocomplete="off">
+            </div>
 
             <h3>{{#str}} channel:links, local_oksigeniamarandu {{/str}}</h3>
             <p class="mrd-sub">{{#str}} channel:links:desc, local_oksigeniamarandu {{/str}}</p>

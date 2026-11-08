@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample data: made-up warnings with their outline, in the shape the National Weather Service writes its Atom feeds. -->
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
+  <id>https://warnings.example.org/alerts.atom</id>
+  <title>Sample warnings with outlines</title>
+  <updated>2026-10-28T09:00:00Z</updated>
+  <entry>
+    <id>https://warnings.example.org/alerts/urn:oid:2.49.0.1.999.0.a1</id>
+    <link rel="alternate" href="https://warnings.example.org/alerts/urn:oid:2.49.0.1.999.0.a1.cap"/>
+    <updated>2026-10-28T08:00:00Z</updated>
+    <title>Flood Warning issued for Example Valley</title>
+    <summary>Flooding along the river of the valley.</summary>
+    <cap:event>Flood Warning</cap:event>
+    <cap:effective>2026-10-28T08:00:00Z</cap:effective>
+    <cap:onset>2026-10-28T08:00:00Z</cap:onset>
+    <cap:expires>2026-10-29T08:00:00Z</cap:expires>
+    <cap:status>Actual</cap:status>
+    <cap:msgType>Alert</cap:msgType>
+    <cap:severity>Severe</cap:severity>
+    <cap:areaDesc>Example Valley</cap:areaDesc>
+    <cap:polygon>10.0,20.0 10.0,21.0 11.0,21.0 11.0,20.0 10.0,20.0</cap:polygon>
+    <cap:geocode>
+      <valueName>SAME</valueName>
+      <value>099001</value>
+    </cap:geocode>
+  </entry>
+  <entry>
+    <id>https://warnings.example.org/alerts/urn:oid:2.49.0.1.999.0.a2</id>
+    <link rel="alternate" href="https://warnings.example.org/alerts/urn:oid:2.49.0.1.999.0.a2.cap"/>
+    <updated>2026-10-28T08:00:00Z</updated>
+    <title>Flood Warning issued for Example Hills</title>
+    <cap:event>Flood Warning</cap:event>
+    <cap:onset>2026-10-28T08:00:00Z</cap:onset>
+    <cap:expires>2026-10-29T08:00:00Z</cap:expires>
+    <cap:status>Actual</cap:status>
+    <cap:msgType>Alert</cap:msgType>
+    <cap:severity>Severe</cap:severity>
+    <cap:areaDesc>Example Hills</cap:areaDesc>
+    <cap:polygon>30.0,20.0 30.0,21.0 31.0,21.0 31.0,20.0 30.0,20.0</cap:polygon>
+  </entry>
+  <entry>
+    <id>https://warnings.example.org/alerts/urn:oid:2.49.0.1.999.0.a3</id>
+    <updated>2026-10-28T09:00:00Z</updated>
+    <title>Flood Warning cancelled for Example Valley</title>
+    <cap:event>Flood Warning</cap:event>
+    <cap:status>Actual</cap:status>
+    <cap:msgType>Cancel</cap:msgType>
+    <cap:severity>Severe</cap:severity>
+    <cap:references>w-nws.webmaster@example.org,urn:oid:2.49.0.1.999.0.a0,2026-10-27T08:00:00-00:00</cap:references>
+    <cap:areaDesc>Example Valley</cap:areaDesc>
+  </entry>
+</feed>

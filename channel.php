@@ -34,6 +34,7 @@ use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\panel;
 use local_oksigeniamarandu\local\telegram_api;
+use local_oksigeniamarandu\local\weather;
 
 $component = 'local_oksigeniamarandu';
 $baseurl = new moodle_url('/local/oksigeniamarandu/channel.php');
@@ -103,6 +104,21 @@ if ($action !== '' && confirm_sesskey()) {
                 $time = optional_param($name, '', PARAM_RAW_TRIMMED);
                 if (preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time)) {
                     set_config($name, $time, $component);
+                }
+            }
+            // The weather warnings: their source, the areas and the level; and the place of the site.
+            set_config('weatherfeed', $address('weatherfeed'), $component);
+            set_config('weatherareas', trim(optional_param('weatherareas', '', PARAM_TEXT)), $component);
+            $severity = optional_param('weatherseverity', '', PARAM_ALPHA);
+            if (in_array($severity, weather::CHOICES, true)) {
+                set_config('weatherseverity', $severity, $component);
+            }
+            foreach (['latitude' => 90, 'longitude' => 180] as $name => $limit) {
+                $value = str_replace(',', '.', optional_param($name, '', PARAM_RAW_TRIMMED));
+                if ($value === '') {
+                    unset_config($name, $component);
+                } else if (is_numeric($value) && abs((float)$value) <= $limit) {
+                    set_config($name, (string)round((float)$value, 6), $component);
                 }
             }
             // The links: the UTM marks and the shortener, whose signature is kept encrypted and never shown.
@@ -195,6 +211,19 @@ if ($current) {
         }
         return $list;
     };
+    // What the last reading of the weather warnings said.
+    $weatherstatus = '';
+    if (weather::is_set()) {
+        $last = weather::last();
+        if (!$last) {
+            $weatherstatus = get_string('channel:weather:never', $component);
+        } else if ($last->source === null) {
+            $weatherstatus = get_string('channel:weather:failed', $component, panel::when((int)$last->time, $now));
+        } else {
+            $weatherstatus = get_string('channel:weather:read', $component, (object)['when' => panel::when((int)$last->time, $now),
+                'source' => (int)$last->source, 'area' => (int)$last->area]);
+        }
+    }
     $kinds = [];
     foreach (channel::kinds() as $kind) {
         $policy = channel::policy($kind->key);
@@ -253,6 +282,16 @@ if ($current) {
         'classdays' => $days('class', calendar::DEFAULTS['classdays'], true),
         'weekhour' => $config->weekhour ?? calendar::DEFAULTS['weekhour'],
         'evehour' => $config->evehour ?? calendar::DEFAULTS['evehour'],
+        'weatherfeed' => (string)($config->weatherfeed ?? ''),
+        'weatherareas' => (string)($config->weatherareas ?? ''),
+        'weatherlevels' => array_map(function (string $level) use ($config, $component): array {
+            return ['value' => $level, 'id' => 'mrd-wl-' . strtolower($level),
+                'label' => get_string('channel:weather:' . strtolower($level), $component),
+                'on' => ($config->weatherseverity ?? weather::DEFAULTSEVERITY) === $level];
+        }, weather::CHOICES),
+        'weatherstatus' => $weatherstatus,
+        'latitude' => (string)($config->latitude ?? ''),
+        'longitude' => (string)($config->longitude ?? ''),
         'utm' => !empty($config->utm),
         'utmsource' => (string)($config->utmsource ?? links::DEFAULTS['utmsource']),
         'utmmedium' => (string)($config->utmmedium ?? links::DEFAULTS['utmmedium']),

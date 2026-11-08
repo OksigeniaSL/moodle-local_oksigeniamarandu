@@ -52,4 +52,13 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    // The official weather warnings of the place of the site, every quarter of an hour.
+    [
+        'classname' => 'local_oksigeniamarandu\task\channel_weather',
+        'minute' => '*/15',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

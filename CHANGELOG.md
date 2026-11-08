@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.22.0 (2026-11-08)
+
+- The official weather warnings of the place of the site, for the channel: from any source in the CAP format (an Atom or
+  RSS feed, such as those of MeteoAlarm or the National Weather Service, or one alert), read every quarter of an hour. A
+  warning is of the site by the name or the code of its area, or by the place of the site inside its outline; from the
+  level the site says (moderate, severe or extreme). Warnings whose times touch go together in one post, under the most
+  severe, with the times of each, the area, the source and its link; in the language of the site when the whole alert
+  brings it. The severe and the extreme are urgent: their review comes at any hour. What the source no longer brings does
+  not go if it is still waiting, and what it cancels is taken out of the channel too.
+- The place of the site (latitude and longitude), on the page of the channel, for the warnings and for the sky.
+- `api::channel()` and `api::channel_link()`: the channel as anyone may find it, with its link, its name and its members,
+  for a QR on a screen.
+- A post that whoever reviews skipped, or that could not go out, no longer comes back unchanged when its plugin posts it
+  again with the same key: before, «No class tomorrow» could reach review again every hour after a «Skip».
+
 ## 0.21.1 (2026-11-08)
 
 - The things to do on the dashboard carry `due`, the time of their deadline: for a post to review, when it goes out if it

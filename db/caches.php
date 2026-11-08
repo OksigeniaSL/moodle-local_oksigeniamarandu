@@ -41,6 +41,12 @@ $definitions = [
         'mode' => cache_store::MODE_APPLICATION,
         'simplekeys' => true,
     ],
+    // The whole weather warnings already read, for a day, so as not to ask for them again.
+    'weather' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'ttl' => DAYSECS,
+    ],
     // The card of the channel on the dashboard of whoever reviews it, for a minute or until a post changes.
     'work' => [
         'mode' => cache_store::MODE_APPLICATION,

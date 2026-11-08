@@ -368,6 +368,21 @@ class weather {
         if (preg_match('~^https?://\S+$~i', $info['web'])) {
             $content += ['url' => $info['web'], 'label' => get_string('weather:more', self::COMPONENT), 'utm' => false];
         }
+        // Its card: the level of the most severe in its colour, the times of the episode and the areas.
+        $level = [2 => 'moderate', 3 => 'severe', 4 => 'extreme'][$main['rank']] ?? null;
+        if ($level) {
+            $first = $items[0]['info'];
+            $last = end($items)['info'];
+            $span = $when(['onset' => $first['onset'] ?? $first['effective'] ?? null, 'effective' => null,
+                'expires' => $last['expires'] ?? null]);
+            $content['card'] = ['type' => 'weather', 'zones' => array_filter([
+                'kicker' => get_string('weather:kicker', self::COMPONENT),
+                'title' => $content['title'],
+                'level' => $level,
+                'time' => $span ? get_string('weather:when', self::COMPONENT, $span) : '',
+                'area' => implode(', ', $names),
+            ], 'strlen')];
+        }
         return $content;
     }
 

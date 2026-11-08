@@ -98,7 +98,13 @@ class classwork {
         $fs->create_file_from_string(['contextid' => $context->id, 'component' => self::COMPONENT, 'filearea' => self::AREA,
             'itemid' => $itemid, 'filepath' => '/', 'filename' => 'work.jpg'], $jpeg);
         $url = \moodle_url::make_pluginfile_url($context->id, self::COMPONENT, self::AREA, $itemid, '/', 'work.jpg');
-        $content = ['title' => $title, 'image' => $url->out(false)];
+        // The photo, as it is, goes if the server cannot draw the card; the card has it hung in the class.
+        $content = ['title' => $title, 'image' => $url->out(false), 'card' => ['type' => 'classwork', 'zones' => array_filter([
+            'kicker' => get_string('classwork:kicker', self::COMPONENT),
+            'title' => $title,
+            'group' => $group,
+            'photo' => $url->out(false),
+        ], 'strlen')]];
         if ($group !== '') {
             $content['lines'] = [$group];
         }

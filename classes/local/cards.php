@@ -32,7 +32,10 @@ namespace local_oksigeniamarandu\local;
  */
 class cards {
     /** The types of card, as the folders of the templates. */
-    public const TYPES = ['open_day', 'outing', 'this_week', 'no_class', 'book', 'big_number', 'sky'];
+    public const TYPES = ['open_day', 'outing', 'this_week', 'no_class', 'book', 'big_number', 'sky', 'weather', 'classwork'];
+
+    /** The levels of a weather warning, as its card draws them. */
+    public const LEVELS = ['moderate', 'severe', 'extreme'];
 
     /** The file area of the cards made, by post. */
     public const AREA = 'card';
@@ -77,8 +80,9 @@ class cards {
     /**
      * The part card of the content of a post, checked.
      *
-     * @param array $card The type and the texts of its zones; items for a list, as label and text; cover, a URL of
-     *                    this site with a PNG or a JPEG; moon, with its phase from 0 to 7.
+     * @param array $card The type and the texts of its zones; items for a list, as label and text; cover and photo, a
+     *                    URL of this site with a PNG or a JPEG; moon, with its phase from 0 to 7; level, moderate,
+     *                    severe or extreme.
      * @return array
      * @throws \coding_exception With a type or a zone it does not know.
      */
@@ -97,12 +101,17 @@ class cards {
                 }, (array)$value));
             } else if ($id === 'moon') {
                 $zones[$id] = ['phase' => ((int)($value['phase'] ?? 0) % 8 + 8) % 8];
-            } else if ($id === 'cover') {
+            } else if ($id === 'cover' || $known[$id] === 'photo') {
                 $url = $value instanceof \moodle_url ? $value->out(false) : (string)$value;
                 if ($url !== '' && strpos($url, $CFG->wwwroot . '/') !== 0) {
-                    throw new \coding_exception('The cover of a card has to be on this site');
+                    throw new \coding_exception("The {$id} of a card has to be on this site");
                 }
                 $zones[$id] = $url;
+            } else if ($id === 'level') {
+                if (!in_array($value, self::LEVELS, true)) {
+                    throw new \coding_exception('A warning has no level ' . s((string)$value));
+                }
+                $zones[$id] = $value;
             } else {
                 $zones[$id] = self::plain($value);
             }
@@ -197,6 +206,8 @@ class cards {
         $context = \context_system::instance();
         $fs = get_file_storage();
         $fs->delete_area_files($context->id, self::COMPONENT, self::AREA, $post->id);
+        // The image of its own, such as the photo of a work, stays if the card cannot be made.
+        $own = isset($content['cardhash']) ? null : ($content['image'] ?? null);
         unset($content['image'], $content['animation']);
         try {
             $store = function (string $name, string $bytes) use ($fs, $context, $post): string {
@@ -214,6 +225,9 @@ class cards {
             }
         } catch (\Throwable $e) {
             debugging('Marandu: the card of a post was not made: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            if ($own !== null && !isset($content['image'])) {
+                $content['image'] = $own;
+            }
         }
         $content['cardhash'] = $hash;
         $post->content = json_encode($content);
@@ -258,8 +272,15 @@ class cards {
      * @return array As clean() gives it.
      */
     public static function sample(string $type): array {
-        $sample = self::template($type)['sample'];
+        global $CFG;
+        $template = self::template($type);
+        $sample = $template['sample'];
         unset($sample['org'], $sample['cover']);
+        if (isset($sample['photo'])) {
+            // The work of the example, a file of the plugin.
+            $sample['photo'] = is_file($template['dir'] . '/muestra.jpg')
+                ? $CFG->wwwroot . '/local/oksigeniamarandu/cards/' . $type . '/muestra.jpg' : '';
+        }
         return self::clean(['type' => $type, 'zones' => $sample]);
     }
 
@@ -757,7 +778,8 @@ class cards {
                 $x = $zone['x'] + $zone['w'] - $width;
             }
             $out[] = ['text' => $line, 'x' => (int)round($x), 'y' => (int)round($top + $metrics['ascent'] * $px + $i * $lineheight),
-                'px' => $px, 'font' => $font, 'color' => $colours[$zone['color']], 'enter' => $zone['enter'] ?? null,
+                'px' => $px, 'font' => $font, 'color' => $zone['color'][0] === '#' ? self::rgb($zone['color'])
+                    : $colours[$zone['color']], 'enter' => $zone['enter'] ?? null,
                 'delay' => 0.0];
         }
         return $out;
@@ -894,6 +916,16 @@ class cards {
                     }
                     $text = (string)($data['title'] ?? '');
                 }
+                if (isset($zone['text_by_level'])) {
+                    // The name of the level of a warning, in the language of the site and in the colour of its badge.
+                    $level = (string)($data['level'] ?? '');
+                    if (!isset($zone['text_by_level'][$level])) {
+                        continue;
+                    }
+                    $names = $zone['text_by_level'][$level];
+                    $text = $names[substr(current_language(), 0, 2)] ?? $names['en'] ?? reset($names);
+                    $zone['color'] = $zone['color_by_level'][$level] ?? $zone['color'];
+                }
                 $lines = array_merge($lines, self::place_text($template, $zone, $text, $colours));
             }
         }
@@ -914,7 +946,24 @@ class cards {
         $cover = false;
         imagealphablending($image, true);
         foreach ($template['zones'] as $zone) {
+            if ($zone['type'] === 'photo') {
+                $bytes = empty($data[$zone['id']]) ? null : rich::image((string)$data[$zone['id']]);
+                $source = $bytes === null ? false : @imagecreatefromstring($bytes);
+                if ($source) {
+                    self::draw_photo($image, $template, $zone, $source);
+                }
+                continue;
+            }
             if ($zone['type'] !== 'image') {
+                continue;
+            }
+            if (strpos((string)($zone['source'] ?? ''), '{level}') !== false) {
+                // The badge of the level of a warning, in its own colour.
+                $level = (string)($data['level'] ?? '');
+                if (isset($zone['levels'][$level])) {
+                    $badge = imagecreatefrompng($template['dir'] . '/' . str_replace('{level}', $level, $zone['source']));
+                    imagecopy($image, $badge, $zone['x'], $zone['y'], 0, 0, imagesx($badge), imagesy($badge));
+                }
                 continue;
             }
             if ($zone['id'] === 'moon') {
@@ -967,6 +1016,53 @@ class cards {
             }
         }
         return $cover;
+    }
+
+    /**
+     * The photo of a piece of work, whole and never cut: fitted in its box less the mat, with the mat of paper round
+     * it, hanging from the top of the box and centred across it; its shadow under it, the line of ink round it and the
+     * two pegs on it.
+     *
+     * @param \GdImage $image The card.
+     * @param array $template The template.
+     * @param array $zone The zone of the photo.
+     * @param \GdImage $source The photo.
+     */
+    private static function draw_photo($image, array $template, array $zone, $source): void {
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $mat = (int)$zone['mat']['width'];
+        $scale = min(($zone['w'] - 2 * $mat) / $width, ($zone['h'] - 2 * $mat) / $height);
+        $photowidth = max(1, (int)round($width * $scale));
+        $photoheight = max(1, (int)round($height * $scale));
+        $matwidth = $photowidth + 2 * $mat;
+        $matheight = $photoheight + 2 * $mat;
+        $x = (int)round($zone['x'] + ($zone['w'] - $matwidth) / 2);
+        $y = (int)$zone['y'];
+        imagealphablending($image, true);
+        [$r, $g, $b] = self::rgb($zone['shadow']['color']);
+        $alpha = (int)round(127 * (1 - (float)$zone['shadow']['opacity']));
+        imagefilledrectangle(
+            $image,
+            $x + $zone['shadow']['dx'],
+            $y + $zone['shadow']['dy'],
+            $x + $matwidth - 1 + $zone['shadow']['dx'],
+            $y + $matheight - 1 + $zone['shadow']['dy'],
+            imagecolorallocatealpha($image, $r, $g, $b, $alpha)
+        );
+        [$r, $g, $b] = self::rgb($zone['mat']['color']);
+        imagefilledrectangle($image, $x, $y, $x + $matwidth - 1, $y + $matheight - 1, imagecolorallocate($image, $r, $g, $b));
+        imagecopyresampled($image, $source, $x + $mat, $y + $mat, 0, 0, $photowidth, $photoheight, $width, $height);
+        [$r, $g, $b] = self::rgb($zone['edge']['color']);
+        $edge = imagecolorallocate($image, $r, $g, $b);
+        for ($i = 0; $i < (int)$zone['edge']['width']; $i++) {
+            imagerectangle($image, $x + $i, $y + $i, $x + $matwidth - 1 - $i, $y + $matheight - 1 - $i, $edge);
+        }
+        $peg = imagecreatefrompng($template['dir'] . '/' . $zone['pegs']['file']);
+        foreach ($zone['pegs']['at'] as $at) {
+            $pegx = (int)round($x + $at * $matwidth - imagesx($peg) / 2);
+            imagecopy($image, $peg, $pegx, $y + (int)$zone['pegs']['top'], 0, 0, imagesx($peg), imagesy($peg));
+        }
     }
 
     /**

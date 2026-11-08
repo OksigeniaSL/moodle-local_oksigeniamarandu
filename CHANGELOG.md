@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.28.0 (2026-11-08)
+
+- Two cards more, by Jujol: the weather warning (its level in a badge of its own colour, the times of the episode and the
+  areas) and the work of a class (the photo hung whole from the line of the class with two pegs, the title and the
+  group). The weather warnings and the work of a class go with them, still and animated.
+- «What goes to the channel»: a kind without a card has the picture of a message instead of an empty box.
+- «Waiting for your review» says, under each post, its kind and when it goes out.
+
 ## 0.27.1 (2026-11-08)
 
 - The picture of «To the channel» has its address before a photo is chosen, as HTML wants.

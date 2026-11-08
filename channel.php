@@ -36,6 +36,7 @@ use local_oksigeniamarandu\local\panel;
 use local_oksigeniamarandu\local\sky;
 use local_oksigeniamarandu\local\telegram_api;
 use local_oksigeniamarandu\local\weather;
+use local_oksigeniamarandu\local\work;
 
 $component = 'local_oksigeniamarandu';
 $baseurl = new moodle_url('/local/oksigeniamarandu/channel.php');
@@ -248,15 +249,21 @@ if ($current) {
         // What goes to the channel, to see it before saying yes: its image, or its card drawn now.
         $thumb = $full = null;
         if ($row->status === 'review') {
-            if (!empty($content['image'])) {
+            // The card, once made, is its image; until then, it is drawn now, if the server can.
+            $card = !empty($content['card']) && empty($content['cardhash']);
+            $thumb = $card ? cards::thumbnail($content['card'], 320) : null;
+            $full = $card ? cards::thumbnail($content['card'], 960) : null;
+            if ($thumb === null && !empty($content['image'])) {
                 $thumb = $full = (string)$content['image'];
-            } else if (!empty($content['card'])) {
-                $thumb = cards::thumbnail($content['card'], 320);
-                $full = cards::thumbnail($content['card'], 960);
             }
         }
+        // When it goes out if it is said yes, after its kind.
+        $at = channel::goes_at($row, $now);
+        $goes = get_string('channel:review:goes', $component, (object)['kind' => channel::name($kind),
+            'when' => $at <= $now ? get_string('channel:review:now', $component) : work::when($at, $now)]);
         return [
             'id' => $row->id,
+            'goes' => $goes,
             'thumb' => $thumb,
             'full' => $full,
             'title' => (string)($content['title'] ?? ($content['text'][0] ?? '')),

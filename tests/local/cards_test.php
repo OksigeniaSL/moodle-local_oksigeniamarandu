@@ -101,15 +101,22 @@ final class cards_test extends \advanced_testcase {
         }
         $this->resetAfterTest();
         foreach (cards::TYPES as $type) {
-            $sample = cards::template($type)['sample'];
-            unset($sample['cover']);
-            $jpeg = cards::still(cards::clean(['type' => $type, 'zones' => $sample]), '#2f8f4e');
+            // The example of each template, with the work of the plugin for a photo.
+            $jpeg = cards::still(cards::sample($type), '#2f8f4e');
             $size = getimagesizefromstring($jpeg);
             $this->assertSame([1280, 720, 'image/jpeg'], [$size[0], $size[1], $size['mime']], $type);
         }
         $long = cards::clean(['type' => 'open_day', 'zones' => ['title' => str_repeat('Jornada de puertas abiertas ', 12),
             'detail' => str_repeat('Con visita guiada y café. ', 30)]]);
         $this->assertNotEmpty(cards::still($long));
+
+        // A warning without its level is not a warning.
+        try {
+            cards::clean(['type' => 'weather', 'zones' => ['title' => 'Aviso', 'level' => 'purple']]);
+            $this->fail('No such level');
+        } catch (\coding_exception $e) {
+            $this->assertStringContainsString('level', $e->getMessage());
+        }
     }
 
     /**

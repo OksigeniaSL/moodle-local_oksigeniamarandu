@@ -5441,6 +5441,11 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     background: var(--mrd-bg-chip);
 }
 
+/* A kind that goes as a message, without a card: the paper of the cards, the bubble and three lines. */
+.local-oksigeniamarandu-channel .mrd-kindtext {
+    color: var(--mrd-blue);
+}
+
 /* The hours: from one to the other without breaking, and the days below. */
 .local-oksigeniamarandu-channel .mrd-span {
     display: inline-flex;

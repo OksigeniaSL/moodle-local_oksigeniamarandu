@@ -205,7 +205,7 @@ class work {
      * @param int $now Now.
      * @return string
      */
-    private static function when(int $time, int $now): string {
+    public static function when(int $time, int $now): string {
         $hour = ltrim(userdate($time, '%H'), '0') ?: '0';
         $hour .= ':' . userdate($time, '%M');
         $days = (int)round((usergetmidnight($time) - usergetmidnight($now)) / DAYSECS);

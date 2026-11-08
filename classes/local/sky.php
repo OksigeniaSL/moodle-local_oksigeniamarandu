@@ -225,7 +225,24 @@ class sky {
     }
 
     /**
-     * The best pass of the station between two times: in the evening, high and long enough; the highest of them.
+     * The good passes of the station between two times: in the evening, high and long enough, the earliest first.
+     *
+     * @param sgp4 $station The station.
+     * @param array $place Latitude and longitude.
+     * @param int $from From this time.
+     * @param int $to Until this one.
+     * @return array As passes() gives them.
+     */
+    public static function good_passes(sgp4 $station, array $place, int $from, int $to): array {
+        return array_values(array_filter(self::passes($station, $place, $from, $to), function (array $pass): bool {
+            $hour = (int)userdate($pass['start'], '%H', self::tz(), false);
+            return $pass['maxelevation'] >= self::HIGH && $pass['end'] - $pass['start'] >= self::LONG
+                && $hour >= self::EVENING[0] && $hour < self::EVENING[1];
+        }));
+    }
+
+    /**
+     * The best pass of the station between two times: the highest of the good ones.
      *
      * @param sgp4 $station The station.
      * @param array $place Latitude and longitude.
@@ -235,14 +252,7 @@ class sky {
      */
     public static function best_pass(sgp4 $station, array $place, int $from, int $to): ?array {
         $best = null;
-        foreach (self::passes($station, $place, $from, $to) as $pass) {
-            $hour = (int)userdate($pass['start'], '%H', self::tz(), false);
-            if (
-                $pass['maxelevation'] < self::HIGH || $pass['end'] - $pass['start'] < self::LONG
-                    || $hour < self::EVENING[0] || $hour >= self::EVENING[1]
-            ) {
-                continue;
-            }
+        foreach (self::good_passes($station, $place, $from, $to) as $pass) {
             if (!$best || $pass['maxelevation'] > $best['maxelevation']) {
                 $best = $pass;
             }
@@ -268,10 +278,24 @@ class sky {
             self::COMPONENT,
             userdate(self::next_full_moon($now), $format, self::tz())
         )];
-        $station = self::station($now, false);
-        $pass = $station ? self::best_pass($station, $place, $now, $now + 7 * DAYSECS) : null;
-        if ($pass) {
-            $lines[] = get_string('channel:sky:nextpass', self::COMPONENT, userdate($pass['start'], $format, self::tz()));
+        // The pass it posts: the one already prepared, if any (it ends when the pass starts); or the best of the next days,
+        // as prepare_iss() chooses it; or else the first good one of the week.
+        global $DB;
+        $prepared = $DB->get_field_select(
+            channel::TABLE,
+            'MIN(timeexpires)',
+            "component = :component AND kind = :kind AND status IN ('review', 'ready') AND timeexpires > :now",
+            ['component' => self::COMPONENT, 'kind' => self::ISS, 'now' => $now]
+        );
+        $start = $prepared ? (int)$prepared : null;
+        $station = $start ? null : self::station($now, false);
+        if ($station) {
+            $pass = self::best_pass($station, $place, $now + HOURSECS, $now + self::AHEAD * DAYSECS)
+                ?? (self::good_passes($station, $place, $now, $now + 7 * DAYSECS)[0] ?? null);
+            $start = $pass['start'] ?? null;
+        }
+        if ($start) {
+            $lines[] = get_string('channel:sky:nextpass', self::COMPONENT, userdate($start, $format, self::tz()));
         }
         return $lines;
     }

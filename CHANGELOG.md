@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.25.1 (2026-11-08)
+
+- «Your work» says that a post waits for your review only once it reached you on Telegram (in the hours of review, or at
+  once if it is urgent); until then, its line says when it will («2 to review tomorrow at 8:00»). Before, it said so out of
+  the hours of review too, and whoever reviews looked for it on Telegram in vain. Without anybody who reviews on Telegram,
+  it is on the page of the channel, in the hours of review.
+- The page of the channel says the pass of the station that goes to the channel, not the highest of the week.
+
 ## 0.25.0 (2026-11-08)
 
 - On a site with WhatsApp that already sent its texts from the wizard, the templates of the notices a plugin brings in a

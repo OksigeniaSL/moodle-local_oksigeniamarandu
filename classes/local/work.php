@@ -105,10 +105,27 @@ class work {
             $alerts[] = self::alert('work:problem', $page, 'urgent', null, $now);
         }
 
-        if ($review) {
-            $order = 'urgent DESC, timeplanned ASC, id ASC';
-            $posts = $DB->get_records(channel::TABLE, ['status' => 'review'], $order, '*', 0, self::NAMED + 1);
+        // What waits for a review is something to do once it reached whoever reviews (in the hours of review, or at once
+        // if it is urgent): until then, the line of figures says when it will. Without anybody who reviews on Telegram,
+        // it is done on the page, in the hours of review.
+        $reviewers = $current ? channel::reviewers() : [];
+        $sent = $review ? $DB->count_records_select(channel::TABLE, "status = 'review' AND timereview IS NOT NULL") : 0;
+        $onpage = !$reviewers && $review && channel::open('review', $now);
+        $due = $reviewers ? $sent : ($onpage ? $review : 0);
+        $later = $review - $due;
+        if ($due) {
+            $select = "status = 'review'" . ($reviewers ? ' AND timereview IS NOT NULL' : '');
+            $posts = $DB->get_records_select(
+                channel::TABLE,
+                $select,
+                null,
+                'urgent DESC, timeplanned ASC, id ASC',
+                '*',
+                0,
+                self::NAMED + 1
+            );
             $reviewurl = new \moodle_url($page, null, 'mrd-review');
+            $string = $reviewers ? 'work:review' : 'work:reviewpage';
             $levels = [];
             $named = [];
             $first = null;
@@ -123,17 +140,17 @@ class work {
                     'title' => shorten_text((string)($content['title'] ?? ($content['text'][0] ?? '')), 60),
                     'when' => $at <= $now ? get_string('channel:review:now', self::COMPONENT) : self::when($at, $now),
                 ];
-                $named[] = self::alert('work:review', $reviewurl, end($levels), $a, $at);
+                $named[] = self::alert($string, $reviewurl, end($levels), $a, $at);
             }
-            if ($review <= self::NAMED) {
+            if ($due <= self::NAMED) {
                 array_push($alerts, ...$named);
             } else {
                 $level = in_array('urgent', $levels, true) ? 'urgent' : 'today';
-                $alerts[] = self::alert('work:reviewmany', $reviewurl, $level, $review, $first);
+                $alerts[] = self::alert('work:reviewmany', $reviewurl, $level, $due, $first);
             }
-            if ($current && !channel::reviewers()) {
-                $alerts[] = self::alert('work:noreviewers', $reviewurl, 'today');
-            }
+        }
+        if ($review && $current && !$reviewers) {
+            $alerts[] = self::alert('work:noreviewers', new \moodle_url($page, null, 'mrd-review'), 'today');
         }
         if ($failed) {
             $alerts[] = self::alert('work:failed', new \moodle_url($page, null, 'mrd-failed'), 'today', $failed);
@@ -145,8 +162,12 @@ class work {
         });
 
         $figures = [];
-        if ($review) {
-            $figures[] = get_string('work:status:review', self::COMPONENT, $review);
+        if ($due) {
+            $figures[] = get_string('work:status:review', self::COMPONENT, $due);
+        }
+        if ($later) {
+            $figures[] = get_string('work:status:later', self::COMPONENT, (object)['count' => $later,
+                'when' => self::when(channel::next_open('review', $now), $now)]);
         }
         if ($ready) {
             $figures[] = get_string('work:status:ready', self::COMPONENT, $ready);

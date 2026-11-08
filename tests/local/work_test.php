@@ -97,16 +97,25 @@ final class work_test extends \advanced_testcase {
      * time has not come; the problems of the channel first.
      */
     public function test_alerts(): void {
+        global $DB;
         $admin = (int)get_admin()->id;
         $this->post('Open day', self::WEDNESDAY + DAYSECS);
         $this->post('School trip', self::WEDNESDAY - HOURSECS);
 
+        // Before it reaches whoever reviews (on Tuesday night, out of the hours of review), it is not something to do yet:
+        // the line says when it will.
+        [$card] = work::for_user($admin, self::WEDNESDAY - 14 * HOURSECS);
+        $this->assertSame([], $card['alerts']);
+        $this->assertSame('2 to review tomorrow at 8:00', $card['status']);
+
+        // Once it reached their chat, it is.
+        $DB->set_field(channel::TABLE, 'timereview', self::WEDNESDAY, []);
         [$card] = work::for_user($admin, self::WEDNESDAY);
         $this->assertSame('2 to review', $card['status']);
         $this->assertSame(['urgent', 'today'], array_column($card['alerts'], 'level'));
         $this->assertSame([
-            '“School trip” is waiting for your review; it goes out as soon as you say yes.',
-            '“Open day” is waiting for your review; it goes out tomorrow at 11:00.',
+            '“School trip” is waiting for your review on Telegram; it goes out as soon as you say yes.',
+            '“Open day” is waiting for your review on Telegram; it goes out tomorrow at 11:00.',
         ], array_column($card['alerts'], 'text'));
         $this->assertStringEndsWith('/local/oksigeniamarandu/channel.php#mrd-review', $card['alerts'][0]['url']);
         // The deadline of each: when it goes out if it is said yes.
@@ -153,16 +162,16 @@ final class work_test extends \advanced_testcase {
     public function test_kept(): void {
         global $DB;
         $admin = (int)get_admin()->id;
-        $this->assertSame([], work::for_user($admin)[0]['alerts']);
+        $this->assertSame('Nothing posted yet', work::for_user($admin)[0]['status']);
 
         // Written behind the back of the channel: the card kept stays.
         $DB->insert_record(channel::TABLE, (object)['component' => 'local_example', 'kind' => 'open_day', 'sourcekey' => '',
             'content' => json_encode(['title' => 'Open day']), 'urgent' => 0, 'status' => 'review', 'token' => 'abcdefghij',
-            'timeplanned' => time(), 'timecreated' => time(), 'timemodified' => time()]);
-        $this->assertSame([], work::for_user($admin)[0]['alerts']);
+            'timeplanned' => time(), 'timecreated' => time(), 'timemodified' => time(), 'timereview' => time()]);
+        $this->assertSame('Nothing posted yet', work::for_user($admin)[0]['status']);
 
         // Any change of a post through the channel forgets it.
         $this->post('School trip', time() + WEEKSECS);
-        $this->assertCount(2, work::for_user($admin)[0]['alerts']);
+        $this->assertStringStartsWith('1 to review', work::for_user($admin)[0]['status']);
     }
 }

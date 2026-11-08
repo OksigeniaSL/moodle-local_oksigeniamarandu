@@ -40,26 +40,76 @@
         {{#error}}<p class="mrd-err" role="alert">{{error}}</p>{{/error}}
         {{#closed}}<p class="mrd-warn">{{closed}}</p>{{/closed}}
         {{^closed}}
-        <form method="post" action="{{formurl}}" enctype="multipart/form-data">
+        <form method="post" action="{{formurl}}" enctype="multipart/form-data" class="mrd-share">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
-            <div class="mrd-fields">
-                <label for="mrd-photo">{{#str}} classwork:photo, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" required aria-describedby="mrd-photo-desc">
-                <small id="mrd-photo-desc">{{#str}} classwork:photo_desc, local_oksigeniamarandu, {{maxmb}} {{/str}}</small>
-                <label for="mrd-title">{{#str}} classwork:worktitle, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-title" type="text" name="title" value="{{title}}" maxlength="{{limits.title}}" required autocomplete="off">
-                <label for="mrd-group">{{#str}} classwork:group, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-group" type="text" name="group" value="{{group}}" maxlength="{{limits.group}}" autocomplete="off" aria-describedby="mrd-group-desc">
-                <small id="mrd-group-desc">{{#str}} classwork:group_desc, local_oksigeniamarandu {{/str}}</small>
-                <label for="mrd-text">{{#str}} classwork:text, local_oksigeniamarandu {{/str}}</label>
-                <textarea id="mrd-text" name="text" rows="3" maxlength="{{limits.text}}">{{text}}</textarea>
-            </div>
-            <p class="mrd-check"><input type="checkbox" id="mrd-confirm" name="confirm" value="1" required><label for="mrd-confirm">{{#str}} classwork:confirm, local_oksigeniamarandu {{/str}}</label></p>
-            <div class="mrd-actions">
-                <button type="submit" class="mrd-btn mrd-primary">{{#str}} classwork:send, local_oksigeniamarandu {{/str}}</button>
-                <a class="btn mrd-btn mrd-second" href="{{courseurl}}">{{#str}} classwork:back, local_oksigeniamarandu {{/str}}</a>
+            <div class="mrd-sharegrid">
+                <div class="mrd-sharephoto">
+                    <label class="mrd-drop" for="mrd-photo">
+                        <input id="mrd-photo" type="file" name="photo" accept="image/*" required aria-describedby="mrd-photo-desc">
+                        <img class="mrd-dropimg" alt="" hidden>
+                        <span class="mrd-dropcall"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M17 10l-3 5H8a3 3 0 0 0-3 3v19a3 3 0 0 0 3 3h32a3 3 0 0 0 3-3V18a3 3 0 0 0-3-3h-6l-3-5z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="24" cy="27" r="7.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>{{#str}} classwork:choose, local_oksigeniamarandu {{/str}}</span>
+                    </label>
+                    <small id="mrd-photo-desc">{{#str}} classwork:photo_desc, local_oksigeniamarandu, {{maxmb}} {{/str}}</small>
+                    <div class="mrd-tgpreview" hidden>
+                        <small>{{#str}} classwork:preview, local_oksigeniamarandu {{/str}}</small>
+                        <p><strong data-previewtitle>{{title}}</strong><span data-previewgroup>{{group}}</span></p>
+                    </div>
+                </div>
+                <div class="mrd-sharefields">
+                    <div class="mrd-fields">
+                        <label for="mrd-title">{{#str}} classwork:worktitle, local_oksigeniamarandu {{/str}}</label>
+                        <input id="mrd-title" type="text" name="title" value="{{title}}" maxlength="{{limits.title}}" required autocomplete="off">
+                        <label for="mrd-group">{{#str}} classwork:group, local_oksigeniamarandu {{/str}}</label>
+                        <input id="mrd-group" type="text" name="group" value="{{group}}" maxlength="{{limits.group}}" autocomplete="off" aria-describedby="mrd-group-desc">
+                        <small id="mrd-group-desc">{{#str}} classwork:group_desc, local_oksigeniamarandu {{/str}}</small>
+                        <label for="mrd-text">{{#str}} classwork:text, local_oksigeniamarandu {{/str}}</label>
+                        <textarea id="mrd-text" name="text" rows="3" maxlength="{{limits.text}}">{{text}}</textarea>
+                    </div>
+                    <p class="mrd-check"><input type="checkbox" id="mrd-confirm" name="confirm" value="1" required><label for="mrd-confirm">{{#str}} classwork:confirm, local_oksigeniamarandu {{/str}}</label></p>
+                    <div class="mrd-actions">
+                        <button type="submit" class="mrd-btn mrd-primary">{{#str}} classwork:send, local_oksigeniamarandu {{/str}}</button>
+                        <a class="btn mrd-btn mrd-second" href="{{courseurl}}">{{#str}} classwork:back, local_oksigeniamarandu {{/str}}</a>
+                    </div>
+                </div>
             </div>
         </form>
         {{/closed}}
     </section>
 </div>
+{{#js}}
+(function() {
+    var form = document.querySelector('.local-oksigeniamarandu-share .mrd-share');
+    if (!form) {
+        return;
+    }
+    // The photo chosen, at once in its place; and the title and the group under it, as the channel will show them.
+    var input = form.querySelector('#mrd-photo');
+    var image = form.querySelector('.mrd-dropimg');
+    var call = form.querySelector('.mrd-dropcall');
+    var preview = form.querySelector('.mrd-tgpreview');
+    input.addEventListener('change', function() {
+        if (image.dataset.url) {
+            URL.revokeObjectURL(image.dataset.url);
+        }
+        var file = input.files && input.files[0];
+        if (!file) {
+            image.hidden = true;
+            call.hidden = false;
+            preview.hidden = true;
+            return;
+        }
+        image.dataset.url = URL.createObjectURL(file);
+        image.src = image.dataset.url;
+        image.hidden = false;
+        call.hidden = true;
+        preview.hidden = false;
+    });
+    var bind = function(field, target) {
+        form.querySelector(field).addEventListener('input', function(e) {
+            form.querySelector(target).textContent = e.target.value;
+        });
+    };
+    bind('#mrd-title', '[data-previewtitle]');
+    bind('#mrd-group', '[data-previewgroup]');
+})();
+{{/js}}

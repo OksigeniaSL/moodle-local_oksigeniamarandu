@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.27.0 (2026-11-08)
+
+- The page of the channel, after the review of Jujol: what waits for a review shows the card it will have (larger at a
+  touch; above its buttons on a phone); each kind of «What goes to the channel» has its card, small, with the colour of
+  the organization; a bar to save appears as soon as something changes, and the browser asks before leaving with changes
+  not saved; the hours do not break on a phone and the days go below; the marks of the links show only when they are
+  measured; «Use the location of this device» fills the place; the levels of the weather warnings have their colour; the
+  last reading of the source has its own line.
+- «To the channel»: the photo first and large («Take a photo or choose it», with the camera on a phone), at once in its
+  place with the title and the group under it as the channel will show them; beside the fields on a wide screen.
+- A plugin can say the card of a kind of post: `'card' => 'open_day'` in its declaration.
+
 ## 0.26.0 (2026-11-08)
 
 - `api::notify()` and `api::notify_child()` take a last argument, `string $lang`: the language to write the notice in,

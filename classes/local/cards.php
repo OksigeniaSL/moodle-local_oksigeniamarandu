@@ -252,6 +252,50 @@ class cards {
     }
 
     /**
+     * The card of the example texts of a template, as the page of the channel shows it.
+     *
+     * @param string $type The type.
+     * @return array As clean() gives it.
+     */
+    public static function sample(string $type): array {
+        $sample = self::template($type)['sample'];
+        unset($sample['org'], $sample['cover']);
+        return self::clean(['type' => $type, 'zones' => $sample]);
+    }
+
+    /**
+     * A small picture of a card for a page, as a data address: kept by its texts, the colour and the name of the site.
+     *
+     * @param array $card The card, as clean() gives it.
+     * @param int $width Its width, pixels.
+     * @return string|null Null if the server cannot draw it.
+     */
+    public static function thumbnail(array $card, int $width = 320): ?string {
+        if (!self::can_draw()) {
+            return null;
+        }
+        $brand = self::brand();
+        $cache = \cache::make(self::COMPONENT, 'thumbs');
+        $key = sha1(json_encode($card) . '|' . $brand . '|' . self::org() . '|' . $width);
+        $kept = $cache->get($key);
+        if (is_string($kept)) {
+            return $kept;
+        }
+        try {
+            $image = imagecreatefromstring(self::still($card, $brand));
+        } catch (\Throwable $e) {
+            debugging('Marandu: a card could not be drawn: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return null;
+        }
+        $small = imagescale($image, $width);
+        ob_start();
+        imagejpeg($small, null, 82);
+        $data = 'data:image/jpeg;base64,' . base64_encode((string)ob_get_clean());
+        $cache->set($key, $data);
+        return $data;
+    }
+
+    /**
      * The still card, as a JPEG.
      *
      * @param array $card The type and the texts of its zones.

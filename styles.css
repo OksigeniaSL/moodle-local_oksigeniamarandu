@@ -5396,6 +5396,128 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     color: var(--mrd-ink);
 }
 
+/* The page of the channel: what is hidden stays hidden, whatever the display of its class. */
+.local-oksigeniamarandu-channel .mrd-fields[hidden],
+.local-oksigeniamarandu-channel .mrd-here[hidden],
+.local-oksigeniamarandu-channel .mrd-here small[hidden],
+.local-oksigeniamarandu-channel .mrd-savebar[hidden] {
+    display: none;
+}
+
+/* What waits for a review, with the card it will have: larger at a touch, and over the buttons on the phone. */
+.local-oksigeniamarandu-channel .mrd-thumb {
+    flex: none;
+    padding: 0;
+    border: 1px solid var(--mrd-line);
+    border-radius: 8px;
+    background: none;
+    line-height: 0;
+    overflow: hidden;
+    cursor: zoom-in;
+}
+
+.local-oksigeniamarandu-channel .mrd-thumb img {
+    display: block;
+    width: 160px;
+    height: auto;
+}
+
+.local-oksigeniamarandu-channel .mrd-thumb[aria-expanded="true"] {
+    flex: 1 1 100%;
+    cursor: zoom-out;
+}
+
+.local-oksigeniamarandu-channel .mrd-thumb[aria-expanded="true"] img {
+    width: 100%;
+}
+
+/* What goes to the channel: each kind with its card, small. */
+.local-oksigeniamarandu-channel .mrd-kindthumb {
+    flex: none;
+    width: 72px;
+    height: 40px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 6px;
+    background: var(--mrd-bg-chip);
+}
+
+/* The hours: from one to the other without breaking, and the days below. */
+.local-oksigeniamarandu-channel .mrd-span {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.35em;
+    white-space: nowrap;
+}
+
+.local-oksigeniamarandu-channel .mrd-sentence .mrd-days {
+    display: flex;
+    margin-top: 4px;
+}
+
+/* The levels of the weather warnings, with their colour as well as their name; and the last reading of the source. */
+.local-oksigeniamarandu-channel .mrd-level {
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    margin-right: 0.4em;
+    border-radius: 50%;
+    vertical-align: baseline;
+}
+
+.local-oksigeniamarandu-channel .mrd-level-Moderate {
+    background: #f2c500;
+}
+
+.local-oksigeniamarandu-channel .mrd-level-Severe {
+    background: #f08a00;
+}
+
+.local-oksigeniamarandu-channel .mrd-level-Extreme {
+    background: #d62d20;
+}
+
+.local-oksigeniamarandu-channel .mrd-status {
+    color: var(--mrd-muted);
+}
+
+/* The place from the device. */
+.local-oksigeniamarandu-channel .mrd-here {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* A change not saved: the bar to save it, always at hand at the bottom while the form is on the screen. */
+.local-oksigeniamarandu-channel .mrd-savebar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 12px;
+    background: var(--mrd-bg);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 600px) {
+    .local-oksigeniamarandu-channel .mrd-thumb {
+        flex: 1 1 100%;
+    }
+
+    .local-oksigeniamarandu-channel .mrd-thumb img {
+        width: 100%;
+    }
+}
+
 /* The cards of the channel, with the colour of the site: two by row, one on the phone. */
 .local-oksigeniamarandu-channel .mrd-previews {
     display: grid;
@@ -5420,3 +5542,102 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     border-radius: 8px;
     background: var(--mrd-bg);
 }
+
+/* To the channel: the photo first and large, with what the channel will show under it; beside the fields on a wide
+   screen, above them on a phone. */
+.local-oksigeniamarandu-share .mrd-dropimg[hidden],
+.local-oksigeniamarandu-share .mrd-dropcall[hidden],
+.local-oksigeniamarandu-share .mrd-tgpreview[hidden] {
+    display: none;
+}
+
+.local-oksigeniamarandu-share .mrd-sharegrid {
+    display: grid;
+    gap: 20px;
+}
+
+@media (min-width: 900px) {
+    .local-oksigeniamarandu-share .mrd-sharegrid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+    }
+}
+
+.local-oksigeniamarandu-share .mrd-drop {
+    position: relative;
+    display: grid;
+    place-items: center;
+    /* stylelint-disable-next-line csstree/validator */
+    aspect-ratio: 4 / 3;
+    margin: 0 0 6px;
+    padding: 16px;
+    border: 2px dashed var(--mrd-line-strong);
+    border-radius: 16px;
+    background: var(--mrd-bg-soft);
+    overflow: hidden;
+    text-align: center;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-share .mrd-drop:focus-within {
+    outline: 3px solid var(--mrd-blue);
+    outline-offset: 2px;
+}
+
+.local-oksigeniamarandu-share .mrd-drop input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-share .mrd-dropimg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--mrd-bg);
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-share .mrd-dropcall {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    color: var(--mrd-ink);
+    font-size: 18px;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-share .mrd-dropcall svg {
+    width: 52px;
+    height: 52px;
+    color: var(--mrd-blue);
+}
+
+.local-oksigeniamarandu-share .mrd-tgpreview {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 12px;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-share .mrd-tgpreview small {
+    display: block;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-share .mrd-tgpreview p {
+    display: grid;
+    margin: 4px 0 0;
+}
+
+.local-oksigeniamarandu-share .mrd-sharefields .mrd-fields {
+    margin-top: 0;
+}
+

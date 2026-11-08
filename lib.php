@@ -51,12 +51,12 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
 function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
     return [
         'news' => ['review' => false],
-        'week' => [],
-        'dayoff' => [],
+        'week' => ['card' => 'this_week'],
+        'dayoff' => ['card' => 'no_class'],
         'weather' => [],
-        'sky_iss' => [],
-        'sky_moon' => [],
-        'sky_meteors' => [],
+        'sky_iss' => ['card' => 'sky'],
+        'sky_moon' => ['card' => 'sky'],
+        'sky_meteors' => ['card' => 'sky'],
         // Work of a class: always reviewed, whatever the site says.
         'classwork' => ['always' => true],
     ];

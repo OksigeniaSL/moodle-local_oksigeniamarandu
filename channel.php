@@ -235,16 +235,30 @@ if ($current) {
             $choices[] = ['value' => $kind->key . '|' . $option, 'id' => 'mrd-p-' . md5($kind->key) . '-' . $option,
                 'label' => get_string('channel:policy:' . $option, $component), 'on' => $policy === $option];
         }
+        // The card of its posts, small, with the colour and the name of the site.
         $kinds[] = ['name' => channel::name($kind), 'desc' => channel::description($kind), 'choices' => $choices,
-            'field' => 'mrd-p-' . md5($kind->key)];
+            'field' => 'mrd-p-' . md5($kind->key),
+            'thumb' => $kind->card !== '' && $canconfig ? cards::thumbnail(cards::sample($kind->card), 144) : null];
     }
     $post = function (stdClass $row) use ($component, $now): array {
         $content = json_decode($row->content, true) ?: [];
         $kind = channel::kinds()[$row->component . '/' . $row->kind] ?? (object)['component' => $row->component,
             'kind' => $row->kind];
         $time = $row->timepublished ?: $row->timeplanned;
+        // What goes to the channel, to see it before saying yes: its image, or its card drawn now.
+        $thumb = $full = null;
+        if ($row->status === 'review') {
+            if (!empty($content['image'])) {
+                $thumb = $full = (string)$content['image'];
+            } else if (!empty($content['card'])) {
+                $thumb = cards::thumbnail($content['card'], 320);
+                $full = cards::thumbnail($content['card'], 960);
+            }
+        }
         return [
             'id' => $row->id,
+            'thumb' => $thumb,
+            'full' => $full,
             'title' => (string)($content['title'] ?? ($content['text'][0] ?? '')),
             'kind' => channel::name($kind),
             'when' => panel::when((int)$time, $now),
@@ -324,10 +338,8 @@ if ($current) {
     if ($canconfig && optional_param('preview', 0, PARAM_BOOL) && cards::can_draw()) {
         $previews = [];
         foreach (cards::TYPES as $type) {
-            $sample = cards::template($type)['sample'];
-            unset($sample['org'], $sample['cover']);
-            $card = cards::clean(['type' => $type, 'zones' => $sample]);
-            $previews[] = ['alt' => (string)($sample['kicker'] ?? $type),
+            $card = cards::sample($type);
+            $previews[] = ['alt' => (string)($card['zones']['kicker'] ?? $type),
                 'src' => 'data:image/jpeg;base64,' . base64_encode(cards::still($card))];
         }
         $context['channel']['previews'] = $previews;

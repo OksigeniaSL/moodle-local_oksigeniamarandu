@@ -47,6 +47,11 @@ $definitions = [
         'simplekeys' => true,
         'ttl' => DAYSECS,
     ],
+    // Small pictures of the cards for the page of the channel, by their texts, the colour and the name of the site.
+    'thumbs' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+    ],
     // The card of the channel on the dashboard of whoever reviews it, for a minute or until a post changes.
     'work' => [
         'mode' => cache_store::MODE_APPLICATION,

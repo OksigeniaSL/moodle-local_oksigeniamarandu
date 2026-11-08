@@ -72,7 +72,9 @@ class channel {
      * Every kind of post declared on the site, by "component/kind".
      *
      * @return \stdClass[] Each with component, kind, key, review (whether it waits for a review unless the site says) and
-     *                     always (whether it always waits for one, whatever the site says: 'always' => true).
+     *                     always (whether it always waits for one, whatever the site says: 'always' => true) and card
+     *                     (the type of card its posts have, 'card' => 'open_day', or the kind itself if it is a type;
+     *                     empty without one).
      */
     public static function kinds(): array {
         $declared = [];
@@ -92,12 +94,14 @@ class channel {
                 }
                 $definition = (array)$definition;
                 $always = !empty($definition['always']);
+                $card = (string)($definition['card'] ?? (in_array($kind, cards::TYPES, true) ? $kind : ''));
                 $all[$component . '/' . $kind] = (object)[
                     'component' => $component,
                     'kind' => $kind,
                     'key' => $component . '/' . $kind,
                     'review' => $always || !array_key_exists('review', $definition) || !empty($definition['review']),
                     'always' => $always,
+                    'card' => in_array($card, cards::TYPES, true) ? $card : '',
                 ];
             }
         }

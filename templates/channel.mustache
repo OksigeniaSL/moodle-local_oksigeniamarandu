@@ -102,7 +102,8 @@
         <h3 id="mrd-review">{{#str}} channel:waiting, local_oksigeniamarandu {{/str}}</h3>
         <ul class="mrd-posts">
             {{#review}}
-            <li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}}{{#urgent}} · {{#str}} channel:urgent, local_oksigeniamarandu {{/str}}{{/urgent}}</small></span>
+            <li class="mrd-reviewitem">{{#thumb}}<button type="button" class="mrd-thumb" aria-expanded="false" title="{{#str}} channel:review:enlarge, local_oksigeniamarandu {{/str}}"><img src="{{thumb}}" data-full="{{full}}" alt="{{title}}" width="160" height="90"></button>{{/thumb}}
+                <span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}}{{#urgent}} · {{#str}} channel:urgent, local_oksigeniamarandu {{/str}}{{/urgent}}</small></span>
                 <form method="post" action="{{formurl}}">
                     <input type="hidden" name="sesskey" value="{{sesskey}}">
                     <input type="hidden" name="post" value="{{id}}">
@@ -128,28 +129,28 @@
         {{#empty}}<p class="mrd-muted">{{#str}} channel:empty, local_oksigeniamarandu {{/str}}</p>{{/empty}}
 
         {{#canconfig}}
-        <form method="post" action="{{formurl}}" class="mrd-sentences">
+        <form method="post" action="{{formurl}}" class="mrd-sentences" id="mrd-settings">
             <input type="hidden" name="sesskey" value="{{sesskey}}">
             <input type="hidden" name="action" value="save">
             <h3>{{#str}} channel:what, local_oksigeniamarandu {{/str}}</h3>
             <ul class="mrd-kinds">
                 {{#kinds}}
-                <li><span class="mrd-kind"><strong>{{name}}</strong>{{#desc}} <small>{{.}}</small>{{/desc}}</span>
+                <li>{{#thumb}}<img class="mrd-kindthumb" src="{{.}}" alt="" width="72" height="40">{{/thumb}}{{^thumb}}<span class="mrd-kindthumb" aria-hidden="true"></span>{{/thumb}}<span class="mrd-kind"><strong>{{name}}</strong>{{#desc}} <small>{{.}}</small>{{/desc}}</span>
                     <span class="mrd-choices" role="radiogroup" aria-label="{{name}}">{{#choices}}<input type="radio" class="mrd-choice" id="{{id}}" name="policy[{{field}}]" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}">{{label}}</label>{{/choices}}</span>
                 </li>
                 {{/kinds}}
             </ul>
             <h3>{{#str}} channel:hours, local_oksigeniamarandu {{/str}}</h3>
             <p class="mrd-sentence">{{#str}} channel:hours:review1, local_oksigeniamarandu {{/str}}
-                <input type="time" name="reviewfrom" value="{{reviewfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
+                <span class="mrd-span"><input type="time" name="reviewfrom" value="{{reviewfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
                 {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
-                <input type="time" name="reviewto" value="{{reviewto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">
+                <input type="time" name="reviewto" value="{{reviewto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}"></span>
                 <span class="mrd-days">{{#reviewdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/reviewdays}}</span></p>
             <p class="mrd-sub">{{#str}} channel:hours:review2, local_oksigeniamarandu {{/str}}</p>
             <p class="mrd-sentence">{{#str}} channel:hours:post1, local_oksigeniamarandu {{/str}}
-                <input type="time" name="postfrom" value="{{postfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
+                <span class="mrd-span"><input type="time" name="postfrom" value="{{postfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
                 {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
-                <input type="time" name="postto" value="{{postto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">
+                <input type="time" name="postto" value="{{postto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}"></span>
                 <span class="mrd-days">{{#postdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/postdays}}</span></p>
             <p class="mrd-sub">{{#str}} channel:hours:post2, local_oksigeniamarandu {{/str}}</p>
 
@@ -173,16 +174,17 @@
                 <input type="time" name="evehour" value="{{evehour}}" aria-label="{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}"></p>
 
             <h3>{{#str}} channel:weather, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:weather:desc, local_oksigeniamarandu {{/str}}{{#weatherstatus}} <strong>{{.}}</strong>{{/weatherstatus}}</p>
+            <p class="mrd-sub">{{#str}} channel:weather:desc, local_oksigeniamarandu {{/str}}</p>
             <div class="mrd-fields">
                 <label for="mrd-weatherfeed">{{#str}} channel:weather:feed, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-weatherfeed" type="url" name="weatherfeed" value="{{weatherfeed}}" placeholder="https://" autocomplete="off">
+                <input id="mrd-weatherfeed" type="url" name="weatherfeed" value="{{weatherfeed}}" placeholder="https://" autocomplete="off"{{#weatherstatus}} aria-describedby="mrd-weatherstatus"{{/weatherstatus}}>
+                {{#weatherstatus}}<small id="mrd-weatherstatus" class="mrd-status" role="status">{{.}}</small>{{/weatherstatus}}
                 <label for="mrd-weatherareas">{{#str}} channel:weather:areas, local_oksigeniamarandu {{/str}}</label>
                 <input id="mrd-weatherareas" type="text" name="weatherareas" value="{{weatherareas}}" autocomplete="off" aria-describedby="mrd-weatherareas-desc">
                 <small id="mrd-weatherareas-desc">{{#str}} channel:weather:areas_desc, local_oksigeniamarandu {{/str}}</small>
             </div>
             <p class="mrd-sentence">{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}
-                <span class="mrd-choices" role="radiogroup" aria-label="{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}">{{#weatherlevels}}<input type="radio" class="mrd-choice" id="{{id}}" name="weatherseverity" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}">{{label}}</label>{{/weatherlevels}}</span></p>
+                <span class="mrd-choices" role="radiogroup" aria-label="{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}">{{#weatherlevels}}<input type="radio" class="mrd-choice" id="{{id}}" name="weatherseverity" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}"><span class="mrd-level mrd-level-{{value}}" aria-hidden="true"></span>{{label}}</label>{{/weatherlevels}}</span></p>
 
             <h3>{{#str}} channel:place, local_oksigeniamarandu {{/str}}</h3>
             <p class="mrd-sub">{{#str}} channel:place:desc, local_oksigeniamarandu {{/str}}</p>
@@ -191,6 +193,8 @@
                 <input id="mrd-latitude" type="text" inputmode="decimal" name="latitude" value="{{latitude}}" autocomplete="off">
                 <label for="mrd-longitude">{{#str}} channel:place:longitude, local_oksigeniamarandu {{/str}}</label>
                 <input id="mrd-longitude" type="text" inputmode="decimal" name="longitude" value="{{longitude}}" autocomplete="off">
+                <span class="mrd-here" hidden><button type="button" class="mrd-btn mrd-second" data-here>{{#str}} channel:place:here, local_oksigeniamarandu {{/str}}</button>
+                <small data-herefailed hidden role="status">{{#str}} channel:place:herefailed, local_oksigeniamarandu {{/str}}</small></span>
             </div>
 
             <h3>{{#str}} channel:sky, local_oksigeniamarandu {{/str}}</h3>
@@ -207,10 +211,12 @@
             <p class="mrd-sub">{{#str}} channel:links:desc, local_oksigeniamarandu {{/str}}</p>
             <div class="mrd-fields">
                 <span class="mrd-check"><input type="checkbox" id="mrd-utm" name="utm" value="1" {{#utm}}checked{{/utm}}><label for="mrd-utm">{{#str}} channel:links:utm, local_oksigeniamarandu {{/str}}</label></span>
+                <div class="mrd-fields mrd-utmfields" {{^utm}}hidden{{/utm}}>
                 <label for="mrd-utmsource">utm_source</label>
                 <input id="mrd-utmsource" type="text" name="utmsource" value="{{utmsource}}" autocomplete="off">
                 <label for="mrd-utmmedium">utm_medium</label>
                 <input id="mrd-utmmedium" type="text" name="utmmedium" value="{{utmmedium}}" autocomplete="off">
+                </div>
                 <label for="mrd-shortener">{{#str}} channel:links:shortener, local_oksigeniamarandu {{/str}}</label>
                 <input id="mrd-shortener" type="url" name="shortener" value="{{shortener}}" placeholder="https://" autocomplete="off">
                 <label for="mrd-signature">{{#str}} channel:links:signature, local_oksigeniamarandu {{/str}}</label>
@@ -230,6 +236,8 @@
             </div>
             <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button>
                 <a class="btn mrd-btn mrd-second" href="{{previewurl}}">{{#str}} channel:cards:preview, local_oksigeniamarandu {{/str}}</a></div>
+            <div class="mrd-savebar" hidden><span role="status">{{#str}} channel:unsaved, local_oksigeniamarandu {{/str}}</span>
+                <button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button></div>
         </form>
         {{#previews.0}}
         <p class="mrd-muted">{{#str}} channel:cards:sample, local_oksigeniamarandu {{/str}}</p>
@@ -239,3 +247,72 @@
         {{/channel}}
     </section>
 </div>
+{{#js}}
+(function() {
+    var root = document.querySelector('.local-oksigeniamarandu-channel');
+    if (!root) {
+        return;
+    }
+    // What waits for a review: its card larger at a touch.
+    root.querySelectorAll('.mrd-thumb').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var image = button.querySelector('img');
+            var open = button.getAttribute('aria-expanded') !== 'true';
+            if (open && image.dataset.full) {
+                image.dataset.small = image.dataset.small || image.src;
+                image.src = image.dataset.full;
+            } else if (image.dataset.small) {
+                image.src = image.dataset.small;
+            }
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    });
+    var form = document.getElementById('mrd-settings');
+    if (!form) {
+        return;
+    }
+    // A change not saved: the bar to save it, and a question before leaving.
+    var bar = form.querySelector('.mrd-savebar');
+    var dirty = false;
+    var changed = function() {
+        if (!dirty) {
+            dirty = true;
+            bar.hidden = false;
+        }
+    };
+    form.addEventListener('input', changed);
+    form.addEventListener('change', changed);
+    form.addEventListener('submit', function() {
+        dirty = false;
+    });
+    window.addEventListener('beforeunload', function(e) {
+        if (dirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+    // The marks of the links, only when they are measured.
+    var utm = document.getElementById('mrd-utm');
+    var utmfields = form.querySelector('.mrd-utmfields');
+    if (utm && utmfields) {
+        utm.addEventListener('change', function() {
+            utmfields.hidden = !utm.checked;
+        });
+    }
+    // The place, from the device, where the browser can give it.
+    var here = form.querySelector('.mrd-here');
+    if (here && navigator.geolocation && window.isSecureContext) {
+        here.hidden = false;
+        here.querySelector('[data-here]').addEventListener('click', function() {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.getElementById('mrd-latitude').value = position.coords.latitude.toFixed(5);
+                document.getElementById('mrd-longitude').value = position.coords.longitude.toFixed(5);
+                here.querySelector('[data-herefailed]').hidden = true;
+                changed();
+            }, function() {
+                here.querySelector('[data-herefailed]').hidden = false;
+            }, {timeout: 15000});
+        });
+    }
+})();
+{{/js}}

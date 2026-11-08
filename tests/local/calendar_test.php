@@ -93,7 +93,7 @@ final class calendar_test extends \advanced_testcase {
      * @param string $when As 2026-11-02 08:00.
      * @return int
      */
-    private function at(string $when): int {
+    private function time_of(string $when): int {
         return (new \DateTime($when, new \DateTimeZone('Europe/Madrid')))->getTimestamp();
     }
 
@@ -102,7 +102,7 @@ final class calendar_test extends \advanced_testcase {
      * calendar, repetitions without the days left out or changed, and nothing cancelled.
      */
     public function test_parse(): void {
-        $events = calendar::events($this->at('2026-11-01 00:00'), $this->at('2026-12-01 00:00'));
+        $events = calendar::events($this->time_of('2026-11-01 00:00'), $this->time_of('2026-12-01 00:00'));
         $by = [];
         foreach ($events as $event) {
             $by[$event->name][] = $event;
@@ -111,13 +111,13 @@ final class calendar_test extends \advanced_testcase {
             $by['No lectivo'][0]->allday]);
         $this->assertSame(['2026-11-04', '2026-11-06'], [$by['Semana de la ciencia'][0]->first,
             $by['Semana de la ciencia'][0]->last]);
-        $this->assertSame($this->at('2026-11-04 17:00'), $by['Reunión de familias, aula 3'][0]->start);
-        $this->assertSame($this->at('2026-11-05 10:00'), $by['Infantil - Navidad en familia'][0]->start);
+        $this->assertSame($this->time_of('2026-11-04 17:00'), $by['Reunión de familias, aula 3'][0]->start);
+        $this->assertSame($this->time_of('2026-11-05 10:00'), $by['Infantil - Navidad en familia'][0]->start);
         $this->assertSame(
-            [$this->at('2026-11-17 17:00'), $this->at('2026-11-24 17:00')],
+            [$this->time_of('2026-11-17 17:00'), $this->time_of('2026-11-24 17:00')],
             array_column($by['Club de lectura'], 'start')
         );
-        $this->assertSame($this->at('2026-11-11 17:00'), $by['Club de lectura (cambiado)'][0]->start);
+        $this->assertSame($this->time_of('2026-11-11 17:00'), $by['Club de lectura (cambiado)'][0]->start);
         $this->assertSame(['2026-11-12', '2026-11-13', '2026-11-14'], array_column($by['Campamento'], 'first'));
         $this->assertArrayNotHasKey('Excursión anulada', $by);
         $this->assertSame(['2026-11-09', '2026-11-13'], [$by['📆 Semana Santa'][0]->first, $by['📆 Semana Santa'][0]->last]);
@@ -133,12 +133,12 @@ final class calendar_test extends \advanced_testcase {
         $this->assertFalse(calendar::is_dayoff('Infantil - Navidad en familia'));
         $this->assertFalse(calendar::is_dayoff('Festival de Navidad'));
 
-        $events = calendar::events($this->at('2026-10-30 00:00'), $this->at('2026-12-01 00:00'));
+        $events = calendar::events($this->time_of('2026-10-30 00:00'), $this->time_of('2026-12-01 00:00'));
         $announce = calendar::announcements($events, self::FRIDAY);
         $this->assertSame(['2026-11-02', '2026-11-09'], array_keys($announce));
-        $this->assertSame([$this->at('2026-11-01 18:00'), '2026-11-03', ['No lectivo']], [$announce['2026-11-02']->eve,
+        $this->assertSame([$this->time_of('2026-11-01 18:00'), '2026-11-03', ['No lectivo']], [$announce['2026-11-02']->eve,
             $announce['2026-11-02']->back, $announce['2026-11-02']->names]);
-        $this->assertSame([$this->at('2026-11-08 18:00'), '2026-11-16'], [$announce['2026-11-09']->eve,
+        $this->assertSame([$this->time_of('2026-11-08 18:00'), '2026-11-16'], [$announce['2026-11-09']->eve,
             $announce['2026-11-09']->back]);
     }
 
@@ -146,7 +146,7 @@ final class calendar_test extends \advanced_testcase {
      * The lines of «This week», in order, with the day and the time of each event.
      */
     public function test_week(): void {
-        $monday = $this->at('2026-11-02 00:00');
+        $monday = $this->time_of('2026-11-02 00:00');
         $events = calendar::events($monday, $monday + WEEKSECS);
         $this->assertSame([
             'Monday 2 · No lectivo',
@@ -166,13 +166,13 @@ final class calendar_test extends \advanced_testcase {
         $week = $DB->get_record(channel::TABLE, ['kind' => 'week']);
         $content = json_decode($week->content, true);
         $this->assertSame(
-            ['week-20261102', 'review', $this->at('2026-11-02 08:00'), $this->at('2026-11-03 00:00')],
+            ['week-20261102', 'review', $this->time_of('2026-11-02 08:00'), $this->time_of('2026-11-03 00:00')],
             [$week->sourcekey, $week->status, (int)$week->timeplanned, (int)$week->timeexpires]
         );
         $this->assertSame(['This week', 'https://example.org/calendar.ics', 'Add to calendar', false], [$content['title'],
             $content['url'], $content['label'], $content['utm']]);
         $dayoff = $DB->get_record(channel::TABLE, ['kind' => 'dayoff']);
-        $this->assertSame(['dayoff-20261102', $this->at('2026-11-01 18:00')], [$dayoff->sourcekey, (int)$dayoff->timeplanned]);
+        $this->assertSame(['dayoff-20261102', $this->time_of('2026-11-01 18:00')], [$dayoff->sourcekey, (int)$dayoff->timeplanned]);
         $this->assertSame(
             ['No class tomorrow', ['No lectivo', 'Back on Tuesday 3 November.']],
             [json_decode($dayoff->content, true)['title'], json_decode($dayoff->content, true)['text']]

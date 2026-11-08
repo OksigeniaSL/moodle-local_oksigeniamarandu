@@ -241,7 +241,7 @@ class telegram_api {
     }
 
     /**
-     * A chat as Telegram has it: a channel, by its id or its @name.
+     * A chat as Telegram has it: a channel, by its id or by its name after an at sign.
      *
      * @param string $chatid The id, or @ and its name.
      * @return array With id, type, title and username.

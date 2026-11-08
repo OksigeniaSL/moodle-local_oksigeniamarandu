@@ -246,7 +246,7 @@ class channel {
      * Takes a channel for the site, once Telegram says the bot can post in it.
      *
      * @param telegram_api $api The bot.
-     * @param string $chat The id of the channel, its @name or its link t.me/name.
+     * @param string $chat The id of the channel, its name after an at sign, or its link t.me/name.
      * @return \stdClass The channel, as current() gives it.
      * @throws \moodle_exception If it is not a channel or the bot cannot post in it.
      */

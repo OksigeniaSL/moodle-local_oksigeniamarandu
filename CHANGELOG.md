@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.27.1 (2026-11-08)
+
+- The picture of «To the channel» has its address before a photo is chosen, as HTML wants.
+
 ## 0.27.0 (2026-11-08)
 
 - The page of the channel, after the review of Jujol: what waits for a review shows the card it will have (larger at a

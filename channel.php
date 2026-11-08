@@ -28,6 +28,7 @@ require_once($CFG->libdir . '/adminlib.php');
 
 use local_oksigeniamarandu\local\api_exception;
 use local_oksigeniamarandu\local\calendar;
+use local_oksigeniamarandu\local\cards;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\panel;
@@ -95,6 +96,17 @@ if ($action !== '' && confirm_sesskey()) {
                 set_config($name, optional_param($name, '', PARAM_ALPHANUMEXT), $component);
             }
             set_config('shortener', $address('shortener'), $component);
+            // The cards: the colour and the name of the organization, whether they move, and where ffmpeg is.
+            $colour = optional_param('cardcolor', '', PARAM_RAW_TRIMMED);
+            set_config('cardcolor', preg_match('/^#[0-9a-f]{6}$/i', $colour) && strcasecmp($colour, cards::brand()) !== 0
+                ? $colour : (string)get_config($component, 'cardcolor'), $component);
+            if (optional_param('cardcolordefault', 0, PARAM_BOOL)) {
+                unset_config('cardcolor', $component);
+            }
+            set_config('cardorg', trim(optional_param('cardorg', '', PARAM_TEXT)), $component);
+            set_config('cardanimated', optional_param('cardanimated', 0, PARAM_BOOL) ? 1 : 0, $component);
+            $ffmpeg = optional_param('ffmpeg', '', PARAM_RAW_TRIMMED);
+            set_config('ffmpeg', preg_match('~^/[\w./-]+$~', $ffmpeg) ? $ffmpeg : '', $component);
             $signature = optional_param('shortenersignature', '', PARAM_RAW_TRIMMED);
             if ($signature !== '') {
                 set_config('shortenersignature', \core\encryption::encrypt($signature), $component);
@@ -228,6 +240,15 @@ if ($current) {
         'utmmedium' => (string)($config->utmmedium ?? links::DEFAULTS['utmmedium']),
         'shortener' => (string)($config->shortener ?? ''),
         'hassignature' => !empty($config->shortenersignature),
+        'cardcolor' => cards::brand(),
+        'cardorg' => (string)($config->cardorg ?? ''),
+        'cardorgdefault' => format_string($SITE->fullname),
+        'cardanimated' => ($config->cardanimated ?? '1') !== '0',
+        'ffmpeg' => (string)($config->ffmpeg ?? ''),
+        'cardstatus' => !cards::can_draw() ? get_string('channel:cards:none', $component)
+            : (cards::ffmpeg() ? get_string('channel:cards:animatedok', $component, cards::ffmpeg())
+            : get_string('channel:cards:stillonly', $component)),
+        'previewurl' => (new moodle_url($baseurl, ['preview' => 1]))->out(false) . '#mrd-cards',
         'review' => $list("status = 'review'", 'timecreated ASC'),
         'ready' => $list("status = 'ready'", 'timeplanned ASC'),
         'published' => $list("status = 'published'", 'timepublished DESC'),
@@ -235,6 +256,18 @@ if ($current) {
     ];
     $context['channel']['empty'] = !$context['channel']['review'] && !$context['channel']['ready']
         && !$context['channel']['published'] && !$context['channel']['failed'];
+    // The seven cards with the colour and the name of the site, from the example texts of each template.
+    if (optional_param('preview', 0, PARAM_BOOL) && cards::can_draw()) {
+        $previews = [];
+        foreach (cards::TYPES as $type) {
+            $sample = cards::template($type)['sample'];
+            unset($sample['org'], $sample['cover']);
+            $card = cards::clean(['type' => $type, 'zones' => $sample]);
+            $previews[] = ['alt' => (string)($sample['kicker'] ?? $type),
+                'src' => 'data:image/jpeg;base64,' . base64_encode(cards::still($card))];
+        }
+        $context['channel']['previews'] = $previews;
+    }
 }
 
 echo $OUTPUT->header();

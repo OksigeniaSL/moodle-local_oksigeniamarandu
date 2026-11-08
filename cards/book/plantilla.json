@@ -1,0 +1,285 @@
+{
+  "id": "book",
+  "label": {
+    "es": "Libro recomendado",
+    "en": "Recommended book"
+  },
+  "version": 1,
+  "size": [
+    1280,
+    720
+  ],
+  "files": {
+    "background": "fondo.png",
+    "accent": "acento.png",
+    "background_video": "fondo.mp4",
+    "accent_video": "acento.mp4"
+  },
+  "fonts": {
+    "regular": "Onest-Regular.ttf",
+    "medium": "Onest-Medium.ttf",
+    "semibold": "Onest-SemiBold.ttf",
+    "bold": "Onest-Bold.ttf",
+    "extrabold": "Onest-ExtraBold.ttf"
+  },
+  "fonts_note": "Onest (SIL OFL 1.1), static cuts with a legacy kern table so GD kerns too.",
+  "metrics": {
+    "ascent": 0.93,
+    "descent": 0.24
+  },
+  "palette": {
+    "paper": "#f4eee3",
+    "ink": "#24211d",
+    "ink_soft": "#5a5650"
+  },
+  "accent": {
+    "source": "Brand colour of the site's Moodle theme; any colour works.",
+    "rules": [
+      {
+        "type": "text_on_accent",
+        "min_contrast": 4.5,
+        "candidates": [
+          "#ffffff",
+          "#24211d"
+        ]
+      }
+    ],
+    "fit": "If a rule fails, mix the brand colour with white or with black in 1 % steps and keep the first that passes every rule (try white then black at each step). Use that colour for the whole accent layer of the card.",
+    "on_accent": "For colour 'on_accent', use the candidate with the higher contrast on the fitted accent."
+  },
+  "video": {
+    "duration": 6.0,
+    "fps": 25,
+    "frames": 150,
+    "loop": "seamless: the frame after the last one is the first one",
+    "accent_video": "alpha as luma, full range (yuvj420p): read it with format=gray before alphamerge",
+    "compose": {
+      "loops": 2,
+      "exit": {
+        "effect": "fade",
+        "duration": 0.5
+      },
+      "note": "Telegram plays an animation in a loop. The card lasts two loops of the background; the texts come in at the start and fade out in the last 0.5 s, so the restart is clean. D = loops * duration."
+    }
+  },
+  "zones": [
+    {
+      "id": "kicker",
+      "type": "text",
+      "x": 116,
+      "y": 62,
+      "w": 556,
+      "h": 48,
+      "font": "semibold",
+      "size": 34,
+      "min_size": 28,
+      "line_height": 1.2,
+      "color": "ink",
+      "align": "left",
+      "valign": "middle",
+      "max_lines": 1,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": false,
+      "enter": {
+        "effect": "fade",
+        "start": 0.15,
+        "duration": 0.5,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.15)/0.50,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}"
+        }
+      },
+      "note": "Short label beside the speech-bubble mark."
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "x": 72,
+      "y": 124,
+      "w": 600,
+      "h": 252,
+      "font": "bold",
+      "size": 72,
+      "min_size": 48,
+      "line_height": 1.06,
+      "color": "ink",
+      "align": "left",
+      "valign": "bottom",
+      "max_lines": 3,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": true,
+      "enter": {
+        "effect": "slide",
+        "start": 0.3,
+        "duration": 0.7,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.30)/0.70,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}+(26)*pow(1-clip((t-0.30)/0.70,0,1),3)"
+        },
+        "from": [
+          0,
+          26
+        ]
+      }
+    },
+    {
+      "id": "author",
+      "type": "text",
+      "x": 72,
+      "y": 392,
+      "w": 600,
+      "h": 52,
+      "font": "medium",
+      "size": 40,
+      "min_size": 30,
+      "line_height": 1.2,
+      "color": "ink_soft",
+      "align": "left",
+      "valign": "middle",
+      "max_lines": 1,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": false,
+      "enter": {
+        "effect": "fade",
+        "start": 0.8,
+        "duration": 0.5,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.80)/0.50,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}"
+        }
+      }
+    },
+    {
+      "id": "detail",
+      "type": "text",
+      "x": 72,
+      "y": 468,
+      "w": 600,
+      "h": 154,
+      "font": "medium",
+      "size": 38,
+      "min_size": 30,
+      "line_height": 1.22,
+      "color": "ink",
+      "align": "left",
+      "valign": "top",
+      "max_lines": 3,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": true,
+      "enter": {
+        "effect": "slide",
+        "start": 0.95,
+        "duration": 0.6,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.95)/0.60,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}+(16)*pow(1-clip((t-0.95)/0.60,0,1),3)"
+        },
+        "from": [
+          0,
+          16
+        ]
+      }
+    },
+    {
+      "id": "org",
+      "type": "text",
+      "x": 72,
+      "y": 646,
+      "w": 600,
+      "h": 40,
+      "font": "semibold",
+      "size": 28,
+      "min_size": 24,
+      "line_height": 1.2,
+      "color": "ink_soft",
+      "align": "left",
+      "valign": "middle",
+      "max_lines": 1,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": false,
+      "enter": {
+        "effect": "fade",
+        "start": 1.2,
+        "duration": 0.5,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-1.20)/0.50,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}"
+        }
+      },
+      "note": "Name of the organisation (the site's short name)."
+    },
+    {
+      "id": "cover",
+      "type": "image",
+      "x": 796,
+      "y": 172,
+      "w": 230,
+      "h": 345,
+      "fit": "cover",
+      "overlay": "brillo.png",
+      "enter": {
+        "effect": "none"
+      },
+      "fallback": {
+        "fill": "accent",
+        "text_zone": "cover_title"
+      },
+      "note": "The book cover, cropped to 2:3 from its centre. brillo.png goes on top (spine crease and sheen). Without a cover: fill with the accent and write the title in cover_title."
+    },
+    {
+      "id": "cover_title",
+      "type": "text",
+      "x": 816,
+      "y": 196,
+      "w": 190,
+      "h": 300,
+      "font": "bold",
+      "size": 30,
+      "min_size": 22,
+      "line_height": 1.12,
+      "color": "on_accent",
+      "align": "left",
+      "valign": "top",
+      "max_lines": 7,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": true,
+      "note": "Only used when there is no cover image."
+    }
+  ],
+  "sample": {
+    "kicker": "Libro recomendado",
+    "title": "El faro de las palabras perdidas",
+    "author": "Martín Olave",
+    "detail": "Una aventura junto al mar para leer de 10 a 12 años. La tienes en la biblioteca.",
+    "cover": "portada-ejemplo.jpg",
+    "org": "Biblioteca de Robledal · datos de ejemplo"
+  }
+}

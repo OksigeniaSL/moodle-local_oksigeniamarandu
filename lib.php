@@ -53,3 +53,27 @@ function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
         'dayoff' => [],
     ];
 }
+
+/**
+ * Serves the cards Marandu made for the posts of the channel. They are for everyone, as the channel: no login.
+ *
+ * @param stdClass $course The course (the site).
+ * @param stdClass|null $cm Not used.
+ * @param context $context The context: the system.
+ * @param string $filearea card.
+ * @param array $args The post and the name of the file.
+ * @param bool $forcedownload Whether to download it.
+ * @param array $options More options.
+ * @return bool False if it is not a card.
+ */
+function local_oksigeniamarandu_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    if ($context->contextlevel != CONTEXT_SYSTEM || $filearea !== \local_oksigeniamarandu\local\cards::AREA || count($args) < 2) {
+        return false;
+    }
+    $itemid = (int)array_shift($args);
+    $file = get_file_storage()->get_file($context->id, 'local_oksigeniamarandu', $filearea, $itemid, '/', array_pop($args));
+    if (!$file || $file->is_directory()) {
+        return false;
+    }
+    send_stored_file($file, DAYSECS, 0, $forcedownload, $options);
+}

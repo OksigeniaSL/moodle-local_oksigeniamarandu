@@ -29,7 +29,8 @@
       field, choices with value, id, label, on), reviewfrom, reviewto, reviewdays and postfrom, postto, postdays (group,
       value, label, name, on), and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
       urgent), and empty; the calendar: calendarical, calendarsite, calendarlink, calendarkeywords, classdays, weekhour and
-      evehour; the links: utm, utmsource, utmmedium, shortener and hassignature.
+      evehour; the links: utm, utmsource, utmmedium, shortener and hassignature; the cards: cardcolor, cardorg,
+      cardorgdefault, cardanimated, ffmpeg, cardstatus, previewurl and previews (alt, src).
 
     Example context (json):
     {
@@ -174,8 +175,25 @@
                 <label for="mrd-signature">{{#str}} channel:links:signature, local_oksigeniamarandu {{/str}}</label>
                 <input id="mrd-signature" type="password" name="shortenersignature" value="" autocomplete="new-password" {{#hassignature}}placeholder="{{#str}} channel:links:signatureset, local_oksigeniamarandu {{/str}}"{{/hassignature}}>
             </div>
-            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button></div>
+            <h3 id="mrd-cards">{{#str}} channel:cards, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sub">{{#str}} channel:cards:desc, local_oksigeniamarandu {{/str}} {{cardstatus}}</p>
+            <div class="mrd-fields">
+                <label for="mrd-cardcolor">{{#str}} channel:cards:color, local_oksigeniamarandu {{/str}}</label>
+                <span class="mrd-check"><input id="mrd-cardcolor" type="color" name="cardcolor" value="{{cardcolor}}">
+                <input type="checkbox" id="mrd-cardcolordefault" name="cardcolordefault" value="1"><label for="mrd-cardcolordefault">{{#str}} channel:cards:colordefault, local_oksigeniamarandu {{/str}}</label></span>
+                <label for="mrd-cardorg">{{#str}} channel:cards:org, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-cardorg" type="text" name="cardorg" value="{{cardorg}}" placeholder="{{cardorgdefault}}">
+                <span class="mrd-check"><input type="checkbox" id="mrd-cardanimated" name="cardanimated" value="1" {{#cardanimated}}checked{{/cardanimated}}><label for="mrd-cardanimated">{{#str}} channel:cards:animated, local_oksigeniamarandu {{/str}}</label></span>
+                <label for="mrd-ffmpeg">{{#str}} channel:cards:ffmpeg, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-ffmpeg" type="text" name="ffmpeg" value="{{ffmpeg}}" placeholder="/usr/bin/ffmpeg" autocomplete="off">
+            </div>
+            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button>
+                <a class="btn mrd-btn mrd-second" href="{{previewurl}}">{{#str}} channel:cards:preview, local_oksigeniamarandu {{/str}}</a></div>
         </form>
+        {{#previews.0}}
+        <p class="mrd-muted">{{#str}} channel:cards:sample, local_oksigeniamarandu {{/str}}</p>
+        <div class="mrd-previews">{{#previews}}<img src="{{src}}" alt="{{alt}}" width="640" height="360">{{/previews}}</div>
+        {{/previews.0}}
         {{/channel}}
     </section>
 </div>

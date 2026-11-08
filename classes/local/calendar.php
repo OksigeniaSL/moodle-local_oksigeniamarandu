@@ -108,7 +108,19 @@ class calendar {
             if ($lines) {
                 $link = trim((string)get_config(self::COMPONENT, 'calendarlink'))
                     ?: trim((string)get_config(self::COMPONENT, 'calendarical'));
-                $content = ['title' => get_string('channel:cal:weektitle', self::COMPONENT), 'lines' => $lines];
+                $content = ['title' => get_string('channel:cal:weektitle', self::COMPONENT), 'lines' => $lines,
+                    'card' => ['type' => 'this_week', 'zones' => [
+                        'kicker' => get_string('channel:cal:weekkicker', self::COMPONENT, (object)[
+                            'from' => self::day_name($monday->format('Y-m-d'), 'channel:cal:daynumber', false),
+                            'to' => self::day_name(
+                                self::next_ymd($monday->format('Y-m-d'), 6),
+                                'channel:cal:daymonthformat',
+                                false
+                            ),
+                        ]),
+                        'title' => get_string('channel:cal:weektitle', self::COMPONENT),
+                        'items' => self::week_items($events, $monday->getTimestamp()),
+                    ]]];
                 if (preg_match('~^https?://~i', $link)) {
                     $content += ['url' => $link, 'label' => get_string('channel:cal:addcalendar', self::COMPONENT),
                         'utm' => false];
@@ -133,13 +145,16 @@ class calendar {
             if ($now >= $day->eve || $day->eve - $now > self::AHEAD) {
                 continue;
             }
+            $back = self::day_name($day->back, 'channel:cal:dateformat', false);
             $counts['dayoff'] += (int)(bool)channel::post(self::COMPONENT, self::DAYOFF, [
                 'title' => get_string('channel:cal:dayofftitle', self::COMPONENT),
-                'text' => [implode(' · ', $day->names), get_string(
-                    'channel:cal:back',
-                    self::COMPONENT,
-                    self::day_name($day->back, 'channel:cal:dateformat')
-                )],
+                'text' => [implode(' · ', $day->names), get_string('channel:cal:back', self::COMPONENT, $back)],
+                'card' => ['type' => 'no_class', 'zones' => [
+                    'kicker' => self::day_name(self::ymd($day->eve), 'channel:cal:dateformat'),
+                    'title' => get_string('channel:cal:dayofftitle', self::COMPONENT),
+                    'back' => get_string('channel:cal:backcard', self::COMPONENT, $back),
+                    'detail' => implode(' · ', $day->names),
+                ]],
             ], $day->eve, false, self::DAYOFF . '-' . str_replace('-', '', $ymd), $day->start, $now);
         }
         $waiting = $DB->get_records_select(
@@ -370,6 +385,30 @@ class calendar {
             $lines[] = self::capital($when) . ' · ' . $event->name;
         }
         return $lines;
+    }
+
+    /**
+     * The items of the card of «This week»: a short day and what happens, in order; the card shows the first ones.
+     *
+     * @param \stdClass[] $events The events.
+     * @param int $monday The start of Monday.
+     * @return array Each with label and text.
+     */
+    public static function week_items(array $events, int $monday): array {
+        $first = self::ymd($monday);
+        $last = self::ymd(self::shift($monday, 6));
+        usort($events, function ($a, $b) {
+            return [$a->start, $a->name] <=> [$b->start, $b->name];
+        });
+        $items = [];
+        foreach ($events as $event) {
+            if ($event->last < $first || $event->first > $last) {
+                continue;
+            }
+            $items[] = ['label' => self::day_name(max($event->first, $first), 'channel:cal:shortdayformat'),
+                'text' => $event->name];
+        }
+        return $items;
     }
 
     /**

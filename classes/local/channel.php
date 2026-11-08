@@ -290,9 +290,10 @@ class channel {
      * @param string $component The plugin.
      * @param string $kind The kind of post, as declared.
      * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), animation (a URL of this site
-     *                       with an MP4, which goes instead of the card), lines, text, url (a web address, for its button),
-     *                       label (of the button) and utm (false for a link that must go as it is); a title or a text at
-     *                       least.
+     *                       with an MP4, which goes instead of the card), card (a card Marandu makes from its templates,
+     *                       as cards::clean() takes it, which goes as its image and its animation), lines, text, url (a
+     *                       web address, for its button), label (of the button) and utm (false for a link that must go
+     *                       as it is); a title or a text at least.
      * @param int|null $when Not before this time; now if null.
      * @param bool $urgent Whether it goes at any hour, and its review too.
      * @param string $key What the plugin knows it by, up to 100 characters, to change it or take it back.
@@ -344,8 +345,16 @@ class channel {
             );
             if ($waiting) {
                 $update = ['id' => $waiting->id] + $fields;
+                // The same as before, but for its card already made: it keeps its card.
+                $old = json_decode($waiting->content, true) ?: [];
+                if (isset($old['cardhash'])) {
+                    unset($old['image'], $old['animation'], $old['cardhash']);
+                }
+                $changed = json_encode($old) !== $fields['content'];
+                if (!$changed) {
+                    unset($update['content']);
+                }
                 // Changed after it was reviewed or sent to review: it is reviewed again, and the old buttons do nothing.
-                $changed = $waiting->content !== $fields['content'];
                 if ($changed && ($waiting->status === 'review' || $policy === 'review')) {
                     $update += ['status' => 'review', 'timereview' => null, 'reviews' => null, 'decidedby' => null,
                         'timedecided' => null, 'token' => self::new_token()];
@@ -401,7 +410,8 @@ class channel {
      */
     public static function clean(array $content): array {
         global $CFG;
-        $unknown = array_diff(array_keys($content), ['title', 'image', 'animation', 'lines', 'text', 'url', 'label', 'utm']);
+        $parts = ['title', 'image', 'animation', 'card', 'lines', 'text', 'url', 'label', 'utm'];
+        $unknown = array_diff(array_keys($content), $parts);
         if ($unknown) {
             throw new \coding_exception('A post has no ' . implode(', ', $unknown));
         }
@@ -421,6 +431,9 @@ class channel {
         }
         $label = \core_text::substr(trim(strip_tags((string)($content['label'] ?? ''))), 0, 40);
         $clean += array_filter(['animation' => $animation, 'url' => $url, 'label' => $label]);
+        if (!empty($content['card'])) {
+            $clean['card'] = cards::clean((array)$content['card']);
+        }
         if (array_key_exists('utm', $content) && !$content['utm']) {
             $clean['utm'] = false;
         }
@@ -461,6 +474,11 @@ class channel {
             if (!$post->urgent && !$open) {
                 continue;
             }
+            // Whoever reviews sees the card as it will go: it is made first, or the post waits for the next run.
+            $post = cards::for_post($post);
+            if (cards::pending($post)) {
+                continue;
+            }
             $sent = [];
             foreach ($reviewers as $address) {
                 try {
@@ -489,6 +507,10 @@ class channel {
         );
         foreach ($ready as $post) {
             if (!$post->urgent && !$open) {
+                continue;
+            }
+            $post = cards::for_post($post);
+            if (cards::pending($post)) {
                 continue;
             }
             $content = json_decode($post->content, true) ?: [];

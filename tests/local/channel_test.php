@@ -484,4 +484,31 @@ final class channel_test extends \advanced_testcase {
         $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $animated]));
         $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $calendar]));
     }
+
+    /**
+     * A post with a card has it made before its review, which shows it, and keeps it while it does not change.
+     */
+    public function test_card(): void {
+        global $DB;
+        if (!cards::can_draw()) {
+            $this->markTestSkipped('GD with FreeType is needed');
+        }
+        $content = ['title' => 'Jornada de puertas abiertas', 'text' => 'El sábado 14, de 10:00 a 13:00.',
+            'card' => ['type' => 'open_day', 'zones' => ['kicker' => 'Jornada de puertas abiertas',
+                'title' => 'Ven a conocernos', 'date' => 'Sábado 14 de noviembre', 'detail' => 'De 10:00 a 13:00.']]];
+        $id = api::channel_post('local_example', 'open_day', $content, self::WEDNESDAY, false, 'card1');
+        $this->assertTrue(cards::pending($DB->get_record(channel::TABLE, ['id' => $id])));
+        $bot = $this->bot();
+        $this->assertSame(1, channel::process($bot, self::WEDNESDAY)['reviewed']);
+        $post = $DB->get_record(channel::TABLE, ['id' => $id]);
+        $made = json_decode($post->content, true);
+        $this->assertStringContainsString('/local_oksigeniamarandu/card/' . $id . '/card.jpg', $made['image']);
+        $this->assertFalse(cards::pending($post));
+        $this->assertSame('image/jpeg', (new \finfo(FILEINFO_MIME_TYPE))->buffer((string)rich::image($made['image'])));
+        $this->assertStringStartsWith('image:', $bot->of('sendRichMessage')[0]['file']);
+
+        api::channel_post('local_example', 'open_day', $content, self::WEDNESDAY, false, 'card1');
+        $again = $DB->get_record(channel::TABLE, ['id' => $id]);
+        $this->assertSame([$post->token, $post->content], [$again->token, $again->content]);
+    }
 }

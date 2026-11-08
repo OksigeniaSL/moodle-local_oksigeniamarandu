@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<libraries>
+  <library>
+    <location>fonts</location>
+    <name>Onest</name>
+    <description>The type of the cards of the channel, in five static weights with a classic kern table added for GD</description>
+    <version>2.001</version>
+    <license>OFL</license>
+    <licenseversion>1.1</licenseversion>
+    <repository>https://github.com/googlefonts/onest</repository>
+    <copyrights>
+      <copyright>2021 The Onest Project Authors</copyright>
+    </copyrights>
+  </library>
+</libraries>

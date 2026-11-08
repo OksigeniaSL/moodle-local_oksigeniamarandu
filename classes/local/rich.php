@@ -163,7 +163,10 @@ class rich {
         }
         $path = rawurldecode((string)strtok(substr($url, strlen($CFG->wwwroot)), '?#'));
         $file = preg_match($extensions, $path) ? realpath($CFG->dirroot . $path) : false;
-        if ($file !== false && strpos($file, realpath($CFG->dirroot) . DIRECTORY_SEPARATOR) === 0) {
+        $stored = self::card_file($url);
+        if ($stored !== null) {
+            $bytes = $stored;
+        } else if ($file !== false && strpos($file, realpath($CFG->dirroot) . DIRECTORY_SEPARATOR) === 0) {
             $bytes = (string)file_get_contents($file);
         } else {
             require_once($CFG->libdir . '/filelib.php');
@@ -176,6 +179,30 @@ class rich {
             return null;
         }
         return $bytes;
+    }
+
+    /**
+     * A card Marandu made for a post, read from its files rather than from its address (a server does not always reach
+     * itself).
+     *
+     * @param string $url A URL of this site.
+     * @return string|null Its bytes; null if it is not a card of Marandu.
+     */
+    private static function card_file(string $url): ?string {
+        global $CFG;
+        $rest = rawurldecode(substr($url, strlen($CFG->wwwroot)));
+        if (!preg_match('~^/pluginfile\.php(?:/|\?file=/)(\d+)/local_oksigeniamarandu/card/(\d+)/([^/?#&]+)~', $rest, $parts)) {
+            return null;
+        }
+        $file = get_file_storage()->get_file(
+            (int)$parts[1],
+            'local_oksigeniamarandu',
+            cards::AREA,
+            (int)$parts[2],
+            '/',
+            $parts[3]
+        );
+        return $file ? $file->get_content() : null;
     }
 
     /**

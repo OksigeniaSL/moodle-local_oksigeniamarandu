@@ -5303,3 +5303,28 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     margin: 0;
     color: var(--mrd-ink);
 }
+
+/* The cards of the channel, with the colour of the site: two by row, one on the phone. */
+.local-oksigeniamarandu-channel .mrd-previews {
+    display: grid;
+    /* stylelint-disable-next-line csstree/validator */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+    gap: 12px;
+    margin: 8px 0 16px;
+}
+
+.local-oksigeniamarandu-channel .mrd-previews img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    border: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-channel input[type="color"] {
+    width: 3.2em;
+    height: 2.2em;
+    padding: 2px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 8px;
+    background: var(--mrd-bg);
+}

@@ -42,7 +42,7 @@ class work {
      *
      * @param int $userid The user.
      * @param int|null $now The time, for the tests; with it, nothing is kept.
-     * @return array As the dashboard takes them: key, title, url, status, alerts (text, url, level), actions (label, url).
+     * @return array As the dashboard takes them: key, title, url, status, alerts (text, url, level, due), actions (label, url).
      */
     public static function for_user(int $userid, ?int $now = null): array {
         if (!has_capability('local/oksigeniamarandu:channel', \context_system::instance(), $userid)) {
@@ -96,13 +96,13 @@ class work {
         $page = new \moodle_url('/local/oksigeniamarandu/channel.php');
         $alerts = [];
 
-        // What stops the channel, before anything else.
+        // What stops the channel, before anything else: its time is already here.
         if (!$current) {
-            $alerts[] = self::alert('work:disconnected', $page, 'urgent');
+            $alerts[] = self::alert('work:disconnected', $page, 'urgent', null, $now);
         } else if (!telegram_api::is_configured() || queue::blocked('telegram')) {
-            $alerts[] = self::alert('work:nobot', $page, 'urgent');
+            $alerts[] = self::alert('work:nobot', $page, 'urgent', null, $now);
         } else if ($current->problem !== '') {
-            $alerts[] = self::alert('work:problem', $page, 'urgent');
+            $alerts[] = self::alert('work:problem', $page, 'urgent', null, $now);
         }
 
         if ($review) {
@@ -111,8 +111,11 @@ class work {
             $reviewurl = new \moodle_url($page, null, 'mrd-review');
             $levels = [];
             $named = [];
+            $first = null;
             foreach ($posts as $post) {
+                // Its deadline: when it goes out if it is said yes.
                 $at = channel::goes_at($post, $now);
+                $first = min($first ?? $at, $at);
                 // Urgent if it is urgent, or if it would go out now: only the review holds it back.
                 $levels[] = $post->urgent || $at <= $now ? 'urgent' : 'today';
                 $content = json_decode($post->content, true) ?: [];
@@ -120,13 +123,13 @@ class work {
                     'title' => shorten_text((string)($content['title'] ?? ($content['text'][0] ?? '')), 60),
                     'when' => $at <= $now ? get_string('channel:review:now', self::COMPONENT) : self::when($at, $now),
                 ];
-                $named[] = self::alert('work:review', $reviewurl, end($levels), $a);
+                $named[] = self::alert('work:review', $reviewurl, end($levels), $a, $at);
             }
             if ($review <= self::NAMED) {
                 array_push($alerts, ...$named);
             } else {
                 $level = in_array('urgent', $levels, true) ? 'urgent' : 'today';
-                $alerts[] = self::alert('work:reviewmany', $reviewurl, $level, $review);
+                $alerts[] = self::alert('work:reviewmany', $reviewurl, $level, $review, $first);
             }
             if ($current && !channel::reviewers()) {
                 $alerts[] = self::alert('work:noreviewers', $reviewurl, 'today');
@@ -135,9 +138,10 @@ class work {
         if ($failed) {
             $alerts[] = self::alert('work:failed', new \moodle_url($page, null, 'mrd-failed'), 'today', $failed);
         }
-        // The most urgent first, each level in its order.
+        // The most urgent first and, in each level, by deadline; what has none, after.
         usort($alerts, function (array $a, array $b): int {
-            return ($a['level'] === 'urgent' ? 0 : 1) <=> ($b['level'] === 'urgent' ? 0 : 1);
+            return [$a['level'] === 'urgent' ? 0 : 1, isset($a['due']) ? 0 : 1, $a['due'] ?? 0]
+                <=> [$b['level'] === 'urgent' ? 0 : 1, isset($b['due']) ? 0 : 1, $b['due'] ?? 0];
         });
 
         $figures = [];
@@ -163,7 +167,7 @@ class work {
             $actions[] = ['label' => get_string('work:open', self::COMPONENT), 'url' => 'https://t.me/' . $current->username];
         }
         return [
-            'key' => 'channel',
+            'key' => self::COMPONENT . '-channel',
             'title' => get_string('work:title', self::COMPONENT),
             'url' => $page->out(false),
             'status' => self::capital(implode(' · ', $figures)),
@@ -209,9 +213,11 @@ class work {
      * @param \moodle_url $url Where it is done.
      * @param string $level urgent or today.
      * @param mixed $a What the string takes.
+     * @param int|null $due When it has to be done by, if it has a deadline.
      * @return array
      */
-    private static function alert(string $string, \moodle_url $url, string $level, $a = null): array {
-        return ['text' => get_string($string, self::COMPONENT, $a), 'url' => $url->out(false), 'level' => $level];
+    private static function alert(string $string, \moodle_url $url, string $level, $a = null, ?int $due = null): array {
+        $alert = ['text' => get_string($string, self::COMPONENT, $a), 'url' => $url->out(false), 'level' => $level];
+        return $due === null ? $alert : $alert + ['due' => $due];
     }
 }

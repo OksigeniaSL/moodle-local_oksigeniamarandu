@@ -59,7 +59,8 @@ function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
  * whoever may review it, with its figures and what is waiting for them. Kept for a minute; nothing without the block.
  *
  * @param int $userid The user.
- * @return array The cards: key, title, url, status, alerts (text, url, level urgent or today) and actions (label, url).
+ * @return array The cards: key, title, url, status, alerts (text, url, level urgent or today, and due, the time of its
+ *               deadline, if it has one) and actions (label, url).
  */
 function local_oksigeniamarandu_oksigenia_work(int $userid): array {
     return \local_oksigeniamarandu\local\work::for_user($userid);

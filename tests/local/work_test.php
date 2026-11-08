@@ -80,7 +80,7 @@ final class work_test extends \advanced_testcase {
 
         $this->assertSame([], work::for_user($somebody, self::WEDNESDAY));
         [$card] = work::for_user($admin, self::WEDNESDAY);
-        $this->assertSame('channel', $card['key']);
+        $this->assertSame('local_oksigeniamarandu-channel', $card['key']);
         $this->assertSame('Telegram channel', $card['title']);
         $this->assertStringEndsWith('/local/oksigeniamarandu/channel.php', $card['url']);
         $this->assertSame('Nothing posted yet', $card['status']);
@@ -109,12 +109,15 @@ final class work_test extends \advanced_testcase {
             '“Open day” is waiting for your review; it goes out tomorrow at 11:00.',
         ], array_column($card['alerts'], 'text'));
         $this->assertStringEndsWith('/local/oksigeniamarandu/channel.php#mrd-review', $card['alerts'][0]['url']);
+        // The deadline of each: when it goes out if it is said yes.
+        $this->assertSame([self::WEDNESDAY, self::WEDNESDAY + DAYSECS], array_column($card['alerts'], 'due'));
 
         set_config('channelproblem', 'norights', 'local_oksigeniamarandu');
         [$card] = work::for_user($admin, self::WEDNESDAY);
         $problem = 'The bot can no longer post in the channel: give it “Manage messages” again.';
         $this->assertSame($problem, $card['alerts'][0]['text']);
         $this->assertSame('urgent', $card['alerts'][0]['level']);
+        $this->assertSame(self::WEDNESDAY, $card['alerts'][0]['due']);
 
         // More than three, in one line; without the channel, what waits is still told.
         $this->post('Book of the month', self::WEDNESDAY + 2 * DAYSECS);
@@ -126,6 +129,7 @@ final class work_test extends \advanced_testcase {
             '4 posts are waiting for your review.',
         ], array_column($card['alerts'], 'text'));
         $this->assertSame(['urgent', 'urgent'], array_column($card['alerts'], 'level'));
+        $this->assertSame([self::WEDNESDAY, self::WEDNESDAY], array_column($card['alerts'], 'due'));
         $this->assertSame([], $card['actions']);
     }
 

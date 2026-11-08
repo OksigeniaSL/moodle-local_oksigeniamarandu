@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.1 (2026-11-08)
+
+- The things to do on the dashboard carry `due`, the time of their deadline: for a post to review, when it goes out if it
+  is said yes; for what stops the channel, now. They are sorted by it in each level, and what has none goes after. The
+  key of the card is `local_oksigeniamarandu-channel`, unique across the site, as the block asks.
+
 ## 0.21.0 (2026-11-08)
 
 - The card of the channel on the dashboard: `local_oksigeniamarandu_oksigenia_work($userid)` gives whoever may review the

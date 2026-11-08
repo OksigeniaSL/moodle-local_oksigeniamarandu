@@ -458,6 +458,59 @@ class api {
     }
 
     /**
+     * Whether the site has a channel of Telegram to post in, with its bot as an administrator that can post.
+     *
+     * @return bool
+     */
+    public static function channel_ready(): bool {
+        return local\channel::is_ready();
+    }
+
+    /**
+     * Posts in the channel of Telegram of the site something everyone may read, such as an open day or a book of the
+     * library: never anything of one person. The plugin declares the kind in its lib.php,
+     * <component>_oksigeniamarandu_posts() (see local\channel), and the site says whether it goes by itself, after whoever
+     * reviews it, or not at all. Whoever reviews gets it first in their chat with the bot, in the hours of review; it goes
+     * out in the hours of the channel, without sound. What is urgent goes at any hour, and its review too, with sound.
+     *
+     * @param string $component The plugin.
+     * @param string $kind The kind of post, as declared.
+     * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), lines, text, url (a link of
+     *                       this site, for its button, which counts the visits) and label (of the button); a title or a
+     *                       text at least.
+     * @param int|null $when Not before this time; now if null.
+     * @param bool $urgent Whether it goes at any hour, such as classes called off.
+     * @param string $key What the plugin knows it by, to change it while it waits or take it back with channel_cancel().
+     * @param int|null $expires After this time it is no longer worth posting, such as the day of the event.
+     * @return int The id of the post; 0 if it does not go (no channel, the site switched the kind off, or the same key is
+     *             in the channel already).
+     * @throws \coding_exception If the kind is not declared or the content is not valid.
+     */
+    public static function channel_post(
+        string $component,
+        string $kind,
+        array $content,
+        ?int $when = null,
+        bool $urgent = false,
+        string $key = '',
+        ?int $expires = null
+    ): int {
+        return local\channel::post($component, $kind, $content, $when, $urgent, $key, $expires);
+    }
+
+    /**
+     * Takes back a post of the channel: if it has not gone out, it does not go; if it is in the channel, it is taken out.
+     *
+     * @param string $component The plugin.
+     * @param string $kind The kind of post.
+     * @param string $key What the plugin gave to channel_post().
+     * @return int How many posts it took back.
+     */
+    public static function channel_cancel(string $component, string $kind, string $key): int {
+        return local\channel::cancel($component, $kind, $key);
+    }
+
+    /**
      * Queues a notice about a student for the numbers of the student's family, from the family records of Oksigenia
      * Family. Nothing goes out without them, nor to a number that has not opted in.
      *

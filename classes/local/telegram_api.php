@@ -241,6 +241,66 @@ class telegram_api {
     }
 
     /**
+     * A chat as Telegram has it: a channel, by its id or its @name.
+     *
+     * @param string $chatid The id, or @ and its name.
+     * @return array With id, type, title and username.
+     */
+    public function get_chat(string $chatid): array {
+        return $this->call('getChat', ['chat_id' => $chatid]);
+    }
+
+    /**
+     * What somebody is in a chat: for the bot in a channel, whether it is an administrator that can post.
+     *
+     * @param string $chatid The chat.
+     * @param int $userid The member, such as the bot.
+     * @return array With status and, for an administrator, its rights.
+     */
+    public function get_chat_member(string $chatid, int $userid): array {
+        return $this->call('getChatMember', ['chat_id' => $chatid, 'user_id' => $userid]);
+    }
+
+    /**
+     * How many people a chat has, such as a channel.
+     *
+     * @param string $chatid The chat.
+     * @return int
+     */
+    public function member_count(string $chatid): int {
+        // Its result is a number, not an object: answer() checks the errors, the number is read here.
+        $body = $this->request('getChatMemberCount', json_encode(['chat_id' => $chatid]));
+        $this->answer($body);
+        return (int)(json_decode($body, true)['result'] ?? 0);
+    }
+
+    /**
+     * Takes a message out of a chat, such as a post of the channel.
+     *
+     * @param string $chatid The chat.
+     * @param int $messageid The message.
+     */
+    public function delete_message(string $chatid, int $messageid): void {
+        $this->call('deleteMessage', ['chat_id' => $chatid, 'message_id' => $messageid]);
+    }
+
+    /**
+     * Changes the text of a message and takes its buttons away, such as a question already answered.
+     *
+     * @param string $chatid The chat.
+     * @param int $messageid The message.
+     * @param string $text The new text.
+     */
+    public function edit_text(string $chatid, int $messageid, string $text): void {
+        $this->call('editMessageText', [
+            'chat_id' => $chatid,
+            'message_id' => $messageid,
+            'text' => \core_text::substr($text, 0, 4096),
+            'link_preview_options' => ['is_disabled' => true],
+        ]);
+    }
+
+    /**
      * Calls a method of the Bot API.
      *
      * @param string $method The method.

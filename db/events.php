@@ -16,7 +16,8 @@
 
 /**
  * What the plugin listens to: an adult of the family records who leaves (also when their family closes) or whose phone
- * changes. Without local_oksigeniafamily these events never come.
+ * changes, which never comes without local_oksigeniafamily; and the announcements forum of the front page, for the channel
+ * of Telegram.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -26,6 +27,18 @@
 defined('MOODLE_INTERNAL') || die();
 
 $observers = [
+    [
+        'eventname' => '\mod_forum\event\discussion_created',
+        'callback' => '\local_oksigeniamarandu\local\channel::forum_changed',
+    ],
+    [
+        'eventname' => '\mod_forum\event\post_updated',
+        'callback' => '\local_oksigeniamarandu\local\channel::forum_changed',
+    ],
+    [
+        'eventname' => '\mod_forum\event\discussion_deleted',
+        'callback' => '\local_oksigeniamarandu\local\channel::forum_changed',
+    ],
     [
         'eventname' => '\local_oksigeniafamily\event\adult_removed',
         'callback' => '\local_oksigeniamarandu\local\family::adult_changed',

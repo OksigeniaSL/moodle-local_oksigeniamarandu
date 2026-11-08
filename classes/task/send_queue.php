@@ -17,12 +17,13 @@
 namespace local_oksigeniamarandu\task;
 
 use local_oksigeniamarandu\local\api_exception;
+use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\cloud_api;
 use local_oksigeniamarandu\local\queue;
 use local_oksigeniamarandu\local\telegram_api;
 
 /**
- * Sends the notices of the queue that can go out now, by WhatsApp and by Telegram.
+ * Sends the notices of the queue that can go out now, by WhatsApp and by Telegram, and what goes to the channel.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -59,6 +60,13 @@ class send_queue extends \core\task\scheduled_task {
         $counts = queue::process($whatsapp, null, $telegram);
         if (array_sum($counts)) {
             mtrace('Marandu: ' . json_encode($counts));
+        }
+        // The channel of Telegram: its reviews, its posts and what was taken back.
+        if ($telegram && channel::current()) {
+            $counts = channel::process($telegram);
+            if (array_sum($counts)) {
+                mtrace('Marandu, the channel: ' . json_encode($counts));
+            }
         }
     }
 }

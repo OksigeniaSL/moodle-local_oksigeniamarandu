@@ -60,7 +60,27 @@ final class provider_test extends provider_testcase {
             return $item->get_name();
         }, $items);
         $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
-            'local_oksigeniamarandu_answer', 'telegram', 'whatsapp'], $names);
+            'local_oksigeniamarandu_answer', 'local_oksigeniamarandu_post', 'telegram', 'whatsapp'], $names);
+    }
+
+    /**
+     * Whoever reviewed a post of the channel has it among their data; deleted, the post stays without them.
+     */
+    public function test_reviewer(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $user = $this->getDataGenerator()->create_user();
+        $id = $DB->insert_record('local_oksigeniamarandu_post', (object)['component' => 'local_example', 'kind' => 'open_day',
+            'sourcekey' => '', 'content' => '{"title":"Jornada"}', 'status' => 'ready', 'token' => 'abcdefghij',
+            'timeplanned' => 1, 'decidedby' => $user->id, 'timedecided' => 1, 'timecreated' => 1, 'timemodified' => 1]);
+        $system = \context_system::instance();
+        $this->assertEquals([$system->id], provider::get_contexts_for_userid($user->id)->get_contextids());
+        provider::delete_data_for_user(new \core_privacy\local\request\approved_contextlist(
+            $user,
+            'local_oksigeniamarandu',
+            [$system->id]
+        ));
+        $this->assertNull($DB->get_field('local_oksigeniamarandu_post', 'decidedby', ['id' => $id]));
     }
 
     /**

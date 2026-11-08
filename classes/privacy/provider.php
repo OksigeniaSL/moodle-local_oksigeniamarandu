@@ -32,6 +32,7 @@ use core_privacy\local\request\transform;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 use local_oksigeniamarandu\local\answers;
+use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\telegram;
 
@@ -65,6 +66,10 @@ class provider implements
             'contactid' => 'privacy:metadata:link:contactid',
             'timeclaimed' => 'privacy:metadata:link:timeclaimed',
         ], 'privacy:metadata:link');
+        $collection->add_database_table(channel::TABLE, [
+            'decidedby' => 'privacy:metadata:post:decidedby',
+            'timedecided' => 'privacy:metadata:post:timedecided',
+        ], 'privacy:metadata:post');
         $collection->add_database_table(consent::LOG, [
             'action' => 'privacy:metadata:consent:action',
             'source' => 'privacy:metadata:consent:source',
@@ -103,7 +108,10 @@ class provider implements
     public static function get_contexts_for_userid(int $userid): contextlist {
         global $DB;
         $contextlist = new contextlist();
-        if ($DB->record_exists(consent::LINKS, ['userid' => $userid])) {
+        if (
+            $DB->record_exists(consent::LINKS, ['userid' => $userid])
+            || $DB->record_exists(channel::TABLE, ['decidedby' => $userid])
+        ) {
             $contextlist->add_system_context();
         }
         return $contextlist;
@@ -119,6 +127,7 @@ class provider implements
             return;
         }
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . consent::LINKS . '} WHERE userid IS NOT NULL', []);
+        $userlist->add_from_sql('decidedby', 'SELECT decidedby FROM {' . channel::TABLE . '} WHERE decidedby IS NOT NULL', []);
     }
 
     /**
@@ -164,10 +173,15 @@ class provider implements
                 'linked' => transform::datetime($link->timeclaimed ?: $link->timecreated),
             ];
         }
-        if ($numbers) {
+        // What the user said of the posts of the channel they reviewed.
+        $reviewed = array_values(array_map(function ($post) {
+            return ['post' => $post->component . '/' . $post->kind, 'decision' => $post->status,
+                'time' => transform::datetime($post->timedecided)];
+        }, $DB->get_records(channel::TABLE, ['decidedby' => $contextlist->get_user()->id], 'id')));
+        if ($numbers || $reviewed) {
             writer::with_context($context)->export_data(
                 [get_string('pluginname', 'local_oksigeniamarandu')],
-                (object)['numbers' => $numbers]
+                (object)['numbers' => $numbers, 'reviewed' => $reviewed]
             );
         }
     }
@@ -186,6 +200,7 @@ class provider implements
         foreach ($userids as $userid) {
             self::delete_user((int)$userid);
         }
+        $DB->set_field_select(channel::TABLE, 'decidedby', null, 'decidedby IS NOT NULL');
     }
 
     /**
@@ -222,6 +237,8 @@ class provider implements
         global $DB;
         $links = $DB->get_records(consent::LINKS, ['userid' => $userid]);
         $DB->delete_records(consent::LINKS, ['userid' => $userid]);
+        // The posts the user reviewed stay, without who said it.
+        $DB->set_field(channel::TABLE, 'decidedby', null, ['decidedby' => $userid]);
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);

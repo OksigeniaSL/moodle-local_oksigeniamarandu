@@ -5100,3 +5100,166 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     color: var(--mrd-green-text);
     font-weight: 600;
 }
+
+/* The page of the channel of Telegram: how to take it, what waits and went out, what goes by itself and the hours. */
+.local-oksigeniamarandu-channel {
+    --mrd-warn-soft: var(--bs-warning-bg-subtle, #fcefdc);
+    --mrd-warn-ink: var(--bs-warning-text-emphasis, #604520);
+    margin-top: 1rem;
+}
+
+.local-oksigeniamarandu-channel h3 {
+    margin: 22px 0 8px;
+    font-size: 19px;
+}
+
+.local-oksigeniamarandu-channel .mrd-saved {
+    margin: 0 0 1rem;
+    padding: 0.6em 0.9em;
+    border-radius: 0.8em;
+    background: var(--mrd-green-soft);
+    color: var(--mrd-green-text);
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-channel .mrd-muted {
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-channel .mrd-warn {
+    padding: 0.6em 0.9em;
+    border-radius: 0.8em;
+    background: var(--mrd-warn-soft);
+    color: var(--mrd-warn-ink);
+}
+
+.local-oksigeniamarandu-channel .mrd-steps {
+    margin: 0 0 12px;
+    padding-left: 1.3em;
+    font-size: 17px;
+    line-height: 1.6;
+}
+
+.local-oksigeniamarandu-channel .mrd-found,
+.local-oksigeniamarandu-channel .mrd-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 18px;
+    padding: 12px 16px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 14px;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-channel .mrd-found p,
+.local-oksigeniamarandu-channel .mrd-head p,
+.local-oksigeniamarandu-channel .mrd-head h3 {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-channel .mrd-byname {
+    margin-top: 14px;
+}
+
+.local-oksigeniamarandu-channel .mrd-byname label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--mrd-ink-soft);
+}
+
+.local-oksigeniamarandu-channel .mrd-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-channel .mrd-row input {
+    flex: 1 1 14em;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 10px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-channel .mrd-posts,
+.local-oksigeniamarandu-channel .mrd-kinds {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.local-oksigeniamarandu-channel .mrd-posts li,
+.local-oksigeniamarandu-channel .mrd-kinds li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-channel .mrd-post,
+.local-oksigeniamarandu-channel .mrd-kind {
+    flex: 1 1 18em;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-channel .mrd-post small,
+.local-oksigeniamarandu-channel .mrd-kind small {
+    display: block;
+    color: var(--mrd-muted);
+}
+
+.local-oksigeniamarandu-channel .mrd-posts form {
+    display: flex;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-channel .mrd-posts .mrd-btn {
+    padding: 6px 14px;
+}
+
+.local-oksigeniamarandu-channel .mrd-choices {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.local-oksigeniamarandu-channel .mrd-choice {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.local-oksigeniamarandu-channel .mrd-choice + label {
+    margin: 0;
+    padding: 4px 12px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 999px;
+    background: var(--mrd-bg);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-channel .mrd-choice:checked + label {
+    border-color: var(--mrd-ink);
+    background: var(--mrd-ink);
+    color: var(--mrd-bg);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-channel .mrd-choice:focus-visible + label {
+    outline: 2px solid var(--mrd-blue);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .local-oksigeniamarandu-channel .mrd-choice:not(:checked) + label:hover {
+        border-color: var(--mrd-ink);
+    }
+}

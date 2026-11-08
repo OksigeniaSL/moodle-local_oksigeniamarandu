@@ -223,10 +223,13 @@ class telegram {
     public static function handle(array $update, ?telegram_api $api = null): ?array {
         if (isset($update['callback_query'])) {
             return answers::from_telegram($update['callback_query'], $api)
+                ?? channel::from_telegram($update['callback_query'], $api)
                 ?? telegram_menu::callback($update['callback_query'], $api);
         }
         if (isset($update['my_chat_member'])) {
             $member = $update['my_chat_member'];
+            // The bot made an administrator of a channel, or no longer: the channel of the site.
+            channel::member_changed($member);
             if (($member['chat']['type'] ?? '') === 'private' && ($member['new_chat_member']['status'] ?? '') === 'kicked') {
                 // The person blocked the bot: the same as opting out; nothing can reach them any more.
                 consent::optout(self::address((string)$member['chat']['id']), 'blocked', 'telegram');

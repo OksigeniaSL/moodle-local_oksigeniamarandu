@@ -1,0 +1,147 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/channel
+
+    The channel of Telegram of the site: how to take one, or the one it has, with what goes there by itself and what is
+    reviewed first, the hours of review and of the channel, and the posts waiting or gone out.
+
+    Context variables required for this template:
+    * lead, saved, error - What it is for, the line after saving and an error.
+    * nobot, boturl - Without a bot, the link to its page.
+    * formurl, sesskey - Where the forms go.
+    * connect - Without a channel: botname and candidate (id, title, username), the channel Telegram said the bot can post in.
+    * channel - With a channel: title, username, url, problem, members, growth, reviewers, noreviewers, kinds (name, desc,
+      field, choices with value, id, label, on), reviewfrom, reviewto, reviewdays and postfrom, postto, postdays (group,
+      value, label, name, on), and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
+      urgent), and empty.
+
+    Example context (json):
+    {
+        "lead": "What everyone may read.", "saved": "", "error": "", "nobot": false, "boturl": "#", "formurl": "#",
+        "sesskey": "abc", "connect": {"botname": "@example_bot", "candidate": {"id": "-100123", "title": "Example school",
+        "username": "@exampleschool"}}
+    }
+}}
+<div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-channel">
+    <section>
+        <p class="mrd-lead">{{lead}}</p>
+        {{#saved}}<p class="mrd-saved" role="status">{{saved}}</p>{{/saved}}
+        {{#error}}<p class="mrd-err" role="alert">{{error}}</p>{{/error}}
+
+        {{#nobot}}
+        <p>{{#str}} channel:nobot, local_oksigeniamarandu {{/str}}</p>
+        <div class="mrd-actions"><a class="btn mrd-btn mrd-primary" href="{{boturl}}">{{#str}} channel:gobot, local_oksigeniamarandu {{/str}}</a></div>
+        {{/nobot}}
+
+        {{#connect}}
+        <h3>{{#str}} channel:connect, local_oksigeniamarandu {{/str}}</h3>
+        <ol class="mrd-steps">
+            <li>{{#str}} channel:connect:step1, local_oksigeniamarandu, {{botname}} {{/str}}</li>
+            <li>{{#str}} channel:connect:step2, local_oksigeniamarandu {{/str}}</li>
+        </ol>
+        {{#candidate}}
+        <form method="post" action="{{formurl}}" class="mrd-found">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="connect">
+            <input type="hidden" name="chat" value="{{id}}">
+            <p><strong>{{title}}</strong> {{#username}}<span class="mrd-muted">{{.}}</span>{{/username}}</p>
+            <button type="submit" class="mrd-btn mrd-primary">{{#str}} channel:use, local_oksigeniamarandu {{/str}}</button>
+        </form>
+        {{/candidate}}
+        <form method="post" action="{{formurl}}" class="mrd-byname">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="connect">
+            <label for="mrd-chat">{{#str}} channel:byname, local_oksigeniamarandu {{/str}}</label>
+            <span class="mrd-row"><input id="mrd-chat" type="text" name="chat" placeholder="@" autocomplete="off">
+            <button type="submit" class="mrd-btn mrd-second">{{#str}} channel:connectbutton, local_oksigeniamarandu {{/str}}</button></span>
+        </form>
+        {{/connect}}
+
+        {{#channel}}
+        <div class="mrd-head">
+            <div>
+                <h3>{{title}} {{#url}}<a href="{{url}}" target="_blank" rel="noopener">{{username}}</a>{{/url}}</h3>
+                <p class="mrd-muted">{{members}}{{#growth}} · {{.}}{{/growth}}</p>
+            </div>
+            <form method="post" action="{{formurl}}">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="action" value="disconnect">
+                <button type="submit" class="mrd-btn mrd-second">{{#str}} channel:disconnect, local_oksigeniamarandu {{/str}}</button>
+            </form>
+        </div>
+        {{#problem}}<p class="mrd-err" role="alert">{{.}}</p>{{/problem}}
+        <p class="{{#noreviewers}}mrd-warn{{/noreviewers}}{{^noreviewers}}mrd-muted{{/noreviewers}}">{{reviewers}}</p>
+
+        {{#review.0}}
+        <h3>{{#str}} channel:waiting, local_oksigeniamarandu {{/str}}</h3>
+        <ul class="mrd-posts">
+            {{#review}}
+            <li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}}{{#urgent}} · {{#str}} channel:urgent, local_oksigeniamarandu {{/str}}{{/urgent}}</small></span>
+                <form method="post" action="{{formurl}}">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="post" value="{{id}}">
+                    <button type="submit" name="action" value="publish" class="mrd-btn mrd-primary">{{#str}} channel:review:publish, local_oksigeniamarandu {{/str}}</button>
+                    <button type="submit" name="action" value="skip" class="mrd-btn mrd-second">{{#str}} channel:review:skip, local_oksigeniamarandu {{/str}}</button>
+                </form>
+            </li>
+            {{/review}}
+        </ul>
+        {{/review.0}}
+        {{#ready.0}}
+        <h3>{{#str}} channel:next, local_oksigeniamarandu {{/str}}</h3>
+        <ul class="mrd-posts">{{#ready}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}</small></span></li>{{/ready}}</ul>
+        {{/ready.0}}
+        {{#published.0}}
+        <h3>{{#str}} channel:published, local_oksigeniamarandu {{/str}}</h3>
+        <ul class="mrd-posts">{{#published}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}{{#clicks}} · {{.}}{{/clicks}}</small></span></li>{{/published}}</ul>
+        {{/published.0}}
+        {{#failed.0}}
+        <h3>{{#str}} channel:failed, local_oksigeniamarandu {{/str}}</h3>
+        <ul class="mrd-posts">{{#failed}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{error}}</small></span></li>{{/failed}}</ul>
+        {{/failed.0}}
+        {{#empty}}<p class="mrd-muted">{{#str}} channel:empty, local_oksigeniamarandu {{/str}}</p>{{/empty}}
+
+        <form method="post" action="{{formurl}}" class="mrd-sentences">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="save">
+            <h3>{{#str}} channel:what, local_oksigeniamarandu {{/str}}</h3>
+            <ul class="mrd-kinds">
+                {{#kinds}}
+                <li><span class="mrd-kind"><strong>{{name}}</strong>{{#desc}} <small>{{.}}</small>{{/desc}}</span>
+                    <span class="mrd-choices" role="radiogroup" aria-label="{{name}}">{{#choices}}<input type="radio" class="mrd-choice" id="{{id}}" name="policy[{{field}}]" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}">{{label}}</label>{{/choices}}</span>
+                </li>
+                {{/kinds}}
+            </ul>
+            <h3>{{#str}} channel:hours, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sentence">{{#str}} channel:hours:review1, local_oksigeniamarandu {{/str}}
+                <input type="time" name="reviewfrom" value="{{reviewfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
+                {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
+                <input type="time" name="reviewto" value="{{reviewto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">
+                <span class="mrd-days">{{#reviewdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/reviewdays}}</span></p>
+            <p class="mrd-sub">{{#str}} channel:hours:review2, local_oksigeniamarandu {{/str}}</p>
+            <p class="mrd-sentence">{{#str}} channel:hours:post1, local_oksigeniamarandu {{/str}}
+                <input type="time" name="postfrom" value="{{postfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
+                {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
+                <input type="time" name="postto" value="{{postto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">
+                <span class="mrd-days">{{#postdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/postdays}}</span></p>
+            <p class="mrd-sub">{{#str}} channel:hours:post2, local_oksigeniamarandu {{/str}}</p>
+            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button></div>
+        </form>
+        {{/channel}}
+    </section>
+</div>

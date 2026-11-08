@@ -226,5 +226,49 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026111000, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026111100) {
+        // 0.18.0: what goes to the channel of Telegram of the site, and how many people it had each day.
+        $table = new xmldb_table('local_oksigeniamarandu_post');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('kind', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sourcekey', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('content', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('urgent', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('status', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'review');
+        $table->add_field('token', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timeplanned', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timeexpires', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('reviews', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('timereview', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('decidedby', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('timedecided', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('messageid', XMLDB_TYPE_CHAR, '40', null, null, null, null);
+        $table->add_field('attempts', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('error', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('clicks', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timepublished', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('decidedby', XMLDB_KEY_FOREIGN, ['decidedby'], 'user', ['id']);
+        $table->add_index('token', XMLDB_INDEX_UNIQUE, ['token']);
+        $table->add_index('status', XMLDB_INDEX_NOTUNIQUE, ['status']);
+        $table->add_index('source', XMLDB_INDEX_NOTUNIQUE, ['component', 'kind', 'sourcekey']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+        $table = new xmldb_table('local_oksigeniamarandu_chstat');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('timeday', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('members', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('timeday', XMLDB_INDEX_UNIQUE, ['timeday']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+        upgrade_plugin_savepoint(true, 2026111100, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

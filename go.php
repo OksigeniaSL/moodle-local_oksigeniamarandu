@@ -15,7 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * The button of a notice: notes the visit and goes on to the page of the notice, always on this site.
+ * The button of a notice: notes the visit and goes on to the page of the notice, always on this site. The same for the
+ * button of a post of the channel, which counts its visits.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -28,7 +29,13 @@ define('NO_MOODLE_COOKIES', true);
 
 require(__DIR__ . '/../../config.php');
 
+use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\queue;
+
+$post = optional_param('p', '', PARAM_ALPHANUM);
+if ($post !== '') {
+    redirect(new moodle_url(channel::click($post) ?? '/'));
+}
 
 $token = optional_param('k', '', PARAM_ALPHANUM);
 $row = $token === '' ? false : $DB->get_record(queue::TABLE, ['token' => $token]);

@@ -150,5 +150,52 @@
         <INDEX NAME="componentref" UNIQUE="false" FIELDS="component, ref"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_post" COMMENT="What goes to the channel of Telegram of the site: waiting for whoever reviews it, for its time, or already there">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="The plugin that posts it"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="What it is, as the plugin declares it"/>
+        <FIELD NAME="sourcekey" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="What the plugin knows it by, to change or take it back; empty if nothing"/>
+        <FIELD NAME="content" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Its title, image, lines, text, link and label, JSON"/>
+        <FIELD NAME="urgent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether it goes at any hour"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="review" SEQUENCE="false" COMMENT="review, ready, published, skipped, cancelled, expired, remove, removed or failed"/>
+        <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="For the buttons of the review and the link of the post"/>
+        <FIELD NAME="timeplanned" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Not before this time"/>
+        <FIELD NAME="timeexpires" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Not after this time, if it has one"/>
+        <FIELD NAME="reviews" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The messages that asked each reviewer, JSON"/>
+        <FIELD NAME="timereview" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When it went to whoever reviews"/>
+        <FIELD NAME="decidedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Who said to post it or to skip it"/>
+        <FIELD NAME="timedecided" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="messageid" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="The id of the message in the channel"/>
+        <FIELD NAME="attempts" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="error" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="clicks" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Visits through its link"/>
+        <FIELD NAME="timepublished" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="decidedby" TYPE="foreign" FIELDS="decidedby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="token" UNIQUE="true" FIELDS="token"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+        <INDEX NAME="source" UNIQUE="false" FIELDS="component, kind, sourcekey"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_chstat" COMMENT="How many people the channel of Telegram had each day">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="timeday" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The start of the day, in the time zone of the site"/>
+        <FIELD NAME="members" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timeday" UNIQUE="true" FIELDS="timeday"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

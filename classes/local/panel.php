@@ -123,6 +123,8 @@ class panel {
                 $links[] = $link('limits.php', get_string('limits:title', $component), 'silencio');
             } else if ($current === 'limits') {
                 $links[] = $link('notices.php', get_string('panel:notices', $component), 'elige');
+            } else if ($current === 'channel') {
+                $links[] = $link('telegram.php', 'Telegram', 'telegram', 'tg');
             }
             return $links;
         }
@@ -140,6 +142,16 @@ class panel {
             $link('wizard.php', 'WhatsApp', 'whatsapp', 'wa'),
             $link('telegram.php', 'Telegram', 'telegram', 'tg'),
         ];
+        if ($channels['telegram']['ready']) {
+            $members = channel::members(time());
+            $links[] = $link(
+                'channel.php',
+                get_string('channel:title', $component),
+                'canales',
+                'tg',
+                $members ? ['count' => $members->now] : []
+            );
+        }
         if ($channels['whatsapp']['ready']) {
             $links[] = $link('wizard.php?step=texts', get_string('panel:texts', $component), 'textos');
         }

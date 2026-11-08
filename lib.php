@@ -38,3 +38,15 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
         ],
     ];
 }
+
+/**
+ * What Marandu posts by itself in the channel of Telegram of the site: the announcements of the front page, written by a
+ * person already, so they go without review unless the site says otherwise.
+ *
+ * @return array By kind of post.
+ */
+function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
+    return [
+        'news' => ['review' => false],
+    ];
+}

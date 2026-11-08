@@ -57,6 +57,8 @@ function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
         'sky_iss' => [],
         'sky_moon' => [],
         'sky_meteors' => [],
+        // Work of a class: always reviewed, whatever the site says.
+        'classwork' => ['always' => true],
     ];
 }
 
@@ -73,7 +75,8 @@ function local_oksigeniamarandu_oksigenia_work(int $userid): array {
 }
 
 /**
- * Serves the cards Marandu made for the posts of the channel. They are for everyone, as the channel: no login.
+ * Serves the cards Marandu made for the posts of the channel, and the photos of the work of a class sent to it. They
+ * are for everyone, as the channel: no login.
  *
  * @param stdClass $course The course (the site).
  * @param stdClass|null $cm Not used.
@@ -85,7 +88,8 @@ function local_oksigeniamarandu_oksigenia_work(int $userid): array {
  * @return bool False if it is not a card.
  */
 function local_oksigeniamarandu_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
-    if ($context->contextlevel != CONTEXT_SYSTEM || $filearea !== \local_oksigeniamarandu\local\cards::AREA || count($args) < 2) {
+    $areas = [\local_oksigeniamarandu\local\cards::AREA, \local_oksigeniamarandu\local\classwork::AREA];
+    if ($context->contextlevel != CONTEXT_SYSTEM || !in_array($filearea, $areas, true) || count($args) < 2) {
         return false;
     }
     $itemid = (int)array_shift($args);
@@ -94,4 +98,26 @@ function local_oksigeniamarandu_pluginfile($course, $cm, $context, $filearea, $a
         return false;
     }
     send_stored_file($file, DAYSECS, 0, $forcedownload, $options);
+}
+
+/**
+ * In a course, for whoever teaches it: «To the channel», to send a piece of work of the class to the review of the channel
+ * of Telegram of the site.
+ *
+ * @param navigation_node $navigation The navigation of the course.
+ * @param stdClass $course The course.
+ * @param context_course $context Its context.
+ */
+function local_oksigeniamarandu_extend_navigation_course(navigation_node $navigation, stdClass $course, context_course $context) {
+    if (!\local_oksigeniamarandu\local\classwork::can_send($context)) {
+        return;
+    }
+    $navigation->add(
+        get_string('classwork:nav', 'local_oksigeniamarandu'),
+        new moodle_url('/local/oksigeniamarandu/share.php', ['id' => $course->id]),
+        navigation_node::TYPE_SETTING,
+        null,
+        'local_oksigeniamarandu_share',
+        new pix_icon('t/share', '')
+    );
 }

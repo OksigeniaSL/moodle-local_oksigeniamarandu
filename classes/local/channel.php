@@ -71,7 +71,8 @@ class channel {
     /**
      * Every kind of post declared on the site, by "component/kind".
      *
-     * @return \stdClass[] Each with component, kind, key and review (whether it waits for a review unless the site says).
+     * @return \stdClass[] Each with component, kind, key, review (whether it waits for a review unless the site says) and
+     *                     always (whether it always waits for one, whatever the site says: 'always' => true).
      */
     public static function kinds(): array {
         $declared = [];
@@ -90,11 +91,13 @@ class channel {
                     continue;
                 }
                 $definition = (array)$definition;
+                $always = !empty($definition['always']);
                 $all[$component . '/' . $kind] = (object)[
                     'component' => $component,
                     'kind' => $kind,
                     'key' => $component . '/' . $kind,
-                    'review' => !array_key_exists('review', $definition) || !empty($definition['review']),
+                    'review' => $always || !array_key_exists('review', $definition) || !empty($definition['review']),
+                    'always' => $always,
                 ];
             }
         }
@@ -149,6 +152,9 @@ class channel {
         }
         $chosen = json_decode((string)get_config(self::COMPONENT, 'channelpolicy'), true);
         $policy = is_array($chosen) ? ($chosen[$key] ?? null) : null;
+        if ($kinds[$key]->always && $policy === 'auto') {
+            return 'review';
+        }
         return in_array($policy, self::POLICIES, true) ? $policy : ($kinds[$key]->review ? 'review' : 'auto');
     }
 
@@ -162,7 +168,7 @@ class channel {
         $chosen = json_decode((string)get_config(self::COMPONENT, 'channelpolicy'), true);
         $chosen = is_array($chosen) ? $chosen : [];
         foreach ($policies as $key => $policy) {
-            if (isset($kinds[$key]) && in_array($policy, self::POLICIES, true)) {
+            if (isset($kinds[$key]) && in_array($policy, self::POLICIES, true) && !($kinds[$key]->always && $policy === 'auto')) {
                 $chosen[$key] = $policy;
             }
         }

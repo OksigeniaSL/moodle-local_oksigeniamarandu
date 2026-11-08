@@ -31,4 +31,11 @@ $capabilities = [
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => ['manager' => CAP_ALLOW],
     ],
+    // Send work of a course to the review of the channel: whoever teaches it.
+    'local/oksigeniamarandu:share' => [
+        'riskbitmask' => RISK_SPAM,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => ['editingteacher' => CAP_ALLOW, 'teacher' => CAP_ALLOW, 'manager' => CAP_ALLOW],
+    ],
 ];

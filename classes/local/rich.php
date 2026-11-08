@@ -191,16 +191,17 @@ class rich {
     private static function card_file(string $url): ?string {
         global $CFG;
         $rest = rawurldecode(substr($url, strlen($CFG->wwwroot)));
-        if (!preg_match('~^/pluginfile\.php(?:/|\?file=/)(\d+)/local_oksigeniamarandu/card/(\d+)/([^/?#&]+)~', $rest, $parts)) {
+        $pattern = '~^/pluginfile\.php(?:/|\?file=/)(\d+)/local_oksigeniamarandu/(card|classwork)/(\d+)/([^/?#&]+)~';
+        if (!preg_match($pattern, $rest, $parts)) {
             return null;
         }
         $file = get_file_storage()->get_file(
             (int)$parts[1],
             'local_oksigeniamarandu',
-            cards::AREA,
-            (int)$parts[2],
+            $parts[2],
+            (int)$parts[3],
             '/',
-            $parts[3]
+            $parts[4]
         );
         return $file ? $file->get_content() : null;
     }

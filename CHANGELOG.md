@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.24.0 (2026-11-08)
+
+- Work of a class for the channel: in a course, «To the channel», for whoever teaches it
+  (`local/oksigeniamarandu:share`): a photo of a piece of work, its title, the group and a few words, without names. The
+  photo is drawn again before it is kept (straight, at most 1600 pixels, as a JPEG, without what the camera writes in it).
+  It always waits for a review, whatever the site says; the log says who sent it, the post does not.
+- A plugin can declare a kind of post that always waits for a review: `'always' => true`.
+- Every change on hover is for a mouse only (`@media (hover: hover)`): on a tablet, a tap no longer leaves a button dark,
+  nor the empty background of Bootstrap.
+
 ## 0.23.0 (2026-11-08)
 
 - The sky over the place of the site, for the channel, with the sky card: the evenings the International Space Station

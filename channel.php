@@ -231,7 +231,7 @@ if ($current) {
     foreach (channel::kinds() as $kind) {
         $policy = channel::policy($kind->key);
         $choices = [];
-        foreach (channel::POLICIES as $option) {
+        foreach (array_diff(channel::POLICIES, $kind->always ? ['auto'] : []) as $option) {
             $choices[] = ['value' => $kind->key . '|' . $option, 'id' => 'mrd-p-' . md5($kind->key) . '-' . $option,
                 'label' => get_string('channel:policy:' . $option, $component), 'on' => $policy === $option];
         }

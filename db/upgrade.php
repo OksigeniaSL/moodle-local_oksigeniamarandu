@@ -270,5 +270,15 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026111100, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026111900) {
+        // The language a plugin asks for a notice in.
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $field = new xmldb_field('lang', XMLDB_TYPE_CHAR, '30', null, null, null, null, 'area');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026111900, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

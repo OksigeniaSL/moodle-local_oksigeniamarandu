@@ -323,6 +323,8 @@ class api {
      *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
      *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
+     * @param string $lang The language to write it in, such as that of the family, if the site has its language pack (see
+     *                     language()); a person who chose a language on Telegram gets theirs. Empty for theirs or the site's.
      * @return int How many numbers it was queued for.
      */
     public static function notify(
@@ -335,11 +337,27 @@ class api {
         bool $urgent = false,
         int $validfor = 2 * DAYSECS,
         array $rich = [],
-        string $area = ''
+        string $area = '',
+        string $lang = ''
     ): int {
         [$declared, $params] = self::prepare($component, $notice, $params);
         $contactids = self::joined($component, $itemid, $userid, self::area($area));
-        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich);
+        return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich, $lang);
+    }
+
+    /**
+     * The language Marandu writes a notice in when a plugin asks for one: that one, if the site has its language pack, so
+     * that the plugin writes the values of the notice (dates, names) in the same; or else the language of the site. A
+     * person who chose a language on Telegram gets theirs, whatever the plugin asks.
+     *
+     * @param string $lang The language asked for, as Moodle writes it (es, pt_br, ar).
+     * @return string
+     */
+    public static function language(string $lang): string {
+        global $CFG;
+        $lang = trim($lang);
+        return $lang !== '' && preg_match('/^[a-z]{2,3}(_[a-z0-9]+)*$/', $lang)
+            && get_string_manager()->translation_exists($lang, false) ? $lang : (string)$CFG->lang;
     }
 
     /**
@@ -552,6 +570,7 @@ class api {
      * @param array $rich A card on Telegram instead of its text: any of title, image (a URL of this site with a PNG or a
      *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
      *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
+     * @param string $lang The language to write it in, if the site has it (see language()).
      * @return int How many numbers it was queued for.
      */
     public static function notify_child(
@@ -562,7 +581,8 @@ class api {
         int $childuserid,
         bool $urgent = false,
         int $validfor = 2 * DAYSECS,
-        array $rich = []
+        array $rich = [],
+        string $lang = ''
     ): int {
         global $DB;
         [$declared, $params] = self::prepare($component, $notice, $params);
@@ -577,7 +597,7 @@ class api {
             "id $insql AND status = :active",
             $inparams + ['active' => 'active']
         );
-        return self::queue_for($active, $declared, $params, $url, $urgent, $validfor, $rich);
+        return self::queue_for($active, $declared, $params, $url, $urgent, $validfor, $rich, $lang);
     }
 
     /**
@@ -675,6 +695,7 @@ class api {
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @param array $rich The parts of its card on Telegram, if it has one.
+     * @param string $lang The language its plugin asked for.
      * @return int How many.
      */
     private static function queue_for(
@@ -684,11 +705,27 @@ class api {
         ?\moodle_url $url,
         bool $urgent,
         int $validfor,
-        array $rich
+        array $rich,
+        string $lang = ''
     ): int {
         $rich = local\rich::clean($rich);
+        // Only a language the site has: the texts of the notices are in its language packs.
+        $lang = $lang !== '' && self::language($lang) === trim($lang) ? trim($lang) : '';
         foreach ($contactids as $contactid) {
-            queue::add((int)$contactid, $declared, $params, $url ? $url->out(false) : null, $urgent, $validfor, null, $rich);
+            queue::add(
+                (int)$contactid,
+                $declared,
+                $params,
+                $url ? $url->out(false) : null,
+                $urgent,
+                $validfor,
+                null,
+                $rich,
+                null,
+                0,
+                '',
+                $lang
+            );
         }
         return count($contactids);
     }

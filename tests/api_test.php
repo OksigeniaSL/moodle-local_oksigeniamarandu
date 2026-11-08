@@ -155,4 +155,22 @@ final class api_test extends \advanced_testcase {
         $this->expectException(\coding_exception::class);
         api::invite('local_oksigeniamarandu', 7, null, 'Kitchen of the north');
     }
+
+    /**
+     * A plugin asks for the language of a notice: it is kept if the site has its language pack, and Marandu says which
+     * one it will write it in, so that the plugin writes its values in the same.
+     */
+    public function test_language(): void {
+        global $CFG, $DB;
+        $this->resetAfterTest();
+        $this->assertSame('en', api::language('en'));
+        $this->assertSame($CFG->lang, api::language('ar'));
+        $this->assertSame($CFG->lang, api::language('../en'));
+        $this->assertSame($CFG->lang, api::language(''));
+
+        consent::optin_from_message('34600000001', api::invite('local_oksigeniamarandu', 7), 'join');
+        api::notify('local_oksigeniamarandu', 'notification', ['Centro Ejemplo', 'Reunión'], null, 7, lang: 'en');
+        api::notify('local_oksigeniamarandu', 'notification', ['Centro Ejemplo', 'Reunión'], null, 7, lang: 'ar');
+        $this->assertSame(['en', null], array_values($DB->get_fieldset_select(local\queue::TABLE, 'lang', '1 = 1 ORDER BY id')));
+    }
 }

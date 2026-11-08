@@ -99,6 +99,7 @@
         <FIELD NAME="ref" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="For a question, what the plugin that asked needs to know it again"/>
         <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="For a question, the item of the plugin it went to"/>
         <FIELD NAME="area" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="For a question, the kind of that item"/>
+        <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false" COMMENT="The language its plugin asked for, if the site has it; the person's own choice goes first"/>
         <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Where the button of the notice goes, on this site"/>
         <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="The end of the link of the button"/>
         <FIELD NAME="urgent" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

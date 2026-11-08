@@ -74,6 +74,7 @@ class queue {
      * @param string|null $ref For a question, what the plugin needs to know it again when it is answered.
      * @param int $itemid For a question, the item of the plugin it goes to.
      * @param string $area For a question, the kind of that item.
+     * @param string $lang The language its plugin asked for; empty for that of the person or the site.
      * @return int The id in the queue.
      */
     public static function add(
@@ -87,7 +88,8 @@ class queue {
         array $rich = [],
         ?string $ref = null,
         int $itemid = 0,
-        string $area = ''
+        string $area = '',
+        string $lang = ''
     ): int {
         global $DB;
         do {
@@ -103,6 +105,7 @@ class queue {
             'ref' => $ref,
             'itemid' => $itemid,
             'area' => $area,
+            'lang' => $lang === '' ? null : $lang,
             'url' => $url,
             'token' => $token,
             'urgent' => (int)$urgent,
@@ -175,7 +178,8 @@ class queue {
                 continue;
             }
             $params = json_decode($row->params, true) ?: [];
-            $lang = $contact->lang ?: null;
+            // The language the person chose goes first; then the one the plugin asked for; then that of the site.
+            $lang = $contact->lang ?: (($row->lang ?? '') ?: null);
             if ($channel === 'telegram') {
                 // Telegram has no templates and no window: the notice, with its link as a button. It is free.
                 try {

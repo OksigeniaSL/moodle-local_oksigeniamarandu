@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.26.0 (2026-11-08)
+
+- `api::notify()` and `api::notify_child()` take a last argument, `string $lang`: the language to write the notice in,
+  such as that of the family, if the site has its language pack; a person who chose a language on Telegram gets theirs.
+  `api::language($lang)` says which language Marandu will write it in, so that the plugin writes the values of the notice
+  (dates, names) in the same. Moodle reads the strings of a plugin in a language only when the site has its pack.
+
 ## 0.25.1 (2026-11-08)
 
 - «Your work» says that a post waits for your review only once it reached you on Telegram (in the hours of review, or at

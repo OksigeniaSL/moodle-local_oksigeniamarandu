@@ -174,4 +174,22 @@ final class work_test extends \advanced_testcase {
         $this->post('School trip', time() + WEEKSECS);
         $this->assertStringStartsWith('1 to review', work::for_user($admin)[0]['status']);
     }
+
+    /**
+     * The life of the channel for whoever runs it: how many it has, how many joined this week, and what went out this
+     * week with its reactions.
+     */
+    public function test_life(): void {
+        global $DB;
+        $admin = (int)get_admin()->id;
+        $DB->insert_record(channel::STATS, (object)['timeday' => self::WEDNESDAY - WEEKSECS - 11 * HOURSECS, 'members' => 213]);
+        $DB->insert_record(channel::STATS, (object)['timeday' => self::WEDNESDAY - 11 * HOURSECS, 'members' => 225]);
+        foreach ([['👍' => 30, '❤' => 15], []] as $i => $reactions) {
+            $id = $this->post('Post ' . $i, self::WEDNESDAY - DAYSECS);
+            $DB->update_record(channel::TABLE, (object)['id' => $id, 'status' => 'published',
+                'timepublished' => self::WEDNESDAY - ($i + 1) * DAYSECS, 'reactions' => json_encode($reactions)]);
+        }
+        [$card] = work::for_user($admin, self::WEDNESDAY);
+        $this->assertSame('225 in the channel (+12 this week) · this week, 2 posts, 45 reactions', $card['status']);
+    }
 }

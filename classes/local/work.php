@@ -172,11 +172,35 @@ class work {
         if ($ready) {
             $figures[] = get_string('work:status:ready', self::COMPONENT, $ready);
         }
+        // The life of the channel, for whoever runs it too: how many it has and how many joined this week, and what went
+        // out this week with its reactions.
         $members = $current ? channel::members($now) : null;
         if ($members) {
-            $figures[] = get_string('work:status:members', self::COMPONENT, $members->now);
+            $diff = $members->before === null ? 0 : $members->now - $members->before;
+            $figures[] = $diff ? get_string('work:status:membersweek', self::COMPONENT, (object)['now' => $members->now,
+                'diff' => ($diff > 0 ? '+' : '−') . abs($diff)]) : get_string('work:status:members', self::COMPONENT, $members->now);
         }
-        if (!$review && !$ready) {
+        $week = $DB->get_records_select(
+            channel::TABLE,
+            "status = 'published' AND timepublished >= :since",
+            ['since' => $now - WEEKSECS],
+            '',
+            'id, reactions'
+        );
+        if ($week) {
+            $reactions = 0;
+            foreach ($week as $post) {
+                $reactions += array_sum(json_decode((string)($post->reactions ?? ''), true) ?: []);
+            }
+            $line = count($week) === 1 ? get_string('work:status:weekone', self::COMPONENT)
+                : get_string('work:status:weekmany', self::COMPONENT, count($week));
+            if ($reactions) {
+                $line .= ', ' . ($reactions === 1 ? get_string('work:status:reactionone', self::COMPONENT)
+                    : get_string('work:status:reactionmany', self::COMPONENT, $reactions));
+            }
+            $figures[] = $line;
+        }
+        if (!$review && !$ready && !$week) {
             $last = $DB->get_records(channel::TABLE, ['status' => 'published'], 'timepublished DESC', 'id, timepublished', 0, 1);
             $figures[] = $last
                 ? get_string('work:status:last', self::COMPONENT, self::when((int)reset($last)->timepublished, $now))

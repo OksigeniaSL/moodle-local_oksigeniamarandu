@@ -597,5 +597,13 @@ final class channel_test extends \advanced_testcase {
             'members' => 225,
         ]], api::channel_stats('local_example', 'book'));
         $this->assertSame([], api::channel_stats('local_example', 'open_day'));
+
+        // The people of the channel, day by day.
+        $DB->insert_record(channel::STATS, (object)['timeday' => self::WEDNESDAY + 13 * HOURSECS, 'members' => 226]);
+        $this->assertSame(
+            ['2026-10-28' => 225, '2026-10-29' => 226],
+            api::channel_members(self::WEDNESDAY - DAYSECS, self::WEDNESDAY + 2 * DAYSECS)
+        );
+        $this->assertSame([], api::channel_members(self::WEDNESDAY + 2 * DAYSECS, self::WEDNESDAY + 3 * DAYSECS));
     }
 }

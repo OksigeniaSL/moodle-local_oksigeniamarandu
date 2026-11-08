@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.0 (2026-11-08)
+
+- `api::channel_members($from, $to)`: how many people the channel had each day it was counted, for a series over time.
+- The card of «Your work» also shows the life of the channel: how many joined this week, and what went out this week with
+  its reactions.
+
 ## 0.29.0 (2026-11-08)
 
 - The reactions to the posts of the channel, as Telegram counts them for its bot (anonymous, by emoji, a few minutes

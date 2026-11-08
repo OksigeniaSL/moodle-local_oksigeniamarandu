@@ -607,6 +607,31 @@ class api {
     }
 
     /**
+     * How many people the channel had each day it was counted (once a day), for a series over time.
+     *
+     * @param int $from From this time.
+     * @param int $to Until this one, not included.
+     * @return int[] By day of the site (Y-m-d), the earliest first; only the days counted.
+     */
+    public static function channel_members(int $from, int $to): array {
+        global $DB;
+        $tz = \core_date::get_server_timezone();
+        $days = [];
+        foreach (
+            $DB->get_records_select(
+                local\channel::STATS,
+                'timeday >= :timefrom AND timeday < :timeto',
+                ['timefrom' => $from, 'timeto' => $to],
+                'timeday ASC',
+                'id, timeday, members'
+            ) as $row
+        ) {
+            $days[userdate((int)$row->timeday, '%Y-%m-%d', $tz, false)] = (int)$row->members;
+        }
+        return $days;
+    }
+
+    /**
      * How the notices of a plugin did, by notice, channel and day (of the site), all summed: queued, sent, delivered and
      * read (WhatsApp says so; Telegram does not tell bots), clicked (through the button of the notice) and failed.
      *

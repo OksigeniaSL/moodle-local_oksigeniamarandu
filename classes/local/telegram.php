@@ -226,6 +226,11 @@ class telegram {
                 ?? channel::from_telegram($update['callback_query'], $api)
                 ?? telegram_menu::callback($update['callback_query'], $api);
         }
+        if (isset($update['message_reaction_count'])) {
+            // The reactions to a post of the channel changed: anonymous, only how many of each.
+            channel::reactions($update['message_reaction_count']);
+            return null;
+        }
         if (isset($update['my_chat_member'])) {
             $member = $update['my_chat_member'];
             // The bot made an administrator of a channel, or no longer: the channel of the site.

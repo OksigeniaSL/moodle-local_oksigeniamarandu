@@ -280,5 +280,16 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026111900, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026112200) {
+        // The reactions to the posts of the channel; the bot asks Telegram for them from now on.
+        $table = new xmldb_table('local_oksigeniamarandu_post');
+        $field = new xmldb_field('reactions', XMLDB_TYPE_TEXT, null, null, null, null, null, 'clicks');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        \core\task\manager::queue_adhoc_task(new \local_oksigeniamarandu\task\telegram_refresh());
+        upgrade_plugin_savepoint(true, 2026112200, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

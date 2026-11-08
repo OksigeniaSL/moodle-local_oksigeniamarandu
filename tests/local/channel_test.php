@@ -437,7 +437,7 @@ final class channel_test extends \advanced_testcase {
     }
 
     /**
-     * The button of a post carries the UTM marks of the site; with a shortener, its short link, which counts the visits;
+     * The button of a post carries the UTM marks of the site; with a shortener, the short link of the link of the post;
      * a link that must go as it is, without marks. An animation goes with its text below and the same button.
      */
     public function test_links_and_animation(): void {
@@ -471,9 +471,15 @@ final class channel_test extends \advanced_testcase {
         } finally {
             links::fake_for_tests(null);
         }
-        $this->assertSame(['https://example.org/libro?id=4&utm_source=telegram&utm_medium=canal&utm_campaign=book#ficha',
-            'https://example.org/calendar.ics',
-            'https://example.org/visita?utm_source=telegram&utm_medium=canal&utm_campaign=book'], $asked);
+        // The shortener gets the link of each post, so that its visits are counted here; the link goes on with its marks,
+        // or as it is.
+        $tokens = array_map(function (int $id) use ($DB): string {
+            return $DB->get_field(channel::TABLE, 'token', ['id' => $id]);
+        }, [$plain, $calendar, $animated]);
+        $this->assertSame(array_map(function (string $token): string {
+            return (new \moodle_url('/local/oksigeniamarandu/go.php', ['p' => $token]))->out(false);
+        }, $tokens), $asked);
+        $this->assertSame('https://example.org/calendar.ics', channel::click($tokens[1]));
         $sent = $bot->of('sendAnimation')[0];
         $this->assertSame([self::CHANNEL, 'animation:1770'], [$sent['chat_id'], $sent['file']]);
         $this->assertSame("Jornada de puertas abiertas\n\nEl sábado, de 10:00 a 13:00.", $sent['caption']);
@@ -559,5 +565,37 @@ final class channel_test extends \advanced_testcase {
             api::channel()
         );
         $this->assertSame('https://t.me/escuelaejemplo', api::channel_link());
+    }
+
+    /**
+     * The reactions to a post of the channel, as Telegram counts them, and what the plugin learns of its posts.
+     */
+    public function test_reactions_and_stats(): void {
+        global $DB;
+        $id = api::channel_post('local_example', 'book', ['title' => 'El libro del mes'], null, false, 'b1');
+        $DB->update_record(channel::TABLE, (object)['id' => $id, 'status' => 'published', 'messageid' => '41',
+            'timepublished' => self::WEDNESDAY, 'clicks' => 7]);
+        $DB->insert_record(channel::STATS, (object)['timeday' => self::WEDNESDAY - 11 * HOURSECS, 'members' => 225]);
+
+        $count = ['chat' => ['id' => (int)self::CHANNEL, 'type' => 'channel'], 'message_id' => 41, 'date' => self::WEDNESDAY,
+            'reactions' => [['type' => ['type' => 'emoji', 'emoji' => '👍'], 'total_count' => 3],
+                ['type' => ['type' => 'emoji', 'emoji' => '❤'], 'total_count' => 5],
+                ['type' => ['type' => 'custom_emoji', 'custom_emoji_id' => '99'], 'total_count' => 1]]];
+        $this->assertNull(telegram::handle(['update_id' => 1, 'message_reaction_count' => $count]));
+        // Not of the channel of the site, or not one of its posts: nothing.
+        $this->assertFalse(channel::reactions(['chat' => ['id' => -100999], 'message_id' => 41, 'reactions' => []]));
+        $this->assertFalse(channel::reactions(['chat' => ['id' => (int)self::CHANNEL], 'message_id' => 7, 'reactions' => []]));
+
+        $this->assertSame([[
+            'key' => 'b1',
+            'kind' => 'book',
+            'status' => 'published',
+            'timepublished' => self::WEDNESDAY,
+            'clicks' => 7,
+            'reactions' => ['❤' => 5, '👍' => 3, 'custom' => 1],
+            'reactionstotal' => 9,
+            'members' => 225,
+        ]], api::channel_stats('local_example', 'book'));
+        $this->assertSame([], api::channel_stats('local_example', 'open_day'));
     }
 }

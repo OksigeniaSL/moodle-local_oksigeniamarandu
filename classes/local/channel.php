@@ -732,6 +732,43 @@ class channel {
     }
 
     /**
+     * The reactions to a post of the channel, as Telegram counts them: anonymous, by emoji, a few minutes late.
+     *
+     * @param array $count The message_reaction_count of the update.
+     * @return bool Whether it was a post of the channel of the site.
+     */
+    public static function reactions(array $count): bool {
+        global $DB;
+        $channel = self::current();
+        $messageid = (int)($count['message_id'] ?? 0);
+        if (!$channel || (string)($count['chat']['id'] ?? '') !== $channel->id || !$messageid) {
+            return false;
+        }
+        $post = $DB->get_record_select(
+            self::TABLE,
+            "messageid = :messageid AND status IN ('published', 'remove', 'removed')",
+            ['messageid' => (string)$messageid],
+            'id',
+            IGNORE_MULTIPLE
+        );
+        if (!$post) {
+            return false;
+        }
+        $reactions = [];
+        foreach ((array)($count['reactions'] ?? []) as $reaction) {
+            $type = $reaction['type'] ?? [];
+            $name = ($type['type'] ?? '') === 'emoji' ? (string)($type['emoji'] ?? '') : (($type['type'] ?? '') === 'paid' ? '⭐'
+                : 'custom');
+            if ($name !== '') {
+                $reactions[$name] = ($reactions[$name] ?? 0) + max(0, (int)($reaction['total_count'] ?? 0));
+            }
+        }
+        arsort($reactions);
+        $DB->set_field(self::TABLE, 'reactions', json_encode($reactions, JSON_UNESCAPED_UNICODE), ['id' => $post->id]);
+        return true;
+    }
+
+    /**
      * The visit through the link of a post: it counts, and goes on to the page of the post.
      *
      * @param string $token The token of the post.
@@ -964,8 +1001,8 @@ class channel {
      * @return string
      */
     private static function button(\stdClass $post, array $content): string {
-        $target = isset($content['utm']) && !$content['utm'] ? $content['url'] : links::utm($content['url'], $post->kind);
-        return links::shorten($target) ?? self::link($post);
+        // The short link goes through the link of the post, so that its visits are counted here, with or without one.
+        return links::shorten(self::link($post)) ?? self::link($post);
     }
 
     /**

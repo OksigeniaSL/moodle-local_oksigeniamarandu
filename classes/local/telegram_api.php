@@ -86,7 +86,7 @@ class telegram_api {
         $this->call('setWebhook', [
             'url' => $url,
             'secret_token' => $secret,
-            'allowed_updates' => ['message', 'my_chat_member', 'callback_query'],
+            'allowed_updates' => ['message', 'my_chat_member', 'callback_query', 'message_reaction_count'],
             'drop_pending_updates' => true,
         ]);
     }

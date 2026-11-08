@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.29.0 (2026-11-08)
+
+- The reactions to the posts of the channel, as Telegram counts them for its bot (anonymous, by emoji, a few minutes
+  late): the bot asks for them from this version on.
+- The short link of a post of the channel goes through the link of the post, so that its visits are always counted by
+  Marandu, with a shortener or without one.
+- `api::channel_stats()`: how the posts of a plugin did (when, visits, reactions and the people of the channel that day);
+  `api::notice_stats()`: its notices by notice, channel and day (queued, sent, delivered, read, clicked and failed). All
+  summed, nothing of any person. Telegram does not tell bots how many saw a post, nor whether a notice was read.
+
 ## 0.28.0 (2026-11-08)
 
 - Two cards more, by Jujol: the weather warning (its level in a badge of its own colour, the times of the episode and the

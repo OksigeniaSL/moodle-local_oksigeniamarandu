@@ -557,6 +557,97 @@ class api {
     }
 
     /**
+     * How the posts of a plugin did in the channel, to measure it: when each went out, the visits through its button,
+     * its reactions (anonymous, by emoji, as Telegram counts them, since 0.29.0) and how many people the channel had that
+     * day. Telegram does not tell bots how many saw a post. Nothing of any person.
+     *
+     * @param string $component The plugin.
+     * @param string $kind Its kind of post; every kind if empty.
+     * @param string $key The key of one post; every one if empty.
+     * @return array[] Each with key, kind, status, timepublished (null if it did not go out), clicks, reactions (emoji =>
+     *                 how many), reactionstotal and members (null if the channel was not counted then).
+     */
+    public static function channel_stats(string $component, string $kind = '', string $key = ''): array {
+        global $DB;
+        $where = 'component = :component';
+        $params = ['component' => $component];
+        if ($kind !== '') {
+            $where .= ' AND kind = :kind';
+            $params['kind'] = $kind;
+        }
+        if ($key !== '') {
+            $where .= ' AND sourcekey = :sourcekey';
+            $params['sourcekey'] = $key;
+        }
+        $days = $DB->get_records_menu(local\channel::STATS, null, 'timeday ASC', 'timeday, members');
+        $stats = [];
+        foreach ($DB->get_records_select(local\channel::TABLE, $where, $params, 'id ASC') as $post) {
+            $reactions = json_decode((string)($post->reactions ?? ''), true) ?: [];
+            $members = null;
+            if ($post->timepublished) {
+                foreach ($days as $day => $count) {
+                    if ($day > $post->timepublished) {
+                        break;
+                    }
+                    $members = (int)$count;
+                }
+            }
+            $stats[] = [
+                'key' => $post->sourcekey,
+                'kind' => $post->kind,
+                'status' => $post->status,
+                'timepublished' => $post->timepublished ? (int)$post->timepublished : null,
+                'clicks' => (int)$post->clicks,
+                'reactions' => $reactions,
+                'reactionstotal' => array_sum($reactions),
+                'members' => $members,
+            ];
+        }
+        return $stats;
+    }
+
+    /**
+     * How the notices of a plugin did, by notice, channel and day (of the site), all summed: queued, sent, delivered and
+     * read (WhatsApp says so; Telegram does not tell bots), clicked (through the button of the notice) and failed.
+     *
+     * @param string $component The plugin.
+     * @param int $from From this time (queued).
+     * @param int $to Until this one, not included.
+     * @param string $notice One notice; every one if empty.
+     * @return array[] Each with notice, channel, day (Y-m-d), queued, sent, delivered, read, clicked and failed.
+     */
+    public static function notice_stats(string $component, int $from, int $to, string $notice = ''): array {
+        global $DB;
+        $where = 'q.component = :component AND q.timequeued >= :timefrom AND q.timequeued < :timeto';
+        $params = ['component' => $component, 'timefrom' => $from, 'timeto' => $to];
+        if ($notice !== '') {
+            $where .= ' AND q.notice = :notice';
+            $params['notice'] = $notice;
+        }
+        $rows = $DB->get_recordset_sql("SELECT q.id, q.notice, q.status, q.timequeued, q.timeclicked, c.channel
+                                          FROM {" . local\queue::TABLE . "} q
+                                          JOIN {" . local\consent::CONTACTS . "} c ON c.id = q.contactid
+                                         WHERE $where", $params);
+        $tz = \core_date::get_server_timezone();
+        $stats = [];
+        foreach ($rows as $row) {
+            $day = userdate((int)$row->timequeued, '%Y-%m-%d', $tz, false);
+            $id = $day . '|' . $row->notice . '|' . $row->channel;
+            $stats[$id] = $stats[$id] ?? ['notice' => $row->notice, 'channel' => $row->channel, 'day' => $day,
+                'queued' => 0, 'sent' => 0, 'delivered' => 0, 'read' => 0, 'clicked' => 0, 'failed' => 0];
+            $stats[$id]['queued']++;
+            $stats[$id]['sent'] += (int)in_array($row->status, ['sent', 'delivered', 'read'], true);
+            $stats[$id]['delivered'] += (int)in_array($row->status, ['delivered', 'read'], true);
+            $stats[$id]['read'] += (int)($row->status === 'read');
+            $stats[$id]['clicked'] += (int)!empty($row->timeclicked);
+            $stats[$id]['failed'] += (int)($row->status === 'failed');
+        }
+        $rows->close();
+        ksort($stats);
+        return array_values($stats);
+    }
+
+    /**
      * Queues a notice about a student for the numbers of the student's family, from the family records of Oksigenia
      * Family. Nothing goes out without them, nor to a number that has not opted in.
      *

@@ -173,4 +173,31 @@ final class api_test extends \advanced_testcase {
         api::notify('local_oksigeniamarandu', 'notification', ['Centro Ejemplo', 'Reunión'], null, 7, lang: 'ar');
         $this->assertSame(['en', null], array_values($DB->get_fieldset_select(local\queue::TABLE, 'lang', '1 = 1 ORDER BY id')));
     }
+
+    /**
+     * The notices of a plugin, summed by notice, channel and day.
+     */
+    public function test_notice_stats(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setTimezone('Europe/Madrid');
+        consent::optin_from_message('34600000001', api::invite('local_oksigeniamarandu', 7), 'join');
+        consent::optin_from_message('tg:555', api::invite('local_oksigeniamarandu', 7), 'join');
+        $day = 1793181600;
+        api::notify('local_oksigeniamarandu', 'notification', ['Centro Ejemplo', 'Reunión'], null, 7);
+        $rows = $DB->get_records(local\queue::TABLE, null, 'id');
+        $statuses = ['read', 'sent'];
+        foreach (array_values($rows) as $i => $row) {
+            $DB->update_record(local\queue::TABLE, (object)['id' => $row->id, 'status' => $statuses[$i], 'timequeued' => $day,
+                'timeclicked' => $i === 0 ? $day + 60 : null]);
+        }
+        $stats = api::notice_stats('local_oksigeniamarandu', $day - DAYSECS, $day + DAYSECS);
+        $this->assertSame([
+            ['notice' => 'notification', 'channel' => 'telegram', 'day' => '2026-10-28', 'queued' => 1, 'sent' => 1,
+                'delivered' => 0, 'read' => 0, 'clicked' => 0, 'failed' => 0],
+            ['notice' => 'notification', 'channel' => 'whatsapp', 'day' => '2026-10-28', 'queued' => 1, 'sent' => 1,
+                'delivered' => 1, 'read' => 1, 'clicked' => 1, 'failed' => 0],
+        ], $stats);
+        $this->assertSame([], api::notice_stats('local_oksigeniamarandu', $day + DAYSECS, $day + 2 * DAYSECS));
+    }
 }

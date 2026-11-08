@@ -42,8 +42,9 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
 /**
  * What Marandu posts by itself in the channel of Telegram of the site: the announcements of the front page, written by a
  * person already, so they go without review unless the site says otherwise; from the calendar of the site, «This
- * week» on Monday and «No class tomorrow» on the eve of a day without class; and the official weather warnings of the
- * place of the site, reviewed first.
+ * week» on Monday and «No class tomorrow» on the eve of a day without class; the official weather warnings of the place
+ * of the site; and its sky: the passes of the International Space Station, the full moon and the meteor showers; reviewed
+ * first.
  *
  * @return array By kind of post.
  */
@@ -53,6 +54,9 @@ function local_oksigeniamarandu_oksigeniamarandu_posts(): array {
         'week' => [],
         'dayoff' => [],
         'weather' => [],
+        'sky_iss' => [],
+        'sky_moon' => [],
+        'sky_meteors' => [],
     ];
 }
 

@@ -52,6 +52,15 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    // The sky over the place of the site: every hour, so that its posts are ready the same afternoon.
+    [
+        'classname' => 'local_oksigeniamarandu\task\channel_sky',
+        'minute' => 'R',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
     // The official weather warnings of the place of the site, every quarter of an hour.
     [
         'classname' => 'local_oksigeniamarandu\task\channel_weather',

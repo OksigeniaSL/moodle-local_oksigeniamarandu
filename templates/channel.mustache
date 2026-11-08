@@ -31,8 +31,9 @@
       value, label, name, on), and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
       urgent), and empty; the calendar: calendarical, calendarsite, calendarlink, calendarkeywords, classdays, weekhour and
       evehour; the weather warnings: weatherfeed, weatherareas, weatherlevels (value, id, label, on) and weatherstatus;
-      the place: latitude and longitude; the links: utm, utmsource, utmmedium, shortener and hassignature; the cards: cardcolor, cardorg,
-      cardorgdefault, cardanimated, ffmpeg, cardstatus, previewurl and previews (alt, src).
+      the place: latitude and longitude; the sky: skytle, skydefault, skysummary (lines) and skynoplace; the links: utm,
+      utmsource, utmmedium, shortener and hassignature; the cards: cardcolor, cardorg, cardorgdefault, cardanimated,
+      ffmpeg, cardstatus, previewurl and previews (alt, src).
 
     Example context (json):
     {
@@ -190,6 +191,16 @@
                 <input id="mrd-latitude" type="text" inputmode="decimal" name="latitude" value="{{latitude}}" autocomplete="off">
                 <label for="mrd-longitude">{{#str}} channel:place:longitude, local_oksigeniamarandu {{/str}}</label>
                 <input id="mrd-longitude" type="text" inputmode="decimal" name="longitude" value="{{longitude}}" autocomplete="off">
+            </div>
+
+            <h3>{{#str}} channel:sky, local_oksigeniamarandu {{/str}}</h3>
+            <p class="mrd-sub">{{#str}} channel:sky:desc, local_oksigeniamarandu {{/str}}</p>
+            {{#skynoplace}}<p class="mrd-warn">{{#str}} channel:sky:noplace, local_oksigeniamarandu {{/str}}</p>{{/skynoplace}}
+            {{#skysummary.0}}<ul class="mrd-sky">{{#skysummary}}<li>{{.}}</li>{{/skysummary}}</ul>{{/skysummary.0}}
+            <div class="mrd-fields">
+                <label for="mrd-skytle">{{#str}} channel:sky:tle, local_oksigeniamarandu {{/str}}</label>
+                <input id="mrd-skytle" type="url" name="skytle" value="{{skytle}}" placeholder="{{skydefault}}" autocomplete="off" aria-describedby="mrd-skytle-desc">
+                <small id="mrd-skytle-desc">{{#str}} channel:sky:tle_desc, local_oksigeniamarandu {{/str}}</small>
             </div>
 
             <h3>{{#str}} channel:links, local_oksigeniamarandu {{/str}}</h3>

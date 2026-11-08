@@ -321,10 +321,12 @@ class weather {
         }
         $info = $main['info'];
         $format = get_string('weather:timeformat', self::COMPONENT);
-        $when = function (array $info) use ($format): ?\stdClass {
+        // In the time zone of the site, whoever prepares it.
+        $tz = \core_date::get_server_timezone();
+        $when = function (array $info) use ($format, $tz): ?\stdClass {
             $from = $info['onset'] ?? $info['effective'] ?? null;
             return $from === null || !isset($info['expires']) ? null
-                : (object)['from' => userdate($from, $format), 'to' => userdate($info['expires'], $format)];
+                : (object)['from' => userdate($from, $format, $tz), 'to' => userdate($info['expires'], $format, $tz)];
         };
         $lines = [];
         $paragraphs = [];
@@ -332,7 +334,7 @@ class weather {
             if ($times = $when($info)) {
                 $lines[] = get_string('weather:when', self::COMPONENT, $times);
             } else if (isset($info['expires'])) {
-                $lines[] = get_string('weather:until', self::COMPONENT, userdate($info['expires'], $format));
+                $lines[] = get_string('weather:until', self::COMPONENT, userdate($info['expires'], $format, $tz));
             }
             $paragraphs[] = $info['description'];
         } else {

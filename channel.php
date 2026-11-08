@@ -33,6 +33,7 @@ use local_oksigeniamarandu\local\cards;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\panel;
+use local_oksigeniamarandu\local\sky;
 use local_oksigeniamarandu\local\telegram_api;
 use local_oksigeniamarandu\local\weather;
 
@@ -121,6 +122,8 @@ if ($action !== '' && confirm_sesskey()) {
                     set_config($name, (string)round((float)$value, 6), $component);
                 }
             }
+            // The sky: where the elements of the station come from, if not from the source of always.
+            set_config('skytle', $address('skytle'), $component);
             // The links: the UTM marks and the shortener, whose signature is kept encrypted and never shown.
             set_config('utm', optional_param('utm', 0, PARAM_BOOL) ? 1 : 0, $component);
             foreach (['utmsource', 'utmmedium'] as $name) {
@@ -290,6 +293,10 @@ if ($current) {
                 'on' => ($config->weatherseverity ?? weather::DEFAULTSEVERITY) === $level];
         }, weather::CHOICES),
         'weatherstatus' => $weatherstatus,
+        'skytle' => (string)($config->skytle ?? ''),
+        'skydefault' => sky::DEFAULTTLE,
+        'skysummary' => weather::place() ? sky::summary($now) : [],
+        'skynoplace' => !weather::place(),
         'latitude' => (string)($config->latitude ?? ''),
         'longitude' => (string)($config->longitude ?? ''),
         'utm' => !empty($config->utm),

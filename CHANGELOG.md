@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.23.0 (2026-11-08)
+
+- The sky over the place of the site, for the channel, with the sky card: the evenings the International Space Station
+  passes high (30° or more), lit and long enough (three minutes or more) to see it with the naked eye, one a week at most,
+  with its time, where it appears and where it goes; the full moon, with the time it rises; and the nights of the great
+  meteor showers of the hemisphere of the site. The station is worked out on the server with SGP4 from its elements,
+  downloaded once a day (CelesTrak unless the site says another source); the Sun and the Moon, with the formulas of low
+  precision of the Astronomical Almanac. Checked against the library sgp4 and against Skyfield.
+- The page of the channel says the next full moon and the next good pass of the station.
+- The times of the weather warnings, in the time zone of the site, whoever prepares them.
+
 ## 0.22.0 (2026-11-08)
 
 - The official weather warnings of the place of the site, for the channel: from any source in the CAP format (an Atom or

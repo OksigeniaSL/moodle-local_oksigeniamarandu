@@ -492,6 +492,36 @@ final class channel_test extends \advanced_testcase {
     }
 
     /**
+     * The animation of a review still waiting goes again in the same message, as the card it is, with its button; the
+     * reviews of what went out already, or have no animation, stay as they are.
+     */
+    public function test_refresh_reviews(): void {
+        global $CFG, $DB;
+        $animated = api::channel_post('local_example', 'open_day', ['title' => 'Jornada de puertas abiertas',
+            'text' => 'El sábado, de 10:00 a 13:00.', 'url' => 'https://example.org/visita', 'label' => 'Reservar visita',
+            'animation' => $CFG->wwwroot . '/local/oksigeniamarandu/tests/fixtures/animation.mp4'], self::WEDNESDAY - HOURSECS);
+        $plain = api::channel_post('local_example', 'open_day', ['title' => 'Otra jornada'], self::WEDNESDAY - HOURSECS);
+        $bot = $this->bot();
+        $this->assertSame(2, channel::process($bot, self::WEDNESDAY)['reviewed']);
+        $this->assertCount(1, $bot->of('sendAnimation'));
+        [$preview] = json_decode($DB->get_field(channel::TABLE, 'reviews', ['id' => $animated]), true)['555'];
+        $DB->set_field(channel::TABLE, 'status', 'published', ['id' => $plain]);
+
+        $bot = $this->bot();
+        $this->assertSame(1, channel::refresh_reviews($bot));
+        $edits = $bot->of('editMessageMedia');
+        $this->assertCount(1, $edits);
+        $this->assertSame(['555', $preview, 'animation', 'anim1'], [$edits[0]['chat_id'], $edits[0]['message_id'],
+            $edits[0]['media']['type'], $edits[0]['media']['media']]);
+        $this->assertSame("Jornada de puertas abiertas\n\nEl sábado, de 10:00 a 13:00.", $edits[0]['media']['caption']);
+        $this->assertSame('Reservar visita', $edits[0]['reply_markup']['inline_keyboard'][0][0]['text']);
+        $this->assertCount(0, $bot->of('sendAnimation'));
+
+        $DB->set_field(channel::TABLE, 'status', 'published', ['id' => $animated]);
+        $this->assertSame(0, channel::refresh_reviews($this->bot()));
+    }
+
+    /**
      * A post with a card has it made before its review, which shows it, and keeps it while it does not change.
      */
     public function test_card(): void {

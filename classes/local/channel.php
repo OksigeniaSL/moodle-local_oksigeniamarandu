@@ -892,6 +892,42 @@ class channel {
     }
 
     /**
+     * Puts the animation again, in the same message, in what each reviewer got of the posts still to go: before 0.30.1,
+     * Telegram showed it as a file to download.
+     *
+     * @param telegram_api $api The bot.
+     * @return int How many messages changed.
+     */
+    public static function refresh_reviews(telegram_api $api): int {
+        global $DB;
+        $changed = 0;
+        $posts = $DB->get_records_select(self::TABLE, "status IN ('review', 'ready') AND reviews IS NOT NULL", [], 'id');
+        foreach ($posts as $post) {
+            $content = json_decode($post->content, true) ?: [];
+            if (empty($content['animation']) || rich::video($content['animation']) === null) {
+                continue;
+            }
+            $reviews = json_decode((string)$post->reviews, true);
+            foreach (is_array($reviews) ? $reviews : [] as $chat => $ids) {
+                try {
+                    $api->edit_animation(
+                        (string)$chat,
+                        (int)($ids[0] ?? 0),
+                        $content['animation'],
+                        self::caption($content),
+                        $content['url'] ?? null,
+                        self::label($content)
+                    );
+                    $changed++;
+                } catch (api_exception $e) {
+                    debugging('Marandu: a review of the channel was not changed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                }
+            }
+        }
+        return $changed;
+    }
+
+    /**
      * When a post goes, in words: as soon as it is said yes, in a moment once it was, or the day and the time, which out
      * of the hours of the channel is when they start again, unless it is urgent.
      *

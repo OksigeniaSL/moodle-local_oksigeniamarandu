@@ -261,6 +261,60 @@ class telegram_api {
         string $label = '',
         bool $silent = false
     ): string {
+        $text = self::text_params($chatid, \core_text::substr($caption, 0, 1024), $silent);
+        $params = ['chat_id' => $chatid, 'caption' => $text['text'], 'disable_notification' => $silent]
+            + (isset($text['entities']) ? ['caption_entities' => $text['entities']] : []);
+        if ($link !== null) {
+            $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $link]]]];
+        }
+        $answer = $this->animation('sendAnimation', $url, function (string $file) use ($params): array {
+            return $params + ['animation' => $file];
+        });
+        return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
+     * Puts an animation, with its text below and its button, in place of what a message already sent shows: the same
+     * message, without a new one.
+     *
+     * @param string $chatid The chat.
+     * @param int $messageid The message.
+     * @param string $url The animation: a URL of this site with an MP4.
+     * @param string $caption The text below, up to 1024 characters; the first line, in bold.
+     * @param string|null $link Where the button goes.
+     * @param string $label The label of the button.
+     * @throws api_exception If it is not an MP4 Telegram takes, or Telegram refuses it.
+     */
+    public function edit_animation(
+        string $chatid,
+        int $messageid,
+        string $url,
+        string $caption,
+        ?string $link = null,
+        string $label = ''
+    ): void {
+        $text = self::text_params($chatid, \core_text::substr($caption, 0, 1024), true);
+        $media = ['type' => 'animation', 'caption' => $text['text']]
+            + (isset($text['entities']) ? ['caption_entities' => $text['entities']] : []);
+        $params = ['chat_id' => $chatid, 'message_id' => $messageid];
+        if ($link !== null) {
+            $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $link]]]];
+        }
+        $this->animation('editMessageMedia', $url, function (string $file) use ($params, $media): array {
+            return $params + ['media' => $media + ['media' => $file]];
+        });
+    }
+
+    /**
+     * Calls a method with an animation, which goes up once for each bot, as the image of a card.
+     *
+     * @param string $method The method.
+     * @param string $url The animation: a URL of this site with an MP4.
+     * @param callable $params The parameters of the method, given where the animation is: its id, or attach://animation.
+     * @return array What Telegram answered.
+     * @throws api_exception If it is not an MP4 Telegram takes, or Telegram refuses it.
+     */
+    private function animation(string $method, string $url, callable $params): array {
         $bytes = rich::video($url);
         if ($bytes === null) {
             throw new api_exception('error:unexpected');
@@ -269,15 +323,9 @@ class telegram_api {
         // Under its own key: the ids kept before 0.30.1 may be of a document, which would go as one again.
         $key = sha1('animation:' . strstr($this->token, ':', true) . ':' . sha1($bytes));
         $fileid = $cache->get($key);
-        $text = self::text_params($chatid, \core_text::substr($caption, 0, 1024), $silent);
-        $params = ['chat_id' => $chatid, 'caption' => $text['text'], 'disable_notification' => $silent]
-            + (isset($text['entities']) ? ['caption_entities' => $text['entities']] : []);
-        if ($link !== null) {
-            $params['reply_markup'] = ['inline_keyboard' => [[['text' => $label, 'url' => $link]]]];
-        }
         try {
-            $answer = $fileid ? $this->call('sendAnimation', $params + ['animation' => $fileid])
-                : $this->answer($this->request_file('sendAnimation', self::fields($params), 'animation', $bytes));
+            $answer = $fileid ? $this->call($method, $params($fileid))
+                : $this->answer($this->request_file($method, self::fields($params('attach://animation')), 'animation', $bytes));
         } catch (api_exception $e) {
             if ($fileid) {
                 // Perhaps Telegram no longer has it: the next one uploads it again.
@@ -290,7 +338,7 @@ class telegram_api {
         if (!$fileid && $new !== '') {
             $cache->set($key, $new);
         }
-        return (string)($answer['message_id'] ?? '');
+        return $answer;
     }
 
     /**

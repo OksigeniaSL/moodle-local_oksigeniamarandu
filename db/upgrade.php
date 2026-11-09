@@ -291,5 +291,11 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026112200, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026112302) {
+        // The animations of the reviews still waiting, which reached Telegram as files to download.
+        \core\task\manager::queue_adhoc_task(new \local_oksigeniamarandu\task\refresh_reviews());
+        upgrade_plugin_savepoint(true, 2026112302, 'local', 'oksigeniamarandu');
+    }
+
     return true;
 }

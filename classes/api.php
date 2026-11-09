@@ -558,6 +558,41 @@ class api {
     }
 
     /**
+     * Where a post of the channel is: waiting for its review, ready, in the channel or not; and when it goes out, as the
+     * pace of the channel places it, or when it went. A post that does not fit in the pace before it expires has no time:
+     * it does not go, unless a place frees up before then.
+     *
+     * @param string $component The plugin.
+     * @param string $kind The kind of post.
+     * @param string $key What the plugin gave to channel_post().
+     * @return array|null With status (review, ready, published, skipped, cancelled, expired, remove, removed or failed),
+     *                    time (when it goes or went; null if it has none) and expires; null if there is no such post.
+     */
+    public static function channel_state(string $component, string $kind, string $key): ?array {
+        global $DB;
+        $posts = $DB->get_records(
+            local\channel::TABLE,
+            ['component' => $component, 'kind' => $kind, 'sourcekey' => $key],
+            'id DESC',
+            '*',
+            0,
+            1
+        );
+        $post = reset($posts);
+        if (!$post) {
+            return null;
+        }
+        $time = null;
+        if (in_array($post->status, ['review', 'ready'], true)) {
+            $time = local\channel::goes_at($post, time());
+        } else if ($post->timepublished) {
+            $time = (int)$post->timepublished;
+        }
+        return ['status' => (string)$post->status, 'time' => $time,
+            'expires' => $post->timeexpires ? (int)$post->timeexpires : null];
+    }
+
+    /**
      * How the posts of a plugin did in the channel, to measure it: when each went out, the visits through its button,
      * its reactions (anonymous, by emoji, as Telegram counts them, since 0.29.0) and how many people the channel had that
      * day. Telegram does not tell bots how many saw a post. Nothing of any person.

@@ -91,6 +91,17 @@ if ($action !== '' && confirm_sesskey()) {
                 $days = array_keys(array_filter(optional_param_array($which . 'days', [], PARAM_INT)));
                 set_config($which . 'days', implode(',', array_intersect($days, range(0, 6))), $component);
             }
+            // The pace of the channel: the hours between two posts, among those offered, and the most in a day and in a week.
+            $gap = optional_param('postgap', '', PARAM_RAW_TRIMMED);
+            if (in_array($gap, array_map('strval', channel::GAPS), true)) {
+                set_config('postgap', $gap, $component);
+            }
+            foreach (['postperday' => 50, 'postperweek' => 300] as $name => $most) {
+                $value = optional_param($name, '', PARAM_RAW_TRIMMED);
+                if (preg_match('/^\d+$/', $value)) {
+                    set_config($name, min((int)$value, $most), $component);
+                }
+            }
             // The calendar: its addresses, the words of the days without class, the days with class and the hours.
             $address = function (string $name): string {
                 $value = optional_param($name, '', PARAM_RAW_TRIMMED);
@@ -259,8 +270,12 @@ if ($current) {
         }
         // When it goes out if it is said yes, after its kind.
         $at = channel::goes_at($row, $now);
-        $goes = get_string('channel:review:goes', $component, (object)['kind' => channel::name($kind),
-            'when' => $at <= $now ? get_string('channel:review:now', $component) : work::when($at, $now)]);
+        if ($at === null) {
+            $when = get_string('channel:review:nofit', $component);
+        } else {
+            $when = $at <= $now ? get_string('channel:review:now', $component) : work::when($at, $now);
+        }
+        $goes = get_string('channel:review:goes', $component, (object)['kind' => channel::name($kind), 'when' => $when]);
         return [
             'id' => $row->id,
             'goes' => $goes,
@@ -298,6 +313,19 @@ if ($current) {
         'postfrom' => $config->postfrom ?? channel::DEFAULTS['postfrom'],
         'postto' => $config->postto ?? channel::DEFAULTS['postto'],
         'postdays' => $days('post'),
+        'postgaps' => array_map(function (float $hours) use ($config, $component): array {
+            $on = (float)($config->postgap ?? channel::PACE['postgap']) === $hours;
+            if ($hours == 0) {
+                $label = get_string('channel:pace:nogap', $component);
+            } else if ($hours < 1) {
+                $label = get_string('numminutes', 'moodle', (int)round($hours * 60));
+            } else {
+                $label = get_string($hours == 1 ? 'channel:pace:hour' : 'channel:pace:hours', $component, (int)$hours);
+            }
+            return ['value' => (string)$hours, 'label' => $label, 'on' => $on];
+        }, channel::GAPS),
+        'postperday' => (int)($config->postperday ?? channel::PACE['postperday']),
+        'postperweek' => (int)($config->postperweek ?? channel::PACE['postperweek']),
         'calendarical' => (string)($config->calendarical ?? ''),
         'calendarsite' => !empty($config->calendarsite),
         'calendarlink' => (string)($config->calendarlink ?? ''),

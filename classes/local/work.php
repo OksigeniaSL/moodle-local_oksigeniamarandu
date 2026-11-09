@@ -130,15 +130,19 @@ class work {
             $named = [];
             $first = null;
             foreach ($posts as $post) {
-                // Its deadline: when it goes out if it is said yes.
+                // Its deadline: when it goes out if it is said yes; if the pace of the channel leaves it no time, when it
+                // expires.
                 $at = channel::goes_at($post, $now);
+                $fits = $at !== null;
+                $at = $at ?? max($now, (int)$post->timeexpires);
                 $first = min($first ?? $at, $at);
                 // Urgent if it is urgent, or if it would go out now: only the review holds it back.
-                $levels[] = $post->urgent || $at <= $now ? 'urgent' : 'today';
+                $levels[] = $post->urgent || ($fits && $at <= $now) ? 'urgent' : 'today';
                 $content = json_decode($post->content, true) ?: [];
+                $when = $at <= $now ? get_string('channel:review:now', self::COMPONENT) : self::when($at, $now);
                 $a = (object)[
                     'title' => shorten_text((string)($content['title'] ?? ($content['text'][0] ?? '')), 60),
-                    'when' => $at <= $now ? get_string('channel:review:now', self::COMPONENT) : self::when($at, $now),
+                    'when' => $fits ? $when : get_string('channel:review:nofit', self::COMPONENT),
                 ];
                 $named[] = self::alert($string, $reviewurl, end($levels), $a, $at);
             }

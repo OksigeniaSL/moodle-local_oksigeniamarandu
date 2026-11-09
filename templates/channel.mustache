@@ -28,7 +28,7 @@
     * connect - Without a channel: botname and candidate (id, title, username), the channel Telegram said the bot can post in.
     * channel - With a channel: title, username, url, problem, members, growth, reviewers, noreviewers, kinds (name, desc,
       field, choices with value, id, label, on), reviewfrom, reviewto, reviewdays and postfrom, postto, postdays (group,
-      value, label, name, on), and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
+      value, label, name, on); the pace: postgaps (value, label, on), postperday and postperweek; and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
       urgent), and empty; the calendar: calendarical, calendarsite, calendarlink, calendarkeywords, classdays, weekhour and
       evehour; the weather warnings: weatherfeed, weatherareas, weatherlevels (value, id, label, on) and weatherstatus;
       the place: latitude and longitude; the sky: skytle, skydefault, skysummary (lines) and skynoplace; the links: utm,
@@ -153,6 +153,13 @@
                 <input type="time" name="postto" value="{{postto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}"></span>
                 <span class="mrd-days">{{#postdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/postdays}}</span></p>
             <p class="mrd-sub">{{#str}} channel:hours:post2, local_oksigeniamarandu {{/str}}</p>
+            <p class="mrd-sentence">{{#str}} channel:pace1, local_oksigeniamarandu {{/str}}
+                <select name="postgap" aria-label="{{#str}} channel:pace:gap, local_oksigeniamarandu {{/str}}">{{#postgaps}}<option value="{{value}}" {{#on}}selected{{/on}}>{{label}}</option>{{/postgaps}}</select>{{#str}} channel:pace2, local_oksigeniamarandu {{/str}}
+                <span class="mrd-span"><input class="mrd-num" type="number" min="0" max="50" name="postperday" value="{{postperday}}" aria-label="{{#str}} channel:pace:day, local_oksigeniamarandu {{/str}}">
+                {{#str}} channel:pace3, local_oksigeniamarandu {{/str}}</span>
+                <span class="mrd-span"><input class="mrd-num" type="number" min="0" max="300" name="postperweek" value="{{postperweek}}" aria-label="{{#str}} channel:pace:week, local_oksigeniamarandu {{/str}}">
+                {{#str}} channel:pace4, local_oksigeniamarandu {{/str}}</span></p>
+            <p class="mrd-sub">{{#str}} channel:pace:desc, local_oksigeniamarandu {{/str}}</p>
 
             <h3>{{#str}} channel:calendar, local_oksigeniamarandu {{/str}}</h3>
             <p class="mrd-sub">{{#str}} channel:calendar:desc, local_oksigeniamarandu {{/str}}</p>

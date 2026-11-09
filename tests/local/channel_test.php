@@ -52,6 +52,10 @@ final class channel_test extends \advanced_testcase {
             'book' => ['review' => false],
         ]]);
         consent::optin_from_message('tg:555', api::invite('core', 0, (int)get_admin()->id), 'join');
+        // Without a pace, but where it is tested.
+        foreach (['postgap', 'postperday', 'postperweek'] as $name) {
+            set_config($name, 0, 'local_oksigeniamarandu');
+        }
     }
 
     /**
@@ -489,6 +493,79 @@ final class channel_test extends \advanced_testcase {
         );
         $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $animated]));
         $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $calendar]));
+    }
+
+    /**
+     * The pace of the channel: what is not urgent goes out with the time between two that the site says, and no more than
+     * it says in a day and in a week; in the order it came, so one that came later does not move one that was there first;
+     * what does not fit before it expires has no time, and whoever reviews is told when a post goes later because of it.
+     * The urgent goes out at once and does not count.
+     */
+    public function test_pace(): void {
+        global $CFG, $DB;
+        set_config('postgap', 2, 'local_oksigeniamarandu');
+        set_config('postperday', 3, 'local_oksigeniamarandu');
+        set_config('postperweek', 4, 'local_oksigeniamarandu');
+        $CFG->calendar_startwday = 1;
+        $madrid = new \DateTimeZone('Europe/Madrid');
+        $thursday = (new \DateTime('2026-10-29 08:00', $madrid))->getTimestamp();
+        $monday = (new \DateTime('2026-11-02 08:00', $madrid))->getTimestamp();
+        $book = function (string $key, int $when, ?int $expires = null): int {
+            return api::channel_post('local_example', 'book', ['title' => 'Libro ' . $key], $when, false, $key, $expires);
+        };
+        // The one of the evening came first: it keeps its time.
+        $evening = $book('evening', self::WEDNESDAY + 5 * HOURSECS);
+        $first = $book('first', self::WEDNESDAY - HOURSECS);
+        $second = $book('second', self::WEDNESDAY - HOURSECS);
+        $third = $book('third', self::WEDNESDAY - HOURSECS);
+        $late = $book('late', self::WEDNESDAY - HOURSECS, $thursday + HOURSECS);
+        $this->assertSame([
+            $evening => self::WEDNESDAY + 5 * HOURSECS,
+            $first => self::WEDNESDAY,
+            $second => self::WEDNESDAY + 2 * HOURSECS,
+            $third => $thursday,
+            $late => null,
+        ], channel::schedule(self::WEDNESDAY));
+
+        // One at a time.
+        $bot = $this->bot();
+        $this->assertSame(1, channel::process($bot, self::WEDNESDAY)['published']);
+        $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $first]));
+        $this->assertSame(0, channel::process($bot, self::WEDNESDAY + HOURSECS)['published']);
+        $this->assertSame(1, channel::process($bot, self::WEDNESDAY + 2 * HOURSECS)['published']);
+        $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $second]));
+
+        // The urgent goes at once, and the others keep their times; whoever reviews is told when it would go.
+        $now = self::WEDNESDAY + 2 * HOURSECS + 10 * MINSECS;
+        $urgent = api::channel_post('local_example', 'book', ['title' => 'Cerrado por la tormenta'], $now, true);
+        $review = api::channel_post('local_example', 'open_day', ['title' => 'Jornada de puertas abiertas'], $now);
+        $bot = $this->bot();
+        $this->assertSame(['reviewed' => 1, 'published' => 1], array_intersect_key(
+            channel::process($bot, $now),
+            ['reviewed' => 0, 'published' => 0]
+        ));
+        $this->assertSame('published', $DB->get_field(channel::TABLE, 'status', ['id' => $urgent]));
+        $slots = channel::schedule($now);
+        $this->assertSame([self::WEDNESDAY + 5 * HOURSECS, $thursday], [$slots[$evening], $slots[$third]]);
+        // The week is full with Thursday: the next one, on Monday.
+        $this->assertSame($monday, channel::goes_at($DB->get_record(channel::TABLE, ['id' => $review]), $now));
+        $question = $bot->of('sendMessage')[0]['text'];
+        $this->assertStringContainsString(get_string(
+            'channel:review:atpaced',
+            'local_oksigeniamarandu',
+            userdate($monday, get_string('strftimedaydatetime', 'langconfig'))
+        ), $question);
+
+        // What the plugin can know of its posts.
+        $this->assertSame(
+            ['status' => 'published', 'time' => self::WEDNESDAY, 'expires' => null],
+            api::channel_state('local_example', 'book', 'first')
+        );
+        $this->assertSame(
+            ['status' => 'ready', 'time' => null, 'expires' => $thursday + HOURSECS],
+            api::channel_state('local_example', 'book', 'late')
+        );
+        $this->assertNull(api::channel_state('local_example', 'book', 'nothing'));
     }
 
     /**

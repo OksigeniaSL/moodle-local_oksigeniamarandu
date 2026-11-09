@@ -52,6 +52,15 @@ class channel {
     public const DEFAULTS = ['reviewdays' => '1,2,3,4,5', 'reviewfrom' => '08:00', 'reviewto' => '15:00',
         'postdays' => '0,1,2,3,4,5,6', 'postfrom' => '08:00', 'postto' => '21:00'];
 
+    /**
+     * The pace of the channel by default, for what is not urgent: hours between two posts, and the most in a day and in a
+     * week; 0, no limit.
+     */
+    public const PACE = ['postgap' => 2, 'postperday' => 3, 'postperweek' => 12];
+
+    /** The hours between two posts a site can choose. */
+    public const GAPS = [0, 0.5, 1, 2, 3, 4, 6];
+
     /** What Marandu posts by itself: the announcements of the front page. */
     public const NEWS = 'news';
 
@@ -519,17 +528,29 @@ class channel {
         if (!$channel || $channel->problem !== '') {
             return self::done($counts);
         }
-        $open = self::open('post', $now);
         $ready = $DB->get_records_select(
             self::TABLE,
             "status = 'ready' AND timeplanned <= :now",
             ['now' => $now],
             'timeplanned, id'
         );
+        // The urgent ones, all; of the others, the one whose time in the pace of the channel has come, or all of them if
+        // the pace has no time between two: if the site was stopped for a while, they do not go out in a burst.
+        $due = [];
+        if (self::open('post', $now)) {
+            $slots = self::schedule($now);
+            $due = array_filter($ready, function (\stdClass $post) use ($slots, $now): bool {
+                return !$post->urgent && isset($slots[$post->id]) && $slots[$post->id] <= $now;
+            });
+            uasort($due, function (\stdClass $a, \stdClass $b) use ($slots): int {
+                return [$slots[$a->id], $a->id] <=> [$slots[$b->id], $b->id];
+            });
+            $due = self::pace()['gap'] ? array_slice($due, 0, 1) : $due;
+        }
+        $ready = array_merge(array_values(array_filter($ready, function (\stdClass $post): bool {
+            return (bool)$post->urgent;
+        })), array_values($due));
         foreach ($ready as $post) {
-            if (!$post->urgent && !$open) {
-                continue;
-            }
             $post = cards::for_post($post);
             if (cards::pending($post)) {
                 continue;
@@ -938,10 +959,19 @@ class channel {
      */
     private static function when(\stdClass $post, int $now, bool $decided = false): string {
         $time = self::goes_at($post, $now);
+        if ($time === null) {
+            return get_string('channel:review:nofit', self::COMPONENT);
+        }
         if ($time <= $now) {
             return get_string($decided ? 'channel:review:soon' : 'channel:review:now', self::COMPONENT);
         }
-        return get_string('channel:review:at', self::COMPONENT, userdate($time, get_string('strftimedaydatetime', 'langconfig')));
+        // Later than its own time because of the pace, it is said.
+        $paced = !$post->urgent && $time > self::next_open('post', max((int)$post->timeplanned, $now));
+        return get_string(
+            $paced ? 'channel:review:atpaced' : 'channel:review:at',
+            self::COMPONENT,
+            userdate($time, get_string('strftimedaydatetime', 'langconfig'))
+        );
     }
 
     /**
@@ -973,15 +1003,122 @@ class channel {
     }
 
     /**
-     * When a post goes out if it is said yes now: at its time, in the hours of the channel unless it is urgent.
+     * When a post goes out, if it is said yes now: an urgent one, at its time; the others, at their time in the pace of the
+     * channel (schedule()).
      *
-     * @param \stdClass $post The post.
+     * @param \stdClass $post The post, waiting for its review or ready.
      * @param int $now The time.
-     * @return int Now, or later.
+     * @return int|null Now, or later; null if the pace leaves it no time before it expires.
      */
-    public static function goes_at(\stdClass $post, int $now): int {
+    public static function goes_at(\stdClass $post, int $now): ?int {
         $time = max((int)$post->timeplanned, $now);
-        return $post->urgent ? $time : self::next_open('post', $time);
+        if ($post->urgent) {
+            return $time;
+        }
+        if (!in_array($post->status, ['review', 'ready'], true)) {
+            return self::next_open('post', $time);
+        }
+        $slots = self::schedule($now, $post->status === 'review' ? $post : null);
+        return $slots[$post->id] ?? null;
+    }
+
+    /**
+     * The pace of the channel, for what is not urgent: the least time between two posts, and the most in a day and in a
+     * week of the calendar of the site; 0, no limit.
+     *
+     * @return int[] gap (seconds), day and week.
+     */
+    public static function pace(): array {
+        $config = get_config(self::COMPONENT);
+        return [
+            'gap' => (int)round((float)($config->postgap ?? self::PACE['postgap']) * HOURSECS),
+            'day' => (int)($config->postperday ?? self::PACE['postperday']),
+            'week' => (int)($config->postperweek ?? self::PACE['postperweek']),
+        ];
+    }
+
+    /**
+     * When each post that is ready, and not urgent, goes out: in the order they were said yes (or came, if they needed no
+     * review), each at the first time from its own on, in the hours of the channel, that keeps the pace with what went
+     * out and with the times of the ones before it. So one that came later never moves one that was there first.
+     *
+     * @param int $now The time.
+     * @param \stdClass|null $extra A post waiting for its review, put after the others: when it would go if it were said
+     *                              yes now.
+     * @return array The time of each post, by its id; null for one the pace leaves no time before it expires.
+     */
+    public static function schedule(int $now, ?\stdClass $extra = null): array {
+        global $DB;
+        $pace = self::pace();
+        // What went out, from the start of the week before at the latest.
+        $taken = array_map('intval', $DB->get_fieldset_select(
+            self::TABLE,
+            'timepublished',
+            "status IN ('published', 'remove', 'removed') AND urgent = 0 AND timepublished > :since",
+            ['since' => $now - 8 * DAYSECS]
+        ));
+        $ready = $DB->get_records_select(
+            self::TABLE,
+            "status = 'ready' AND urgent = 0",
+            null,
+            '',
+            'id, timeplanned, timeexpires, timedecided, timecreated'
+        );
+        uasort($ready, function (\stdClass $a, \stdClass $b): int {
+            return [(int)($a->timedecided ?: $a->timecreated), (int)$a->id] <=> [(int)($b->timedecided ?: $b->timecreated),
+                (int)$b->id];
+        });
+        if ($extra !== null && !$extra->urgent) {
+            unset($ready[$extra->id]);
+            $ready[$extra->id] = $extra;
+        }
+        $slots = [];
+        foreach ($ready as $post) {
+            $expires = $post->timeexpires ? (int)$post->timeexpires : null;
+            $slot = self::slot(max((int)$post->timeplanned, $now), $taken, $pace, $expires);
+            $slots[$post->id] = $slot;
+            if ($slot !== null) {
+                $taken[] = $slot;
+            }
+        }
+        return $slots;
+    }
+
+    /**
+     * The first time from a time on, in the hours of the channel, that keeps the pace with the times taken.
+     *
+     * @param int $from The time.
+     * @param int[] $taken The times taken.
+     * @param int[] $pace The pace (pace()).
+     * @param int|null $expires Before this time, if it has one.
+     * @return int|null Null if there is none before it expires, or in sixty days.
+     */
+    private static function slot(int $from, array $taken, array $pace, ?int $expires): ?int {
+        $limit = min($expires ?? PHP_INT_MAX, $from + 60 * DAYSECS);
+        $time = self::next_open('post', $from);
+        while ($time < $limit) {
+            $next = $time;
+            foreach ($taken as $other) {
+                if (abs($time - $other) < $pace['gap']) {
+                    $next = max($next, $other + $pace['gap']);
+                }
+            }
+            foreach (['day' => self::day_start($time), 'week' => self::week_start($time)] as $which => $start) {
+                // The next one starts after a whole one: days of 23 and 25 hours, and weeks of 7 days, all fall short.
+                $end = $which === 'day' ? self::day_start($start + 30 * HOURSECS) : self::week_start($start + 8 * DAYSECS);
+                $in = array_filter($taken, function (int $other) use ($start, $end): bool {
+                    return $other >= $start && $other < $end;
+                });
+                if ($next === $time && $pace[$which] && count($in) >= $pace[$which]) {
+                    $next = $end;
+                }
+            }
+            if ($next === $time) {
+                return $time;
+            }
+            $time = self::next_open('post', $next);
+        }
+        return null;
     }
 
     /**
@@ -1136,6 +1273,22 @@ class channel {
     private static function day_start(int $time): int {
         $date = new \DateTime('@' . $time);
         $date->setTimezone(\core_date::get_server_timezone_object());
+        $date->setTime(0, 0);
+        return $date->getTimestamp();
+    }
+
+    /**
+     * The start of the week of a time, on the first day of the week of the calendar of the site, in its time zone.
+     *
+     * @param int $time The time.
+     * @return int
+     */
+    private static function week_start(int $time): int {
+        $first = \core_calendar\type_factory::get_calendar_instance()->get_starting_weekday();
+        $date = new \DateTime('@' . $time);
+        $date->setTimezone(\core_date::get_server_timezone_object());
+        $back = ((int)$date->format('w') - $first + 7) % 7;
+        $date->modify('-' . $back . ' days');
         $date->setTime(0, 0);
         return $date->getTimestamp();
     }

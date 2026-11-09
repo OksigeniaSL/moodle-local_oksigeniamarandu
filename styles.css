@@ -733,6 +733,19 @@
     text-align: right;
 }
 
+.local-oksigeniamarandu-wizard .mrd-sentence select {
+    display: inline-block;
+    width: auto;
+    padding: 3px 8px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 8px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    font-size: 18px;
+    /* As tall as the inputs beside it, which take the line height of the sentence. */
+    height: 2.65em;
+}
+
 .local-oksigeniamarandu-wizard .mrd-sentence .mrd-mail {
     width: 16.5em;
     max-width: calc(100% - 1em);

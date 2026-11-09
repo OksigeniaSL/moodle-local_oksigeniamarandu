@@ -266,7 +266,8 @@ class telegram_api {
             throw new api_exception('error:unexpected');
         }
         $cache = \cache::make('local_oksigeniamarandu', 'telegramphotos');
-        $key = sha1(strstr($this->token, ':', true) . ':' . sha1($bytes));
+        // Under its own key: the ids kept before 0.30.1 may be of a document, which would go as one again.
+        $key = sha1('animation:' . strstr($this->token, ':', true) . ':' . sha1($bytes));
         $fileid = $cache->get($key);
         $text = self::text_params($chatid, \core_text::substr($caption, 0, 1024), $silent);
         $params = ['chat_id' => $chatid, 'caption' => $text['text'], 'disable_notification' => $silent]
@@ -284,7 +285,8 @@ class telegram_api {
             }
             throw $e;
         }
-        $new = (string)($answer['animation']['file_id'] ?? $answer['document']['file_id'] ?? '');
+        // Only an animation is kept: what Telegram took as a document is uploaded again the next time.
+        $new = (string)($answer['animation']['file_id'] ?? '');
         if (!$fileid && $new !== '') {
             $cache->set($key, $new);
         }
@@ -420,13 +422,28 @@ class telegram_api {
         require_once($CFG->libdir . '/filelib.php');
         $path = make_request_directory() . '/' . $name;
         file_put_contents($path, $bytes);
-        $fields[$name] = new \CURLFile($path, (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes), $name);
+        $fields[$name] = new \CURLFile($path, (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes), self::filename($name, $bytes));
         $curl = new \curl();
         $answer = $curl->post('https://api.telegram.org/bot' . $this->token . '/' . $method, $fields, ['CURLOPT_TIMEOUT' => 60]);
         if ($curl->get_errno()) {
             throw new api_exception('error:telegramnetwork', s($curl->error));
         }
         return (string)$answer;
+    }
+
+    /**
+     * The name a file goes up with: its own, with the extension of what it is. Telegram goes by it, not by the type of
+     * the request: an MP4 called just "animation" arrives as a document to download, not as an animation.
+     *
+     * @param string $name The name, without an extension.
+     * @param string $bytes The file.
+     * @return string
+     */
+    public static function filename(string $name, string $bytes): string {
+        $extensions = ['video/mp4' => 'mp4', 'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif',
+            'image/webp' => 'webp'];
+        $extension = $extensions[(new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes)] ?? '';
+        return $extension === '' ? $name : $name . '.' . $extension;
     }
 
     /**

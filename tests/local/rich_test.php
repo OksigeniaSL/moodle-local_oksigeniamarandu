@@ -74,6 +74,9 @@ final class rich_test extends \advanced_testcase {
             /** @var int How many refusals to answer with. */
             public $refuse = 0;
 
+            /** @var array|null What Telegram answers instead of a card, if anything. */
+            public $result = null;
+
             /**
              * What Telegram answers: the message, with the id it gives to the photo, or a refusal.
              *
@@ -84,7 +87,7 @@ final class rich_test extends \advanced_testcase {
                     return '{"ok":false,"error_code":400,"description":"Bad Request: fake"}';
                 }
                 $photo = [['file_id' => 'small'], ['file_id' => 'large']];
-                return json_encode(['ok' => true, 'result' => ['message_id' => 9,
+                return json_encode(['ok' => true, 'result' => $this->result ?? ['message_id' => 9,
                     'rich_message' => ['blocks' => [['type' => 'photo', 'photo' => $photo]]]]]);
             }
 
@@ -242,6 +245,32 @@ final class rich_test extends \advanced_testcase {
         }
         $client->send_rich('559', $rich);
         $this->assertCount(2, $client->uploads);
+    }
+
+    /**
+     * A file goes up with the extension of what it is, or Telegram takes an MP4 as a document to download. An animation
+     * goes up once for each bot, as an image; what comes back as a document is not kept, and goes up again.
+     */
+    public function test_animation(): void {
+        global $CFG;
+        $fixtures = $CFG->dirroot . '/local/oksigeniamarandu/tests/fixtures/';
+        $this->assertSame('animation.mp4', telegram_api::filename('animation', file_get_contents($fixtures . 'animation.mp4')));
+        $this->assertSame('image.png', telegram_api::filename('image', file_get_contents($fixtures . 'card.png')));
+        $this->assertSame('file', telegram_api::filename('file', 'Plain text'));
+
+        $url = $CFG->wwwroot . '/local/oksigeniamarandu/tests/fixtures/animation.mp4';
+        $client = $this->client();
+        $client->result = ['message_id' => 9, 'document' => ['file_id' => 'doc1']];
+        $client->send_animation('555', $url, 'Jornada de puertas abiertas');
+        $client->send_animation('556', $url, 'Jornada de puertas abiertas');
+        $this->assertCount(2, $client->uploads);
+        $this->assertSame(['sendAnimation', 'animation'], [$client->uploads[0][0], $client->uploads[0][2]]);
+
+        $client->result = ['message_id' => 9, 'animation' => ['file_id' => 'anim1']];
+        $client->send_animation('557', $url, 'Jornada de puertas abiertas');
+        $this->assertSame('9', $client->send_animation('558', $url, 'Jornada de puertas abiertas'));
+        $this->assertCount(3, $client->uploads);
+        $this->assertSame(['sendAnimation', 'anim1'], [$client->calls[0][0], $client->calls[0][1]['animation']]);
     }
 
     /**

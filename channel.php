@@ -370,8 +370,9 @@ if ($current) {
         foreach ($gaps as $one) {
             $gaplabel = $one['on'] ? $one['label'] : $gaplabel;
         }
-        $caption = get_string('channel:day:every', $component, (object)['gap' => $gaplabel, 'from' => $times[0],
-            'to' => end($times)]);
+        // «One every hour», not «one every 1 hour».
+        $caption = get_string($step === 60 ? 'channel:day:everyhour' : 'channel:day:every', $component,
+            (object)['gap' => $gaplabel, 'from' => $times[0], 'to' => end($times)]);
     } else {
         $caption = get_string('channel:day:times', $component, $join($times));
     }

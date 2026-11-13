@@ -59,7 +59,9 @@ if ($optout && confirm_sesskey() && ($contact = $DB->get_record(consent::CONTACT
         $error = get_string('list:ask:error', $component);
         $ask = $contact->id;
     } else if ($contact->status !== 'optedout') {
-        $why = $reason === 'other' ? $other : get_string('list:reason:' . $reason, $component);
+        // A chat of Telegram is not a number: «the chat no longer belongs to that person».
+        $suffix = $reason === 'notfamily' && telegram::is_chat($contact->phone) ? ':telegram' : '';
+        $why = $reason === 'other' ? $other : get_string('list:reason:' . $reason . $suffix, $component);
         consent::optout($contact->phone, 'admin', $USER->id . ':' . core_text::substr($why, 0, 200));
         redirect(new moodle_url($baseurl, ['done' => $contact->id]));
     }
@@ -152,8 +154,9 @@ foreach ($contacts as $contact) {
             'action' => $baseurl->out_omit_querystring(),
             'hidden' => $hidden,
             // How they asked, each a button with its drawing: the phone, in person, by email, the number no longer theirs.
-            'reasons' => array_map(function ($reason) use ($component, $chosen) {
-                return ['value' => $reason, 'label' => get_string('list:reason:' . $reason, $component),
+            'reasons' => array_map(function ($reason) use ($component, $chosen, $chat) {
+                $suffix = $reason === 'notfamily' && $chat ? ':telegram' : '';
+                return ['value' => $reason, 'label' => get_string('list:reason:' . $reason . $suffix, $component),
                     'selected' => $reason === $chosen, 'other' => $reason === 'other', 'icon' => [
                         'phone' => '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2'
                             . 'A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',

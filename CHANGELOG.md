@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.32.1 (2026-11-13)
+
+- «The day of the channel» says «one every hour», not «one every 1 hour».
+- Opting out a Telegram chat by hand: «The chat no longer belongs to that person», also in the record.
+
 ## 0.32.0 (2026-11-13)
 
 - The page of the channel without a form, by Jujol: each card saves itself at a touch, and with JavaScript changes in

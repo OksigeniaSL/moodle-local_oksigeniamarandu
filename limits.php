@@ -39,7 +39,10 @@ $errors = [];
 if (optional_param('action', '', PARAM_ALPHA) === 'limits' && confirm_sesskey()) {
     $errors = limits::save($money);
     if (!$errors) {
-        redirect(new moodle_url($baseurl, ['saved' => 1]));
+        // Back to the card that was touched, with its «Saved».
+        $part = optional_param('part', '', PARAM_ALPHA);
+        $part = in_array($part, limits::PARTS, true) ? $part : '';
+        redirect(new moodle_url($baseurl, $part ? ['saved' => $part] : [], $part ? 'mrd-' . $part : null));
     }
 }
 
@@ -54,11 +57,10 @@ $PAGE->add_header_action($OUTPUT->render_from_template(
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/limits', [
     'lead' => get_string($money ? 'limits:lead' : 'limits:lead_tg', $component),
-    'saved' => optional_param('saved', 0, PARAM_BOOL) ? get_string('limits:saved', $component) : '',
-    'form' => limits::context($money, $errors) + [
+    'form' => limits::context($money, $errors, optional_param('saved', '', PARAM_ALPHA), $baseurl) + [
         'formurl' => $baseurl->out(false),
         'sesskey' => sesskey(),
-        'submit' => get_string('savechanges'),
+        'submit' => '',
     ],
 ]);
 echo $OUTPUT->footer();

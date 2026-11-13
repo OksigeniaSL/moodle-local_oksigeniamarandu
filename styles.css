@@ -1425,8 +1425,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
-    padding: 2px 0;
+    gap: 10px 16px;
+    padding: 4px 0;
 }
 
 .local-oksigeniamarandu-panel .mrd-ask p {
@@ -1434,21 +1434,98 @@
     margin: 0;
 }
 
-.local-oksigeniamarandu-panel .mrd-ask label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-weight: 600;
+.local-oksigeniamarandu-panel .mrd-ask .mrd-ask-how {
+    font-weight: 700;
 }
 
-.local-oksigeniamarandu-panel .mrd-ask input,
-.local-oksigeniamarandu-panel .mrd-ask select {
-    padding: 6px 10px;
+/* Opting out by hand (Jujol): how they asked, a button for each way that opts out at a touch, and another reason folded,
+   with what it was written. The first button of the form takes the Enter of that field; nobody sees it. */
+.local-oksigeniamarandu-panel .mrd-default {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.local-oksigeniamarandu-panel .mrd-motivos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.local-oksigeniamarandu-panel .mrd-motivo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 16px 6px 12px;
+    border: 1.5px solid var(--mrd-bad-line);
+    border-radius: 12px;
+    background: var(--mrd-card);
+    color: var(--mrd-ink);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-panel .mrd-motivo svg {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    color: var(--mrd-bad);
+}
+
+.local-oksigeniamarandu-panel .mrd-motivo:focus-visible {
+    outline: 2px solid var(--mrd-accent-ink);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .local-oksigeniamarandu-panel .mrd-motivo:hover {
+        border-color: var(--mrd-bad);
+        background: var(--mrd-bad-soft);
+    }
+}
+
+.local-oksigeniamarandu-panel .mrd-otro summary {
+    color: var(--mrd-accent-ink);
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-panel .mrd-otro[open] {
+    flex: 1 1 100%;
+}
+
+.local-oksigeniamarandu-panel .mrd-otro[open] summary {
+    margin-bottom: 8px;
+}
+
+.local-oksigeniamarandu-panel .mrd-otro-c {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-panel .mrd-otro input {
+    flex: 1 1 16rem;
+    min-width: 0;
+    padding: 7px 10px;
     border: 1px solid var(--mrd-line);
     border-radius: 8px;
     background: var(--mrd-card);
     color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-panel .mrd-ask-no {
+    margin-left: auto;
 }
 
 .local-oksigeniamarandu-panel .mrd-ask .mrd-err {
@@ -5327,46 +5404,6 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     padding: 6px 14px;
 }
 
-.local-oksigeniamarandu-channel .mrd-choices {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-
-.local-oksigeniamarandu-channel .mrd-choice {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.local-oksigeniamarandu-channel .mrd-choice + label {
-    margin: 0;
-    padding: 4px 12px;
-    border: 1px solid var(--mrd-line-strong);
-    border-radius: 999px;
-    background: var(--mrd-bg);
-    font-size: 15px;
-    cursor: pointer;
-}
-
-.local-oksigeniamarandu-channel .mrd-choice:checked + label {
-    border-color: var(--mrd-ink);
-    background: var(--mrd-ink);
-    color: var(--mrd-bg);
-    font-weight: 700;
-}
-
-.local-oksigeniamarandu-channel .mrd-choice:focus-visible + label {
-    outline: 2px solid var(--mrd-blue);
-    outline-offset: 2px;
-}
-
-@media (hover: hover) {
-    .local-oksigeniamarandu-channel .mrd-choice:not(:checked) + label:hover {
-        border-color: var(--mrd-ink);
-    }
-}
-
 /* The page of the channel: the fields of the calendar and of the links, a label above each. */
 .local-oksigeniamarandu-channel .mrd-fields {
     display: grid;
@@ -5412,8 +5449,7 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
 /* The page of the channel: what is hidden stays hidden, whatever the display of its class. */
 .local-oksigeniamarandu-channel .mrd-fields[hidden],
 .local-oksigeniamarandu-channel .mrd-here[hidden],
-.local-oksigeniamarandu-channel .mrd-here small[hidden],
-.local-oksigeniamarandu-channel .mrd-savebar[hidden] {
+.local-oksigeniamarandu-channel .mrd-here small[hidden] {
     display: none;
 }
 
@@ -5459,46 +5495,6 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     color: var(--mrd-blue);
 }
 
-/* The hours: from one to the other without breaking, and the days below. */
-.local-oksigeniamarandu-channel .mrd-span {
-    display: inline-flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 0.35em;
-    white-space: nowrap;
-}
-
-.local-oksigeniamarandu-channel .mrd-sentence .mrd-days {
-    display: flex;
-    margin-top: 4px;
-}
-
-/* The levels of the weather warnings, with their colour as well as their name; and the last reading of the source. */
-.local-oksigeniamarandu-channel .mrd-level {
-    display: inline-block;
-    width: 0.7em;
-    height: 0.7em;
-    margin-right: 0.4em;
-    border-radius: 50%;
-    vertical-align: baseline;
-}
-
-.local-oksigeniamarandu-channel .mrd-level-Moderate {
-    background: #f2c500;
-}
-
-.local-oksigeniamarandu-channel .mrd-level-Severe {
-    background: #f08a00;
-}
-
-.local-oksigeniamarandu-channel .mrd-level-Extreme {
-    background: #d62d20;
-}
-
-.local-oksigeniamarandu-channel .mrd-status {
-    color: var(--mrd-muted);
-}
-
 /* The place from the device. */
 .local-oksigeniamarandu-channel .mrd-here {
     display: flex;
@@ -5506,24 +5502,6 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     align-items: center;
     gap: 8px;
     margin-top: 8px;
-}
-
-/* A change not saved: the bar to save it, always at hand at the bottom while the form is on the screen. */
-.local-oksigeniamarandu-channel .mrd-savebar {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 12px;
-    margin: 12px 0 0;
-    padding: 10px 14px;
-    border: 1px solid var(--mrd-line-strong);
-    border-radius: 12px;
-    background: var(--mrd-bg);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 600px) {
@@ -5552,13 +5530,1116 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     border: 1px solid var(--mrd-line);
 }
 
-.local-oksigeniamarandu-channel input[type="color"] {
-    width: 3.2em;
-    height: 2.2em;
-    padding: 2px;
-    border: 1px solid var(--mrd-line-strong);
-    border-radius: 8px;
+/* The settings without the look of a form (Jujol): the channel, the quiet hours and the limits. Every setting is a
+   gesture and saves itself. The time of review in amber, as the hourglass of the review; the channel in the blue of Telegram, the
+   same on every site, because it says which channel it is. */
+.local-oksigeniamarandu-wizard {
+    --mrd-tg: #2a78d6;
+    --mrd-tg-soft: color-mix(in srgb, var(--mrd-tg) 16%, var(--mrd-bg));
+    --mrd-tg-line: color-mix(in srgb, var(--mrd-tg) 55%, var(--mrd-bg));
+    --mrd-rv: #b26f08;
+    --mrd-rv-soft: color-mix(in srgb, var(--mrd-rv) 18%, var(--mrd-bg));
+    --mrd-rv-line: color-mix(in srgb, var(--mrd-rv) 60%, var(--mrd-bg));
+    --mrd-edge: color-mix(in srgb, var(--mrd-ink) 45%, var(--mrd-bg));
+}
+
+[data-bs-theme="dark"] .local-oksigeniamarandu-wizard {
+    --mrd-tg: #4a92ea;
+    --mrd-tg-soft: color-mix(in srgb, var(--mrd-tg) 24%, var(--mrd-bg));
+    --mrd-rv: #e0a33a;
+    --mrd-rv-soft: color-mix(in srgb, var(--mrd-rv) 22%, var(--mrd-bg));
+}
+
+/* Each card: what goes to the channel, its day and, folded, what is set once. */
+.local-oksigeniamarandu-wizard .mrd-part,
+.local-oksigeniamarandu-wizard .mrd-plegada {
+    margin: 0 0 16px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 16px;
     background: var(--mrd-bg);
+    transition: opacity 0.2s;
+}
+
+.local-oksigeniamarandu-wizard .mrd-part {
+    padding: 16px 20px 18px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-part[aria-busy="true"],
+.local-oksigeniamarandu-wizard .mrd-plegada[aria-busy="true"] {
+    opacity: 0.65;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin: 0 0 8px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cab h2,
+.local-oksigeniamarandu-wizard .mrd-cab h3 {
+    margin: 0;
+    font-size: 19px;
+}
+
+/* The first button of each form takes the Enter of its fields; nobody sees it. */
+.local-oksigeniamarandu-wizard .mrd-default {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+/* «Saved», as a rubber stamp on the card just touched. */
+.local-oksigeniamarandu-wizard .mrd-sello {
+    display: inline-block;
+    padding: 1px 8px;
+    border: 2px solid currentColor;
+    border-radius: 6px;
+    color: var(--mrd-green-text);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    transform: rotate(-4deg);
+    animation: mrd-sello 0.35s ease-out;
+}
+
+.local-oksigeniamarandu-wizard .mrd-sello::before {
+    content: "✓ ";
+}
+
+@keyframes mrd-sello {
+    from {
+        opacity: 0;
+        transform: rotate(-4deg) scale(1.6);
+    }
+}
+
+/* What goes to the channel: the three choices of each kind, as chips that are pressed. */
+.local-oksigeniamarandu-wizard .mrd-choices,
+.local-oksigeniamarandu-wizard .mrd-huecos {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-choice,
+.local-oksigeniamarandu-wizard .mrd-hueco {
+    margin: 0;
+    padding: 4px 12px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 999px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    font-size: 15px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-choice[aria-pressed="true"],
+.local-oksigeniamarandu-wizard .mrd-hueco[aria-pressed="true"] {
+    border-color: var(--mrd-ink);
+    background: var(--mrd-ink);
+    color: var(--mrd-bg);
+    font-weight: 700;
+}
+
+/* The day of the channel: a ruler of the 24 hours, with the time of review, that of the channel and the posts of a
+   busy day, each a plane where the pace puts it. */
+.local-oksigeniamarandu-wizard .mrd-regla {
+    --mrd-col: 9em;
+    margin: 4px 0 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-horas {
+    position: relative;
+    height: 1.5em;
+    margin: 0 0 2px var(--mrd-col);
+    padding: 0;
+    list-style: none;
+    color: var(--mrd-muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.local-oksigeniamarandu-wizard .mrd-horas li {
+    position: absolute;
+    left: var(--x);
+    transform: translateX(-50%);
+}
+
+.local-oksigeniamarandu-wizard .mrd-pista {
+    display: grid;
+    grid-template-columns: var(--mrd-col) minmax(0, 1fr);
+    align-items: center;
+    margin: 0 0 6px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-pista-n {
+    padding-right: 10px;
+    color: var(--mrd-ink-soft);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-pista-r {
+    position: relative;
+    display: block;
+    height: 34px;
+    border: 1px solid var(--mrd-line);
+    border-radius: 8px;
+    background:
+        linear-gradient(to right, var(--mrd-line) 1px, transparent 1px) 0 0 / 12.5% 100% repeat-x,
+        var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-pista-r i {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: var(--a);
+    width: var(--w);
+    border: 2px solid var(--mrd-rv-line);
+    border-radius: 6px;
+    background: var(--mrd-rv-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-pista-canal .mrd-pista-r i {
+    border-color: var(--mrd-tg-line);
+    background: var(--mrd-tg-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-avion {
+    position: absolute;
+    top: 50%;
+    left: var(--a);
+    width: 22px;
+    height: 22px;
+    color: var(--mrd-tg);
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 2px var(--mrd-bg));
+}
+
+.local-oksigeniamarandu-wizard .mrd-apilados .mrd-avion {
+    margin-left: calc(var(--n) * 7px + 9px);
+}
+
+.local-oksigeniamarandu-wizard .mrd-avion svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-pie {
+    margin: 2px 0 14px;
+    color: var(--mrd-ink-soft);
+    font-size: 15px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tres {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    border-top: 4px solid var(--mrd-rv-line);
+    border-radius: 12px;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo-canal {
+    border-top-color: var(--mrd-tg-line);
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo-ritmo {
+    border-top-color: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo h4,
+.local-oksigeniamarandu-wizard .mrd-plegada h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo small {
+    color: var(--mrd-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo-t {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* An hour or a number, as a plate: written in its place, with one less and one more beside it. */
+.local-oksigeniamarandu-wizard .mrd-placas,
+.local-oksigeniamarandu-wizard .mrd-pasos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 12px;
+    background: var(--mrd-bg);
+    box-shadow: 0 2px 0 var(--mrd-line);
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa-t {
+    order: -2;
+    width: 100%;
+    padding: 0 6px;
+    color: var(--mrd-muted);
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa input {
+    width: 5.4em;
+    padding: 1px 2px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--mrd-ink);
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa input[type="number"] {
+    width: 2.6em;
+    -moz-appearance: textfield;
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa input::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa input::-webkit-inner-spin-button,
+.local-oksigeniamarandu-wizard .mrd-placa input::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+.local-oksigeniamarandu-wizard .mrd-placa input:focus-visible {
+    outline: 2px solid var(--mrd-blue-text);
+    outline-offset: 1px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-menos,
+.local-oksigeniamarandu-wizard .mrd-mas {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    background: var(--mrd-bg-chip);
+    color: var(--mrd-ink);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-menos {
+    order: -1;
+}
+
+.local-oksigeniamarandu-wizard .mrd-menos:disabled,
+.local-oksigeniamarandu-wizard .mrd-mas:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+@media (hover: hover) {
+    .local-oksigeniamarandu-wizard .mrd-menos:not(:disabled):hover,
+    .local-oksigeniamarandu-wizard .mrd-mas:not(:disabled):hover,
+    .local-oksigeniamarandu-wizard .mrd-choice[aria-pressed="false"]:hover,
+    .local-oksigeniamarandu-wizard .mrd-hueco[aria-pressed="false"]:hover {
+        border-color: var(--mrd-ink);
+        background: var(--mrd-line);
+    }
+}
+
+.local-oksigeniamarandu-wizard .mrd-paso {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-paso-t {
+    font-size: 15px;
+}
+
+/* The days, as sheets of a calendar: on, the ink of the page with the colour of their card on top. */
+.local-oksigeniamarandu-wizard .mrd-hojas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-hoja {
+    --mrd-hoja: var(--mrd-rv);
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 40px;
+    padding: 4px 0 0;
+    border: 1px dashed var(--mrd-edge);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--mrd-muted);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-trozo-canal .mrd-hoja {
+    --mrd-hoja: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-hojas-cal .mrd-hoja {
+    --mrd-hoja: var(--mrd-green);
+    width: 46px;
+    height: 54px;
+    font-size: 19px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-hoja[aria-pressed="true"] {
+    border: 1px solid var(--mrd-ink);
+    background: var(--mrd-ink);
+    color: var(--mrd-bg);
+    box-shadow: inset 0 6px 0 var(--mrd-hoja);
+}
+
+.local-oksigeniamarandu-wizard .mrd-hoja:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-choice:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-hueco:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-menos:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-mas:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-llave:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-nivel:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-color:focus-visible,
+.local-oksigeniamarandu-wizard .mrd-color:focus-within,
+.local-oksigeniamarandu-wizard .mrd-plegada summary:focus-visible {
+    outline: 2px solid var(--mrd-blue-text);
+    outline-offset: 2px;
+}
+
+/* What is set once: folded cards that say in one line what they have, «Change» to open them. */
+.local-oksigeniamarandu-wizard .mrd-tramo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 26px 0 10px;
+    color: var(--mrd-ink-soft);
+    font-size: 16px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tramo::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--mrd-line);
+}
+
+.local-oksigeniamarandu-wizard .mrd-una-vez .mrd-plegada {
+    margin-bottom: 10px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 6px 16px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    list-style: none;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada summary::-webkit-details-marker {
+    display: none;
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada[open] {
+    border-color: var(--mrd-line-strong);
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada[open] summary {
+    border-radius: 16px 16px 0 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cara {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 40px;
+    overflow: hidden;
+    border: 1px solid var(--mrd-line);
+    border-radius: 6px;
+    background: var(--mrd-bg-chip);
+    color: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-cara img {
+    display: block;
+    width: 72px;
+    height: 40px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cara-dibujo svg {
+    width: 34px;
+    height: 34px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cara-color {
+    background: var(--c);
+    box-shadow: inset 0 0 0 3px var(--mrd-bg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada-t {
+    display: grid;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada-t b {
+    font-size: 16px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada-t span {
+    overflow: hidden;
+    color: var(--mrd-muted);
+    font-size: 14px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cambiar {
+    padding: 5px 14px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 999px;
+    color: var(--mrd-ink);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada[open] .mrd-cambiar {
+    border-color: var(--mrd-ink);
+    background: var(--mrd-ink);
+    color: var(--mrd-bg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-dentro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 4px 18px 18px;
+    border-top: 1px dashed var(--mrd-line);
+}
+
+.local-oksigeniamarandu-wizard .mrd-dentro > * {
+    max-width: 100%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-explica {
+    margin: 10px 0 0;
+    color: var(--mrd-muted);
+    font-size: 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-estado {
+    margin: 0;
+    color: var(--mrd-muted);
+    font-size: 14px;
+}
+
+/* The back of a card: what is written, each field with its help when it is used, and its «Save». */
+.local-oksigeniamarandu-wizard .mrd-dorso {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    align-self: stretch;
+    padding: 14px 16px 16px;
+    border-radius: 12px;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-dorso h4 {
+    color: var(--mrd-ink-soft);
+    font-size: 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 10px 18px;
+    align-self: stretch;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campo {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campo-ancho {
+    grid-column: 1 / -1;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campo > span {
+    color: var(--mrd-ink-soft);
+    font-size: 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campo input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 10px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-wizard .mrd-campo small {
+    /* The help of a field is always in its place, quiet, and lights up while the field is used: nothing comes or goes,
+       so «Save» stays under the pointer when the field loses the focus on pressing it, and no empty room is left. */
+    display: block;
+    color: var(--mrd-muted);
+    font-size: 13px;
+    opacity: .7;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campo:focus-within small {
+    opacity: 1;
+}
+
+.local-oksigeniamarandu-wizard .mrd-campos .mrd-here {
+    align-self: end;
+}
+
+/* A switch that saves itself: the key slides to the colour of the channel. */
+.local-oksigeniamarandu-wizard .mrd-llave {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    color: var(--mrd-ink);
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-llave-i {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 26px;
+    border: 2px solid var(--mrd-edge);
+    border-radius: 999px;
+    background: var(--mrd-bg);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.local-oksigeniamarandu-wizard .mrd-llave-i::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--mrd-edge);
+    transition: transform 0.2s;
+}
+
+.local-oksigeniamarandu-wizard .mrd-llave[aria-pressed="true"] .mrd-llave-i {
+    border-color: var(--mrd-tg);
+    background: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-llave[aria-pressed="true"] .mrd-llave-i::before {
+    background: #fff;
+    transform: translateX(18px);
+}
+
+/* The calendar: the week as sheets, and its two posts as notes with their cards. */
+.local-oksigeniamarandu-wizard .mrd-cal {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 14px 28px;
+    align-self: stretch;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cal-semana {
+    display: grid;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-notas {
+    display: grid;
+    gap: 10px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nota {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    font-size: 15px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nota img,
+.local-oksigeniamarandu-wizard .mrd-kindthumb {
+    border-radius: 6px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nota img {
+    border: 1px solid var(--mrd-line);
+}
+
+/* The weather warnings: the plates of the three levels; from the one chosen on, lit. */
+.local-oksigeniamarandu-wizard .mrd-niveles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nivel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 8px;
+    border: 2px solid var(--mrd-line);
+    border-radius: 10px;
+    background: var(--mrd-bg);
+    color: var(--mrd-muted);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nivel-placa {
+    width: 26px;
+    height: 18px;
+    border-radius: 4px;
+    background: #f2c500;
+    opacity: 0.3;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nivel-severe .mrd-nivel-placa {
+    background: #f08a00;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nivel-extreme .mrd-nivel-placa {
+    background: #d62d20;
+}
+
+.local-oksigeniamarandu-wizard .mrd-encendido {
+    color: var(--mrd-ink);
+}
+
+.local-oksigeniamarandu-wizard .mrd-encendido .mrd-nivel-placa {
+    opacity: 1;
+}
+
+.local-oksigeniamarandu-wizard .mrd-nivel[aria-pressed="true"] {
+    border-color: var(--mrd-ink);
+    font-weight: 700;
+}
+
+/* The sky of the place, as a strip of night in both modes. */
+.local-oksigeniamarandu-wizard .mrd-cielo {
+    align-self: stretch;
+    margin: 0;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background:
+        radial-gradient(circle at 62% 28%, #fff 0 1px, transparent 2px),
+        radial-gradient(circle at 70% 74%, #fff 0 1px, transparent 2px),
+        radial-gradient(circle at 78% 18%, #fff 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 84% 58%, #fff 0 1px, transparent 2px),
+        radial-gradient(circle at 91% 30%, #fff 0 1px, transparent 2px),
+        radial-gradient(circle at 96% 80%, #fff 0 1.5px, transparent 2.5px),
+        linear-gradient(160deg, #142441, #263c66);
+    color: #f1f4fa;
+    list-style: none;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cielo li {
+    padding: 2px 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cielo li::before {
+    content: "✦ ";
+    color: #ffe9a8;
+}
+
+.local-oksigeniamarandu-wizard .mrd-cielo li:first-child::before {
+    content: "☾ ";
+}
+
+.local-oksigeniamarandu-wizard .mrd-campos-lugar {
+    grid-template-columns: repeat(2, minmax(0, 12em)) minmax(0, 1fr);
+}
+
+/* The links: where a button goes, as a ticket. */
+.local-oksigeniamarandu-wizard .mrd-billete {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px dashed var(--mrd-line-strong);
+    border-radius: 10px;
+    background: var(--mrd-bg-soft);
+    font-size: 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-billete code {
+    color: var(--mrd-ink);
+    word-break: break-all;
+}
+
+/* The cards: one as it goes out, beside the colour, the switch and what the server can do. */
+.local-oksigeniamarandu-wizard .mrd-tarjeta {
+    display: grid;
+    grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 14px 24px;
+    align-self: stretch;
+}
+
+.local-oksigeniamarandu-wizard .mrd-muestra {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--mrd-line);
+    border-radius: 10px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tarjeta-gestos {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-colores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 4px 14px 4px 5px;
+    border: 2px solid var(--mrd-line);
+    border-radius: 999px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-color[aria-pressed="true"],
+.local-oksigeniamarandu-wizard .mrd-color-propio {
+    border-color: var(--mrd-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wizard .mrd-color-m,
+.local-oksigeniamarandu-wizard .mrd-color input {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.local-oksigeniamarandu-wizard .mrd-color input {
+    background: none;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-color input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-color input::-webkit-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-color input::-moz-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+@media (max-width: 1100px) {
+    .local-oksigeniamarandu-wizard .mrd-tres {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-trozo-ritmo {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 700px) {
+    .local-oksigeniamarandu-wizard .mrd-part {
+        padding: 14px 14px 16px;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-tres,
+    .local-oksigeniamarandu-wizard .mrd-cal,
+    .local-oksigeniamarandu-wizard .mrd-tarjeta,
+    .local-oksigeniamarandu-wizard .mrd-campos,
+    .local-oksigeniamarandu-wizard .mrd-campos-lugar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-regla {
+        --mrd-col: 0;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-pista {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-horas .mrd-impar {
+        visibility: hidden;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-plegada summary {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 12px;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-plegada-t span {
+        display: -webkit-box;
+        white-space: normal;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-cambiar,
+    .local-oksigeniamarandu-wizard .mrd-plegada summary .mrd-sello {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-dentro {
+        padding: 4px 12px 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .local-oksigeniamarandu-wizard .mrd-sello {
+        animation: none;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-llave-i,
+    .local-oksigeniamarandu-wizard .mrd-llave-i::before {
+        transition: none;
+    }
+}
+
+/* The quiet hours and the limits (Jujol): the week as seven rulers, the quiet hours dark as the night, and the name of
+   each day the switch that quiets it whole; the notices a day as bubbles on a phone; the money with its gauge. */
+.local-oksigeniamarandu-wizard .mrd-limites {
+    display: block;
+}
+
+.local-oksigeniamarandu-wizard .mrd-semana .mrd-pista {
+    margin-bottom: 5px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-semana .mrd-pista-r {
+    height: 30px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-semana .mrd-pista-r i {
+    border: 0;
+    background:
+        radial-gradient(circle at 30% 40%, rgba(255, 255, 255, .85) 0 1px, transparent 1.5px) 0 0 / 22px 14px,
+        linear-gradient(#1c2b4b, #2c3f69);
+}
+
+.local-oksigeniamarandu-wizard .mrd-dia-n {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    justify-self: start;
+    margin-right: 10px;
+    padding: 3px 12px 3px 5px;
+    border: 1px solid var(--mrd-line-strong);
+    border-radius: 999px;
+    background: var(--mrd-bg);
+    color: var(--mrd-ink);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-luna {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px dashed var(--mrd-edge);
+    border-radius: 50%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-dia-n[aria-pressed="true"] {
+    border-color: #1c2b4b;
+    background: #1c2b4b;
+    color: #f1f4fa;
+}
+
+.local-oksigeniamarandu-wizard .mrd-dia-n[aria-pressed="true"] .mrd-luna {
+    border: 0;
+    box-shadow: inset -5px -2px 0 0 #ffe9a8;
+}
+
+.local-oksigeniamarandu-wizard .mrd-dia-n:focus-visible {
+    outline: 2px solid var(--mrd-blue-text);
+    outline-offset: 2px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-dos {
+    display: grid;
+    /* stylelint-disable-next-line csstree/validator */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+    gap: 0 16px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-aldia-c {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 22px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-aldia-g {
+    display: grid;
+    flex: 1 1 14rem;
+    gap: 8px;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-wizard .mrd-aldia-g .mrd-pie {
+    margin: 0;
+}
+
+/* The phone with the notices of a day: one bubble each, and the next, dashed, that waits for tomorrow. */
+.local-oksigeniamarandu-wizard .mrd-movil {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 6px;
+    width: 88px;
+    min-height: 148px;
+    padding: 20px 9px 10px;
+    border: 3px solid var(--mrd-ink);
+    border-radius: 18px;
+    background: var(--mrd-bg-soft);
+}
+
+.local-oksigeniamarandu-wizard .mrd-movil i {
+    width: 80%;
+    height: 13px;
+    border-radius: 7px 7px 7px 2px;
+    background: var(--mrd-tg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-movil i:nth-child(2n) {
+    width: 62%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-movil .mrd-espera {
+    border: 2px dashed var(--mrd-edge);
+    background: transparent;
+}
+
+.local-oksigeniamarandu-wizard .mrd-tope {
+    flex: none;
+    width: 72px;
+    height: 72px;
+    color: var(--mrd-rv);
+}
+
+.local-oksigeniamarandu-wizard .mrd-tope svg {
+    width: 100%;
+    height: 100%;
+}
+
+.local-oksigeniamarandu-wizard .mrd-gasto .mrd-dorso {
+    margin-top: 14px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-dorso > .mrd-campo {
+    align-self: stretch;
+}
+
+.local-oksigeniamarandu-wizard .mrd-llaves {
+    display: grid;
+    /* stylelint-disable-next-line csstree/validator */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: 4px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@media (max-width: 700px) {
+    .local-oksigeniamarandu-wizard .mrd-semana .mrd-pista {
+        grid-template-columns: 7.5em minmax(0, 1fr);
+        gap: 0;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-semana .mrd-horas {
+        margin-left: 7.5em;
+    }
+
+    .local-oksigeniamarandu-wizard .mrd-dia-n {
+        margin-right: 6px;
+        padding-right: 8px;
+        font-size: 13px;
+    }
 }
 
 /* To the channel: the photo first and large, with what the channel will show under it; beside the fields on a wide

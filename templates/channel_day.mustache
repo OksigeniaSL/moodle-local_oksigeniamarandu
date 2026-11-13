@@ -1,0 +1,32 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/channel_day
+
+    A day of the week on the page of the channel, as a sheet that is touched: on or off, saved at a touch. The day on
+    goes as a hidden field at the top of its form, so that this button, sent last, changes it.
+
+    Context variables required for this template:
+    * group, value - The setting (review, post or class) and the number of the day.
+    * label, name, on - Its letter, its name and whether it is on.
+
+    Example context (json):
+    {
+        "group": "review", "value": 1, "label": "M", "name": "Monday", "on": true
+    }
+}}
+<button type="submit" class="mrd-hoja" name="{{group}}days[{{value}}]" value="{{#on}}0{{/on}}{{^on}}1{{/on}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></button>

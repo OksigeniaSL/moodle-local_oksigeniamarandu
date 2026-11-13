@@ -29,6 +29,7 @@ require_once($CFG->libdir . '/adminlib.php');
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\keywords;
 use local_oksigeniamarandu\local\panel;
+use local_oksigeniamarandu\local\telegram;
 
 admin_externalpage_setup('local_oksigeniamarandu_contacts', '', null, '', ['nosearch' => true]);
 
@@ -142,14 +143,26 @@ foreach ($contacts as $contact) {
         foreach ($baseurl->params() + ['optout' => $contact->id, 'shown' => $shown, 'sesskey' => sesskey()] as $name => $value) {
             $hidden[] = ['name' => $name, 'value' => $value];
         }
+        // A chat of Telegram has no number to name, and comes back from Telegram.
+        $chat = telegram::is_chat($contact->phone);
         $row['ask'] = [
-            'question' => get_string('list:ask', $component, (object)['phone' => $row['phone'],
+            'question' => get_string($chat ? 'list:ask:telegram' : 'list:ask', $component, (object)['phone' => $row['phone'],
                 'who' => $row['who'] !== '' ? ' (' . $row['who'] . ')' : '']),
+            'what' => get_string($chat ? 'list:ask:what:telegram' : 'list:ask:what', $component),
             'action' => $baseurl->out_omit_querystring(),
             'hidden' => $hidden,
+            // How they asked, each a button with its drawing: the phone, in person, by email, the number no longer theirs.
             'reasons' => array_map(function ($reason) use ($component, $chosen) {
                 return ['value' => $reason, 'label' => get_string('list:reason:' . $reason, $component),
-                    'selected' => $reason === $chosen];
+                    'selected' => $reason === $chosen, 'other' => $reason === 'other', 'icon' => [
+                        'phone' => '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2'
+                            . 'A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+                        'person' => '<circle cx="12" cy="7" r="4"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/>',
+                        'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+                        'notfamily' => '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>'
+                            . '<path d="m9.5 8.5 5 5m0-5-5 5"/>',
+                        'other' => '',
+                    ][$reason]];
             }, $reasons),
             'other' => optional_param('other', '', PARAM_TEXT),
             'otheropen' => $chosen === 'other',
@@ -188,7 +201,8 @@ $context = [
         $total
     ),
     'done' => $donecontact && $donecontact->status === 'optedout'
-        ? get_string('list:done', $component, panel::spaced($donecontact->phone)) : '',
+        ? (telegram::is_chat($donecontact->phone) ? get_string('list:done:telegram', $component)
+            : get_string('list:done', $component, panel::spaced($donecontact->phone))) : '',
     'rows' => $rows,
     'hasrows' => (bool)$rows,
     'more' => $total > $shown ? [

@@ -17,23 +17,41 @@
 {{!
     @template local_oksigeniamarandu/channel
 
-    The channel of Telegram of the site: how to take one, or the one it has, with what goes there by itself and what is
-    reviewed first, the hours of review and of the channel, and the posts waiting or gone out.
+    The channel of Telegram of the site: how to take one, or the one it has, with the posts waiting or gone out, and its
+    settings without the look of a form (Jujol): every setting is a gesture of the world of the channel and saves itself.
+
+    The settings. «What goes to the channel», each kind with its three choices; «The day of the channel», a ruler of the
+    24 hours with the time of review and that of the channel and where the posts of a busy day fall, with the plates of
+    the hours, the days as sheets and the pace; and, below, what is set once, in folded cards that say in one line what
+    they have: the calendar, the weather warnings, the place and its sky, the links and the cards.
+
+    Saving. Each card is a form of its own that sends only what it has (part, the card it is): the server saves what
+    comes and leaves the rest. A day, a switch or a choice carries what it has now as a hidden field at the top and,
+    after it, a button with the same name and the value it changes to: PHP keeps the last one. An hour or a number is
+    written in its place too, before its two buttons: the first button of each form is hidden and takes the Enter of
+    the fields. Text is saved with the «Save» of its card, or with any other gesture of it. The card comes back open,
+    with its «Saved» (saved, open). With JavaScript, the page stays where it is: the card is sent in the background
+    and replaced by the one the server draws; an hour, a number or a colour saves itself a moment after its change.
 
     Context variables required for this template:
-    * lead, saved, error - What it is for, the line after saving and an error.
+    * lead, saved, error - What it is for, the line after connecting and an error.
     * canconfig - Whether the user runs the site: the settings are for them; whoever only reviews sees what is waiting.
     * nobot, boturl - Without a bot, the link to its page.
     * formurl, sesskey - Where the forms go.
     * connect - Without a channel: botname and candidate (id, title, username), the channel Telegram said the bot can post in.
-    * channel - With a channel: title, username, url, problem, members, growth, reviewers, noreviewers, kinds (name, desc,
-      field, choices with value, id, label, on), reviewfrom, reviewto, reviewdays and postfrom, postto, postdays (group,
-      value, label, name, on); the pace: postgaps (value, label, on), postperday and postperweek; and the posts review, ready, published and failed (id, title, kind, when, clicks, error,
-      urgent), and empty; the calendar: calendarical, calendarsite, calendarlink, calendarkeywords, classdays, weekhour and
-      evehour; the weather warnings: weatherfeed, weatherareas, weatherlevels (value, id, label, on) and weatherstatus;
-      the place: latitude and longitude; the sky: skytle, skydefault, skysummary (lines) and skynoplace; the links: utm,
-      utmsource, utmmedium, shortener and hassignature; the cards: cardcolor, cardorg, cardorgdefault, cardanimated,
-      ffmpeg, cardstatus, previewurl and previews (alt, src).
+    * channel - With a channel: title, username, url, problem, members, growth, reviewers, noreviewers; the posts review,
+      ready, published and failed (id, title, kind, when, clicks, error, urgent), and empty; kinds (name, desc, thumb,
+      field, choices with value, label, on) and whatsaved; and the cards, each with key, saved and open:
+      - day: marks (x, label, odd), reviewspans and postspans (a, w), planes (a, n, time), caption, the plates
+        reviewfrom, reviewto, postfrom and postto (local_oksigeniamarandu/channel_plate), reviewdays and postdays
+        (local_oksigeniamarandu/channel_day), gap, gaps (value, label, on), perday and perweek
+        (local_oksigeniamarandu/channel_stepper);
+      - calendar: face, line, nosource, classdays, site, weekthumb, evethumb, weekhour, evehour, ical, link, keywords;
+      - weather: face, line, nofeed, levels (value, colour, on, lit, label), severity, status, feed, areas;
+      - place: face, line, noplace, sky (lines), latitude, longitude, tle, tledefault;
+      - links: line, utm, example, utmsource, utmmedium, shortener, hassignature;
+      - cards: line, colour, theme, own, sample, org, orgdefault, animated, ffmpeg, status, previewurl; and previews
+        (alt, src), the seven cards, when asked for.
 
     Example context (json):
     {
@@ -129,127 +147,241 @@
         {{#empty}}<p class="mrd-muted">{{#str}} channel:empty, local_oksigeniamarandu {{/str}}</p>{{/empty}}
 
         {{#canconfig}}
-        <form method="post" action="{{formurl}}" class="mrd-sentences" id="mrd-settings">
+        <form method="post" action="{{formurl}}" class="mrd-part mrd-que" id="mrd-what" data-part>
             <input type="hidden" name="sesskey" value="{{sesskey}}">
             <input type="hidden" name="action" value="save">
-            <h3>{{#str}} channel:what, local_oksigeniamarandu {{/str}}</h3>
+            <input type="hidden" name="part" value="what">
+            <div class="mrd-cab"><h3>{{#str}} channel:what, local_oksigeniamarandu {{/str}}</h3>{{#whatsaved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/whatsaved}}</div>
             <ul class="mrd-kinds">
                 {{#kinds}}
                 <li>{{#thumb}}<img class="mrd-kindthumb" src="{{.}}" alt="" width="72" height="40">{{/thumb}}{{^thumb}}<svg class="mrd-kindthumb mrd-kindtext" viewBox="0 0 72 40" aria-hidden="true" focusable="false"><rect width="72" height="40" rx="5" fill="#f6f1e7"/><path d="M8 8h11a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3h-6l-4 3v-3H8a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3z" fill="currentColor"/><rect x="26" y="10" width="34" height="3" rx="1.5" fill="#24211d" opacity=".55"/><rect x="8" y="25" width="54" height="3" rx="1.5" fill="#24211d" opacity=".3"/><rect x="8" y="31" width="40" height="3" rx="1.5" fill="#24211d" opacity=".3"/></svg>{{/thumb}}<span class="mrd-kind"><strong>{{name}}</strong>{{#desc}} <small>{{.}}</small>{{/desc}}</span>
-                    <span class="mrd-choices" role="radiogroup" aria-label="{{name}}">{{#choices}}<input type="radio" class="mrd-choice" id="{{id}}" name="policy[{{field}}]" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}">{{label}}</label>{{/choices}}</span>
+                    <span class="mrd-choices" role="group" aria-label="{{name}}">{{#choices}}<button type="submit" class="mrd-choice" name="policy[{{field}}]" value="{{value}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}">{{label}}</button>{{/choices}}</span>
                 </li>
                 {{/kinds}}
             </ul>
-            <h3>{{#str}} channel:hours, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sentence">{{#str}} channel:hours:review1, local_oksigeniamarandu {{/str}}
-                <span class="mrd-span"><input type="time" name="reviewfrom" value="{{reviewfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
-                {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
-                <input type="time" name="reviewto" value="{{reviewto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}"></span>
-                <span class="mrd-days">{{#reviewdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/reviewdays}}</span></p>
-            <p class="mrd-sub">{{#str}} channel:hours:review2, local_oksigeniamarandu {{/str}}</p>
-            <p class="mrd-sentence">{{#str}} channel:hours:post1, local_oksigeniamarandu {{/str}}
-                <span class="mrd-span"><input type="time" name="postfrom" value="{{postfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
-                {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
-                <input type="time" name="postto" value="{{postto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}"></span>
-                <span class="mrd-days">{{#postdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/postdays}}</span></p>
-            <p class="mrd-sub">{{#str}} channel:hours:post2, local_oksigeniamarandu {{/str}}</p>
-            <p class="mrd-sentence">{{#str}} channel:pace1, local_oksigeniamarandu {{/str}}
-                <select name="postgap" aria-label="{{#str}} channel:pace:gap, local_oksigeniamarandu {{/str}}">{{#postgaps}}<option value="{{value}}" {{#on}}selected{{/on}}>{{label}}</option>{{/postgaps}}</select>{{#str}} channel:pace2, local_oksigeniamarandu {{/str}}
-                <span class="mrd-span"><input class="mrd-num" type="number" min="0" max="50" name="postperday" value="{{postperday}}" aria-label="{{#str}} channel:pace:day, local_oksigeniamarandu {{/str}}">
-                {{#str}} channel:pace3, local_oksigeniamarandu {{/str}}</span>
-                <span class="mrd-span"><input class="mrd-num" type="number" min="0" max="300" name="postperweek" value="{{postperweek}}" aria-label="{{#str}} channel:pace:week, local_oksigeniamarandu {{/str}}">
-                {{#str}} channel:pace4, local_oksigeniamarandu {{/str}}</span></p>
-            <p class="mrd-sub">{{#str}} channel:pace:desc, local_oksigeniamarandu {{/str}}</p>
-
-            <h3>{{#str}} channel:calendar, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:calendar:desc, local_oksigeniamarandu {{/str}}</p>
-            <div class="mrd-fields">
-                <label for="mrd-ical">{{#str}} channel:calendar:ical, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-ical" type="url" name="calendarical" value="{{calendarical}}" placeholder="https://" autocomplete="off">
-                <span class="mrd-check"><input type="checkbox" id="mrd-calsite" name="calendarsite" value="1" {{#calendarsite}}checked{{/calendarsite}}><label for="mrd-calsite">{{#str}} channel:calendar:site, local_oksigeniamarandu {{/str}}</label></span>
-                <label for="mrd-callink">{{#str}} channel:calendar:link, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-callink" type="url" name="calendarlink" value="{{calendarlink}}" placeholder="https://" autocomplete="off">
-                <label for="mrd-keywords">{{#str}} channel:calendar:keywords, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-keywords" type="text" name="calendarkeywords" value="{{calendarkeywords}}" aria-describedby="mrd-keywords-desc">
-                <small id="mrd-keywords-desc">{{#str}} channel:calendar:keywords_desc, local_oksigeniamarandu {{/str}}</small>
-            </div>
-            <p class="mrd-sentence">{{#str}} channel:calendar:classdays, local_oksigeniamarandu {{/str}}
-                <span class="mrd-days">{{#classdays}}<input type="checkbox" id="mrd-{{group}}-{{value}}" name="{{group}}days[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-{{group}}-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/classdays}}</span></p>
-            <p class="mrd-sentence">{{#str}} channel:calendar:weekhour, local_oksigeniamarandu {{/str}}
-                <input type="time" name="weekhour" value="{{weekhour}}" aria-label="{{#str}} channel:calendar:weekhour, local_oksigeniamarandu {{/str}}"></p>
-            <p class="mrd-sentence">{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}
-                <input type="time" name="evehour" value="{{evehour}}" aria-label="{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}"></p>
-
-            <h3>{{#str}} channel:weather, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:weather:desc, local_oksigeniamarandu {{/str}}</p>
-            <div class="mrd-fields">
-                <label for="mrd-weatherfeed">{{#str}} channel:weather:feed, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-weatherfeed" type="url" name="weatherfeed" value="{{weatherfeed}}" placeholder="https://" autocomplete="off"{{#weatherstatus}} aria-describedby="mrd-weatherstatus"{{/weatherstatus}}>
-                {{#weatherstatus}}<small id="mrd-weatherstatus" class="mrd-status" role="status">{{.}}</small>{{/weatherstatus}}
-                <label for="mrd-weatherareas">{{#str}} channel:weather:areas, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-weatherareas" type="text" name="weatherareas" value="{{weatherareas}}" autocomplete="off" aria-describedby="mrd-weatherareas-desc">
-                <small id="mrd-weatherareas-desc">{{#str}} channel:weather:areas_desc, local_oksigeniamarandu {{/str}}</small>
-            </div>
-            <p class="mrd-sentence">{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}
-                <span class="mrd-choices" role="radiogroup" aria-label="{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}">{{#weatherlevels}}<input type="radio" class="mrd-choice" id="{{id}}" name="weatherseverity" value="{{value}}" {{#on}}checked{{/on}}><label for="{{id}}"><span class="mrd-level mrd-level-{{value}}" aria-hidden="true"></span>{{label}}</label>{{/weatherlevels}}</span></p>
-
-            <h3>{{#str}} channel:place, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:place:desc, local_oksigeniamarandu {{/str}}</p>
-            <div class="mrd-fields">
-                <label for="mrd-latitude">{{#str}} channel:place:latitude, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-latitude" type="text" inputmode="decimal" name="latitude" value="{{latitude}}" autocomplete="off">
-                <label for="mrd-longitude">{{#str}} channel:place:longitude, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-longitude" type="text" inputmode="decimal" name="longitude" value="{{longitude}}" autocomplete="off">
-                <span class="mrd-here" hidden><button type="button" class="mrd-btn mrd-second" data-here>{{#str}} channel:place:here, local_oksigeniamarandu {{/str}}</button>
-                <small data-herefailed hidden role="status">{{#str}} channel:place:herefailed, local_oksigeniamarandu {{/str}}</small></span>
-            </div>
-
-            <h3>{{#str}} channel:sky, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:sky:desc, local_oksigeniamarandu {{/str}}</p>
-            {{#skynoplace}}<p class="mrd-warn">{{#str}} channel:sky:noplace, local_oksigeniamarandu {{/str}}</p>{{/skynoplace}}
-            {{#skysummary.0}}<ul class="mrd-sky">{{#skysummary}}<li>{{.}}</li>{{/skysummary}}</ul>{{/skysummary.0}}
-            <div class="mrd-fields">
-                <label for="mrd-skytle">{{#str}} channel:sky:tle, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-skytle" type="url" name="skytle" value="{{skytle}}" placeholder="{{skydefault}}" autocomplete="off" aria-describedby="mrd-skytle-desc">
-                <small id="mrd-skytle-desc">{{#str}} channel:sky:tle_desc, local_oksigeniamarandu {{/str}}</small>
-            </div>
-
-            <h3>{{#str}} channel:links, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:links:desc, local_oksigeniamarandu {{/str}}</p>
-            <div class="mrd-fields">
-                <span class="mrd-check"><input type="checkbox" id="mrd-utm" name="utm" value="1" {{#utm}}checked{{/utm}}><label for="mrd-utm">{{#str}} channel:links:utm, local_oksigeniamarandu {{/str}}</label></span>
-                <div class="mrd-fields mrd-utmfields" {{^utm}}hidden{{/utm}}>
-                <label for="mrd-utmsource">utm_source</label>
-                <input id="mrd-utmsource" type="text" name="utmsource" value="{{utmsource}}" autocomplete="off">
-                <label for="mrd-utmmedium">utm_medium</label>
-                <input id="mrd-utmmedium" type="text" name="utmmedium" value="{{utmmedium}}" autocomplete="off">
-                </div>
-                <label for="mrd-shortener">{{#str}} channel:links:shortener, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-shortener" type="url" name="shortener" value="{{shortener}}" placeholder="https://" autocomplete="off">
-                <label for="mrd-signature">{{#str}} channel:links:signature, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-signature" type="password" name="shortenersignature" value="" autocomplete="new-password" {{#hassignature}}placeholder="{{#str}} channel:links:signatureset, local_oksigeniamarandu {{/str}}"{{/hassignature}}>
-            </div>
-            <h3 id="mrd-cards">{{#str}} channel:cards, local_oksigeniamarandu {{/str}}</h3>
-            <p class="mrd-sub">{{#str}} channel:cards:desc, local_oksigeniamarandu {{/str}} {{cardstatus}}</p>
-            <div class="mrd-fields">
-                <label for="mrd-cardcolor">{{#str}} channel:cards:color, local_oksigeniamarandu {{/str}}</label>
-                <span class="mrd-check"><input id="mrd-cardcolor" type="color" name="cardcolor" value="{{cardcolor}}">
-                <input type="checkbox" id="mrd-cardcolordefault" name="cardcolordefault" value="1"><label for="mrd-cardcolordefault">{{#str}} channel:cards:colordefault, local_oksigeniamarandu {{/str}}</label></span>
-                <label for="mrd-cardorg">{{#str}} channel:cards:org, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-cardorg" type="text" name="cardorg" value="{{cardorg}}" placeholder="{{cardorgdefault}}">
-                <span class="mrd-check"><input type="checkbox" id="mrd-cardanimated" name="cardanimated" value="1" {{#cardanimated}}checked{{/cardanimated}}><label for="mrd-cardanimated">{{#str}} channel:cards:animated, local_oksigeniamarandu {{/str}}</label></span>
-                <label for="mrd-ffmpeg">{{#str}} channel:cards:ffmpeg, local_oksigeniamarandu {{/str}}</label>
-                <input id="mrd-ffmpeg" type="text" name="ffmpeg" value="{{ffmpeg}}" placeholder="/usr/bin/ffmpeg" autocomplete="off">
-            </div>
-            <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button>
-                <a class="btn mrd-btn mrd-second" href="{{previewurl}}">{{#str}} channel:cards:preview, local_oksigeniamarandu {{/str}}</a></div>
-            <div class="mrd-savebar" hidden><span role="status">{{#str}} channel:unsaved, local_oksigeniamarandu {{/str}}</span>
-                <button type="submit" class="mrd-btn mrd-primary">{{#str}} savechanges {{/str}}</button></div>
         </form>
-        {{#previews.0}}
-        <p class="mrd-muted">{{#str}} channel:cards:sample, local_oksigeniamarandu {{/str}}</p>
-        <div class="mrd-previews">{{#previews}}<img src="{{src}}" alt="{{alt}}" width="640" height="360">{{/previews}}</div>
-        {{/previews.0}}
+
+        {{#day}}
+        <form method="post" action="{{formurl}}" class="mrd-part mrd-dia" id="mrd-day" data-part>
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="part" value="day">
+            {{#reviewdays}}{{#on}}<input type="hidden" name="{{group}}days[{{value}}]" value="1">{{/on}}{{/reviewdays}}
+            {{#postdays}}{{#on}}<input type="hidden" name="{{group}}days[{{value}}]" value="1">{{/on}}{{/postdays}}
+            <input type="hidden" name="postgap" value="{{gap}}">
+            <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+            <div class="mrd-cab"><h3>{{#str}} channel:day, local_oksigeniamarandu {{/str}}</h3>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+            <div class="mrd-regla" aria-hidden="true">
+                <ol class="mrd-horas">{{#marks}}<li class="{{#odd}}mrd-impar{{/odd}}" style="--x: {{x}}%">{{label}}</li>{{/marks}}</ol>
+                <div class="mrd-pista mrd-pista-revisa"><span class="mrd-pista-n">{{#str}} channel:day:review, local_oksigeniamarandu {{/str}}</span>
+                    <span class="mrd-pista-r">{{#reviewspans}}<i style="--a: {{a}}%; --w: {{w}}%"></i>{{/reviewspans}}</span></div>
+                <div class="mrd-pista mrd-pista-canal"><span class="mrd-pista-n">{{#str}} channel:day:post, local_oksigeniamarandu {{/str}}</span>
+                    <span class="mrd-pista-r{{#together}} mrd-apilados{{/together}}">{{#postspans}}<i style="--a: {{a}}%; --w: {{w}}%"></i>{{/postspans}}{{#planes}}<b class="mrd-avion" style="--a: {{a}}%; --n: {{n}}"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M8 31 56 10 41 52 29 39Z" fill="currentColor" fill-opacity=".3"/><path d="M56 10 29 39 27 50 35 44"/></svg></b>{{/planes}}</span></div>
+            </div>
+            <p class="mrd-pie">{{caption}}</p>
+            <div class="mrd-tres">
+                <section class="mrd-trozo mrd-trozo-revisa" aria-labelledby="mrd-day-review">
+                    <h4 id="mrd-day-review">{{#str}} channel:day:review, local_oksigeniamarandu {{/str}}</h4>
+                    <div class="mrd-placas">{{#reviewfrom}}{{> local_oksigeniamarandu/channel_plate }}{{/reviewfrom}}{{#reviewto}}{{> local_oksigeniamarandu/channel_plate }}{{/reviewto}}</div>
+                    <div class="mrd-hojas" role="group" aria-labelledby="mrd-day-review">{{#reviewdays}}{{> local_oksigeniamarandu/channel_day }}{{/reviewdays}}</div>
+                    <small>{{#str}} channel:hours:review2, local_oksigeniamarandu {{/str}}</small>
+                </section>
+                <section class="mrd-trozo mrd-trozo-canal" aria-labelledby="mrd-day-post">
+                    <h4 id="mrd-day-post">{{#str}} channel:day:post, local_oksigeniamarandu {{/str}}</h4>
+                    <div class="mrd-placas">{{#postfrom}}{{> local_oksigeniamarandu/channel_plate }}{{/postfrom}}{{#postto}}{{> local_oksigeniamarandu/channel_plate }}{{/postto}}</div>
+                    <div class="mrd-hojas" role="group" aria-labelledby="mrd-day-post">{{#postdays}}{{> local_oksigeniamarandu/channel_day }}{{/postdays}}</div>
+                    <small>{{#str}} channel:hours:post2, local_oksigeniamarandu {{/str}}</small>
+                </section>
+                <section class="mrd-trozo mrd-trozo-ritmo" aria-labelledby="mrd-day-pace">
+                    <h4 id="mrd-day-pace">{{#str}} channel:day:pace, local_oksigeniamarandu {{/str}}</h4>
+                    <p class="mrd-trozo-t" id="mrd-day-gap">{{#str}} channel:pace1, local_oksigeniamarandu {{/str}}</p>
+                    <div class="mrd-huecos" role="group" aria-labelledby="mrd-day-gap">{{#gaps}}<button type="submit" class="mrd-hueco" name="postgap" value="{{value}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}">{{label}}</button>{{/gaps}}</div>
+                    <div class="mrd-pasos">{{#perday}}{{> local_oksigeniamarandu/channel_stepper }}{{/perday}}{{#perweek}}{{> local_oksigeniamarandu/channel_stepper }}{{/perweek}}</div>
+                    <small>{{#str}} channel:pace:desc, local_oksigeniamarandu {{/str}}</small>
+                </section>
+            </div>
+        </form>
+        {{/day}}
+
+        <h3 class="mrd-tramo">{{#str}} channel:once, local_oksigeniamarandu {{/str}}</h3>
+        <div class="mrd-una-vez">
+            {{#calendar}}
+            <details class="mrd-plegada" id="mrd-calendar" data-part{{#open}} open{{/open}}>
+                <summary><span class="mrd-cara">{{#face}}<img src="{{.}}" alt="" width="72" height="40">{{/face}}</span>
+                    <span class="mrd-plegada-t"><b>{{#str}} channel:calendar, local_oksigeniamarandu {{/str}}</b><span>{{line}}</span></span>
+                    {{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}<span class="mrd-cambiar" aria-hidden="true">{{#str}} channel:change, local_oksigeniamarandu {{/str}}</span></summary>
+                <form method="post" action="{{formurl}}" class="mrd-dentro">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="part" value="calendar">
+                    {{#classdays}}{{#on}}<input type="hidden" name="{{group}}days[{{value}}]" value="1">{{/on}}{{/classdays}}
+                    <input type="hidden" name="calendarsite" value="{{#site}}1{{/site}}{{^site}}0{{/site}}">
+                    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+                    <p class="mrd-explica">{{#str}} channel:calendar:desc, local_oksigeniamarandu {{/str}}</p>
+                    <div class="mrd-cal">
+                        <div class="mrd-cal-semana">
+                            <h4 id="mrd-cal-class">{{#str}} channel:calendar:classdays, local_oksigeniamarandu {{/str}}</h4>
+                            <div class="mrd-hojas mrd-hojas-cal" role="group" aria-labelledby="mrd-cal-class">{{#classdays}}{{> local_oksigeniamarandu/channel_day }}{{/classdays}}</div>
+                        </div>
+                        <div class="mrd-notas">
+                            <div class="mrd-nota">{{#weekthumb}}<img src="{{.}}" alt="" width="72" height="40">{{/weekthumb}}<span>{{#str}} channel:calendar:weekhour, local_oksigeniamarandu {{/str}}</span>{{#weekhour}}{{> local_oksigeniamarandu/channel_plate }}{{/weekhour}}</div>
+                            <div class="mrd-nota">{{#evethumb}}<img src="{{.}}" alt="" width="72" height="40">{{/evethumb}}<span>{{#str}} channel:calendar:evehour, local_oksigeniamarandu {{/str}}</span>{{#evehour}}{{> local_oksigeniamarandu/channel_plate }}{{/evehour}}</div>
+                        </div>
+                    </div>
+                    <div class="mrd-dorso">
+                        <h4>{{#str}} channel:calendar:where, local_oksigeniamarandu {{/str}}</h4>
+                        <button type="submit" class="mrd-llave" name="calendarsite" value="{{#site}}0{{/site}}{{^site}}1{{/site}}" aria-pressed="{{#site}}true{{/site}}{{^site}}false{{/site}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} channel:calendar:site, local_oksigeniamarandu {{/str}}</button>
+                        <div class="mrd-campos">
+                            <label class="mrd-campo"><span>{{#str}} channel:calendar:ical, local_oksigeniamarandu {{/str}}</span>
+                                <input type="url" name="calendarical" value="{{ical}}" placeholder="https://" autocomplete="off"></label>
+                            <label class="mrd-campo"><span>{{#str}} channel:calendar:link, local_oksigeniamarandu {{/str}}</span>
+                                <input type="url" name="calendarlink" value="{{link}}" placeholder="https://" autocomplete="off"></label>
+                            <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} channel:calendar:keywords, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="calendarkeywords" value="{{keywords}}">
+                                <small>{{#str}} channel:calendar:keywords_desc, local_oksigeniamarandu {{/str}}</small></label>
+                        </div>
+                        <button type="submit" class="mrd-btn mrd-primary mrd-guardar">{{#str}} save {{/str}}</button>
+                    </div>
+                </form>
+            </details>
+            {{/calendar}}
+
+            {{#weather}}
+            <details class="mrd-plegada" id="mrd-weather" data-part{{#open}} open{{/open}}>
+                <summary><span class="mrd-cara">{{#face}}<img src="{{.}}" alt="" width="72" height="40">{{/face}}</span>
+                    <span class="mrd-plegada-t"><b>{{#str}} channel:weather, local_oksigeniamarandu {{/str}}</b><span>{{line}}</span></span>
+                    {{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}<span class="mrd-cambiar" aria-hidden="true">{{#str}} channel:change, local_oksigeniamarandu {{/str}}</span></summary>
+                <form method="post" action="{{formurl}}" class="mrd-dentro">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="part" value="weather">
+                    <input type="hidden" name="weatherseverity" value="{{severity}}">
+                    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+                    <p class="mrd-explica">{{#str}} channel:weather:desc, local_oksigeniamarandu {{/str}}</p>
+                    <h4 id="mrd-weather-level">{{#str}} channel:weather:severity, local_oksigeniamarandu {{/str}}</h4>
+                    <div class="mrd-niveles" role="group" aria-labelledby="mrd-weather-level">{{#levels}}<button type="submit" class="mrd-nivel mrd-nivel-{{colour}}{{#lit}} mrd-encendido{{/lit}}" name="weatherseverity" value="{{value}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}"><span class="mrd-nivel-placa" aria-hidden="true"></span>{{label}}</button>{{/levels}}</div>
+                    {{#status}}<p class="mrd-estado" role="status">{{.}}</p>{{/status}}
+                    <div class="mrd-dorso">
+                        <h4>{{#str}} channel:weather:where, local_oksigeniamarandu {{/str}}</h4>
+                        <div class="mrd-campos">
+                            <label class="mrd-campo"><span>{{#str}} channel:weather:feed, local_oksigeniamarandu {{/str}}</span>
+                                <input type="url" name="weatherfeed" value="{{feed}}" placeholder="https://" autocomplete="off"></label>
+                            <label class="mrd-campo"><span>{{#str}} channel:weather:areas, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="weatherareas" value="{{areas}}" autocomplete="off">
+                                <small>{{#str}} channel:weather:areas_desc, local_oksigeniamarandu {{/str}}</small></label>
+                        </div>
+                        <button type="submit" class="mrd-btn mrd-primary mrd-guardar">{{#str}} save {{/str}}</button>
+                    </div>
+                </form>
+            </details>
+            {{/weather}}
+
+            {{#place}}
+            <details class="mrd-plegada" id="mrd-place" data-part{{#open}} open{{/open}}>
+                <summary><span class="mrd-cara">{{#face}}<img src="{{.}}" alt="" width="72" height="40">{{/face}}</span>
+                    <span class="mrd-plegada-t"><b>{{#str}} channel:placesky, local_oksigeniamarandu {{/str}}</b><span>{{line}}</span></span>
+                    {{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}<span class="mrd-cambiar" aria-hidden="true">{{#str}} channel:change, local_oksigeniamarandu {{/str}}</span></summary>
+                <form method="post" action="{{formurl}}" class="mrd-dentro">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="part" value="place">
+                    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+                    <p class="mrd-explica">{{#str}} channel:sky:desc, local_oksigeniamarandu {{/str}}</p>
+                    {{#sky.0}}<ul class="mrd-cielo">{{#sky}}<li>{{.}}</li>{{/sky}}</ul>{{/sky.0}}
+                    <div class="mrd-dorso">
+                        <h4>{{#str}} channel:place, local_oksigeniamarandu {{/str}}</h4>
+                        <div class="mrd-campos mrd-campos-lugar">
+                            <label class="mrd-campo"><span>{{#str}} channel:place:latitude, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" inputmode="decimal" name="latitude" value="{{latitude}}" autocomplete="off" data-lat>
+                                <small>{{#str}} channel:place:latitude_desc, local_oksigeniamarandu {{/str}}</small></label>
+                            <label class="mrd-campo"><span>{{#str}} channel:place:longitude, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" inputmode="decimal" name="longitude" value="{{longitude}}" autocomplete="off" data-lon>
+                                <small>{{#str}} channel:place:longitude_desc, local_oksigeniamarandu {{/str}}</small></label>
+                            <span class="mrd-here" hidden><button type="button" class="mrd-btn mrd-second" data-here>{{#str}} channel:place:here, local_oksigeniamarandu {{/str}}</button>
+                                <small data-herefailed hidden role="status">{{#str}} channel:place:herefailed, local_oksigeniamarandu {{/str}}</small></span>
+                            <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} channel:sky:tle, local_oksigeniamarandu {{/str}}</span>
+                                <input type="url" name="skytle" value="{{tle}}" placeholder="{{tledefault}}" autocomplete="off">
+                                <small>{{#str}} channel:sky:tle_desc, local_oksigeniamarandu {{/str}}</small></label>
+                        </div>
+                        <button type="submit" class="mrd-btn mrd-primary mrd-guardar">{{#str}} save {{/str}}</button>
+                    </div>
+                </form>
+            </details>
+            {{/place}}
+
+            {{#links}}
+            <details class="mrd-plegada" id="mrd-links" data-part{{#open}} open{{/open}}>
+                <summary><span class="mrd-cara mrd-cara-dibujo"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M27 37 37 27"/><path d="M30 20 34 16a10 10 0 0 1 14 14l-4 4" fill="currentColor" fill-opacity=".12"/><path d="M34 44 30 48a10 10 0 0 1-14-14l4-4" fill="currentColor" fill-opacity=".12"/></svg></span>
+                    <span class="mrd-plegada-t"><b>{{#str}} channel:links, local_oksigeniamarandu {{/str}}</b><span>{{line}}</span></span>
+                    {{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}<span class="mrd-cambiar" aria-hidden="true">{{#str}} channel:change, local_oksigeniamarandu {{/str}}</span></summary>
+                <form method="post" action="{{formurl}}" class="mrd-dentro">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="part" value="links">
+                    <input type="hidden" name="utm" value="{{#utm}}1{{/utm}}{{^utm}}0{{/utm}}">
+                    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+                    <p class="mrd-explica">{{#str}} channel:links:desc, local_oksigeniamarandu {{/str}}</p>
+                    <button type="submit" class="mrd-llave" name="utm" value="{{#utm}}0{{/utm}}{{^utm}}1{{/utm}}" aria-pressed="{{#utm}}true{{/utm}}{{^utm}}false{{/utm}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} channel:links:utm, local_oksigeniamarandu {{/str}}</button>
+                    {{#example}}<p class="mrd-billete"><span>{{#str}} channel:links:example, local_oksigeniamarandu {{/str}}</span><code>{{.}}</code></p>{{/example}}
+                    <div class="mrd-dorso">
+                        <div class="mrd-campos">
+                            {{#utm}}
+                            <label class="mrd-campo"><span>utm_source</span><input type="text" name="utmsource" value="{{utmsource}}" autocomplete="off"></label>
+                            <label class="mrd-campo"><span>utm_medium</span><input type="text" name="utmmedium" value="{{utmmedium}}" autocomplete="off"></label>
+                            {{/utm}}
+                            <label class="mrd-campo"><span>{{#str}} channel:links:shortener, local_oksigeniamarandu {{/str}}</span>
+                                <input type="url" name="shortener" value="{{shortener}}" placeholder="https://" autocomplete="off"></label>
+                            <label class="mrd-campo"><span>{{#str}} channel:links:signature, local_oksigeniamarandu {{/str}}</span>
+                                <input type="password" name="shortenersignature" value="" autocomplete="new-password"{{#hassignature}} placeholder="{{#str}} channel:links:signatureset, local_oksigeniamarandu {{/str}}"{{/hassignature}}></label>
+                        </div>
+                        <button type="submit" class="mrd-btn mrd-primary mrd-guardar">{{#str}} save {{/str}}</button>
+                    </div>
+                </form>
+            </details>
+            {{/links}}
+
+            {{#cards}}
+            <details class="mrd-plegada" id="mrd-cards" data-part{{#open}} open{{/open}}>
+                <summary><span class="mrd-cara mrd-cara-color" style="--c: {{colour}}"></span>
+                    <span class="mrd-plegada-t"><b>{{#str}} channel:cards, local_oksigeniamarandu {{/str}}</b><span>{{line}}</span></span>
+                    {{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}<span class="mrd-cambiar" aria-hidden="true">{{#str}} channel:change, local_oksigeniamarandu {{/str}}</span></summary>
+                <form method="post" action="{{formurl}}" class="mrd-dentro">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="part" value="cards">
+                    <input type="hidden" name="cardanimated" value="{{#animated}}1{{/animated}}{{^animated}}0{{/animated}}">
+                    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+                    <p class="mrd-explica">{{#str}} channel:cards:desc, local_oksigeniamarandu {{/str}}</p>
+                    <div class="mrd-tarjeta">
+                        {{#sample}}<img class="mrd-muestra" src="{{.}}" alt="{{#str}} channel:cards:sampleone, local_oksigeniamarandu {{/str}}" width="640" height="360">{{/sample}}
+                        <div class="mrd-tarjeta-gestos">
+                            <h4 id="mrd-cards-colour">{{#str}} channel:cards:color, local_oksigeniamarandu {{/str}}</h4>
+                            <div class="mrd-colores" role="group" aria-labelledby="mrd-cards-colour">
+                                <button type="submit" class="mrd-color" name="cardcolordefault" value="1" aria-pressed="{{#own}}false{{/own}}{{^own}}true{{/own}}"><span class="mrd-color-m" style="--c: {{theme}}" aria-hidden="true"></span>{{#str}} channel:cards:colordefault, local_oksigeniamarandu {{/str}}</button>
+                                <label class="mrd-color{{#own}} mrd-color-propio{{/own}}"><input type="color" name="cardcolor" value="{{colour}}" data-solo><span>{{#str}} channel:cards:own, local_oksigeniamarandu {{/str}}</span></label>
+                            </div>
+                            <button type="submit" class="mrd-llave" name="cardanimated" value="{{#animated}}0{{/animated}}{{^animated}}1{{/animated}}" aria-pressed="{{#animated}}true{{/animated}}{{^animated}}false{{/animated}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} channel:cards:animated, local_oksigeniamarandu {{/str}}</button>
+                            <p class="mrd-estado">{{status}}</p>
+                            <a class="mrd-link" href="{{previewurl}}">{{#str}} channel:cards:preview, local_oksigeniamarandu {{/str}}</a>
+                        </div>
+                    </div>
+                    <div class="mrd-dorso">
+                        <div class="mrd-campos">
+                            <label class="mrd-campo"><span>{{#str}} channel:cards:org, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="cardorg" value="{{org}}" placeholder="{{orgdefault}}"></label>
+                            <label class="mrd-campo"><span>{{#str}} channel:cards:ffmpeg, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="ffmpeg" value="{{ffmpeg}}" placeholder="/usr/bin/ffmpeg" autocomplete="off"></label>
+                        </div>
+                        <button type="submit" class="mrd-btn mrd-primary mrd-guardar">{{#str}} save {{/str}}</button>
+                    </div>
+                </form>
+                {{#previews.0}}
+                <p class="mrd-muted">{{#str}} channel:cards:sample, local_oksigeniamarandu {{/str}}</p>
+                <div class="mrd-previews">{{#previews}}<img src="{{src}}" alt="{{alt}}" width="640" height="360">{{/previews}}</div>
+                {{/previews.0}}
+            </details>
+            {{/cards}}
+        </div>
         {{/canconfig}}
         {{/channel}}
     </section>
@@ -261,65 +393,132 @@
         return;
     }
     // What waits for a review: its card larger at a touch.
-    root.querySelectorAll('.mrd-thumb').forEach(function(button) {
-        button.addEventListener('click', function() {
-            var image = button.querySelector('img');
-            var open = button.getAttribute('aria-expanded') !== 'true';
-            if (open && image.dataset.full) {
-                image.dataset.small = image.dataset.small || image.src;
-                image.src = image.dataset.full;
-            } else if (image.dataset.small) {
-                image.src = image.dataset.small;
-            }
-            button.setAttribute('aria-expanded', open ? 'true' : 'false');
-        });
+    root.addEventListener('click', function(e) {
+        var button = e.target.closest('.mrd-thumb');
+        if (!button) {
+            return;
+        }
+        var image = button.querySelector('img');
+        var open = button.getAttribute('aria-expanded') !== 'true';
+        if (open && image.dataset.full) {
+            image.dataset.small = image.dataset.small || image.src;
+            image.src = image.dataset.full;
+        } else if (image.dataset.small) {
+            image.src = image.dataset.small;
+        }
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
-    var form = document.getElementById('mrd-settings');
-    if (!form) {
-        return;
-    }
-    // A change not saved: the bar to save it, and a question before leaving.
-    var bar = form.querySelector('.mrd-savebar');
-    var dirty = false;
-    var changed = function() {
-        if (!dirty) {
-            dirty = true;
-            bar.hidden = false;
+    // The place from the device, where the browser can give it.
+    var reveal = function() {
+        if (navigator.geolocation && window.isSecureContext) {
+            root.querySelectorAll('.mrd-here').forEach(function(here) {
+                here.hidden = false;
+            });
         }
     };
-    form.addEventListener('input', changed);
-    form.addEventListener('change', changed);
-    form.addEventListener('submit', function() {
-        dirty = false;
-    });
-    window.addEventListener('beforeunload', function(e) {
-        if (dirty) {
-            e.preventDefault();
-            e.returnValue = '';
+    reveal();
+    // Each card of the settings saves itself without JavaScript, as a form; with it, the page stays where it is and only
+    // the card comes back, as the server draws it after saving. A plain send if anything goes wrong.
+    var busy = false;
+    var timer = null;
+    var plain = function(form, submitter) {
+        if (submitter && submitter.name) {
+            var field = document.createElement('input');
+            field.type = 'hidden';
+            field.name = submitter.name;
+            field.value = submitter.value;
+            form.appendChild(field);
         }
+        form.submit();
+    };
+    var send = function(form, submitter) {
+        clearTimeout(timer);
+        var part = form.closest('[data-part]');
+        if (busy || !part || !window.fetch || !window.DOMParser) {
+            plain(form, submitter);
+            return;
+        }
+        busy = true;
+        var data = new FormData(form);
+        if (submitter && submitter.name) {
+            data.append(submitter.name, submitter.value);
+        }
+        var focus = document.activeElement && part.contains(document.activeElement) ? document.activeElement : null;
+        var name = focus ? focus.getAttribute('name') : null;
+        var kind = focus ? focus.className : '';
+        part.setAttribute('aria-busy', 'true');
+        fetch(form.getAttribute('action'), {method: 'POST', body: data, credentials: 'same-origin'}).then(function(response) {
+            if (!response.ok) {
+                throw new Error(response.status);
+            }
+            return response.text();
+        }).then(function(html) {
+            var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById(part.id);
+            if (!fresh) {
+                throw new Error('missing');
+            }
+            part.replaceWith(fresh);
+            // The colour of the cards also changes their small ones in «What goes to the channel».
+            if (part.id === 'mrd-cards') {
+                var kinds = new DOMParser().parseFromString(html, 'text/html').getElementById('mrd-what');
+                var old = document.getElementById('mrd-what');
+                if (kinds && old) {
+                    old.replaceWith(kinds);
+                }
+            }
+            reveal();
+            busy = false;
+            if (name) {
+                var again = Array.prototype.filter.call(fresh.querySelectorAll('[name="' + name + '"]'), function(el) {
+                    return el.className === kind && !el.disabled;
+                })[0] || fresh.querySelector('[name="' + name + '"]:not([disabled])');
+                if (again) {
+                    again.focus();
+                }
+            }
+        }).catch(function() {
+            busy = false;
+            plain(form, submitter);
+        });
+    };
+    var last = null;
+    root.addEventListener('click', function(e) {
+        last = e.target.closest('button[type="submit"]');
     });
-    // The marks of the links, only when they are measured.
-    var utm = document.getElementById('mrd-utm');
-    var utmfields = form.querySelector('.mrd-utmfields');
-    if (utm && utmfields) {
-        utm.addEventListener('change', function() {
-            utmfields.hidden = !utm.checked;
-        });
-    }
-    // The place, from the device, where the browser can give it.
-    var here = form.querySelector('.mrd-here');
-    if (here && navigator.geolocation && window.isSecureContext) {
-        here.hidden = false;
-        here.querySelector('[data-here]').addEventListener('click', function() {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                document.getElementById('mrd-latitude').value = position.coords.latitude.toFixed(5);
-                document.getElementById('mrd-longitude').value = position.coords.longitude.toFixed(5);
-                here.querySelector('[data-herefailed]').hidden = true;
-                changed();
-            }, function() {
-                here.querySelector('[data-herefailed]').hidden = false;
-            }, {timeout: 15000});
-        });
-    }
+    root.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form.closest('[data-part]')) {
+            return;
+        }
+        e.preventDefault();
+        send(form, e.submitter || last);
+        last = null;
+    });
+    // An hour, a number or a colour written in its place saves itself a moment after the last change.
+    var soon = function(e) {
+        if (e.target.matches('[data-solo]')) {
+            clearTimeout(timer);
+            var form = e.target.form;
+            timer = setTimeout(function() {
+                send(form, null);
+            }, 1200);
+        }
+    };
+    root.addEventListener('input', soon);
+    root.addEventListener('change', soon);
+    root.addEventListener('click', function(e) {
+        var button = e.target.closest('[data-here]');
+        if (!button) {
+            return;
+        }
+        var form = button.form;
+        navigator.geolocation.getCurrentPosition(function(position) {
+            form.querySelector('[data-lat]').value = position.coords.latitude.toFixed(5);
+            form.querySelector('[data-lon]').value = position.coords.longitude.toFixed(5);
+            send(form, null);
+        }, function() {
+            form.querySelector('[data-herefailed]').hidden = false;
+        }, {timeout: 15000});
+    });
 })();
 {{/js}}

@@ -334,7 +334,8 @@ final class panel_test extends \advanced_testcase {
             get_config('local_oksigeniamarandu', 'quietfrom'), get_config('local_oksigeniamarandu', 'quietdays'),
             get_config('local_oksigeniamarandu', 'urgentnotices')]);
         $context = limits::context(false);
-        $this->assertSame([false, 2, true], [$context['money'], $context['capfamily'], $context['urgent'][0]['on']]);
+        $this->assertSame([false, 2, true], [$context['money'], $context['perday']['stepper']['value'],
+            $context['urgent'][0]['on']]);
         $_POST = [];
     }
 

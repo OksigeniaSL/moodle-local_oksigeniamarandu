@@ -21,7 +21,7 @@ Feature: See the numbers that joined on WhatsApp
     And I should see "Ana Prueba" in the "+34 600 00 00 01" "table_row"
     When I click on "Opt out" "link"
     Then I should see "It stops getting notices from now on."
-    And I set the field "reason" to "Other"
+    And I should see "How did they ask?"
     And I press "Opt out"
     And I should see "Write the reason."
     And I set the field "other" to "Moved to another school"

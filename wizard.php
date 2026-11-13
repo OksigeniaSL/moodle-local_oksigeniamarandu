@@ -153,10 +153,13 @@ if ($action === 'connect' && confirm_sesskey()) {
     set_config('enablednotices', implode(',', $keys), $component);
     redirect(new moodle_url($baseurl, ['step' => 'limits']));
 } else if ($action === 'limits' && confirm_sesskey()) {
-    // Step 5: the limits, as sentences.
+    // Step 5: the limits, each gesture saved as it is made; «Finish» goes on to the summary.
     $errors += \local_oksigeniamarandu\local\limits::save(true);
     if (!$errors) {
-        redirect(new moodle_url($baseurl, ['step' => 'done']));
+        $part = optional_param('part', '', PARAM_ALPHA);
+        $part = in_array($part, \local_oksigeniamarandu\local\limits::PARTS, true) ? $part : '';
+        redirect(optional_param('finish', 0, PARAM_BOOL) ? new moodle_url($baseurl, ['step' => 'done'])
+            : new moodle_url($baseurl, ['step' => 'limits'] + ($part ? ['saved' => $part] : []), $part ? 'mrd-' . $part : null));
     }
 }
 
@@ -341,7 +344,9 @@ if ($step === 'account') {
         ]),
     ];
 } else if ($step === 'limits') {
-    $context['limits'] = \local_oksigeniamarandu\local\limits::context(true, $errors) + [
+    $limitsurl = new moodle_url($baseurl, ['step' => 'limits']);
+    $saved = optional_param('saved', '', PARAM_ALPHA);
+    $context['limits'] = \local_oksigeniamarandu\local\limits::context(true, $errors, $saved, $limitsurl) + [
         'formurl' => $baseurl->out(false),
         'sesskey' => sesskey(),
         'submit' => get_string('wizard:limits:finish', $component),

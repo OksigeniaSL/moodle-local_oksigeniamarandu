@@ -17,41 +17,203 @@
 {{!
     @template local_oksigeniamarandu/limits_form
 
-    The limits as sentences: the money of a month (only with WhatsApp), the notices a family gets a day at most, the
-    quiet hours and days, and the notices that go out in them too. In the wizard of WhatsApp and on a page of its own.
+    The quiet hours and the limits, without the look of a form (Jujol), in the wizard of WhatsApp and on a page of their
+    own. Four cards:
+    - the quiet: the week as seven rulers of the 24 hours, the quiet hours dark as the night. The name of each day is the
+      switch that quiets it whole. The two plates are when it goes quiet and when it comes back;
+    - the notices a day for each person: a number with one less and one more, and the phone with as many bubbles;
+    - what does not wait: a switch for each notice switched on;
+    - with WhatsApp, the money of a month (in fives of euros) and, written, who is told.
+
+    Saving. The page is one form and every button sends all of it: limits::save() keeps what comes. A day or a switch
+    carries what it has now as a hidden field at the top and, after it, a button with the same name and the value it
+    changes to; PHP keeps the last one. An hour or a number is written in its place too, before its two buttons. The
+    first button of the form is hidden and takes the Enter of the fields. Each button goes back to its card
+    (formaction with ?part= and its anchor), which comes back with its «Saved». In the wizard, «Finish» (submit)
+    goes on to the summary.
 
     Context variables required for this template:
-    * formurl, sesskey, submit - The form and the label of its button.
-    * money, capmonth, capemail, capemailerror - The money of a month, with WhatsApp.
-    * capfamily, quietfrom, quietto, days, urgent, hasurgent, askedfor - For every channel.
+    * formurl, sesskey - Where the form goes.
+    * submit - The label of the button that ends the step, in the wizard; empty on the page of its own.
+    * saved, quietdays (value), urgenton (index, key) - The card just saved, and what is on now, for the hidden fields.
+    * quiet - saved, action, marks (x, label, odd), week (group, value, label, name, on, spans with a and w), from and to
+      (local_oksigeniamarandu/channel_plate), caption.
+    * perday - saved, action, stepper (local_oksigeniamarandu/channel_stepper), bubbles, waits, caption.
+    * urgent (index, key, name, on), hasurgent, urgentsaved, urgentaction, askedfor - What does not wait.
+    * money - False without WhatsApp; or saved, action, stepper, caption, capemail, capemailerror and tope (an SVG).
 
     Example context (json):
     {
-        "formurl": "#", "sesskey": "abc", "submit": "Save", "money": false, "capmonth": "10", "capemail": "",
-        "capemailerror": "", "capfamily": 3, "quietfrom": "20:00", "quietto": "08:00",
-        "days": [{"value": 6, "label": "S", "name": "Saturday", "on": true}], "urgent": [], "hasurgent": false, "askedfor": ""
+        "formurl": "#", "sesskey": "abc", "submit": "", "saved": "", "quietdays": [], "urgenton": [],
+        "quiet": {"saved": false, "action": "#mrd-quiet", "marks": [{"x": 0, "label": 0, "odd": false}],
+            "week": [{"group": "quiet", "value": 6, "label": "S", "name": "Saturday", "on": true,
+                "spans": [{"a": 0, "w": 100}]}],
+            "from": {"name": "quietfrom", "value": "20:00", "label": "Goes quiet at", "caption": "Goes quiet at",
+                "less": "19:30", "noless": false, "more": "20:30", "nomore": false},
+            "to": {"name": "quietto", "value": "08:00", "label": "Comes back at", "caption": "Comes back at",
+                "less": "07:30", "noless": false, "more": "08:30", "nomore": false},
+            "caption": "From 20:00 to 08:00 nothing arrives."},
+        "perday": {"saved": false, "action": "#mrd-perday", "stepper": {"name": "capfamily", "value": 3, "most": 20,
+            "unit": "notices a day to each person", "less": 2, "noless": false, "more": 4, "nomore": false,
+            "nocap": false}, "bubbles": [{"on": true}], "waits": true, "caption": "The fourth goes out the next day."},
+        "urgent": [], "hasurgent": false, "urgentsaved": false, "urgentaction": "#mrd-urgent", "askedfor": "",
+        "money": false
     }
 }}
-    <form method="post" action="{{formurl}}" class="mrd-sentences">
-        <input type="hidden" name="sesskey" value="{{sesskey}}">
-        <input type="hidden" name="action" value="limits">
-        {{#money}}<p class="mrd-sentence">{{#str}} wizard:limits:cap1, local_oksigeniamarandu {{/str}}
-            <input class="mrd-num" type="text" inputmode="decimal" name="capmonth" value="{{capmonth}}" aria-label="{{#str}} wizard:limits:capmonth, local_oksigeniamarandu {{/str}}">
-            {{#str}} wizard:limits:cap2, local_oksigeniamarandu {{/str}}
-            <input class="mrd-mail" type="email" name="capemail" value="{{capemail}}" aria-label="{{#str}} wizard:limits:capemail, local_oksigeniamarandu {{/str}}"></p>
-        {{#capemailerror}}<p class="mrd-err">{{.}}</p>{{/capemailerror}}{{/money}}
-        <p class="mrd-sentence">{{#str}} wizard:limits:family1, local_oksigeniamarandu {{/str}}
-            <input class="mrd-num" type="number" min="0" name="capfamily" value="{{capfamily}}" aria-label="{{#str}} wizard:limits:capfamily, local_oksigeniamarandu {{/str}}">
-            {{#str}} wizard:limits:family2, local_oksigeniamarandu {{/str}}</p>
-        <p class="mrd-sentence">{{#str}} wizard:limits:quiet1, local_oksigeniamarandu {{/str}}
-            <input type="time" name="quietfrom" value="{{quietfrom}}" aria-label="{{#str}} wizard:limits:from, local_oksigeniamarandu {{/str}}">
-            {{#str}} wizard:limits:quiet2, local_oksigeniamarandu {{/str}}
-            <input type="time" name="quietto" value="{{quietto}}" aria-label="{{#str}} wizard:limits:to, local_oksigeniamarandu {{/str}}">{{#str}} wizard:limits:quiet3, local_oksigeniamarandu {{/str}}
-            <span class="mrd-days">{{#days}}<input type="checkbox" id="mrd-day-{{value}}" name="quietdays[{{value}}]" value="1" {{#on}}checked{{/on}}><label for="mrd-day-{{value}}" title="{{name}}"><span aria-hidden="true">{{label}}</span><span class="sr-only visually-hidden">{{name}}</span></label>{{/days}}</span></p>
-        {{#hasurgent}}
-        <p class="mrd-sub">{{#str}} wizard:limits:urgent, local_oksigeniamarandu {{/str}}
-            {{#urgent}}<input type="checkbox" class="mrd-chipcheck" id="mrd-u-{{key}}" name="urgent[]" value="{{key}}" {{#on}}checked{{/on}}><label for="mrd-u-{{key}}">{{name}}</label> {{/urgent}}</p>
-        {{/hasurgent}}
-        {{#askedfor}}<p class="mrd-sub">{{askedfor}}</p>{{/askedfor}}
-        <div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary">{{submit}}</button></div>
-    </form>
+<form method="post" action="{{formurl}}" class="mrd-limites" id="mrd-limits" novalidate>
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+    <input type="hidden" name="action" value="limits">
+    {{#quietdays}}<input type="hidden" name="{{group}}days[{{value}}]" value="1">{{/quietdays}}
+    {{#urgenton}}<input type="hidden" name="urgent[{{index}}]" value="{{key}}">{{/urgenton}}
+    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+
+    {{#quiet}}
+    <section class="mrd-part mrd-silencio" id="mrd-quiet" aria-labelledby="mrd-quiet-t">
+        <div class="mrd-cab"><h2 id="mrd-quiet-t">{{#str}} limits:quiet, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+        <div class="mrd-regla mrd-semana">
+            <ol class="mrd-horas" aria-hidden="true">{{#marks}}<li class="{{#odd}}mrd-impar{{/odd}}" style="--x: {{x}}%">{{label}}</li>{{/marks}}</ol>
+            {{#week}}
+            <div class="mrd-pista{{#on}} mrd-pista-toda{{/on}}"><button type="submit" class="mrd-dia-n" name="{{group}}days[{{value}}]" value="{{#on}}0{{/on}}{{^on}}1{{/on}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}" formaction="{{action}}"><span class="mrd-luna" aria-hidden="true"></span>{{name}}</button>
+                <span class="mrd-pista-r" aria-hidden="true">{{#spans}}<i style="--a: {{a}}%; --w: {{w}}%"></i>{{/spans}}</span></div>
+            {{/week}}
+        </div>
+        <p class="mrd-pie">{{caption}} {{#str}} limits:quiet:days, local_oksigeniamarandu {{/str}}</p>
+        <div class="mrd-placas">{{#from}}{{> local_oksigeniamarandu/channel_plate }}{{/from}}{{#to}}{{> local_oksigeniamarandu/channel_plate }}{{/to}}</div>
+    </section>
+    {{/quiet}}
+
+    <div class="mrd-dos">
+    {{#perday}}
+    <section class="mrd-part mrd-aldia" id="mrd-perday" aria-labelledby="mrd-perday-t">
+        <div class="mrd-cab"><h2 id="mrd-perday-t">{{#str}} limits:perday, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+        <div class="mrd-aldia-c">
+            <div class="mrd-movil" aria-hidden="true">{{#bubbles}}<i></i>{{/bubbles}}{{#waits}}<i class="mrd-espera"></i>{{/waits}}</div>
+            <div class="mrd-aldia-g">{{#stepper}}{{> local_oksigeniamarandu/channel_stepper }}{{/stepper}}
+                <p class="mrd-pie">{{caption}}</p></div>
+        </div>
+    </section>
+    {{/perday}}
+
+    {{#money}}
+    <section class="mrd-part mrd-gasto" id="mrd-money" aria-labelledby="mrd-money-t">
+        <div class="mrd-cab"><h2 id="mrd-money-t">{{#str}} limits:money, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+        <div class="mrd-aldia-c">
+            <span class="mrd-tope" aria-hidden="true">{{{tope}}}</span>
+            <div class="mrd-aldia-g">{{#stepper}}{{> local_oksigeniamarandu/channel_stepper }}{{/stepper}}
+                <p class="mrd-pie">{{caption}}</p></div>
+        </div>
+        <div class="mrd-dorso">
+            <label class="mrd-campo"><span>{{#str}} limits:money:mail, local_oksigeniamarandu {{/str}}</span>
+                <input type="email" name="capemail" value="{{capemail}}" autocomplete="email"{{#capemailerror}} aria-invalid="true" aria-describedby="mrd-capemail-err"{{/capemailerror}}></label>
+            {{#capemailerror}}<p class="mrd-err" id="mrd-capemail-err">{{.}}</p>{{/capemailerror}}
+            <button type="submit" class="mrd-btn mrd-primary mrd-guardar" formaction="{{action}}">{{#str}} save {{/str}}</button>
+        </div>
+    </section>
+    {{/money}}
+    </div>
+
+    {{#hasurgent}}
+    <section class="mrd-part mrd-urgente" id="mrd-urgent" aria-labelledby="mrd-urgent-t">
+        <div class="mrd-cab"><h2 id="mrd-urgent-t">{{#str}} limits:urgent, local_oksigeniamarandu {{/str}}</h2>{{#urgentsaved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/urgentsaved}}</div>
+        <p class="mrd-explica">{{#str}} wizard:limits:urgent, local_oksigeniamarandu {{/str}}</p>
+        <ul class="mrd-llaves">
+            {{#urgent}}<li><button type="submit" class="mrd-llave" name="urgent[{{index}}]" value="{{^on}}{{key}}{{/on}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}" formaction="{{urgentaction}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{name}}</button></li>{{/urgent}}
+        </ul>
+        {{#askedfor}}<p class="mrd-explica">{{askedfor}}</p>{{/askedfor}}
+    </section>
+    {{/hasurgent}}
+    {{^hasurgent}}{{#askedfor}}<p class="mrd-explica">{{askedfor}}</p>{{/askedfor}}{{/hasurgent}}
+
+    {{#submit}}<div class="mrd-actions"><button type="submit" class="mrd-btn mrd-primary" name="finish" value="1">{{submit}}</button></div>{{/submit}}
+</form>
+{{#js}}
+(function() {
+    var form = document.getElementById('mrd-limits');
+    if (!form || !window.fetch || !window.DOMParser) {
+        return;
+    }
+    // With JavaScript the page stays where it is: the form is sent in the background and comes back as the server draws
+    // it after saving, with the focus where it was. «Finish» and anything that fails go as a plain form.
+    var busy = false;
+    var timer = null;
+    var last = null;
+    var send = function(submitter) {
+        clearTimeout(timer);
+        if (busy) {
+            return;
+        }
+        busy = true;
+        var data = new FormData(form);
+        if (submitter && submitter.name) {
+            data.append(submitter.name, submitter.value);
+        }
+        // The form has a field called «action»: form.action would be that field, not the address.
+        var url = submitter && submitter.getAttribute('formaction') ? submitter.getAttribute('formaction')
+            : form.getAttribute('action');
+        var focus = document.activeElement && form.contains(document.activeElement) ? document.activeElement : null;
+        var name = focus ? focus.getAttribute('name') : null;
+        var kind = focus ? focus.className : '';
+        form.setAttribute('aria-busy', 'true');
+        fetch(url, {method: 'POST', body: data, credentials: 'same-origin'}).then(function(response) {
+            if (!response.ok) {
+                throw new Error(response.status);
+            }
+            return response.text();
+        }).then(function(html) {
+            var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('mrd-limits');
+            if (!fresh) {
+                throw new Error('missing');
+            }
+            form.replaceWith(fresh);
+            form = fresh;
+            busy = false;
+            if (name) {
+                var again = Array.prototype.filter.call(form.querySelectorAll('[name="' + name + '"]'), function(el) {
+                    return el.className === kind && !el.disabled;
+                })[0] || form.querySelector('[name="' + name + '"]:not([disabled]):not([type="hidden"])');
+                if (again) {
+                    again.focus();
+                }
+            }
+        }).catch(function() {
+            busy = false;
+            if (submitter && submitter.name) {
+                var field = document.createElement('input');
+                field.type = 'hidden';
+                field.name = submitter.name;
+                field.value = submitter.value;
+                form.appendChild(field);
+            }
+            form.submit();
+        });
+    };
+    document.addEventListener('click', function(e) {
+        if (form.contains(e.target)) {
+            last = e.target.closest('button[type="submit"]');
+        }
+    });
+    document.addEventListener('submit', function(e) {
+        if (e.target !== form) {
+            return;
+        }
+        var submitter = e.submitter || last;
+        last = null;
+        if (submitter && submitter.name === 'finish') {
+            return;
+        }
+        e.preventDefault();
+        send(submitter);
+    });
+    // An hour or a number written in its place saves itself a moment after the last change.
+    var soon = function(e) {
+        if (form.contains(e.target) && e.target.matches('[data-solo]')) {
+            clearTimeout(timer);
+            timer = setTimeout(function() {
+                send(null);
+            }, 1200);
+        }
+    };
+    document.addEventListener('input', soon);
+    document.addEventListener('change', soon);
+})();
+{{/js}}

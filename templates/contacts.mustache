@@ -18,7 +18,9 @@
     @template local_oksigeniamarandu/contacts
 
     The list of numbers: search, filters with their counts, one row (one card on a phone) per number, and opting one
-    out in its own row, with the reason.
+    out in its own row: «How did they ask?» and a button for each way, that opts out at a touch, without the look of a
+    form (Jujol); «Another reason» folded, with what it was written. Its first button is hidden and takes the Enter of
+    that field, so that the Enter is «another reason» and not the first of the buttons.
 
     Context variables required for this template:
     * lede, count, done - Sentences.
@@ -26,7 +28,8 @@
     * filters - Each with url, label, count and current.
     * hasany, hasrows - Whether there are numbers at all, and in this search.
     * rows - Each with id, phone, name, who, kind, status, chip, since, how, canout, askurl and, when asked, ask
-      (question, action, hidden, reasons, other, otheropen, error and cancel).
+      (question, what, action, hidden, reasons with value, label, icon (the paths of a drawing of 24) and other, other,
+      otheropen, error and cancel).
     * more - shown, url and label, when there are more.
     * none, nothing - The empty list, and a search with nothing.
 
@@ -86,20 +89,22 @@
             {{#ask}}
             <tr class="ask">
                 <td colspan="6">
-                    <form class="mrd-ask" method="post" action="{{action}}" aria-label="{{question}}">
+                    <form class="mrd-ask" method="post" action="{{action}}" aria-labelledby="mrd-ask-{{id}}">
                         {{#hidden}}<input type="hidden" name="{{name}}" value="{{value}}">{{/hidden}}
-                        <p><b>{{question}}</b> {{#str}} list:ask:what, local_oksigeniamarandu {{/str}}</p>
-                        <label>{{#str}} list:ask:reason, local_oksigeniamarandu {{/str}}
-                            <select name="reason" data-mrd-reason>
-                                {{#reasons}}<option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>{{/reasons}}
-                            </select>
-                        </label>
-                        <label data-mrd-other {{^otheropen}}hidden{{/otheropen}}>{{#str}} list:ask:other, local_oksigeniamarandu {{/str}}
-                            <input type="text" name="other" value="{{other}}" maxlength="200">
-                        </label>
-                        <button type="submit" class="btn mrd-btn danger small">{{#str}} list:optout, local_oksigeniamarandu {{/str}}</button>
-                        <a class="btn mrd-btn link" href="{{cancel}}">{{#str}} cancel {{/str}}</a>
-                        {{#error}}<p class="mrd-err" role="alert">{{error}}</p>{{/error}}
+                        <button type="submit" class="mrd-default" name="reason" value="other" tabindex="-1" aria-hidden="true"></button>
+                        <p id="mrd-ask-{{id}}"><b>{{question}}</b> {{what}}</p>
+                        <p class="mrd-ask-how">{{#str}} list:ask:how, local_oksigeniamarandu {{/str}}</p>
+                        <ul class="mrd-motivos">
+                            {{#reasons}}{{^other}}<li><button type="submit" class="mrd-motivo" name="reason" value="{{value}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{{icon}}}</svg><span>{{label}}</span></button></li>{{/other}}{{/reasons}}
+                        </ul>
+                        <details class="mrd-otro"{{#otheropen}} open{{/otheropen}}>
+                            <summary>{{#str}} list:ask:otherreason, local_oksigeniamarandu {{/str}}</summary>
+                            <span class="mrd-otro-c"><label class="visually-hidden sr-only" for="mrd-other-{{id}}">{{#str}} list:ask:other, local_oksigeniamarandu {{/str}}</label>
+                            <input type="text" id="mrd-other-{{id}}" name="other" value="{{other}}" maxlength="200" placeholder="{{#str}} list:ask:otherhint, local_oksigeniamarandu {{/str}}"{{#error}} aria-invalid="true" aria-describedby="mrd-ask-err-{{id}}"{{/error}}>
+                            <button type="submit" class="btn mrd-btn danger small" name="reason" value="other">{{#str}} list:optout, local_oksigeniamarandu {{/str}}</button></span>
+                        </details>
+                        <a class="btn mrd-btn link mrd-ask-no" href="{{cancel}}">{{#str}} list:ask:no, local_oksigeniamarandu {{/str}}</a>
+                        {{#error}}<p class="mrd-err" id="mrd-ask-err-{{id}}" role="alert">{{error}}</p>{{/error}}
                     </form>
                 </td>
             </tr>
@@ -129,14 +134,3 @@
     </div>
     {{/nothing}}
 </div>
-{{#js}}
-document.querySelectorAll('.local-oksigeniamarandu-list [data-mrd-reason]').forEach(function(select) {
-    var other = select.closest('form').querySelector('[data-mrd-other]');
-    select.addEventListener('change', function() {
-        other.hidden = select.value !== 'other';
-        if (!other.hidden) {
-            other.querySelector('input').focus();
-        }
-    });
-});
-{{/js}}

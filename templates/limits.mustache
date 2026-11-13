@@ -21,21 +21,20 @@
     wizard of WhatsApp.
 
     Context variables required for this template:
-    * lead, saved - What it is for, and the line after saving.
+    * lead - What it is for.
     * form - The context of local_oksigeniamarandu/limits_form.
 
     Example context (json):
     {
-        "lead": "So that nothing arrives at eleven at night.", "saved": "",
-        "form": {"formurl": "#", "sesskey": "abc", "submit": "Save", "money": false, "capmonth": "10", "capemail": "",
-            "capemailerror": "", "capfamily": 3, "quietfrom": "20:00", "quietto": "08:00", "days": [], "urgent": [],
-            "hasurgent": false}
+        "lead": "So that nothing arrives at eleven at night.",
+        "form": {"formurl": "#", "sesskey": "abc", "submit": "", "saved": "", "quietdays": [], "urgenton": [],
+            "quiet": false, "perday": false, "urgent": [], "hasurgent": false, "urgentsaved": false,
+            "urgentaction": "#", "askedfor": "", "money": false}
     }
 }}
 <div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-limits">
     <section>
         <p class="mrd-lead">{{lead}}</p>
-        {{#saved}}<p class="mrd-saved" role="status">{{saved}}</p>{{/saved}}
         {{#form}}{{> local_oksigeniamarandu/limits_form }}{{/form}}
     </section>
 </div>

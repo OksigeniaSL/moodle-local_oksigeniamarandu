@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.32.0 (2026-11-13)
+
+- The page of the channel without a form, by Jujol: each card saves itself at a touch, and with JavaScript changes in
+  its place. «What goes to the channel» saves each kind as it is touched (before, it waited for «Save changes»). «The day
+  of the channel» draws the 24 hours with the time of review, that of the channel and the posts of a busy day; hours are
+  plates with half an hour less and more, days are sheets of a calendar, the gap between two posts is a row of chips.
+  What is set once goes in five folded cards (calendar, weather warnings, place and sky, links, cards), each saying in a
+  line what it has. A card only saves what it sends: saving one no longer empties the others.
+- «Quiet hours and limits», also step 5 of the wizard: the week as seven rulers of 24 hours with the quiet dark as
+  night, the name of each day as the switch that quiets it whole, the notices a day and the money of a month with less
+  and more, and what does not wait as switches. At most 20 notices a day for each person.
+- Opting out by hand: «How did they ask?» with a button for each way, which opts out at a touch; «Another reason»
+  folded, with its field. A Telegram chat is asked and told as a chat, and comes back from Telegram, not from WhatsApp.
+- Every setting of the administration has its value from the install on, and those a new version brings from its
+  update: Moodle no longer stops whoever installs the plugin on its page of new settings with the fields of Meta.
+
 ## 0.30.0 (2026-11-08)
 
 - `api::channel_members($from, $to)`: how many people the channel had each day it was counted, for a series over time.

@@ -1,0 +1,35 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/channel_plate
+
+    An hour of the page of the channel as a plate: the hour, written in its place, with half an hour less and more. The
+    field goes before the two buttons, so that a button, sent last, is the value PHP keeps.
+
+    Context variables required for this template:
+    * name, value - The setting and the hour it has.
+    * label, caption - What it is, for a screen reader, and above the plate (empty, nothing).
+    * less, noless, more, nomore - Half an hour less and more, and whether there is none.
+    * action - Optional, where its buttons go (the card they come back to), from the context around it.
+
+    Example context (json):
+    {
+        "name": "reviewfrom", "value": "08:00", "label": "From", "caption": "From", "less": "07:30", "noless": false,
+        "more": "08:30", "nomore": false
+    }
+}}
+<span class="mrd-placa">{{#caption}}<span class="mrd-placa-t" aria-hidden="true">{{.}}</span>{{/caption}}<input type="time" name="{{name}}" value="{{value}}" aria-label="{{label}}" data-solo><button type="submit" class="mrd-menos" name="{{name}}" value="{{less}}" aria-label="{{#str}} channel:earlier, local_oksigeniamarandu, {{less}} {{/str}}"{{#noless}} disabled{{/noless}}{{#action}} formaction="{{action}}"{{/action}}>−</button><button type="submit" class="mrd-mas" name="{{name}}" value="{{more}}" aria-label="{{#str}} channel:later, local_oksigeniamarandu, {{more}} {{/str}}"{{#nomore}} disabled{{/nomore}}{{#action}} formaction="{{action}}"{{/action}}>+</button></span>

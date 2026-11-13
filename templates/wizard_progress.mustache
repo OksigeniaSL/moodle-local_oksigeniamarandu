@@ -33,7 +33,7 @@
         "stepinfo": "Step 2 of 2 · Test"
     }
 }}
-<div class="local-oksigeniamarandu-progress" aria-label="{{#str}} wizard:progress, local_oksigeniamarandu {{/str}}">
+<nav class="local-oksigeniamarandu-progress" aria-label="{{#str}} wizard:progress, local_oksigeniamarandu {{/str}}">
     <div class="mrd-bar">{{#steps}}<i class="{{#done}}done{{/done}}{{#now}}now{{/now}}"></i>{{/steps}}</div>
     <div class="mrd-labels">
         {{#steps}}
@@ -41,4 +41,4 @@
             {{^done}}{{#now}}<span class="now">{{stepinfo}}</span>{{/now}}{{^now}}<span>{{label}}</span>{{/now}}{{/done}}
         {{/steps}}
     </div>
-</div>
+</nav>

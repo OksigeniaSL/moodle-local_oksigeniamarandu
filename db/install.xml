@@ -79,6 +79,12 @@
         <FIELD NAME="body" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The text sent to Meta"/>
         <FIELD NAME="timesubmitted" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="nextname" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="The template that will replace this one, under a new name, or the old one to delete from Meta"/>
+        <FIELD NAME="nextmetaid" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Id Meta gave to that template"/>
+        <FIELD NAME="nextstatus" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="pending, rejected… as Meta says, or retired for the old one to delete"/>
+        <FIELD NAME="nextcategory" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Its category, as Meta says"/>
+        <FIELD NAME="nextreason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Why Meta rejected it, if it did"/>
+        <FIELD NAME="nextbody" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Its text"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

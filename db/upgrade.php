@@ -297,6 +297,25 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026112302, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026112600) {
+        // A template Meta moved to another category cannot change it: a new text goes as a new template, beside it.
+        $table = new xmldb_table('local_oksigeniamarandu_tpl');
+        $fields = [
+            new xmldb_field('nextname', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'timemodified'),
+            new xmldb_field('nextmetaid', XMLDB_TYPE_CHAR, '64', null, null, null, null, 'nextname'),
+            new xmldb_field('nextstatus', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'nextmetaid'),
+            new xmldb_field('nextcategory', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'nextstatus'),
+            new xmldb_field('nextreason', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'nextcategory'),
+            new xmldb_field('nextbody', XMLDB_TYPE_TEXT, null, null, null, null, null, 'nextreason'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026112600, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

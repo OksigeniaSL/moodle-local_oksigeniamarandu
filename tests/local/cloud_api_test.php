@@ -46,10 +46,11 @@ final class cloud_api_test extends \advanced_testcase {
              *
              * @param string $url Full URL.
              * @param string|null $body JSON body, or null for a GET.
+             * @param bool $delete Whether it is a DELETE.
              * @return string
              */
-            protected function request(string $url, ?string $body = null): string {
-                $this->sent[] = ['url' => $url, 'body' => $body === null ? null : json_decode($body, true)];
+            protected function request(string $url, ?string $body = null, bool $delete = false): string {
+                $this->sent[] = ['url' => $url, 'body' => $body === null ? null : json_decode($body, true), 'delete' => $delete];
                 return $this->answer;
             }
         };
@@ -134,6 +135,21 @@ final class cloud_api_test extends \advanced_testcase {
         $api = $this->fake_api(['data' => [['name' => 'mrd_x', 'status' => 'APPROVED'], 'not a template']]);
         $this->assertSame([['name' => 'mrd_x', 'status' => 'APPROVED']], $api->list_templates('2220000000'));
         $this->assertNull($api->sent[0]['body']);
+    }
+
+    /**
+     * A template is deleted by its id and name, as a DELETE to the templates of the account.
+     */
+    public function test_delete_template(): void {
+        $api = $this->fake_api(['success' => true]);
+        $this->assertSame(['success' => true], $api->delete_template('waba1', '9001', 'mrd_local_x_y'));
+        $this->assertSame(
+            'https://graph.facebook.com/' . cloud_api::DEFAULT_GRAPH_VERSION
+                . '/waba1/message_templates?hsm_id=9001&name=mrd_local_x_y',
+            $api->sent[0]['url']
+        );
+        $this->assertNull($api->sent[0]['body']);
+        $this->assertTrue($api->sent[0]['delete']);
     }
 
     /**

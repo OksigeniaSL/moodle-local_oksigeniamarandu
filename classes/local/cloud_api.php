@@ -222,6 +222,20 @@ class cloud_api {
     }
 
     /**
+     * Deletes one template from Meta, by its id: the others with its name, in other languages, stay.
+     *
+     * @param string $wabaid The WhatsApp Business account.
+     * @param string $templateid The id of the template in Meta.
+     * @param string $name Its name, which Meta asks for together with the id.
+     * @return array What Meta answers.
+     * @throws api_exception If Meta does not take it.
+     */
+    public function delete_template(string $wabaid, string $templateid, string $name): array {
+        $query = http_build_query(['hsm_id' => $templateid, 'name' => $name], '', '&');
+        return $this->remove($wabaid . '/message_templates?' . $query);
+    }
+
+    /**
      * The templates of the account, with their status, category and why they were rejected.
      *
      * @param string $wabaid The WhatsApp Business account.
@@ -244,6 +258,17 @@ class cloud_api {
      */
     protected function post(string $path, array $payload): array {
         return $this->decode($this->request($this->url($path), json_encode($payload)));
+    }
+
+    /**
+     * Deletes something in the Graph API and turns its errors into exceptions.
+     *
+     * @param string $path Path after the version, with its query.
+     * @return array The decoded answer.
+     * @throws api_exception If Meta returns an error or something that is not JSON.
+     */
+    protected function remove(string $path): array {
+        return $this->decode($this->request($this->url($path), null, true));
     }
 
     /**
@@ -280,14 +305,16 @@ class cloud_api {
     }
 
     /**
-     * One HTTP request with the token: POST with a body, GET without. Kept apart so that the tests can answer for Meta.
+     * One HTTP request with the token: POST with a body, GET without, or DELETE. Kept apart so that the tests can answer
+     * for Meta.
      *
      * @param string $url Full URL.
      * @param string|null $body JSON body, or null for a GET.
+     * @param bool $delete Whether it is a DELETE.
      * @return string What Meta answered.
      * @throws api_exception If Meta cannot be reached.
      */
-    protected function request(string $url, ?string $body = null): string {
+    protected function request(string $url, ?string $body = null, bool $delete = false): string {
         global $CFG;
         // The class of the requests: not every script has it loaded.
         require_once($CFG->libdir . '/filelib.php');
@@ -296,7 +323,10 @@ class cloud_api {
             'Authorization: Bearer ' . $this->accesstoken,
             'Content-Type: application/json',
         ]);
-        if ($body === null) {
+        if ($delete) {
+            // The delete() of Moodle's curl adds a user and password of its own, which would clash with the token.
+            $answer = $curl->get($url, [], ['CURLOPT_TIMEOUT' => 20, 'CURLOPT_CUSTOMREQUEST' => 'DELETE']);
+        } else if ($body === null) {
             $answer = $curl->get($url, [], ['CURLOPT_TIMEOUT' => 20]);
         } else {
             $answer = $curl->post($url, $body, ['CURLOPT_TIMEOUT' => 20]);

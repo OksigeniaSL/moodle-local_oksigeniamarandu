@@ -62,9 +62,10 @@ class templates {
      *
      * @param \stdClass $notice The notice.
      * @param string $lang Moodle language.
+     * @param string|null $name Its name in Meta, if not the usual one: that of a template that replaces another.
      * @return array
      */
-    public static function payload(\stdClass $notice, string $lang): array {
+    public static function payload(\stdClass $notice, string $lang, ?string $name = null): array {
         $body = ['type' => 'BODY', 'text' => notices::text($notice, 'template', $lang)];
         if ($notice->examples) {
             $body['example'] = ['body_text' => [$notice->examples]];
@@ -81,7 +82,7 @@ class templates {
             'example' => ['K7M2Q9XA'],
         ];
         return [
-            'name' => notices::template_name($notice),
+            'name' => $name ?? notices::template_name($notice),
             'language' => notices::metalang($lang),
             'category' => 'UTILITY',
             'components' => [$body, ['type' => 'BUTTONS', 'buttons' => $buttons]],
@@ -151,21 +152,63 @@ class templates {
      * @return bool
      */
     public static function changed(\stdClass $template, \stdClass $notice, string $lang): bool {
-        return (string)$template->body !== notices::text($notice, 'template', $lang);
+        $body = self::renewing($template) ? $template->nextbody : $template->body;
+        return (string)$body !== notices::text($notice, 'template', $lang);
+    }
+
+    /**
+     * Whether a template has another one with Meta that will replace it: in review, or rejected.
+     *
+     * Meta does not let an approved template change its category. One it moved to marketing, which costs more, keeps
+     * it whatever its text says; a new text goes as a new template, under the same name with a number, and the old one
+     * goes on sending until the new one is approved.
+     *
+     * @param \stdClass $template The stored template.
+     * @return bool
+     */
+    public static function renewing(\stdClass $template): bool {
+        return !empty($template->nextname) && ($template->nextstatus ?? '') !== 'retired';
+    }
+
+    /**
+     * The name of the template that replaces another: the usual one with _2, _3… Meta does not let a name be used again
+     * in the 30 days after it deletes the template that had it.
+     *
+     * @param \stdClass $template The stored template.
+     * @param \stdClass $notice The notice.
+     * @return string
+     */
+    public static function next_name(\stdClass $template, \stdClass $notice): string {
+        $base = notices::template_name($notice);
+        $number = preg_match('/^' . preg_quote($base, '/') . '_(\d+)$/', (string)$template->name, $matches) ? (int)$matches[1] : 1;
+        return $base . '_' . ($number + 1);
+    }
+
+    /**
+     * How many different values a text has.
+     *
+     * @param string $text The text.
+     * @return int
+     */
+    private static function values(string $text): int {
+        preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
+        return count(array_unique($matches[1]));
     }
 
     /**
      * Sends to Meta what it does not have yet: the template of each new notice and the new text of those that changed
-     * (approved, rejected or paused; one still in review waits). A text Meta would refuse does not go.
+     * (approved, rejected or paused; one still in review waits). The new text of one Meta moved to another category goes
+     * as a new template, which replaces it once approved; the old one is then deleted. A text Meta would refuse does not
+     * go.
      *
      * @param cloud_api $api The client.
      * @param string $wabaid The WhatsApp Business account.
      * @param int $max The most it sends.
-     * @return array Counts: created, edited, failed and wrong (texts Meta would refuse).
+     * @return array Counts: created, edited, failed, wrong (texts Meta would refuse) and retired (old ones deleted).
      */
     public static function sync(cloud_api $api, string $wabaid, int $max = 20): array {
         global $DB;
-        $counts = ['created' => 0, 'edited' => 0, 'failed' => 0, 'wrong' => 0];
+        $counts = ['created' => 0, 'edited' => 0, 'failed' => 0, 'wrong' => 0, 'retired' => 0];
         foreach (notices::all() as $notice) {
             foreach (notices::languages() as $lang) {
                 if ($counts['created'] + $counts['edited'] + $counts['failed'] >= $max) {
@@ -177,9 +220,31 @@ class templates {
                 }
                 $template = self::get($notice, $lang);
                 try {
+                    if ($template && ($template->nextstatus ?? '') === 'retired') {
+                        self::retire($api, $wabaid, $template);
+                        $counts['retired']++;
+                        $template = self::get($notice, $lang);
+                    }
                     $metaid = $template ? (string)$template->metaid : '';
                     if (!$template || ($metaid === '' && $template->status === 'rejected')) {
                         self::submit($api, $wabaid, $notice, $lang);
+                        $counts['created']++;
+                    } else if (self::renewing($template)) {
+                        // The one that will replace it: rejected, it takes the newer text; in review, it waits.
+                        if ($template->nextstatus === 'rejected' && self::changed($template, $notice, $lang)) {
+                            $payload = self::payload($notice, $lang, $template->nextname);
+                            $api->edit_template((string)$template->nextmetaid, $payload['components']);
+                            $DB->update_record(self::TABLE, (object)['id' => $template->id, 'nextstatus' => 'pending',
+                                'nextreason' => null, 'nextbody' => $payload['components'][0]['text'],
+                                'timemodified' => time()]);
+                            $counts['edited']++;
+                        }
+                    } else if (
+                        in_array($template->status, ['approved', 'paused'], true) && $metaid !== ''
+                            && !in_array((string)$template->category, ['', 'utility'], true)
+                            && self::changed($template, $notice, $lang)
+                    ) {
+                        self::renew($api, $wabaid, $template, $notice, $lang);
                         $counts['created']++;
                     } else if (
                         in_array($template->status, ['approved', 'rejected', 'paused'], true)
@@ -200,6 +265,80 @@ class templates {
             }
         }
         return $counts;
+    }
+
+    /**
+     * Sends the new text of a template Meta moved to another category as a new template, to replace it.
+     *
+     * @param cloud_api $api The client.
+     * @param string $wabaid The WhatsApp Business account.
+     * @param \stdClass $template The stored template.
+     * @param \stdClass $notice The notice.
+     * @param string $lang Moodle language.
+     * @throws api_exception If Meta does not take it.
+     */
+    private static function renew(cloud_api $api, string $wabaid, \stdClass $template, \stdClass $notice, string $lang): void {
+        global $DB;
+        $payload = self::payload($notice, $lang, self::next_name($template, $notice));
+        $answer = $api->create_template($wabaid, $payload);
+        $template->nextname = $payload['name'];
+        $template->nextmetaid = (string)($answer['id'] ?? '');
+        $template->nextstatus = self::status((string)($answer['status'] ?? 'PENDING')) ?? 'pending';
+        $template->nextcategory = strtolower((string)($answer['category'] ?? 'UTILITY'));
+        $template->nextreason = null;
+        $template->nextbody = $payload['components'][0]['text'];
+        $template->timemodified = time();
+        if ($template->nextstatus === 'approved') {
+            self::promote($template);
+        } else {
+            $DB->update_record(self::TABLE, $template);
+        }
+    }
+
+    /**
+     * The template that replaces another one, approved: from now on the notice goes with it, and the old one waits to be
+     * deleted from Meta in the next run.
+     *
+     * @param \stdClass $template The stored template, with the one that replaces it.
+     */
+    private static function promote(\stdClass $template): void {
+        global $DB;
+        [$oldname, $oldmetaid] = [$template->name, $template->metaid];
+        $template->name = $template->nextname;
+        $template->metaid = $template->nextmetaid;
+        $template->body = $template->nextbody;
+        $template->status = 'approved';
+        $template->category = $template->nextcategory ?: 'utility';
+        $template->reason = null;
+        $template->nextname = $oldname;
+        $template->nextmetaid = $oldmetaid;
+        $template->nextstatus = 'retired';
+        $template->nextcategory = null;
+        $template->nextreason = null;
+        $template->nextbody = null;
+        $template->timemodified = time();
+        $DB->update_record(self::TABLE, $template);
+    }
+
+    /**
+     * Deletes from Meta the template another one replaced. If Meta does not take it, it is left there: it no longer goes
+     * out, and trying every hour would not help.
+     *
+     * @param cloud_api $api The client.
+     * @param string $wabaid The WhatsApp Business account.
+     * @param \stdClass $template The stored template, with the old one to delete.
+     */
+    private static function retire(cloud_api $api, string $wabaid, \stdClass $template): void {
+        global $DB;
+        if ((string)$template->nextmetaid !== '') {
+            try {
+                $api->delete_template($wabaid, (string)$template->nextmetaid, (string)$template->nextname);
+            } catch (api_exception $e) {
+                debugging('Marandu: an old template stays in Meta: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+        }
+        $DB->update_record(self::TABLE, (object)['id' => $template->id, 'nextname' => null, 'nextmetaid' => null,
+            'nextstatus' => null, 'nextcategory' => null, 'nextreason' => null, 'nextbody' => null, 'timemodified' => time()]);
     }
 
     /**
@@ -264,6 +403,32 @@ class templates {
                 $changed = true;
             }
         }
+        // The template that will replace another one: approved, it takes its place.
+        foreach ($DB->get_records(self::TABLE, ['nextname' => $name]) as $record) {
+            if (!self::renewing($record) || self::langkey(notices::metalang($record->lang)) !== $wanted) {
+                continue;
+            }
+            $before = [$record->nextstatus, $record->nextcategory, $record->nextreason];
+            $mapped = $status === '' ? null : self::status($status);
+            if ($mapped !== null) {
+                $record->nextstatus = $mapped;
+            }
+            if ($category !== '') {
+                $record->nextcategory = strtolower($category);
+            }
+            if ($reason !== null) {
+                $record->nextreason = $reason === '' || strtoupper($reason) === 'NONE' ? null
+                    : \core_text::substr($reason, 0, 255);
+            }
+            if ($record->nextstatus === 'approved') {
+                self::promote($record);
+                $changed = true;
+            } else if ($before !== [$record->nextstatus, $record->nextcategory, $record->nextreason]) {
+                $record->timemodified = time();
+                $DB->update_record(self::TABLE, $record);
+                $changed = true;
+            }
+        }
         return $changed;
     }
 
@@ -277,7 +442,11 @@ class templates {
     public static function approved(\stdClass $notice, ?string $lang = null): ?\stdClass {
         foreach (array_unique(array_filter(array_merge([$lang], notices::languages()))) as $try) {
             $template = self::get($notice, $try);
-            if ($template && $template->status === 'approved') {
+            // One whose text has other values than the notice now, until Meta has the new one, would be refused.
+            if (
+                $template && $template->status === 'approved'
+                    && self::values((string)$template->body) === self::values(notices::text($notice, 'template', $try))
+            ) {
                 return $template;
             }
         }

@@ -282,12 +282,18 @@ if ($step === 'account') {
             $problem = templates::problem(notices::text($notice, 'template', $lang));
             if ($problem !== null) {
                 $status = 'wrong';
+            } else if (
+                $template && templates::renewing($template)
+                    && ($template->nextstatus !== 'rejected' || !templates::changed($template, $notice, $lang))
+            ) {
+                // A new text Meta reviews, or rejected, as a new template: the old one goes on sending meanwhile.
+                $status = $template->nextstatus === 'rejected' ? 'renewrejected' : 'renewing';
             } else if ($template && $status !== 'pending' && templates::changed($template, $notice, $lang)) {
                 $status = 'changed';
             }
             if ($status === 'todo' || $status === 'changed') {
                 $counts['todo']++;
-            } else if ($status === 'pending') {
+            } else if ($status === 'pending' || $status === 'renewing') {
                 $counts['pending']++;
             }
             // The text as Meta will see it, with the examples where the values go.
@@ -301,9 +307,11 @@ if ($step === 'account') {
                 'body' => $body,
                 'button' => notices::text($notice, 'button', $lang),
                 'status' => get_string('wizard:texts:status:' . $status, $component),
-                'statusclass' => ['wrong' => 'rejected', 'changed' => 'todo'][$status] ?? $status,
+                'statusclass' => ['wrong' => 'rejected', 'changed' => 'todo', 'renewing' => 'pending',
+                    'renewrejected' => 'rejected'][$status] ?? $status,
                 'reason' => $problem !== null ? get_string('templates:problem:' . $problem, $component)
-                    : ($template && $template->reason ? $template->reason : ''),
+                    : ($status === 'renewrejected' ? (string)$template->nextreason
+                    : ($template && $template->reason ? $template->reason : '')),
                 'marketing' => $template && $template->category === 'marketing',
             ];
         }

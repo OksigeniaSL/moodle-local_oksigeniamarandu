@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.33.0 (2026-11-14)
+
+- A template Meta moved to marketing keeps that category, as Meta does not let an approved template change it. When its
+  text changes, the new text goes as a new utility template, under the same name with _2, _3…; the old one goes on
+  sending while Meta reviews it, the new one takes its place once approved, and the old one is deleted from Meta in the
+  next hourly run. The wizard says it: «New text in review: the previous one goes meanwhile».
+- An approved template whose values no longer match the text of its notice is not used until Meta has the new text:
+  Meta would refuse it.
+- The general notice reads as a notification of the account: «There is a new notification in your {{1}} account».
+
 ## 0.32.1 (2026-11-13)
 
 - «The day of the channel» says «one every hour», not «one every 1 hour».

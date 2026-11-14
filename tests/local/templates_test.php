@@ -39,6 +39,12 @@ final class templates_test extends \advanced_testcase {
             /** @var array What was posted, by path. */
             public $posted = [];
 
+            /** @var array What was deleted, by path. */
+            public $deleted = [];
+
+            /** @var string The id Meta gives to the templates it creates. */
+            public $id = '9001';
+
             /** @var bool Whether Meta refuses everything. */
             private $fail;
 
@@ -66,8 +72,19 @@ final class templates_test extends \advanced_testcase {
                     throw new api_exception('error:meta', (object)['code' => 100, 'message' => 'Invalid parameter'], 100);
                 }
                 $this->posted[] = [$path, $payload];
-                return str_ends_with($path, 'message_templates') ? ['id' => '9001', 'status' => 'PENDING',
+                return str_ends_with($path, 'message_templates') ? ['id' => $this->id, 'status' => 'PENDING',
                     'category' => 'UTILITY'] : ['success' => true];
+            }
+
+            /**
+             * Keeps it and answers as Meta.
+             *
+             * @param string $path Where, with its query.
+             * @return array
+             */
+            protected function remove(string $path): array {
+                $this->deleted[] = $path;
+                return ['success' => true];
             }
         };
     }
@@ -123,5 +140,101 @@ final class templates_test extends \advanced_testcase {
         $this->assertSame(count($good), templates::sync($this->meta(true), 'waba1')['failed']);
         $this->assertDebuggingCalledCount(count($good));
         $this->assertFalse($DB->record_exists(templates::TABLE, []));
+    }
+
+    /**
+     * A template Meta moved to marketing keeps that category: its new text goes as a new template, under the name with
+     * _2, and the old one goes on sending meanwhile; once Meta approves the new one, it takes its place and the old one is
+     * deleted in the next run.
+     */
+    public function test_renew(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $notice = notices::get('local_oksigeniamarandu', 'notification');
+        $meta = $this->meta();
+        templates::sync($meta, 'waba1');
+        $template = templates::get($notice, 'en');
+        $old = 'An older text of {{1}}: {{2}}.';
+        $DB->update_record(templates::TABLE, (object)['id' => $template->id, 'status' => 'approved',
+            'category' => 'marketing', 'body' => $old]);
+        $meta->id = '9002';
+
+        // The new text goes as a new template, not as an edit.
+        $counts = templates::sync($meta, 'waba1');
+        $this->assertSame([1, 0], [$counts['created'], $counts['edited']]);
+        [$path, $payload] = end($meta->posted);
+        $this->assertSame('waba1/message_templates', $path);
+        $this->assertSame('mrd_local_oksigeniamarandu_notification_2', $payload['name']);
+        $this->assertSame('UTILITY', $payload['category']);
+        $template = templates::get($notice, 'en');
+        $this->assertTrue(templates::renewing($template));
+        $this->assertSame(
+            ['pending', '9002', 'approved', $old],
+            [$template->nextstatus, $template->nextmetaid, $template->status, $template->body]
+        );
+        $this->assertFalse(templates::changed($template, $notice, 'en'));
+        // The old one goes on sending, while its values are those of the notice.
+        $this->assertEquals($template->id, templates::approved($notice, 'en')->id);
+        $DB->set_field(templates::TABLE, 'body', 'An older text of {{1}}.', ['id' => $template->id]);
+        $this->assertNull(templates::approved($notice, 'en'));
+        $DB->set_field(templates::TABLE, 'body', $old, ['id' => $template->id]);
+        // In review: nothing more.
+        $this->assertSame(['created' => 0, 'edited' => 0, 'failed' => 0], array_slice(templates::sync($meta, 'waba1'), 0, 3));
+
+        // Rejected: with the same text, nothing; when the text changes again, the new template takes it, as an edit.
+        $this->assertTrue(templates::update_from_meta(
+            'mrd_local_oksigeniamarandu_notification_2',
+            'en',
+            'REJECTED',
+            '',
+            'INVALID_FORMAT'
+        ));
+        $template = templates::get($notice, 'en');
+        $this->assertSame(['rejected', 'INVALID_FORMAT', 'approved'], [$template->nextstatus, $template->nextreason,
+            $template->status]);
+        $this->assertSame(0, templates::sync($meta, 'waba1')['edited']);
+        $DB->set_field(templates::TABLE, 'nextbody', 'A rejected text of {{1}}: {{2}}.', ['id' => $template->id]);
+        $this->assertSame(1, templates::sync($meta, 'waba1')['edited']);
+        $this->assertSame('9002', end($meta->posted)[0]);
+        $this->assertSame('pending', templates::get($notice, 'en')->nextstatus);
+
+        // Approved: it takes the place of the old one, which is deleted in the next run, and only once.
+        $this->assertTrue(templates::update_from_meta(
+            'mrd_local_oksigeniamarandu_notification_2',
+            'en',
+            'APPROVED',
+            'UTILITY'
+        ));
+        $template = templates::get($notice, 'en');
+        $this->assertSame(
+            ['mrd_local_oksigeniamarandu_notification_2', '9002', 'approved', 'utility'],
+            [$template->name, $template->metaid, $template->status, $template->category]
+        );
+        $this->assertSame(notices::text($notice, 'template', 'en'), $template->body);
+        $this->assertSame(
+            ['retired', 'mrd_local_oksigeniamarandu_notification', '9001'],
+            [$template->nextstatus, $template->nextname, $template->nextmetaid]
+        );
+        $this->assertFalse(templates::renewing($template));
+        // What Meta says of the old one no longer touches anything.
+        $this->assertFalse(templates::update_from_meta('mrd_local_oksigeniamarandu_notification', 'en', 'PAUSED'));
+        $this->assertSame(1, templates::sync($meta, 'waba1')['retired']);
+        $this->assertSame(
+            ['waba1/message_templates?hsm_id=9001&name=mrd_local_oksigeniamarandu_notification'],
+            $meta->deleted
+        );
+        $this->assertNull(templates::get($notice, 'en')->nextname);
+        $this->assertSame(0, templates::sync($meta, 'waba1')['retired']);
+
+        // A newer text later: the template is a utility one now, so it goes as an edit.
+        $DB->set_field(templates::TABLE, 'body', $old, ['id' => $template->id]);
+        $this->assertSame(1, templates::sync($meta, 'waba1')['edited']);
+        $this->assertSame('9002', end($meta->posted)[0]);
+
+        // A third text of one moved to marketing again goes under the name with _3.
+        $DB->update_record(templates::TABLE, (object)['id' => $template->id, 'status' => 'approved',
+            'category' => 'marketing', 'body' => $old]);
+        templates::sync($meta, 'waba1');
+        $this->assertSame('mrd_local_oksigeniamarandu_notification_3', templates::get($notice, 'en')->nextname);
     }
 }

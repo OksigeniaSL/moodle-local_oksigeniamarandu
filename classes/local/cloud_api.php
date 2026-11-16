@@ -197,6 +197,23 @@ class cloud_api {
     }
 
     /**
+     * Whether the token reaches the account where the templates are. Meta keeps it apart from the number (the messaging
+     * account and the WhatsApp account of a business portfolio): a system user with only the second one reaches the
+     * number and not the templates.
+     *
+     * @param string $wabaid The WhatsApp Business account.
+     * @return bool
+     */
+    public function reaches_account(string $wabaid): bool {
+        try {
+            $response = $this->decode($this->request($this->url($wabaid . '?fields=id')));
+        } catch (api_exception $e) {
+            return false;
+        }
+        return (string)($response['id'] ?? '') === $wabaid;
+    }
+
+    /**
      * Sends a template to Meta for review.
      *
      * @param string $wabaid The WhatsApp Business account.

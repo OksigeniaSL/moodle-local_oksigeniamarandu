@@ -138,6 +138,26 @@ final class cloud_api_test extends \advanced_testcase {
     }
 
     /**
+     * The token reaches the account of the templates when Meta answers with it; an error of Meta means it does not.
+     */
+    public function test_reaches_account(): void {
+        $api = $this->fake_api(['id' => 'waba1']);
+        $this->assertTrue($api->reaches_account('waba1'));
+        $this->assertSame(
+            'https://graph.facebook.com/' . cloud_api::DEFAULT_GRAPH_VERSION . '/waba1?fields=id',
+            $api->sent[0]['url']
+        );
+
+        $api = $this->fake_api(['error' => [
+            'message' => 'Unsupported get request. Object with ID \'waba1\' does not exist',
+            'type' => 'GraphMethodException',
+            'code' => 100,
+            'error_subcode' => 33,
+        ]]);
+        $this->assertFalse($api->reaches_account('waba1'));
+    }
+
+    /**
      * A template is deleted by its id and name, as a DELETE to the templates of the account.
      */
     public function test_delete_template(): void {

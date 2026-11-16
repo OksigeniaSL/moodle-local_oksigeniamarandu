@@ -86,12 +86,18 @@ if ($action === 'connect' && confirm_sesskey()) {
         unset_config('connectednumber', $component);
         unset_config('connectedname', $component);
         try {
-            $info = cloud_api::from_config()->get_phone_number();
-            set_config('connectednumber', $info['number'], $component);
-            set_config('connectedname', $info['name'], $component);
-            // The account works again: the queue does not wait for its next try.
-            unset_config('sendblocked', $component);
-            redirect(new moodle_url($baseurl, ['step' => 'account']));
+            $api = cloud_api::from_config();
+            $info = $api->get_phone_number();
+            if ($typed['wabaid'] !== '' && !$api->reaches_account($typed['wabaid'])) {
+                // The token reaches the number but not the templates: Meta keeps them in two accounts.
+                $errors['wabaid'] = get_string('wizard:error:waba', $component);
+            } else {
+                set_config('connectednumber', $info['number'], $component);
+                set_config('connectedname', $info['name'], $component);
+                // The account works again: the queue does not wait for its next try.
+                unset_config('sendblocked', $component);
+                redirect(new moodle_url($baseurl, ['step' => 'account']));
+            }
         } catch (api_exception $e) {
             $errors['accesstoken'] = $e->getMessage();
         }

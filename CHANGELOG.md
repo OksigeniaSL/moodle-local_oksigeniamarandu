@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.33.1 (2026-11-16)
+
+- Meta now keeps the number and the templates of a business in two accounts: the WhatsApp account and the messaging
+  account. The wizard checks that the token reaches the account of the templates too, and if it does not, says what to
+  give the system user. The help on where the permanent token comes from lists the three things the system user needs,
+  with full control: the app, the WhatsApp account and the messaging account.
+
 ## 0.33.0 (2026-11-14)
 
 - A template Meta moved to marketing keeps that category, as Meta does not let an approved template change it. When its

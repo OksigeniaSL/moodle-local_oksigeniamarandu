@@ -31,9 +31,20 @@ sets. A panel tells at a glance whether the notices go out, and a list keeps the
 3. In *Site administration > Plugins > Local plugins > Oksigenia Marandu*, paste the details of the
    account and send yourself a test message.
 
+Whoever hosts many sites can set up Telegram from the command line instead, with the token in a file or on the
+standard input, never in the arguments:
+
+```
+sudo -u www-data php local/oksigeniamarandu/cli/setup.php --telegram-token-file=- --notices=local_example < token
+```
+
+`--notices` switches on every notice of those plugins (or `all`) for `--channels` (`telegram` by default), and
+`--status` shows how the site is. `--help` has the rest.
+
 ## Development
 
-Code, comments and commit messages in English; texts in the language packs (`lang/en`, `lang/es`). The API of Meta is
+Code, comments and commit messages in English; texts in the language packs (`lang/en` and `lang/es`, and what families read in `lang/pt`, `lang/pt_br` and
+`lang/ar`). The API of Meta is
 never called from the tests: a fake answers for it. The tests run with `moodle-plugin-ci` in GitHub Actions on Moodle
 4.5 and 5.3 (PostgreSQL), on 5.3 with MariaDB 11.4 too, and on `main` to see what is coming. See
 [CONTRIBUTING.md](CONTRIBUTING.md).

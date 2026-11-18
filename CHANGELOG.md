@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.34.0 (2026-11-18)
+
+- `cli/setup.php`, for whoever hosts many sites: connects the bot of Telegram with its token from a file or the standard
+  input (never from the arguments), switches on the notices of the plugins given for a channel, and shows how the site
+  is. The same checks as the page: the same bot with a new token keeps everyone, and another bot, when people joined
+  the one of now, is changed only from the page.
+- What families read (the page to join by WhatsApp, the replies, the menu of the bot and its answers) in Portuguese of
+  Portugal and of Brazil, and in Arabic, for the families who choose those languages. Moodle uses them when the site
+  has the language pack.
+- The page to join by WhatsApp, when nothing changes, says to ask whoever sent the link, not the school office.
+
 ## 0.33.1 (2026-11-16)
 
 - Meta now keeps the number and the templates of a business in two accounts: the WhatsApp account and the messaging

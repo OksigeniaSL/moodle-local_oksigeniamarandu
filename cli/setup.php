@@ -1,0 +1,91 @@
+<?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Sets up the channels of a site from the command line, for whoever hosts it: the bot of Telegram and the notices of
+ * its plugins. The token is read from a file or the standard input, never from the arguments.
+ *
+ * @package    local_oksigeniamarandu
+ * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+define('CLI_SCRIPT', true);
+
+require(__DIR__ . '/../../../config.php');
+require_once($CFG->libdir . '/clilib.php');
+
+use local_oksigeniamarandu\local\setup;
+use local_oksigeniamarandu\local\telegram_api;
+
+[$options, $unrecognised] = cli_get_params([
+    'help' => false,
+    'telegram-token-file' => '',
+    'notices' => '',
+    'channels' => 'telegram',
+    'status' => false,
+], ['h' => 'help']);
+
+if ($unrecognised) {
+    cli_error(get_string('cliunknowoption', 'admin', implode("\n  ", $unrecognised)));
+}
+
+if ($options['help'] || ($options['telegram-token-file'] === '' && $options['notices'] === '' && !$options['status'])) {
+    echo "Sets up Oksigenia Marandu on this site.
+
+Options:
+--telegram-token-file=PATH  Connects the bot of Telegram whose token is in PATH; - reads it from the standard input.
+                            The same bot with a new token keeps everyone; another bot, only from its page if people
+                            joined the one of now.
+--notices=PLUGINS           Switches on every notice of these plugins (comma separated, or all), for --channels.
+--channels=CHANNELS         telegram, whatsapp or both (comma separated). Default: telegram.
+--status                    Shows the channels and the notices on.
+-h, --help                  This help.
+
+Example:
+\$ sudo -u www-data php local/oksigeniamarandu/cli/setup.php --telegram-token-file=- --notices=local_oksigeniaeguahe < token
+";
+    exit(0);
+}
+
+$list = function (string $value): array {
+    return array_values(array_filter(array_map('trim', explode(',', $value)), 'strlen'));
+};
+
+try {
+    if ($options['telegram-token-file'] !== '') {
+        $file = $options['telegram-token-file'] === '-' ? 'php://stdin' : $options['telegram-token-file'];
+        $token = @file_get_contents($file);
+        if ($token === false) {
+            cli_error('Cannot read the token from ' . $options['telegram-token-file']);
+        }
+        $token = trim($token);
+        $bot = setup::telegram(new telegram_api($token), $token);
+        mtrace('Telegram: @' . ($bot['username'] ?? '') . ($bot['same'] ? ', the same bot with a new token' : '') . ', connected.');
+    }
+    if ($options['notices'] !== '') {
+        $keys = setup::notices($list($options['notices']), $list($options['channels']));
+        mtrace('Notices on for ' . implode(', ', $list($options['channels'])) . ': ' . ($keys ? implode(', ', $keys) : 'none'));
+    }
+    if ($options['status']) {
+        foreach (setup::status() as $line) {
+            mtrace($line);
+        }
+    }
+} catch (\moodle_exception $e) {
+    cli_error($e->getMessage());
+}
+exit(0);

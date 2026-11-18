@@ -32,9 +32,20 @@ producción.
 3. En *Administración del sitio > Extensiones > Extensiones locales > Oksigenia Marandu*, pega los datos
    de la cuenta y mándate un mensaje de prueba.
 
+Quien aloja muchos sitios puede poner Telegram desde la línea de órdenes, con el token en un fichero o por la entrada
+estándar, nunca en los argumentos:
+
+```
+sudo -u www-data php local/oksigeniamarandu/cli/setup.php --telegram-token-file=- --notices=local_example < token
+```
+
+`--notices` enciende todos los avisos de esos plugins (o `all`) en `--channels` (`telegram` si no se dice), y
+`--status` dice cómo está el sitio. El resto, con `--help`.
+
 ## Desarrollo
 
-Código, comentarios y commits en inglés; los textos, en los paquetes de idioma (`lang/en`, `lang/es`). Las pruebas
+Código, comentarios y commits en inglés; los textos, en los paquetes de idioma (`lang/en` y `lang/es`, y lo que leen las familias, también en `lang/pt`,
+`lang/pt_br` y `lang/ar`). Las pruebas
 nunca llaman a la API de Meta: responde por ella una imitación. Se pasan con `moodle-plugin-ci` en GitHub Actions en
 Moodle 4.5 y 5.3 (PostgreSQL), en 5.3 también con MariaDB 11.4, y en `main` para ver lo que viene. Más en
 [CONTRIBUTING.md](CONTRIBUTING.md).

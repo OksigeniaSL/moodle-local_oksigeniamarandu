@@ -193,7 +193,8 @@ try {
         mtrace('Webhook: ' . connection::webhook());
     }
     if ($options['sync-all']) {
-        mtrace('Conversations kept in the index: ' . mirror::sync_all());
+        [$kept, $all] = mirror::sync_all();
+        mtrace("Conversations in the index: $all ($kept new or changed)");
     }
     if ($options['sync']) {
         set_config('chatsynced', 0, $component);

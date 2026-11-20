@@ -646,9 +646,10 @@ final class chat_test extends \advanced_testcase {
      */
     public function test_sync_all_and_old_conversation(): void {
         global $DB;
-        $this->assertSame(3, mirror::sync_all());
+        $this->assertSame([3, 3], mirror::sync_all());
+        $this->assertSame([0, 3], mirror::sync_all());
         $DB->delete_records(mirror::TABLE);
-        $this->assertSame(3, mirror::sync_all());
+        $this->assertSame([3, 3], mirror::sync_all());
         $this->assertSame(3, $DB->count_records(mirror::TABLE));
         $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 1]);
         $DB->set_field(mirror::TABLE, 'lastactivity', time() - 200 * DAYSECS, ['cwid' => 1]);

@@ -670,6 +670,7 @@
 #mrd-chat .mrd-av.mrd-equipo {
     background: var(--acento-suave);
     color: var(--acento-texto);
+    border-radius: 28%;
 }
 #mrd-chat .mrd-av.mrd-yo-av {
     background: var(--acento-boton);
@@ -3994,4 +3995,16 @@
 #mrd-chat .mrd-antes.mrd-vieja {
     border-color: var(--acento-texto);
     color: var(--tinta);
+}
+
+/* The team, in a rounded square with its critter inside; the families, in a circle. */
+#mrd-chat .mrd-av.mrd-equipo.mrd-con-bicho {
+    background: var(--acento-suave);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1.5px var(--linea-2);
+}
+#mrd-chat .mrd-av.mrd-equipo.mrd-con-bicho > svg {
+    width: 112%;
+    height: 112%;
+    margin: -6%;
 }

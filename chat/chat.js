@@ -877,7 +877,8 @@
             return '<span class="mrd-av mrd-anillo mrd-con-bicho' + (edge ? ' mrd-borde' : '') + cls +
                 '" style="--anillo: conic-gradient(' + parts + ')" aria-hidden="true">' + bicho(seed) + '</span>';
         }
-        // A person of the team: the picture of their profile, or else their own critter (another seed than the families').
+        // A person of the team: the picture of their profile, or else their own critter, always in a rounded square, as the
+        // families are always in a circle: who is who, from afar.
         function avAgent(p, size) {
             if (!p) {
                 return '<span class="mrd-av mrd-nadie ' + (size || '') + '" aria-hidden="true">' + ico('nadie') + '</span>';
@@ -893,7 +894,7 @@
                 return '<span class="' + cls + ' mrd-con-foto" aria-hidden="true"><img src="' + esc(picture) + '" alt="" loading="lazy"></span>';
             }
             if (id && root.BichitoHk) {
-                return '<span class="' + cls + ' mrd-con-bicho" aria-hidden="true">' + bicho('equipo-' + id) + '</span>';
+                return '<span class="' + cls + ' mrd-con-bicho" aria-hidden="true">' + bicho('equipo-' + id, false) + '</span>';
             }
             return '<span class="' + cls + '" aria-hidden="true">' + esc(cap(firstName(p)).charAt(0)) + '</span>';
         }

@@ -88,11 +88,12 @@ class mirror {
      * Fills the index with every conversation of the inboxes the site attends, whenever it was: what was brought into
      * Chatwoot directly (the chats of the app of a phone, its history) never comes by the webhook or as a change.
      *
-     * @return int How many conversations it kept.
+     * @return array [how many it kept new or changed, how many of those inboxes the index has].
      */
-    public static function sync_all(): int {
+    public static function sync_all(): array {
         $client = directory::client();
         $kept = 0;
+        $seen = [];
         foreach (directory::inbox_ids() ?: [0] as $inbox) {
             for ($page = 1; $page <= 10 * self::PAGES; $page++) {
                 $query = ['status' => 'all', 'assignee_type' => 'all', 'page' => $page];
@@ -105,13 +106,14 @@ class mirror {
                         continue;
                     }
                     $kept += self::store($conversation) ? 1 : 0;
+                    $seen[(int)($conversation['id'] ?? 0)] = true;
                 }
                 if (count($payload) < self::PAGE_SIZE) {
                     break;
                 }
             }
         }
-        return $kept;
+        return [$kept, count(array_filter(array_keys($seen)))];
     }
 
     /**

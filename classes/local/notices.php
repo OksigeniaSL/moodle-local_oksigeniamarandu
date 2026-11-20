@@ -57,6 +57,10 @@ namespace local_oksigeniamarandu\local;
  *
  * The answer reaches the plugin with the hook \local_oksigeniamarandu\hook\answer_received.
  *
+ * A notice that only makes sense on some channels says which with 'channels' => ['telegram']: it is not offered, switched
+ * on or sent on the others, and it never goes to Meta as a template (a notice of a WhatsApp conversation by WhatsApp
+ * says nothing new).
+ *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -71,8 +75,8 @@ class notices {
     /**
      * Every notice declared on the site, by "component/notice".
      *
-     * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor, options and follows (the notice
-     *                     of the same plugin it takes over from, or empty).
+     * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor, options, follows (the notice
+     *                     of the same plugin it takes over from, or empty) and channels (those it can go by).
      */
     public static function all(): array {
         $all = [];
@@ -99,6 +103,7 @@ class notices {
                     'askedfor' => !empty($definition['askedfor']),
                     'options' => self::options((array)($definition['options'] ?? [])),
                     'follows' => self::follows((string)($definition['follows'] ?? ''), $notice),
+                    'channels' => self::channels_of((array)($definition['channels'] ?? [])),
                 ];
             }
         }
@@ -117,6 +122,29 @@ class notices {
             return (bool)preg_match('/^[a-z0-9]{1,10}$/', $key);
         })));
         return array_slice($keys, 0, 3);
+    }
+
+    /**
+     * The channels a notice can go by, as declared; all of them if it does not say.
+     *
+     * @param array $channels The channels.
+     * @return string[]
+     */
+    private static function channels_of(array $channels): array {
+        $known = array_keys(self::SETTING);
+        $channels = array_values(array_intersect($known, array_map('strval', $channels)));
+        return $channels ?: $known;
+    }
+
+    /**
+     * Whether a notice can go by a channel.
+     *
+     * @param \stdClass $notice The notice.
+     * @param string $channel whatsapp or telegram.
+     * @return bool
+     */
+    public static function allows(\stdClass $notice, string $channel): bool {
+        return in_array($channel, $notice->channels ?? array_keys(self::SETTING), true);
     }
 
     /**
@@ -291,7 +319,11 @@ class notices {
      */
     public static function enabled(string $channel = 'whatsapp'): array {
         self::follow();
-        return self::keys(self::SETTING[$channel] ?? 'enablednotices');
+        $all = self::all();
+        $keys = self::keys(self::SETTING[$channel] ?? 'enablednotices');
+        return array_values(array_filter($keys, function ($key) use ($all, $channel) {
+            return !isset($all[$key]) || self::allows($all[$key], $channel);
+        }));
     }
 
     /**
@@ -344,7 +376,7 @@ class notices {
      * @param bool $on On or off.
      */
     public static function set(string $key, string $channel, bool $on): void {
-        if (!isset(self::SETTING[$channel]) || !isset(self::all()[$key])) {
+        if (!isset(self::SETTING[$channel]) || !isset(self::all()[$key]) || !self::allows(self::all()[$key], $channel)) {
             return;
         }
         $keys = array_diff(self::enabled($channel), [$key]);

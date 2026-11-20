@@ -210,6 +210,9 @@ class templates {
         global $DB;
         $counts = ['created' => 0, 'edited' => 0, 'failed' => 0, 'wrong' => 0, 'retired' => 0];
         foreach (notices::all() as $notice) {
+            if (!notices::allows($notice, 'whatsapp')) {
+                continue;
+            }
             foreach (notices::languages() as $lang) {
                 if ($counts['created'] + $counts['edited'] + $counts['failed'] >= $max) {
                     return $counts;

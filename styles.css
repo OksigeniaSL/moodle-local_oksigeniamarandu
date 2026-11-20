@@ -4947,6 +4947,10 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
     line-height: 1.25;
 }
 
+.local-oksigeniamarandu-dash .mrd-swcell-no small {
+    font-style: italic;
+}
+
 .local-oksigeniamarandu-dash .mrd-swcell small.review {
     color: var(--mrd-ink);
 }

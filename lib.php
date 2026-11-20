@@ -36,6 +36,13 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'examples' => ['Colegio Ejemplo', 'Reunión de familias el jueves a las 17:00'],
             'perweek' => 1,
         ],
+        // The conversations of the team, to whoever attends them and linked their Telegram: only by Telegram (a notice of a
+        // WhatsApp conversation by WhatsApp says nothing new), with a button that opens the conversation.
+        'chat' => [
+            'examples' => ['Lucía Ferrer: ¿Me confirman el recibo de diciembre?'],
+            'perweek' => 0,
+            'channels' => ['telegram'],
+        ],
     ];
 }
 

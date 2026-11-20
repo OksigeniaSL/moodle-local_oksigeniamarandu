@@ -110,6 +110,7 @@ class chat_poll extends chat_base {
             $list[] = self::clean($viewer->export($row, $seen, $now));
         }
         return [
+            'notices' => $params['since'] > 0 ? self::notices($viewer->userid, $params['since']) : [],
             'now' => $now,
             'cursor' => $now,
             'inboxes' => $viewer->inboxes(),
@@ -118,6 +119,36 @@ class chat_poll extends chat_base {
             'messages' => $messages,
             'readby' => $readby,
         ];
+    }
+
+    /**
+     * The notices of the conversations this person got since a time, the same that go to the bell and to the phone (in
+     * the hours of the team, for what is theirs, waits in their departments, is passed to them or names them): the page
+     * shows them on the desktop when it is behind other windows.
+     *
+     * @param int $userid The person.
+     * @param int $since Since when.
+     * @return array Each with id, text, conversation and at.
+     */
+    protected static function notices(int $userid, int $since): array {
+        global $DB;
+        $rows = $DB->get_records_select(
+            'notifications',
+            "useridto = :userid AND component = :component AND eventtype = :eventtype AND timecreated >= :since",
+            ['userid' => $userid, 'component' => 'local_oksigeniamarandu', 'eventtype' => 'chat', 'since' => $since - 10],
+            'id ASC',
+            'id, subject, contexturl, timecreated',
+            0,
+            10
+        );
+        $list = [];
+        foreach ($rows as $row) {
+            $query = [];
+            parse_str((string)parse_url((string)$row->contexturl, PHP_URL_QUERY), $query);
+            $list[] = ['id' => (int)$row->id, 'text' => (string)$row->subject, 'conversation' => (int)($query['c'] ?? 0),
+                'at' => (int)$row->timecreated];
+        }
+        return $list;
     }
 
     /**
@@ -190,6 +221,12 @@ class chat_poll extends chat_base {
                     'total' => new external_value(PARAM_INT, 'How many are open'),
                 ])),
             ]),
+            'notices' => new external_multiple_structure(new external_single_structure([
+                'id' => new external_value(PARAM_INT, 'The notice'),
+                'text' => new external_value(PARAM_TEXT, 'What it says'),
+                'conversation' => new external_value(PARAM_INT, 'The conversation it is about, or 0'),
+                'at' => new external_value(PARAM_INT, 'When'),
+            ]), 'The notices of the conversations this person got since the cursor', VALUE_DEFAULT, []),
             'conversations' => new external_multiple_structure(self::conversation_structure()),
             'removed' => new external_multiple_structure(new external_value(PARAM_INT, 'A conversation no longer seen')),
             'messages' => new external_multiple_structure(self::message_structure()),

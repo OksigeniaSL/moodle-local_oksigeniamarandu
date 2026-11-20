@@ -110,13 +110,18 @@ final class templates_test extends \advanced_testcase {
         $this->resetAfterTest();
         $notice = notices::get('local_oksigeniamarandu', 'notification');
         $meta = $this->meta();
-        // Every notice of the site whose text Meta would take: those of other plugins installed too.
-        $good = array_filter(notices::all(), function (\stdClass $one): bool {
+        // Every notice of the site that goes by WhatsApp and whose text Meta would take: those of other plugins installed
+        // too. The conversations of the team only go by Telegram and never reach Meta.
+        $whatsapp = array_filter(notices::all(), function (\stdClass $one): bool {
+            return notices::allows($one, 'whatsapp');
+        });
+        $this->assertArrayNotHasKey('local_oksigeniamarandu/chat', $whatsapp);
+        $good = array_filter($whatsapp, function (\stdClass $one): bool {
             return templates::problem(notices::text($one, 'template', 'en')) === null;
         });
         $counts = templates::sync($meta, 'waba1');
         $this->assertSame(count($good), $counts['created']);
-        $this->assertSame(count(notices::all()) - count($good), $counts['wrong']);
+        $this->assertSame(count($whatsapp) - count($good), $counts['wrong']);
         $this->assertSame('waba1/message_templates', $meta->posted[0][0]);
         $template = templates::get($notice, 'en');
         $this->assertSame('pending', $template->status);

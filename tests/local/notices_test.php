@@ -76,6 +76,40 @@ final class notices_test extends \advanced_testcase {
     }
 
     /**
+     * The notice of the conversations of the team only goes by Telegram: it cannot be switched on for WhatsApp, a site
+     * that had it there does not send it, and a person with WhatsApp and Telegram gets it only on Telegram.
+     */
+    public function test_channels(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $chat = notices::get('local_oksigeniamarandu', 'chat');
+        $this->assertSame(['telegram'], $chat->channels);
+        $this->assertFalse(notices::allows($chat, 'whatsapp'));
+        $this->assertSame(['whatsapp', 'telegram'], notices::get('local_oksigeniamarandu', 'notification')->channels);
+
+        set_config('enablednotices', 'local_oksigeniamarandu/chat,local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
+        notices::set('local_oksigeniamarandu/chat', 'telegram', true);
+        notices::set('local_oksigeniamarandu/chat', 'whatsapp', true);
+        $this->assertSame(['local_oksigeniamarandu/notification'], notices::enabled('whatsapp'));
+        $this->assertSame(['local_oksigeniamarandu/chat'], notices::enabled('telegram'));
+
+        $user = $this->getDataGenerator()->create_user();
+        $ids = [];
+        foreach (['whatsapp' => '34600000001', 'telegram' => 'tg900000001'] as $channel => $phone) {
+            $code = \local_oksigeniamarandu\api::invite('local_oksigeniamarandu', 0, (int)$user->id);
+            $contact = consent::get_or_create($phone);
+            $DB->update_record(consent::CONTACTS, (object)['id' => $contact->id, 'channel' => $channel, 'status' => 'active']);
+            $DB->set_field(consent::LINKS, 'contactid', $contact->id, ['code' => $code]);
+            $ids[$channel] = (int)$contact->id;
+        }
+        $url = new \moodle_url('/local/oksigeniamarandu/chat.php', ['c' => 7]);
+        $api = \local_oksigeniamarandu\api::class;
+        $this->assertSame(1, $api::notify('local_oksigeniamarandu', 'chat', ['Ana: hola'], $url, 0, (int)$user->id));
+        $this->assertSame([$ids['telegram']], array_map('intval', $DB->get_fieldset_select(queue::TABLE, 'contactid', '1 = 1')));
+        $this->assertSame(2, $api::notify('local_oksigeniamarandu', 'notification', ['Centro', 'Algo'], null, 0, (int)$user->id));
+    }
+
+    /**
      * Notices that follow none never touch the settings: a site that has not chosen is still to choose.
      */
     public function test_others_leave_the_settings_alone(): void {

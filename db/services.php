@@ -64,6 +64,22 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_flag' => [
+        'classname' => \local_oksigeniamarandu\external\chat_flag::class,
+        'description' => 'A small choice of a person on the page of the conversations: the tour seen, the sound, the notices.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
+    'local_oksigeniamarandu_chat_resolved' => [
+        'classname' => \local_oksigeniamarandu\external\chat_resolved::class,
+        'description' => 'The conversations resolved in the last days that a person of the team sees.',
+        'type' => 'read',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_find' => [
         'classname' => \local_oksigeniamarandu\external\chat_find::class,
         'description' => 'Whom a person of the team can start a conversation with: a number or a name.',

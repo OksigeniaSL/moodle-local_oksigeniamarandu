@@ -52,7 +52,7 @@ final class provider_test extends provider_testcase {
 
     /**
      * The tables, the answers and the conversations among them, WhatsApp, Telegram, Chatwoot, the other address of the
-     * webhook and the backgrounds of the conversations are declared.
+     * webhook and the choices of the person on the conversations (backgrounds, tour, sound, desktop) are declared.
      */
     public function test_get_metadata(): void {
         $items = provider::get_metadata(new \core_privacy\local\metadata\collection('local_oksigeniamarandu'))
@@ -63,7 +63,8 @@ final class provider_test extends provider_testcase {
         $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
             'local_oksigeniamarandu_answer', 'local_oksigeniamarandu_post', 'telegram', 'whatsapp', 'forward',
             'local_oksigeniamarandu_conv', 'local_oksigeniamarandu_convseen', 'local_oksigeniamarandu_convmsg', 'chatwoot',
-            'local_oksigeniamarandu_chatbackgrounds', 'local_oksigeniamarandu_hist'], $names);
+            'local_oksigeniamarandu_chatbackgrounds', 'local_oksigeniamarandu_hist', 'local_oksigeniamarandu_chattour',
+            'local_oksigeniamarandu_chatsound', 'local_oksigeniamarandu_chatdesktop'], $names);
     }
 
     /**

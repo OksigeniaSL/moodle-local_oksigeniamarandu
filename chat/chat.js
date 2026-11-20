@@ -15,6 +15,7 @@
         contact: 'local_oksigeniamarandu_chat_contact',
         prefs: 'local_oksigeniamarandu_chat_prefs',
         find: 'local_oksigeniamarandu_chat_find',
+        resolved: 'local_oksigeniamarandu_chat_resolved',
         start: 'local_oksigeniamarandu_chat_start'
     };
 
@@ -117,6 +118,10 @@
             '<path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
         lapiz: '<path d="M4 20h4L19.2 8.8a2.3 2.3 0 0 0-3.3-3.3L4.5 16.7z"/><path d="M14 7.5l3 3"/>',
         alerta: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17v.01"/>',
+        ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.8-1.1 1.5v.4M12 16.6v.01"/>',
+        campana: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+        sonido: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+        mudo: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
         ojo: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
         punto: '<circle cx="12" cy="12" r="3"/>',
         video: '<rect x="3.5" y="6" width="12.5" height="12" rx="2.5"/><path d="M16 10.5l4.5-2.5v8l-4.5-2.5"/>',
@@ -496,7 +501,7 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            showResolved: false, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
+            showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
             ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
         };
@@ -1078,8 +1083,9 @@
             } else {
                 unLines = [counts.unassigned ? s('unassignedin', { n: counts.unassigned, where: where }) : s('unassignedinnone', where)];
             }
-            var h = '<div class="mrd-marca">' + brandMark() + '<div class="mrd-marca-t"><small>' + esc(brand.name || '') + '</small><strong>' +
-                esc(s('apptitle')) + '</strong></div></div>';
+            // The name of the screen takes back to its start: what is yours and how each department is doing.
+            var h = '<button type="button" class="mrd-marca" data-a="home" title="' + esc(s('hometitle')) + '">' + brandMark() +
+                '<span class="mrd-marca-t"><small>' + esc(brand.name || '') + '</small><strong>' + esc(s('apptitle')) + '</strong></span></button>';
             var night = nightCount();
             if (night) {
                 h += '<div class="mrd-buenos"><b>' + esc(greeting()) + '</b>' + esc(night === 1 ? s('nightarrived1') : s('nightarrived', night)) + '</div>';
@@ -1350,7 +1356,9 @@
             var waiting = all.filter(function (c) {
                 return c.section === 'waiting';
             }).sort(byActivity);
-            var done = all.filter(resolvedToday).sort(byActivity);
+            var done = all.filter(function (c) {
+                return c.section === 'resolved';
+            }).sort(byActivity);
             var night = isMorning() ? reply.filter(arrivedAtNight).sort(function (a, b) {
                 return a.waitingsince - b.waitingsince;
             }) : [];
@@ -1376,14 +1384,67 @@
                 h += '<div class="mrd-grupo-t mrd-suave">' + esc(s('groupwaiting')) + ' <span>' + waiting.length + '</span></div>' +
                     waiting.map(item(false)).join('');
             }
-            if (done.length) {
-                h += st.showResolved ? '<div class="mrd-grupo-t mrd-suave">' + esc(s('groupresolved')) + ' <span>' + done.length + '</span></div>' +
-                    done.map(item(false)).join('')
-                    : '<button type="button" class="mrd-ver-resueltas" data-a="resolvedlist">' +
-                    esc(done.length === 1 ? s('showresolved1') : s('showresolved', done.length)) + '</button>';
-            }
+            h += resolvedHtml(done, item(false));
             body.innerHTML = h;
             body.scrollTop = keep;
+        }
+        /* What was resolved: the page keeps what was resolved today; «See the resolved ones» brings the last days too,
+           by day, so that what someone resolved yesterday is a tap away and not only a search. */
+        function resolvedHtml(done, item) {
+            var today = done.filter(resolvedToday).length;
+            if (!st.showResolved) {
+                return '<button type="button" class="mrd-ver-resueltas" data-a="resolvedlist">' + esc(s('showresolvedall')) +
+                    (today ? '<span>' + esc(s('showresolvedtoday', today)) + '</span>' : '') + '</button>';
+            }
+            var h = '<div class="mrd-grupo-t mrd-suave">' + esc(s('groupresolvedall')) + (done.length ? ' <span>' + done.length + '</span>' : '') + '</div>';
+            var lastKey = 0;
+            done.forEach(function (c) {
+                var ms = (c.lastactivity || 0) * 1000, k = dayKey(ms);
+                if (k !== lastKey) {
+                    lastKey = k;
+                    h += '<div class="mrd-grupo-dia">' + esc(dayLabel(ms)) + '</div>';
+                }
+                h += item(c);
+            });
+            if (st.resolved === 'loading') {
+                h += '<div class="mrd-resueltas-estado">' + esc(s('resolvedloading')) + '</div>';
+            } else if (st.resolved === 'error') {
+                h += '<div class="mrd-resueltas-estado">' + esc(s('resolvederror')) +
+                    ' <button type="button" class="mrd-ver-resueltas" data-a="resolvedlist">' + esc(s('retry')) + '</button></div>';
+            } else if (st.resolvedMore) {
+                h += '<button type="button" class="mrd-ver-resueltas" data-a="resolvedmore">' + esc(s('resolvedmore')) + '</button>';
+            } else if (st.resolved === 'done') {
+                h += '<div class="mrd-resueltas-estado">' + esc(done.length ? s('resolvedend', st.resolvedDays) : s('resolvednone', st.resolvedDays)) +
+                    '</div>';
+            }
+            return h;
+        }
+        function loadResolved(before) {
+            if (st.resolved === 'loading') {
+                return;
+            }
+            st.resolved = 'loading';
+            renderListBody();
+            tr.call(M.resolved, { before: before || 0 }).then(function (r) {
+                (r.conversations || []).forEach(mergeConv);
+                st.resolved = 'done';
+                st.resolvedMore = !!r.more;
+                st.resolvedDays = r.days || st.resolvedDays;
+                renderListBody();
+                return r;
+            }).catch(function () {
+                st.resolved = 'error';
+                renderListBody();
+            });
+        }
+        function oldestResolved() {
+            var min = 0;
+            allConvs().forEach(function (c) {
+                if (c.section === 'resolved' && c.lastactivity && (!min || c.lastactivity < min)) {
+                    min = c.lastactivity;
+                }
+            });
+            return min;
         }
         function firstOf(inbox) {
             var list = allConvs().filter(function (c) {
@@ -1405,8 +1466,8 @@
             }
             var c = conv(st.open);
             if (!c) {
-                el.chat.innerHTML = '<div class="mrd-hilo"><div class="mrd-hilo-nada">' + (st.ready ? '<b>' + esc(s('pickone')) + '</b>' : esc(s('loading'))) +
-                    '</div></div>';
+                el.chat.innerHTML = st.ready ? '<div class="mrd-hilo mrd-inicio-hilo">' + homeHtml() + '</div>'
+                    : '<div class="mrd-hilo"><div class="mrd-hilo-nada">' + esc(s('loading')) + '</div></div>';
                 st.composerSig = '';
                 return;
             }
@@ -1415,6 +1476,127 @@
             renderThread();
             st.composerSig = '';
             renderComposer();
+        }
+        /* With no conversation open, the room on the right says where things are: what is yours, what nobody has in
+           your departments, and, for whoever sees everything, how each department is doing. Then how the trays work. */
+        function homeHtml() {
+            var open = allConvs().filter(function (c) {
+                return c.section !== 'resolved';
+            });
+            var mine = open.filter(function (c) {
+                return isMine(c) && c.section === 'reply';
+            }).sort(byWait);
+            var free = open.filter(function (c) {
+                return inInbox(c, 'unassigned') && c.section === 'reply';
+            }).sort(byWait);
+            var h = '<div class="mrd-inicio"><h2>' + esc(s('homehello', firstName(me) || me.name || '')) + '</h2><div class="mrd-inicio-tarjetas">';
+            var card = function (key, icon, title, list, button) {
+                var first = list[0];
+                return '<div class="mrd-inicio-t"><div class="mrd-inicio-t1">' + ico(icon) + '<b>' + esc(title) + '</b></div>' +
+                    '<p class="mrd-inicio-n">' + esc(list.length ? s('toreply', list.length) : s('nothingtoreply')) + '</p>' +
+                    (first ? '<p class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(s('homelongest', waitText(first))) + '</p>' : '') +
+                    (first ? '<button type="button" class="mrd-btn mrd-chico' + (key === 'mine' ? ' mrd-primario' : '') + '" data-a="conv" data-v="' + first.id + '">' +
+                        esc(button) + '</button>' : '<button type="button" class="mrd-btn mrd-chico" data-a="inbox" data-v="' + key + '">' + esc(s('homesee')) + '</button>') +
+                    '</div>';
+            };
+            h += card('mine', 'yo', s('mine'), mine, s('homeopenfirst'));
+            h += card('unassigned', 'nadie', s('unassigned'), free, s('homeopenfirst'));
+            if (!READONLY) {
+                h += '<div class="mrd-inicio-t"><div class="mrd-inicio-t1">' + ico('lapiz') + '<b>' + esc(s('newconv')) + '</b></div>' +
+                    '<p class="mrd-inicio-n">' + esc(s('newconvhelp')) + '</p>' +
+                    '<button type="button" class="mrd-btn mrd-chico" data-a="new">' + esc(s('newconvtitle')) + '</button></div>';
+            }
+            h += '</div>';
+            if (me.seesall) {
+                h += homeTeamsHtml(open);
+            }
+            h += '<div class="mrd-inicio-como"><h3>' + esc(s('homehow')) + '</h3><ul>' +
+                '<li><b>' + esc(s('mine')) + '</b>: ' + esc(s('homehowmine')) + '</li>' +
+                '<li><b>' + esc(s('unassigned')) + '</b>: ' + esc(s('homehowfree', s('takeit'))) + '</li>' +
+                '<li><b>' + esc(s('homehowteamsname')) + '</b>: ' + esc(s('homehowteams')) + '</li>' +
+                '<li><b>' + esc(s('tabnote')) + '</b>: ' + esc(s('homehownote')) + '</li>' +
+                '<li><b>' + esc(s('homehow24name')) + '</b>: ' + esc(s('homehow24')) + '</li></ul>' +
+                (guideLinks() ? '<div class="mrd-inicio-ayuda">' + guideLinks() + '</div>' : '') + '</div></div>';
+            return h;
+        }
+        // The guides in PDF the person has: whoever attends, and whoever coordinates if they see everything.
+        function guideLinks() {
+            return (cfg.guides || []).map(function (g) {
+                return '<a class="mrd-btn mrd-chico" href="' + esc(g.url) + '" target="_blank" rel="noopener">' + ico('libro') +
+                    esc(s(g.kind === 'coordinate' ? 'guidecoordinate' : 'guideattend')) + '</a>';
+            }).join('');
+        }
+        function homeTeamsHtml(open) {
+            var by = {};
+            open.forEach(function (c) {
+                if (c.section !== 'reply') {
+                    return;
+                }
+                var k = c.teamid || 0;
+                (by[k] = by[k] || []).push(c);
+            });
+            var rows = Object.keys(by).map(function (k) {
+                var list = by[k].sort(byWait), who = {}, nobody = 0;
+                list.forEach(function (c) {
+                    if (c.assignee) {
+                        var n = firstName(c.assignee);
+                        who[n] = (who[n] || 0) + 1;
+                    } else {
+                        nobody++;
+                    }
+                });
+                var people = Object.keys(who).sort(function (a, b) {
+                    return who[b] - who[a];
+                }).map(function (n) {
+                    return n + ' ' + who[n];
+                });
+                if (nobody) {
+                    people.push(s('homenobody', nobody));
+                }
+                return { id: +k, list: list, people: people };
+            }).sort(function (a, b) {
+                return waitMs(b.list[0]) - waitMs(a.list[0]);
+            });
+            var h = '<div class="mrd-inicio-deps"><h3>' + esc(s('hometeams')) + '</h3>';
+            if (!rows.length) {
+                return h + '<p class="mrd-inicio-n">' + esc(s('hometeamsnone')) + '</p></div>';
+            }
+            h += rows.map(function (r) {
+                var first = r.list[0];
+                return '<button type="button" class="mrd-inicio-dep" data-a="inbox" data-v="' + (r.id ? 'team:' + r.id : 'noteam') + '">' +
+                    '<span class="mrd-inicio-dep-n">' + esc(r.id ? teamName(r.id) : s('noteam')) + '</span>' +
+                    '<span class="mrd-inicio-dep-c">' + esc(s('toreply', r.list.length)) + '</span>' +
+                    '<span class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(waitText(first)) + '</span>' +
+                    '<span class="mrd-inicio-dep-q">' + esc(r.people.join(' · ')) + '</span></button>';
+            }).join('');
+            return h + '</div>';
+        }
+        function goHome() {
+            if (st.nueva) {
+                closeNew();
+            }
+            st.open = 0;
+            st.msgs = [];
+            st.ficha = null;
+            st.fichaFor = 0;
+            renderChat();
+            renderFicha();
+            renderListBody();
+            syncUrl();
+            if (narrow()) {
+                setLayer('chat', true);
+            }
+        }
+        function renderHome() {
+            if (!st.ready || st.nueva || conv(st.open)) {
+                return;
+            }
+            var box = el.chat.querySelector('.mrd-inicio');
+            if (box) {
+                box.outerHTML = homeHtml();
+            } else {
+                renderChat();
+            }
         }
         function renderHead() {
             var c = conv(st.open), head = el.chat.querySelector('.mrd-chat-cab');
@@ -2957,6 +3139,9 @@
             updateListTitle();
             renderListBody();
             var c = conv(st.open);
+            if (!c) {
+                renderHome();
+            }
             if (c) {
                 renderHead();
                 renderComposer();
@@ -3787,6 +3972,9 @@
                 case 'inbox':
                     chooseInbox(v);
                     break;
+                case 'home':
+                    goHome();
+                    break;
                 case 'otros':
                     st.otros = !st.otros;
                     renderRail();
@@ -3809,7 +3997,14 @@
                     break;
                 case 'resolvedlist':
                     st.showResolved = true;
-                    renderListBody();
+                    if (st.resolved === '' || st.resolved === 'error') {
+                        loadResolved(0);
+                    } else {
+                        renderListBody();
+                    }
+                    break;
+                case 'resolvedmore':
+                    loadResolved(oldestResolved());
                     break;
                 case 'clearsearch':
                     st.search = '';
@@ -4028,6 +4223,10 @@
             }
             if (t.getAttribute && t.getAttribute('data-role') === 'buscar') {
                 st.search = t.value;
+                // A search looks in the last days too, not only in what is open.
+                if (st.search.trim() && st.resolved === '') {
+                    loadResolved(0);
+                }
                 var clear = el.lista.querySelector('.mrd-limpiar');
                 if (clear) {
                     clear.hidden = !st.search;
@@ -4161,6 +4360,8 @@
             var c = conv(st.open);
             if (c) {
                 renderComposer();
+            } else {
+                renderHome();
             }
         }, 30000);
         setInterval(function () {
@@ -4215,12 +4416,8 @@
                         renderListBody();
                     }
                     openConv(want);
-                } else if (!narrow()) {
-                    var first = firstOf(st.inbox);
-                    if (first) {
-                        openConv(first.id, { keepLayer: true });
-                    }
                 }
+                // Without a conversation in the address, the start: what is yours and what waits, before any conversation.
                 schedule(interval());
             }).catch(function (e) {
                 var body = el.lista.querySelector('.mrd-lista-cuerpo');

@@ -871,9 +871,22 @@ class api {
         int $itemid = 0,
         string $area = ''
     ): int {
+        global $DB;
         $rich = local\rich::clean($rich);
         // Only a language the site has: the texts of the notices are in its language packs.
         $lang = $lang !== '' && self::language($lang) === trim($lang) ? trim($lang) : '';
+        // A notice that only goes by some channels is not queued for the others.
+        $channels = $declared->channels ?? array_keys(notices::SETTING);
+        if ($contactids && array_diff(array_keys(notices::SETTING), $channels)) {
+            [$inids, $idparams] = $DB->get_in_or_equal(array_map('intval', $contactids), SQL_PARAMS_NAMED, 'c');
+            [$inchannels, $chparams] = $DB->get_in_or_equal($channels, SQL_PARAMS_NAMED, 'ch');
+            $contactids = $DB->get_fieldset_select(
+                consent::CONTACTS,
+                'id',
+                "id $inids AND channel $inchannels",
+                $idparams + $chparams
+            );
+        }
         foreach ($contactids as $contactid) {
             queue::add(
                 (int)$contactid,

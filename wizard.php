@@ -176,7 +176,10 @@ $state = test_message::get();
 
 // Which step: the one asked for, never one whose step before is not done.
 $step = optional_param('step', '', PARAM_ALPHA);
-$allnotices = notices::all();
+// The assistant of WhatsApp: only the notices that can go by WhatsApp.
+$allnotices = array_filter(notices::all(), function ($notice) {
+    return notices::allows($notice, 'whatsapp');
+});
 $submitted = $DB->count_records(templates::TABLE);
 if (!in_array($step, ['account', 'test', 'texts', 'notices', 'limits', 'done'], true)) {
     if (!$hooked) {

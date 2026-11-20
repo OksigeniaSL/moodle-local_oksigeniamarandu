@@ -120,6 +120,11 @@ foreach ($all as $key => $notice) {
     }
     $cells = [];
     foreach ($channels as $channel) {
+        if (!notices::allows($notice, $channel)) {
+            $cells[] = ['blocked' => true, 'icon' => drawings::svg($channel, 22, 'mrd-ico ' . $short[$channel]),
+                'name' => $names[$channel], 'note' => get_string('notices:notby', $component)];
+            continue;
+        }
         $on = in_array($key, notices::enabled($channel), true);
         if ($channel === 'telegram') {
             $note = get_string('notices:free', $component);
@@ -139,7 +144,7 @@ foreach ($all as $key => $notice) {
             'label' => get_string('notices:switch', $component, (object)['name' => notices::text($notice),
                 'channel' => $names[$channel]]),
             'icon' => drawings::svg($channel, 22, 'mrd-ico ' . $short[$channel]), 'name' => $names[$channel],
-            'note' => $note, 'review' => $review];
+            'note' => $note, 'review' => $review, 'blocked' => false];
     }
     $groups[$notice->component]['rows'][] = ['name' => notices::text($notice), 'desc' => notices::text($notice, 'desc'),
         'cells' => $cells];

@@ -87,6 +87,22 @@ if (!$colors && $brandcolor !== '') {
     $colors = [$brandcolor];
 }
 
+// The guides in PDF of whoever attends and whoever coordinates (help/guide), in the language of the person if there is one.
+$guides = [];
+$lang = substr(current_language(), 0, 2);
+foreach (['attend' => 'atender', 'coordinate' => 'coordinar'] as $kind => $file) {
+    if ($kind === 'coordinate' && !$viewer->seesall) {
+        continue;
+    }
+    foreach (array_unique([$lang, 'es', 'en']) as $one) {
+        $path = '/local/oksigeniamarandu/help/guide/guia-chat-' . $file . '-' . $one . '.pdf';
+        if (is_readable($CFG->dirroot . $path)) {
+            $guides[] = ['kind' => $kind, 'url' => (new moodle_url($path, ['v' => $version]))->out(false)];
+            break;
+        }
+    }
+}
+
 $config = [
     'wwwroot' => $CFG->wwwroot,
     'sesskey' => sesskey(),
@@ -111,6 +127,8 @@ $config = [
     'hours' => $hours->export(),
     'start' => ['conversation' => $conversation, 'inbox' => $tray !== '' ? $tray : 'mine'],
     'backgrounds' => chat_prefs::current(),
+    'flags' => \local_oksigeniamarandu\external\chat_flag::current(),
+    'guides' => $guides,
     'stages' => array_map(function ($stage) {
         return ['label' => $stage['label'], 'color' => $stage['color'], 'dark' => $stage['dark']];
     }, \local_oksigeniamarandu\local\chat\family::stages()),

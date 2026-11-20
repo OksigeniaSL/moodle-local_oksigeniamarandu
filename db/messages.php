@@ -33,6 +33,8 @@ $messageproviders = [
             'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
             'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
             'email' => MESSAGE_DISALLOWED,
+            // By Telegram it goes as a notice of its own, with its button (the notice «chat» of lib.php), not as a general one.
+            'oksigeniamarandu' => MESSAGE_DISALLOWED,
         ],
     ],
 ];

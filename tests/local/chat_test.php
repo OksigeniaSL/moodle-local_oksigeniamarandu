@@ -20,7 +20,9 @@ use core_external\external_api;
 use local_oksigeniamarandu\external\chat_action;
 use local_oksigeniamarandu\external\chat_contact;
 use local_oksigeniamarandu\external\chat_find;
+use local_oksigeniamarandu\external\chat_flag;
 use local_oksigeniamarandu\external\chat_poll;
+use local_oksigeniamarandu\external\chat_resolved;
 use local_oksigeniamarandu\external\chat_send;
 use local_oksigeniamarandu\external\chat_start;
 use local_oksigeniamarandu\local\chat\chatwoot;
@@ -591,6 +593,51 @@ final class chat_test extends \advanced_testcase {
         chat\notify::changed($old, $row, [], self::MONDAY_NOON + 10 * HOURSECS);
         $this->runAdhocTasks(\local_oksigeniamarandu\task\chat_notify::class);
         $this->assertCount(0, $sink->get_messages());
+    }
+
+    /**
+     * What was resolved on other days comes back on request, only what the person sees and only the last days; the
+     * notices of the conversations come with the poll, for the desktop; the small choices of the person are kept.
+     */
+    public function test_resolved_notices_and_flags(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $this->setUser($ana);
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 1]);
+        $DB->set_field(mirror::TABLE, 'lastactivity', time() - 2 * DAYSECS, ['cwid' => 1]);
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 3]);
+        $DB->set_field(mirror::TABLE, 'lastactivity', time() - 40 * DAYSECS, ['cwid' => 3]);
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 2]);
+        $DB->set_field(mirror::TABLE, 'lastactivity', time() - DAYSECS, ['cwid' => 2]);
+        $poll = external_api::clean_returnvalue(chat_poll::execute_returns(), chat_poll::execute(0, 0, 0));
+        $this->assertNotContains(1, array_column($poll['conversations'], 'id'));
+        $this->assertSame([], $poll['notices']);
+        // Conversation 2 is of a department Ana is not in; 3 is too old.
+        $resolved = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute());
+        $this->assertSame([1], array_column($resolved['conversations'], 'id'));
+        $first = $resolved['conversations'][0];
+        $this->assertSame(['resolved', false, 30], [$first['section'], $resolved['more'], $resolved['days']]);
+        $older = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(time() - 3 * DAYSECS));
+        $this->assertSame([], $older['conversations']);
+
+        $since = time() - 5;
+        $DB->insert_record('notifications', (object)['useridfrom' => \core_user::NOREPLY_USER, 'useridto' => $ana->id,
+            'subject' => 'Laura Martín: ¿Me confirman el recibo?', 'fullmessage' => '', 'fullmessageformat' => FORMAT_PLAIN,
+            'fullmessagehtml' => '', 'smallmessage' => '', 'component' => 'local_oksigeniamarandu', 'eventtype' => 'chat',
+            'contexturl' => (new \moodle_url('/local/oksigeniamarandu/chat.php', ['c' => 1]))->out(false),
+            'timecreated' => time()]);
+        $poll = external_api::clean_returnvalue(chat_poll::execute_returns(), chat_poll::execute($since, 0, 0));
+        $this->assertSame([[1, 'Laura Martín: ¿Me confirman el recibo?']], array_map(function ($notice) {
+            return [$notice['conversation'], $notice['text']];
+        }, $poll['notices']));
+
+        $this->assertSame(['tour' => '', 'sound' => 'on', 'desktop' => ''], chat_flag::current());
+        chat_flag::execute('sound', 'off');
+        chat_flag::execute('tour', '1');
+        $this->assertSame(['tour' => '1', 'sound' => 'off', 'desktop' => ''], chat_flag::current());
+        $this->expectException(\invalid_parameter_exception::class);
+        chat_flag::execute('colour', 'red');
     }
 
     /**

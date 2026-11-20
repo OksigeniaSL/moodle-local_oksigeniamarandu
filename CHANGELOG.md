@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.37.1 (2026-11-20)
+
+- The review of the page of the conversations: the gaps of an approved message go inside its sentence, as the family
+  reads it; no space between a mention and the sign after it; who read it sits on the paper, not across the margin of
+  the notebook; the signature of the person fits in two lines; and on the phone the saved answers keep their name.
+
 ## 0.37.0 (2026-11-20)
 
 - The conversations of the team (`chat.php`): where the people of an organisation answer its WhatsApp, over an account

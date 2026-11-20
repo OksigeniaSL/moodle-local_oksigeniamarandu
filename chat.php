@@ -95,7 +95,8 @@ $config = [
     'me' => [
         'userid' => (int)$USER->id,
         'agentid' => (int)$viewer->agent['id'],
-        'name' => fullname($USER),
+        // First name and first surname, whatever the order of names of the site.
+        'name' => trim($USER->firstname . ' ' . strtok((string)$USER->lastname, ' ')),
         'firstname' => (string)$USER->firstname,
         'signature' => $viewer->readonly ? '' : message::signature($viewer),
         'seesall' => $viewer->seesall,

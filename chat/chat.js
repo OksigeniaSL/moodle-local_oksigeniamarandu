@@ -939,7 +939,15 @@
             } },
             { id: 'colores', css: function (t) {
                 var cols = brandColors(), stops = [], w = 44;
+                // Four places at least, as with the four colours of a logo: with fewer colours, the rest stay empty.
+                while (cols.length < 4) {
+                    cols = cols.concat([null]);
+                }
                 cols.forEach(function (c, i) {
+                    if (!c) {
+                        stops.push('transparent ' + (i * w) + 'px ' + ((i + 1) * w) + 'px');
+                        return;
+                    }
                     stops.push(rgb(c, t.color) + ' ' + (i * w) + 'px ' + (i * w + 8) + 'px', 'transparent ' + (i * w + 8) + 'px ' + ((i + 1) * w) + 'px');
                 });
                 return 'repeating-linear-gradient(115deg, ' + stops.join(', ') + ')';
@@ -2393,10 +2401,12 @@
             } else {
                 h += rowsHtml(f.rows, '');
             }
+            // «Who is it?» first: the card of another plugin below it, as one more card.
+            h += markHtml(f);
             if (f.panel && f.panel.url) {
                 h += '<div class="mrd-seccion mrd-panel"><iframe src="' + esc(f.panel.url) + '" title="' + esc(s('panel')) + '"></iframe></div>';
             }
-            h += markHtml(f) + otherConvsHtml(f);
+            h += otherConvsHtml(f);
             if (f.source) {
                 h += '<div class="mrd-fuente">' + esc(f.source) + '</div>';
             }
@@ -2408,15 +2418,44 @@
                 panelData = f.panel;
                 panelFrame.addEventListener('load', function () {
                     postPanelContext();
-                    try {
-                        var docH = panelFrame.contentDocument && panelFrame.contentDocument.documentElement.scrollHeight;
-                        if (docH) {
-                            panelFrame.style.height = Math.max(320, docH) + 'px';
-                        }
-                    } catch (e) {
-                        // Another origin: it keeps its own height.
+                    fitPanel(panelFrame);
+                });
+            }
+        }
+        // The card of another plugin measures what its content: of the same site, its page can be measured as it fills.
+        function fitPanel(frame) {
+            var doc;
+            try {
+                doc = frame.contentDocument;
+            } catch (e) {
+                return;
+            }
+            if (!doc || !doc.body) {
+                return;
+            }
+            var fit = function () {
+                var bottom = 0;
+                Array.prototype.forEach.call(doc.body.children, function (child) {
+                    var r = child.getBoundingClientRect();
+                    if (r.height) {
+                        bottom = Math.max(bottom, r.bottom);
                     }
                 });
+                if (bottom) {
+                    frame.style.height = Math.ceil(bottom + 12) + 'px';
+                }
+            };
+            frame.style.height = '120px';
+            fit();
+            var win = frame.contentWindow;
+            if (win && win.ResizeObserver) {
+                var ro = new win.ResizeObserver(fit);
+                Array.prototype.forEach.call(doc.body.children, function (child) {
+                    ro.observe(child);
+                });
+            }
+            if (win && win.MutationObserver) {
+                new win.MutationObserver(fit).observe(doc.body, { childList: true, subtree: true });
             }
         }
         // The panel of another plugin (as Chatwoot's Dashboard Apps): it asks for its context and gets the contact.

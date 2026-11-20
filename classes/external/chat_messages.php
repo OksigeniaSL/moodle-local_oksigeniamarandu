@@ -60,11 +60,7 @@ class chat_messages extends chat_base {
             $params['before'] ? ['before' => $params['before']] : []
         );
         $raw = array_values($answer['payload'] ?? []);
-        $authors = message::authors(array_column($raw, 'id'));
-        $list = [];
-        foreach ($raw as $one) {
-            $list[] = message::export($one, $viewer, $authors);
-        }
+        $list = message::export_list($raw, $viewer);
         // Chatwoot gives twenty at a time: fewer means there are no more.
         return ['messages' => $list, 'more' => count($raw) >= 20];
     }

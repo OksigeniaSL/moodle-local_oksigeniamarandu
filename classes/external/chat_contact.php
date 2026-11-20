@@ -73,8 +73,7 @@ class chat_contact extends chat_base {
         $result = ['kind' => $kind, 'title' => (string)$row->name, 'phone' => (string)$row->phone, 'line' => '',
             'children' => [], 'services' => [], 'contacts' => [], 'rows' => [], 'source' => '', 'conversations' => $others,
             'maybe' => []];
-        $eguahe = \core_component::get_component_directory('local_oksigeniaeguahe');
-        if ($eguahe && file_exists($eguahe . '/chat.php') && in_array($kind, ['unknown', 'applicant', 'both'])) {
+        if (self::admissions($viewer->userid) && in_array($kind, ['unknown', 'applicant', 'both'])) {
             $result['panel'] = [
                 'url' => (new \moodle_url('/local/oksigeniaeguahe/chat.php'))->out(false),
                 'name' => (string)$row->name,
@@ -83,6 +82,27 @@ class chat_contact extends chat_base {
             ];
         }
         return $result;
+    }
+
+    /**
+     * Whether the site has the admissions of Eguahe and the person is in its team: only then its card goes beside the
+     * conversation (to anyone else it would only say they are not in the team).
+     *
+     * @param int $userid The person.
+     * @return bool
+     */
+    protected static function admissions(int $userid): bool {
+        $dir = \core_component::get_component_directory('local_oksigeniaeguahe');
+        $centres = '\\local_oksigeniaeguahe\\local\\centres';
+        if (!$dir || !file_exists($dir . '/chat.php') || !method_exists($centres, 'for_user')) {
+            return false;
+        }
+        foreach ($centres::for_user($userid) as $centre) {
+            if (!method_exists($centres, 'is_practice') || !$centres::is_practice((int)$centre->id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

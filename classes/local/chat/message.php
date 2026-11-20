@@ -125,6 +125,100 @@ class message {
     }
 
     /**
+     * The lines of Chatwoot about what happened in a conversation, as its locales write them (Spanish and English), by
+     * what they say. The names go in %{...}.
+     */
+    private const ACTIVITIES = [
+        'took' => ['%{user_name} auto-asignado a esta conversación', '%{user_name} self-assigned this conversation'],
+        'gaveteam' => ['Asignado a %{assignee_name} via %{team_name} por %{user_name}',
+            'Assigned to %{assignee_name} via %{team_name} by %{user_name}'],
+        'gave' => ['Asignado a %{assignee_name} por %{user_name}', 'Assigned to %{assignee_name} by %{user_name}'],
+        'unassigned' => ['Conversación no asignada por %{user_name}', 'Conversation unassigned by %{user_name}'],
+        'leftteam' => ['Desasignado de %{team_name} por %{user_name}', 'Unassigned from %{team_name} by %{user_name}'],
+        'resolved' => ['La conversación fue marcada por %{user_name}', 'Conversation was marked resolved by %{user_name}'],
+        'reopened' => ['La conversación fue reabierta por %{user_name}', 'Conversation was reopened by %{user_name}'],
+        'pending' => ['La conversación fue marcada como pendiente por %{user_name}',
+            'Conversation was marked as pending by %{user_name}'],
+        'snoozed' => ['La conversación fue pospuesta por %{user_name}', 'Conversation was snoozed by %{user_name}'],
+        'autoopen' => ['El sistema reabrió la conversación debido a un nuevo mensaje entrante.',
+            'System reopened the conversation due to a new incoming message.'],
+    ];
+
+    /**
+     * A line of Chatwoot about what happened, said as the page says things: «Ana passed it to Recibos». Lines it does
+     * not know stay as they came.
+     *
+     * @param string $text The line.
+     * @return array [text, what] where what is the kind of line, or empty if unknown.
+     */
+    public static function activity(string $text): array {
+        $text = trim($text);
+        $teams = [];
+        foreach (directory::teams() as $team) {
+            $teams[\core_text::strtolower($team['name'])] = $team['name'];
+        }
+        $agents = [];
+        foreach (directory::agents() as $agent) {
+            $agents[\core_text::strtolower($agent['name'])] = $agent;
+        }
+        $first = function (string $name) use ($agents): string {
+            $agent = $agents[\core_text::strtolower(trim($name))] ?? null;
+            if ($agent && in_array($agent['id'], directory::automatic_ids())) {
+                return $agent['name'];
+            }
+            return (string)strtok(trim($name), ' ');
+        };
+        // Team assignments and person assignments share their words: «Asignado a X por Y» is a department if X is one.
+        foreach (self::ACTIVITIES as $what => $patterns) {
+            foreach ($patterns as $pattern) {
+                $regex = '/^' . preg_replace('/%\\\{(\w+)\\\}/', '(?P<$1>.+?)', preg_quote($pattern, '/')) . '$/u';
+                if (!preg_match($regex, $text, $m)) {
+                    continue;
+                }
+                $a = (object)['by' => isset($m['user_name']) ? $first($m['user_name']) : ''];
+                if ($what === 'gave' && isset($teams[\core_text::strtolower(trim($m['assignee_name']))])) {
+                    $what = 'passedteam';
+                    $a->team = $teams[\core_text::strtolower(trim($m['assignee_name']))];
+                } else if (isset($m['assignee_name'])) {
+                    $a->to = $first($m['assignee_name']);
+                }
+                if (isset($m['team_name'])) {
+                    $a->team = $teams[\core_text::strtolower(trim($m['team_name']))] ?? directory::label($m['team_name']);
+                }
+                return [get_string('chat:activity:' . $what, 'local_oksigeniamarandu', $a), $what];
+            }
+        }
+        return [$text, ''];
+    }
+
+    /**
+     * The messages of a conversation for the page, with the lines of what happened said our way, and without the
+     * «unassigned» that comes with passing it to a department (it is the same gesture).
+     *
+     * @param array $raw The messages, as Chatwoot gives them, in order.
+     * @param viewer $viewer Who looks.
+     * @return array
+     */
+    public static function export_list(array $raw, viewer $viewer): array {
+        $authors = self::authors(array_column($raw, 'id'));
+        $list = [];
+        $last = ['', 0, ''];
+        foreach ($raw as $one) {
+            $message = self::export($one, $viewer, $authors);
+            if ($message['kind'] === 'activity') {
+                [$message['text'], $what] = self::activity($message['text']);
+                $by = $message['text'];
+                if ($what === 'unassigned' && $last[0] === 'passedteam' && abs($message['at'] - $last[1]) <= 30) {
+                    continue;
+                }
+                $last = [$what, $message['at'], $by];
+            }
+            $list[] = $message;
+        }
+        return $list;
+    }
+
+    /**
      * The text of a message as people read it: the mentions of Chatwoot become «@Name».
      *
      * @param string $text The content.

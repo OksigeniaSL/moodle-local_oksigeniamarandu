@@ -308,6 +308,25 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
+     * The lines of Chatwoot about what happened are said as the page says things, with first names and departments
+     * as people write them; the «unassigned» that comes with passing to a department does not show.
+     */
+    public function test_activity(): void {
+        $this->assertSame(['Ana passed it to Secretaría', 'passedteam'], message::activity('Asignado a secretaría por Ana Pérez'));
+        $this->assertSame(['Ana passed it to Luis', 'gave'], message::activity('Assigned to Luis Gómez by Ana Pérez'));
+        $this->assertSame(['Luis marked it resolved', 'resolved'], message::activity('La conversación fue marcada por Luis Gómez'));
+        $this->assertSame(['Algo nuevo', ''], message::activity('Algo nuevo'));
+        $user = $this->person('ana@example.com', 'Ana');
+        $viewer = viewer::for_user($user);
+        $list = message::export_list([
+            ['id' => 1, 'message_type' => 2, 'content' => 'Asignado a secretaría por Ana Pérez', 'created_at' => 100],
+            ['id' => 2, 'message_type' => 2, 'content' => 'Conversación no asignada por Ana Pérez', 'created_at' => 101],
+            ['id' => 3, 'message_type' => 2, 'content' => 'Conversación no asignada por Ana Pérez', 'created_at' => 500],
+        ], $viewer);
+        $this->assertSame(['Ana passed it to Secretaría', 'Ana left it for anyone'], array_column($list, 'text'));
+    }
+
+    /**
      * The approved messages are those of the inbox that are approved and not of a notice.
      */
     public function test_templates(): void {

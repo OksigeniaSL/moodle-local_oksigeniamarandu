@@ -160,11 +160,7 @@ class chat_poll extends chat_base {
             return [];
         }
         $raw = array_values($answer['payload'] ?? []);
-        $authors = message::authors(array_column($raw, 'id'));
-        $list = [];
-        foreach ($raw as $one) {
-            $list[] = message::export($one, $viewer, $authors);
-        }
+        $list = message::export_list($raw, $viewer);
         return $list;
     }
 

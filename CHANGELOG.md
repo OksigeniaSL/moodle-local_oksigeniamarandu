@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.37.2 (2026-11-20)
+
+- The lines of Chatwoot about what happened in a conversation are said as the page says things, with first names and
+  the departments as people write them: «Ana passed it to Recibos», «Luis took it», «Ana marked it resolved». The
+  «unassigned» that comes with passing to a department does not show; lines it does not know stay as they came.
+- The name at the foot of the trays is the first name and the first surname, whatever the order of names of the site.
+- The card of admissions of Eguahe goes beside a conversation only for the people of its team, below «Who is it?», and
+  measures what its content.
+- The background with the colours of the organisation keeps thin stripes far apart with fewer than four colours.
+
 ## 0.37.1 (2026-11-20)
 
 - The review of the page of the conversations: the gaps of an approved message go inside its sentence, as the family

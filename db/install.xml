@@ -294,7 +294,7 @@
         <FIELD NAME="cwid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of the conversation in Chatwoot"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Who asked for it"/>
         <FIELD NAME="remindat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="When: the opening of the day chosen"/>
-        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="What for, in a line"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="What for, in a line"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timedone" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When it came back; 0 while it waits"/>
       </FIELDS>

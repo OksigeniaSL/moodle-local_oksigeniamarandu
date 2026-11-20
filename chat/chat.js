@@ -2287,9 +2287,11 @@
             var dis = READONLY ? ' disabled' : '';
             var resolved = c.section === 'resolved';
             var why = head.querySelector('.mrd-rem-motivo'), typing = why && document.activeElement === why, caret = typing ? why.selectionStart : 0;
+            // On a phone only the bell shows: filled when it has a day, and the day in its name.
+            var remLabel = c.remind ? s('remindback', remShort(c.remind.at * 1000)) : s('remindbtn');
             var remBtn = READONLY ? '' : '<div class="mrd-rem-caja"><button type="button" class="mrd-btn mrd-recordar' + (c.remind ? ' mrd-on' : '') +
-                '" data-a="pop" data-v="recordar" aria-expanded="' + (st.pop === 'recordar') + '" title="' + esc(s('remtitle')) + '">' + ico('campana') +
-                '<span class="mrd-t">' + esc(c.remind ? s('remindback', remShort(c.remind.at * 1000)) : s('remindbtn')) + '</span></button>' +
+                '" data-a="pop" data-v="recordar" aria-expanded="' + (st.pop === 'recordar') + '" aria-label="' + esc(remLabel) + '" title="' +
+                esc(c.remind ? remLabel : s('remtitle')) + '">' + ico('campana') + '<span class="mrd-t">' + esc(remLabel) + '</span></button>' +
                 (st.pop === 'recordar' ? popRemind(c) : '') + '</div>';
             head.innerHTML = '<button type="button" class="mrd-volver" data-a="back" data-v="lista" aria-label="' + esc(s('back')) + '">' + ico('izq') + '</button>' +
                 '<h2>' + esc(ct.name || fmtPhone(ct.phone)) + '<span class="mrd-rel">' + relHtml(ct) + '</span></h2>' +
@@ -2358,8 +2360,9 @@
                 '<label class="mrd-rem-l"><span>' + esc(s('remreason')) + '</span><input type="text" class="mrd-rem-motivo" maxlength="200" autocomplete="off" ' +
                 'placeholder="' + esc(s('remreasonph')) + '" value="' + esc(st.rem.reason) + '"></label>' +
                 '<p class="mrd-rem-ayuda">' + esc(s('remhelp')) + '</p>' +
-                '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="remsave"' + (at && !same ? '' : ' disabled') + '>' +
-                esc(okText) + '</button></div>';
+                // With a day already set and nothing changed, the box above says it all: no button until something changes.
+                (same ? '' : '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="remsave"' + (at ? '' : ' disabled') + '>' +
+                esc(okText) + '</button>') + '</div>';
         }
         function popTeams(c) {
             var all = (st.extras.teams && st.extras.teams.length ? st.extras.teams : teams());
@@ -5168,8 +5171,12 @@
                 st.rem.reason = t.value;
                 // With a reminder already there, a new line is a change to save.
                 var rc = conv(st.open), okb = el.chat.querySelector('.mrd-rem-ok');
-                if (rc && rc.remind && okb && st.rem.day) {
-                    okb.disabled = isoKey(st.rem.day) === dayKey(rc.remind.at * 1000) && t.value.trim() === rc.remind.reason;
+                if (rc && rc.remind && st.rem.day) {
+                    var unchanged = isoKey(st.rem.day) === dayKey(rc.remind.at * 1000) && t.value.trim() === rc.remind.reason;
+                    if (unchanged === !!okb) {
+                        // The button comes or goes; what is typed stays (renderHead gives the focus back).
+                        renderHead();
+                    }
                 }
                 return;
             }

@@ -4088,6 +4088,9 @@
     border-color: var(--acento-anillo);
     color: var(--acento-texto);
 }
+#mrd-chat .mrd-btn.mrd-recordar.mrd-on .mrd-i {
+    fill: currentcolor;
+}
 #mrd-chat .mrd-pop-recordar {
     top: calc(100% + 6px);
     inset-inline-end: 0;

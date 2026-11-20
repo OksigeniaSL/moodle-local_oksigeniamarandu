@@ -120,7 +120,7 @@ class directory {
      * @return string
      */
     public static function one_line(string $text): string {
-        $text = trim(preg_replace('/\s+/u', ' ', str_replace(['*', '_', '~', '`'], '', $text)));
+        $text = trim(preg_replace('/\s+/u', ' ', str_replace(['*', '_', '~', "\x60"], '', $text)));
         return \core_text::substr($text, 0, 80);
     }
 

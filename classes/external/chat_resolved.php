@@ -37,6 +37,9 @@ class chat_resolved extends chat_base {
     /** How many at most in one answer. */
     public const LIMIT = 200;
 
+    /** How many in a page of the history. */
+    public const PAGE = 60;
+
     /**
      * The parameters.
      *
@@ -47,6 +50,7 @@ class chat_resolved extends chat_base {
             'before' => new external_value(PARAM_INT, 'Only those resolved before this time; 0 for the newest', VALUE_DEFAULT, 0),
             'id' => new external_value(PARAM_INT, 'One conversation, whenever it was, if the person sees it', VALUE_DEFAULT, 0),
             'query' => new external_value(PARAM_TEXT, 'Every conversation of whom this finds, whenever it was', VALUE_DEFAULT, ''),
+            'all' => new external_value(PARAM_BOOL, 'Whenever it was, a page at a time: the history', VALUE_DEFAULT, false),
         ]);
     }
 
@@ -56,11 +60,15 @@ class chat_resolved extends chat_base {
      * @param int $before Only those whose last activity was before this time; 0 for the newest.
      * @param int $id One conversation only, whenever it was (an old one the card of the contact lists).
      * @param string $query Every conversation of whom this finds (a name, a phone, a child of the family), whenever.
+     * @param bool $all Whenever it was, a page at a time: the history of the team, with what came from the phone.
      * @return array
      */
-    public static function execute(int $before = 0, int $id = 0, string $query = ''): array {
+    public static function execute(int $before = 0, int $id = 0, string $query = '', bool $all = false): array {
         global $DB;
-        $params = self::validate_parameters(self::execute_parameters(), ['before' => $before, 'id' => $id, 'query' => $query]);
+        $params = self::validate_parameters(
+            self::execute_parameters(),
+            ['before' => $before, 'id' => $id, 'query' => $query, 'all' => $all]
+        );
         $viewer = self::viewer();
         $now = time();
         if ($params['id']) {
@@ -74,7 +82,8 @@ class chat_resolved extends chat_base {
             return ['conversations' => self::found($viewer, $where, $wparams, $query, $now), 'more' => false, 'days' => self::DAYS];
         }
         $sql = "c.status = 'resolved' AND c.lastactivity >= :since";
-        $wparams['since'] = $now - self::DAYS * DAYSECS;
+        $wparams['since'] = $params['all'] ? 0 : $now - self::DAYS * DAYSECS;
+        $limit = $params['all'] ? self::PAGE : self::LIMIT;
         if ($params['before'] > 0) {
             $sql .= ' AND c.lastactivity < :before';
             $wparams['before'] = $params['before'];
@@ -83,10 +92,10 @@ class chat_resolved extends chat_base {
             "SELECT c.* FROM {" . mirror::TABLE . "} c WHERE $where AND $sql ORDER BY c.lastactivity DESC, c.cwid DESC",
             $wparams,
             0,
-            self::LIMIT + 1
+            $limit + 1
         );
-        $more = count($rows) > self::LIMIT;
-        $rows = array_slice($rows, 0, self::LIMIT);
+        $more = count($rows) > $limit;
+        $rows = array_slice($rows, 0, $limit);
         $seen = $viewer->seen(array_map('intval', array_column($rows, 'cwid')));
         $list = [];
         foreach ($rows as $row) {

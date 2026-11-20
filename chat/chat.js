@@ -507,7 +507,7 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
+            showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
             ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
         };
@@ -785,6 +785,9 @@
             return !!(c.assignee && c.assignee.me);
         }
         function inInbox(c, inbox) {
+            if (inbox === 'history') {
+                return c.section === 'resolved';
+            }
             if (inbox === 'mine') {
                 return isMine(c);
             }
@@ -1524,6 +1527,8 @@
                     h += '</div>';
                 }
             }
+            // The history: everything resolved, whenever it was, also what was said on WhatsApp before the chat.
+            h += '<div class="mrd-rail-historia">' + trayButton('history', 'libro', s('history'), [s('historyline')], 0) + '</div>';
             h += legendHtml();
             var sig = me.signature ? '<small title="' + esc(s('signature', me.signature)) + '">' + ico('lapiz') + '<span>' + esc(me.signature) +
                 '</span></small>' : '';
@@ -1591,6 +1596,9 @@
            List: what waits for an answer first, with who has it and how long it has waited (in working hours)
            --------------------------------------------------------------------------------------------------------------- */
         function inboxTitle() {
+            if (st.inbox === 'history') {
+                return s('history');
+            }
             if (st.inbox === 'mine') {
                 return s('mine');
             }
@@ -1603,6 +1611,9 @@
             return teamName(+st.inbox.replace('team:', ''));
         }
         function inboxSub() {
+            if (st.inbox === 'history') {
+                return s('historysub');
+            }
             var reply = allConvs().filter(function (c) {
                 return c.section === 'reply' && inInbox(c, st.inbox);
             }).length;
@@ -1746,6 +1757,11 @@
                 body.innerHTML = h;
                 return;
             }
+            if (st.inbox === 'history') {
+                body.innerHTML = historyHtml(all.sort(byActivity));
+                body.scrollTop = keep;
+                return;
+            }
             var reply = all.filter(function (c) {
                 return c.section === 'reply';
             }).sort(byWait);
@@ -1814,6 +1830,51 @@
                     '</div>';
             }
             return h;
+        }
+        function historyHtml(done) {
+            if (st.history === '') {
+                loadHistory(0);
+            }
+            var h = '', lastKey = 0;
+            done.forEach(function (c) {
+                var ms = (c.lastactivity || 0) * 1000, k = dayKey(ms);
+                if (k !== lastKey) {
+                    lastKey = k;
+                    h += '<div class="mrd-grupo-dia">' + esc(dayLabel(ms)) + '</div>';
+                }
+                h += convItem(c, { withTeam: true });
+            });
+            if (st.history === 'loading') {
+                h += '<div class="mrd-resueltas-estado">' + esc(s('resolvedloading')) + '</div>';
+            } else if (st.history === 'error') {
+                h += '<div class="mrd-resueltas-estado">' + esc(s('resolvederror')) +
+                    ' <button type="button" class="mrd-ver-resueltas" data-a="historymore">' + esc(s('retry')) + '</button></div>';
+            } else if (st.historyMore) {
+                h += '<button type="button" class="mrd-ver-resueltas" data-a="historymore">' + esc(s('resolvedmore')) + '</button>';
+            } else if (st.history === 'done') {
+                h += '<div class="mrd-resueltas-estado">' + esc(done.length ? s('historyend') : s('historynone')) + '</div>';
+            }
+            return h;
+        }
+        function loadHistory(before) {
+            if (st.history === 'loading') {
+                return;
+            }
+            st.history = 'loading';
+            tr.call(M.resolved, { all: true, before: before || 0 }).then(function (r) {
+                (r.conversations || []).forEach(mergeConv);
+                st.history = 'done';
+                st.historyMore = !!r.more;
+                if (st.inbox === 'history') {
+                    renderListBody();
+                }
+                return r;
+            }).catch(function () {
+                st.history = 'error';
+                if (st.inbox === 'history') {
+                    renderListBody();
+                }
+            });
         }
         function loadResolved(before) {
             if (st.resolved === 'loading') {
@@ -4596,6 +4657,10 @@
                     break;
                 case 'resolvedmore':
                     loadResolved(oldestResolved());
+                    break;
+                case 'historymore':
+                    loadHistory(st.history === 'error' && !oldestResolved() ? 0 : oldestResolved());
+                    renderListBody();
                     break;
                 case 'clearsearch':
                     st.search = '';

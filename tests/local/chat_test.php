@@ -658,6 +658,9 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame([1], array_column($old['conversations'], 'id'));
         $recent = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute());
         $this->assertSame([], $recent['conversations']);
+        // The history brings it, whenever it was.
+        $history = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 0, '', true));
+        $this->assertSame([1], array_column($history['conversations'], 'id'));
         // Conversation 2 is of a department Ana does not see.
         $other = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 2));
         $this->assertSame([], $other['conversations']);

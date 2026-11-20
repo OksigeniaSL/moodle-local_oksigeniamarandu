@@ -4008,3 +4008,10 @@
     height: 112%;
     margin: -6%;
 }
+
+/* The history, below the departments: everything resolved, whenever it was. */
+#mrd-chat .mrd-rail-historia {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--linea);
+}

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.1 (2026-11-20)
+
+- The review of the card of the family: the legend shows the stages together, by age, and the shapes apart; the foot
+  of the card says the number matches but nobody confirmed it; «this chat» only when the family has more than one adult;
+  and the thread stays at its end when the box to write grows, as when a file is chosen.
+
 ## 0.40.0 (2026-11-20)
 
 - Who writes, from the common record of families (Oksigenia Family, 0.3.34 or later, if the site has it): the list

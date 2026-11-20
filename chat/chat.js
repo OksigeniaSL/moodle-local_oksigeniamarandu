@@ -1155,11 +1155,11 @@
                 var col = dataColour(x.color, x.dark);
                 return '<span><i class="mrd-pe" style="--e: ' + col.css + '"></i>' + esc(x.label) + '</span>';
             }).join('');
-            return '<div class="mrd-leyenda" aria-label="' + esc(s('legend')) + '">' + stages +
-                (stages ? '' : '<span><i class="mrd-muestra-anillo"></i>' + esc(s('legendring')) + '</span>') +
-                '<span><i class="mrd-muestra-anillo mrd-discontinuo"></i>' + esc(s('legenddashed')) + '</span>' +
+            return '<div class="mrd-leyenda" aria-label="' + esc(s('legend')) + '"><div class="mrd-leyenda-etapas">' + stages +
+                (stages ? '' : '<span><i class="mrd-muestra-anillo"></i>' + esc(s('legendring')) + '</span>') + '</div>' +
+                '<div class="mrd-leyenda-formas"><span><i class="mrd-muestra-anillo mrd-discontinuo"></i>' + esc(s('legenddashed')) + '</span>' +
                 '<span>' + ico('gafete') + esc(s('kindstaff')) + '</span><span>' + ico('caja') + esc(s('kindsupplier')) + '</span>' +
-                '<span>' + ico('birrete') + esc(s('kindalumni')) + '</span></div>';
+                '<span>' + ico('birrete') + esc(s('kindalumni')) + '</span></div></div>';
         }
         function renderPie(counts) {
             var inTeam = st.inbox !== 'mine' && st.inbox !== 'unassigned';
@@ -1882,6 +1882,13 @@
             return '<span class="mrd-plazo">' + ico('reloj') + esc(s('canwriteuntil', whenPhrase(c.replyuntil * 1000))) + '</span>';
         }
         function renderComposer(force) {
+            var hilo0 = hiloEl(), wasEnd = hilo0 ? atBottom(hilo0) : false;
+            renderComposerNow(force);
+            if (wasEnd && hilo0 && hilo0.isConnected) {
+                stickToBottom(hilo0);
+            }
+        }
+        function renderComposerNow(force) {
             var c = conv(st.open), box2 = el.chat.querySelector('.mrd-escribir');
             if (!c || !box2) {
                 return;
@@ -2341,7 +2348,7 @@
             }
             return '<div class="mrd-seccion"><h4>' + esc(s('whowrites')) + '</h4>' + f.contacts.map(function (k) {
                 return '<div class="mrd-contacto"><span class="mrd-av mrd-m mrd-con-bicho" aria-hidden="true">' + bicho(digits(k.phone) || k.name) + '</span><span><b>' +
-                    esc(k.name) + (k.conversation && k.conversation === st.open ? ' <span class="mrd-marca-este">' + esc(s('thischat')) + '</span>' : '') +
+                    esc(k.name) + (f.contacts.length > 1 && k.conversation && k.conversation === st.open ? ' <span class="mrd-marca-este">' + esc(s('thischat')) + '</span>' : '') +
                     '</b><small>' + esc([k.role, fmtPhone(k.phone)].filter(Boolean).join(' · ')) + '</small></span>' + callButton(k.phone) + '</div>';
             }).join('') + '</div>';
         }

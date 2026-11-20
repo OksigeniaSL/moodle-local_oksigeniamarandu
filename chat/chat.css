@@ -496,11 +496,22 @@
     font-size: 12px;
     color: var(--tinta-3);
 }
-#mrd-chat .mrd-leyenda > span {
+#mrd-chat .mrd-leyenda-etapas,
+#mrd-chat .mrd-leyenda-formas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 10px;
+    width: 100%;
+}
+#mrd-chat .mrd-leyenda-formas {
+    margin-top: 8px;
+}
+#mrd-chat .mrd-leyenda span {
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
 }
 #mrd-chat .mrd-leyenda .mrd-i {
     width: 13px;

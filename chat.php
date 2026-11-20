@@ -111,6 +111,9 @@ $config = [
     'hours' => $hours->export(),
     'start' => ['conversation' => $conversation, 'inbox' => $tray !== '' ? $tray : 'mine'],
     'backgrounds' => chat_prefs::current(),
+    'stages' => array_map(function ($stage) {
+        return ['label' => $stage['label'], 'color' => $stage['color'], 'dark' => $stage['dark']];
+    }, \local_oksigeniamarandu\local\chat\family::stages()),
     'strings' => $strings,
 ];
 

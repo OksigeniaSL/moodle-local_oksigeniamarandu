@@ -196,6 +196,19 @@ class viewer {
             $by = \core_user::get_user((int)$row->passedby);
             $passed = ['by' => $by ? (string)$by->firstname : '', 'at' => (int)$row->passedat, 'toteam' => !$tome];
         }
+        $kind = $row->kind !== '' ? (string)$row->kind : 'unknown';
+        $line = '';
+        $rings = [];
+        if ($kind === 'unknown' && ($family = family::of_phone((string)$row->phone))) {
+            $kind = 'family';
+            $line = $family['line'];
+            foreach ($family['children'] as $child) {
+                if ($child['stage'] && $child['stage']['color'] !== '') {
+                    $rings[] = ['color' => $child['stage']['color'], 'dark' => $child['stage']['dark'], 'dashed' => false,
+                        'name' => $child['name']];
+                }
+            }
+        }
         $open = $row->status !== 'resolved';
         $replyuntil = $row->lastincoming ? (int)$row->lastincoming + DAYSECS : 0;
         return [
@@ -205,7 +218,7 @@ class viewer {
             'teamid' => (int)$row->teamid,
             'assignee' => $assignee,
             'contact' => ['id' => (int)$row->contactid, 'name' => (string)$row->name, 'phone' => (string)$row->phone,
-                'kind' => $row->kind !== '' ? (string)$row->kind : 'unknown', 'line' => '', 'rings' => []],
+                'kind' => $kind, 'line' => $line, 'rings' => $rings],
             'preview' => ['text' => (string)$row->preview, 'kind' => (string)$row->previewkind,
                 'incoming' => $row->previewkind === 'incoming', 'private' => $row->previewkind === 'note',
                 'at' => (int)$row->previewat],

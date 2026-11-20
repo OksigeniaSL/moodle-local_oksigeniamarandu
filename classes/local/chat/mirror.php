@@ -246,7 +246,8 @@ class mirror {
             'previewat' => $old ? (int)$old->previewat : 0,
         ];
         if ($preview) {
-            $text = message::plain_text((string)($preview['content'] ?? ''));
+            // Without the signature on top of what a person sent: the list shows what was said.
+            $text = message::plain_text(preg_replace('/^\*[^*\n]{1,80}\*\n/u', '', (string)($preview['content'] ?? '')));
             if ($text === '' && !empty($preview['attachments'])) {
                 $text = get_string('chat:attachment', 'local_oksigeniamarandu');
             }

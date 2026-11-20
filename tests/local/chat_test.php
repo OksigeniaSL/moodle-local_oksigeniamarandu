@@ -457,6 +457,28 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
+     * The stages are data of the organisation: a group is known by the stage the record guesses or by a pattern, and is
+     * shown as people say it; the list of a conversation does not show the signature on top.
+     */
+    public function test_stages(): void {
+        set_config('chatstages', json_encode([
+            ['label' => 'Nursery', 'color' => '#0a8288', 'dark' => '#38b5b8', 'match' => '^\\d+\\s+años?\\b',
+                'show' => '^(\\d+\\s+años?)'],
+            ['label' => 'Primaria', 'color' => '#067e36', 'code' => 'PRI'],
+        ]), 'local_oksigeniamarandu');
+        [$stage, $group, $order] = chat\family::stage_of('PRI 5º B', 'PRI');
+        $this->assertSame(['Primaria', '5.º B', 1], [$stage['label'], $group, $order]);
+        [$stage, $group] = chat\family::stage_of('5º PRI B');
+        $this->assertSame(['Primaria', '5.º B'], [$stage['label'], $group]);
+        [$stage, $group, $order] = chat\family::stage_of('2 años El Rinconcito');
+        $this->assertSame(['Nursery', '2 años', 0, '#38b5b8'], [$stage['label'], $group, $order, $stage['dark']]);
+        $this->assertNull(chat\family::stage_of('Otro grupo')[0]);
+        $preview = mirror::from_messages([['id' => 1, 'message_type' => 1, 'content' => "*Ana · Secretaría*\nYa está.",
+            'created_at' => 1, 'sender' => ['type' => 'user', 'id' => 1]]]);
+        $this->assertSame('Ya está.', $preview['preview']);
+    }
+
+    /**
      * Only a webhook signed with the secret and recent is taken.
      */
     public function test_verify(): void {

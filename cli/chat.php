@@ -43,6 +43,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'calendar' => null,
     'closed-words' => null,
     'colors' => null,
+    'stages' => null,
     'sync' => false,
     'status' => false,
     'disconnect' => false,
@@ -70,6 +71,9 @@ Options:
 --calendar=URL         An iCal with the closed days; empty for none.
 --closed-words=WORDS   The words that start the name of a closed day in it, comma separated.
 --colors=COLOURS       The colours of the organisation for the page, comma separated (#rrggbb).
+--stages=JSON          The stages of the organisation, youngest first: a list of {label, color, dark, code, match,
+                       show}; code is the stage the record of families guesses from a group (such as PRI), match a
+                       pattern of the group, show a pattern of the part of the group that is shown.
 --sync                 Fills the index with the conversations of the last month now.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.
@@ -153,6 +157,14 @@ try {
     }
     if ($options['colors'] !== null) {
         set_config('chatcolors', trim($options['colors']), $component);
+    }
+    if ($options['stages'] !== null) {
+        $stages = json_decode($options['stages'], true);
+        if (!is_array($stages)) {
+            cli_error('--stages is a JSON list');
+        }
+        set_config('chatstages', json_encode(array_values($stages), JSON_UNESCAPED_UNICODE), $component);
+        mtrace('Stages: ' . count(\local_oksigeniamarandu\local\chat\family::stages()));
     }
     if ($options['webhook']) {
         mtrace('Webhook: ' . connection::webhook());

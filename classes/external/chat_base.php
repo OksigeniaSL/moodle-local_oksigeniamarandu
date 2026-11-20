@@ -106,7 +106,9 @@ abstract class chat_base extends external_api {
                 'line' => new external_value(PARAM_TEXT, 'Who it is, in a line'),
                 'rings' => new external_multiple_structure(new external_single_structure([
                     'color' => new external_value(PARAM_RAW, 'The colour'),
+                    'dark' => new external_value(PARAM_RAW, 'The colour on a dark page', VALUE_DEFAULT, ''),
                     'dashed' => new external_value(PARAM_BOOL, 'Whether it is not inside yet'),
+                    'name' => new external_value(PARAM_TEXT, 'The child', VALUE_DEFAULT, ''),
                 ])),
             ]),
             'preview' => new external_single_structure([

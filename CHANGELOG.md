@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.40.0 (2026-11-20)
+
+- Who writes, from the common record of families (Oksigenia Family, 0.3.34 or later, if the site has it): the list
+  says «Family of Pablo (5.º B) and Sara (1.º A)», the creature of the contact has a ring with the colour of the stage
+  of each child, and the card shows the family, its children with their group and stage, and its other adults with
+  their conversation. A number nobody confirmed still counts, as a hint, and the card says so.
+- The stages are data of each organisation (`cli/chat.php --stages`): their name, colour (also for a dark page) and how
+  a group is known to be of each, by the stage the record guesses from it or by a pattern; «PRI 5º B» is shown as
+  «5.º B». The legend at the foot of the trays shows the stages of the organisation.
+- The list shows what was said, without the signature on top.
+
 ## 0.39.0 (2026-11-20)
 
 - The people of the team hear on the phone (the app) and in the bell of the site, never by email: whoever has a

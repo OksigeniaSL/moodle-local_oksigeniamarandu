@@ -20,6 +20,7 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
+use local_oksigeniamarandu\local\chat\family;
 use local_oksigeniamarandu\local\chat\mirror;
 
 /**
@@ -73,6 +74,26 @@ class chat_contact extends chat_base {
         $result = ['kind' => $kind, 'title' => (string)$row->name, 'phone' => (string)$row->phone, 'line' => '',
             'children' => [], 'services' => [], 'contacts' => [], 'rows' => [], 'source' => '', 'conversations' => $others,
             'maybe' => []];
+        $family = $kind === 'unknown' ? family::of_phone((string)$row->phone) : null;
+        if ($family) {
+            $kind = $result['kind'] = 'family';
+            $result['title'] = $family['title'] !== '' ? $family['title'] : (string)$row->name;
+            $result['line'] = $family['line'];
+            foreach ($family['children'] as $child) {
+                $result['children'][] = ['name' => trim($child['name'] . ' ' . $child['lastname']), 'group' => $child['group'],
+                    'tutor' => '', 'stage' => $child['stage'] ?? ['label' => '', 'color' => '', 'dark' => ''], 'applying' => false];
+            }
+            foreach ($family['adults'] as $adult) {
+                $conversation = $adult['phone'] === '' ? false : $DB->get_field_sql("SELECT MAX(cwid) FROM {" . mirror::TABLE . "}
+                    WHERE phone = :phone", ['phone' => $adult['phone']]);
+                $result['contacts'][] = ['name' => $adult['name'], 'role' => '', 'phone' => $adult['phone'],
+                    'conversation' => (int)$conversation];
+            }
+            $result['source'] = get_string(
+                $family['verified'] ? 'chat:family:source' : 'chat:family:sourcehint',
+                'local_oksigeniamarandu'
+            );
+        }
         if (self::admissions($viewer->userid) && in_array($kind, ['unknown', 'applicant', 'both'])) {
             $result['panel'] = [
                 'url' => (new \moodle_url('/local/oksigeniaeguahe/chat.php'))->out(false),
@@ -123,6 +144,7 @@ class chat_contact extends chat_base {
                 'stage' => new external_single_structure([
                     'label' => new external_value(PARAM_TEXT, 'The stage'),
                     'color' => new external_value(PARAM_RAW, 'Its colour'),
+                    'dark' => new external_value(PARAM_RAW, 'Its colour on a dark page', VALUE_DEFAULT, ''),
                 ]),
                 'applying' => new external_value(PARAM_BOOL, 'Whether they ask for a place'),
             ])),

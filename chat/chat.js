@@ -610,7 +610,12 @@
             }).join(', ') + ')';
         }
         // Colours that come with the data (stages): kept, but readable on the page.
-        function dataColour(c) {
+        function dataColour(c, d) {
+            var y = st.dark && d ? hexToRgb(d) : null;
+            if (y) {
+                // The colour the organisation chose for a dark page.
+                return { css: rgb(y), edge: false };
+            }
             var x = hexToRgb(c);
             if (!x) {
                 return { css: 'var(--tinta-3)', edge: false };
@@ -837,13 +842,13 @@
             if (rings.every(function (r) {
                 return r.dashed;
             })) {
-                var c0 = dataColour(rings[0].color);
+                var c0 = dataColour(rings[0].color, rings[0].dark);
                 return '<span class="mrd-av mrd-anillo-fuera mrd-con-bicho' + (c0.edge ? ' mrd-borde' : '') + cls +
                     '" style="--c: ' + c0.css + '" aria-hidden="true">' + bicho(seed) + '</span>';
             }
             var step = 360 / rings.length, gap = rings.length > 1 ? 7 : 0;
             var parts = rings.map(function (r, i) {
-                var col = dataColour(r.color);
+                var col = dataColour(r.color, r.dark);
                 edge = edge || col.edge;
                 var a0 = i * step + gap / 2, a1 = (i + 1) * step - gap / 2;
                 if (!r.dashed) {
@@ -877,7 +882,7 @@
                 if (r && r.name && r.color) {
                     var n = esc(r.name), at = h.indexOf(n);
                     if (at >= 0) {
-                        var col = dataColour(r.color);
+                        var col = dataColour(r.color, r.dark);
                         h = h.slice(0, at) + '<i class="mrd-pe' + (r.dashed ? ' mrd-fuera' : '') + '" style="--e: ' + col.css +
                             '" aria-hidden="true"></i>' + h.slice(at);
                     }
@@ -1147,7 +1152,7 @@
         }
         function legendHtml() {
             var stages = (cfg.stages || []).map(function (x) {
-                var col = dataColour(x.color);
+                var col = dataColour(x.color, x.dark);
                 return '<span><i class="mrd-pe" style="--e: ' + col.css + '"></i>' + esc(x.label) + '</span>';
             }).join('');
             return '<div class="mrd-leyenda" aria-label="' + esc(s('legend')) + '">' + stages +
@@ -2305,7 +2310,7 @@
             if (kids.length) {
                 h += '<div class="mrd-seccion"><h4>' + esc(kids.length > 1 ? s('children') : s('child')) + (kids.length > 1 ? ' <small>' +
                     esc(s('childrencount', kids.length)) + '</small>' : '') + '</h4>' + kids.map(function (k) {
-                    var col = k.stage && k.stage.color ? dataColour(k.stage.color).css : '';
+                    var col = k.stage && k.stage.color ? dataColour(k.stage.color, k.stage.dark).css : '';
                     return '<div class="mrd-hijo"><span class="mrd-etapa"' + (col ? ' style="--e: ' + col + '"' : '') + ' aria-hidden="true"></span><span><b>' +
                         esc(k.name) + '</b>' + (k.group || (k.stage && k.stage.label) ? '<span class="mrd-curso">' +
                         esc([k.stage && k.stage.label, k.group].filter(Boolean).join(' · ')) + '</span>' : '') +

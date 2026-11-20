@@ -73,6 +73,58 @@ class directory {
     }
 
     /**
+     * The signature a person has in Chatwoot (their profile), on one line; empty if they have none or the site has no
+     * platform app to read it with their own token. Kept a few minutes.
+     *
+     * @param array $agent The person.
+     * @return string
+     */
+    public static function signature_of(array $agent): string {
+        if (self::$client || empty($agent['id']) || empty(get_config('local_oksigeniamarandu', 'chatwootplatform'))) {
+            return '';
+        }
+        $cache = \cache::make('local_oksigeniamarandu', 'chat');
+        $key = 'signature_' . (int)$agent['id'];
+        $kept = $cache->get($key);
+        if ($kept !== false) {
+            return $kept;
+        }
+        try {
+            $profile = self::as_person_client($agent)->call('GET', '/profile');
+        } catch (\moodle_exception $e) {
+            return '';
+        }
+        // Only the profile of that person: with the token of the site, the profile would be another one.
+        $signature = '';
+        if ((int)($profile['id'] ?? 0) === (int)$agent['id']) {
+            $signature = self::one_line((string)($profile['message_signature'] ?? ''));
+        }
+        $cache->set($key, $signature);
+        return $signature;
+    }
+
+    /**
+     * The client of a person, with their own token.
+     *
+     * @param array $agent The person.
+     * @return chatwoot
+     */
+    protected static function as_person_client(array $agent): chatwoot {
+        return chatwoot::for_agent($agent);
+    }
+
+    /**
+     * A signature as the family reads it on top of a message: one line, without the marks of bold, not too long.
+     *
+     * @param string $text The signature.
+     * @return string
+     */
+    public static function one_line(string $text): string {
+        $text = trim(preg_replace('/\s+/u', ' ', str_replace(['*', '_', '~', '`'], '', $text)));
+        return \core_text::substr($text, 0, 80);
+    }
+
+    /**
      * Forgets what it had, so that the next question asks Chatwoot again.
      */
     public static function forget(): void {

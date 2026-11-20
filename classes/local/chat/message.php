@@ -235,7 +235,8 @@ class message {
     }
 
     /**
-     * The signature of a person: the one the site gave them, or their first name and their first department.
+     * The signature of a person: the one the site gave them, the one they have in Chatwoot, or else their first name
+     * and their first department.
      *
      * @param viewer $viewer The person.
      * @return string
@@ -245,6 +246,11 @@ class message {
         $own = trim((string)($people[$viewer->agent['id']]['signature'] ?? ''));
         if ($own !== '') {
             return $own;
+        }
+        // The one the person has in Chatwoot, as it is: some sign only with their department.
+        $chatwoot = directory::signature_of($viewer->agent);
+        if ($chatwoot !== '') {
+            return $chatwoot;
         }
         $teams = directory::teams();
         foreach ($viewer->teams as $teamid) {

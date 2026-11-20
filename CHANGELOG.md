@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.1 (2026-11-20)
+
+- The signature of each person is the one they have in Chatwoot (their profile), as it is: some sign only with their
+  department. Only whoever has none signs with their first name and their first department. It needs the platform app,
+  which reads each profile with its own token.
+
 ## 0.38.0 (2026-11-20)
 
 - For a number that joins the API from the app of WhatsApp Business (coexistence): the site keeps, as they come, the

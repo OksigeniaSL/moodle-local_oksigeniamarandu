@@ -119,7 +119,8 @@ try {
             array_filter(array_map('intval', explode(',', (string)$inboxes)))
         );
         mtrace('Connected: ' . $counts['agents'] . ' users of the account, ' . $counts['teams'] . ' departments, ' .
-            $counts['inboxes'] . ' inboxes' . (empty($env['CHATWOOT_PLATFORM_TOKEN']) ? ', without platform app.' : ', with platform app.'));
+            $counts['inboxes'] . ' inboxes' .
+            (empty($env['CHATWOOT_PLATFORM_TOKEN']) ? ', without platform app.' : ', with platform app.'));
     } else if ($options['inboxes'] !== null) {
         set_config(
             'chatwootinboxes',

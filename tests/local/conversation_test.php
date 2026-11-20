@@ -216,6 +216,7 @@ final class conversation_test extends \advanced_testcase {
         // The same webhook again: the plugin does not hear it twice.
         inbound::handle($this->webhook($message));
         $this->assertCount(1, $this->heard);
+        $this->assertSame('', conversation::taken_by('wamid.IN1'));
 
         $this->listener = function (message_received $hook) {
             $hook->set_reply('Gracias: te contesta el equipo de admisiones por aquí.');
@@ -227,6 +228,9 @@ final class conversation_test extends \advanced_testcase {
             [['phone' => '34600000001', 'text' => 'Gracias: te contesta el equipo de admisiones por aquí.']],
             $this->replies()
         );
+        // A shared inbox can ask who answered it, so as not to answer too.
+        $this->assertSame('local_example', conversation::taken_by('wamid.IN2'));
+        $this->assertSame('', conversation::taken_by('wamid.UNKNOWN'));
     }
 
     /**

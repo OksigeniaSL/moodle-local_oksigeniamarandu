@@ -66,13 +66,17 @@ if (!inbound::verify_signature($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '',
 }
 
 $payload = json_decode($raw, true);
+$own = false;
 try {
     if (is_array($payload)) {
-        inbound::handle($payload);
+        inbound::handle($payload, $own);
     }
 } finally {
-    // The same body, with its signature, to the other address of the site, if it has one: the shared inbox, say.
-    forward::deliver($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '');
+    // The same body, with its signature, to the other address of the site, if it has one: the shared inbox, say. What
+    // the site answered itself (opt-ins, opt-outs, the buttons of its questions) stays here: a bot there would answer too.
+    if (!$own) {
+        forward::deliver($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '');
+    }
 }
 // Meta only needs to know it arrived; the replies go out later, in an ad hoc task.
 echo 'OK';

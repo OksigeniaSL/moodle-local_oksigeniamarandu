@@ -46,15 +46,20 @@ class inbound {
      * of its account; anything else (other numbers, other accounts, other fields) is left alone.
      *
      * @param array $payload The decoded body.
+     * @param bool|null $own Set to whether the body was only messages the site answered itself (opt-ins, opt-outs, codes,
+     *                       the buttons of its questions): nobody else needs those, so they are not passed on.
      * @return int How many messages were handled.
      */
-    public static function handle(array $payload): int {
+    public static function handle(array $payload, ?bool &$own = null): int {
+        $own = false;
         $mine = (string)get_config('local_oksigeniamarandu', 'phonenumberid');
         if ($mine === '' || ($payload['object'] ?? '') !== 'whatsapp_business_account') {
             return 0;
         }
         $account = (string)get_config('local_oksigeniamarandu', 'wabaid');
         $count = 0;
+        $answered = 0;
+        $others = 0;
         foreach ($payload['entry'] ?? [] as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
                 $value = $change['value'] ?? [];
@@ -79,6 +84,7 @@ class inbound {
                     continue;
                 }
                 if ($field !== 'messages' || (string)($value['metadata']['phone_number_id'] ?? '') !== $mine) {
+                    $others++;
                     continue;
                 }
                 $names = [];
@@ -87,12 +93,13 @@ class inbound {
                 }
                 foreach ($value['messages'] ?? [] as $message) {
                     if (is_array($message)) {
-                        self::message($message, $names);
+                        $answered += (int)self::message($message, $names);
                         $count++;
                     }
                 }
                 foreach ($value['statuses'] ?? [] as $status) {
                     if (is_array($status)) {
+                        $others++;
                         $id = (string)($status['id'] ?? '');
                         $what = (string)($status['status'] ?? '');
                         $error = (string)($status['errors'][0]['title'] ?? '');
@@ -103,6 +110,7 @@ class inbound {
                 }
             }
         }
+        $own = $count > 0 && $answered === $count && $others === 0;
         return $count;
     }
 
@@ -111,19 +119,20 @@ class inbound {
      *
      * @param array $message The message, as Meta sends it.
      * @param array $names Profile names by number.
+     * @return bool Whether the site answered it itself: an opt-in, an opt-out or the button of one of its questions.
      */
-    private static function message(array $message, array $names): void {
+    private static function message(array $message, array $names): bool {
         $from = (string)($message['from'] ?? '');
         $phone = preg_replace('/[^0-9]/', '', $from);
         if ($phone === '') {
-            return;
+            return false;
         }
         $name = $names[$from] ?? null;
         $wamid = (string)($message['id'] ?? '');
         consent::touch($phone, $name);
         test_message::inbound($phone);
         if (answers::from_whatsapp($message, $phone)) {
-            return;
+            return true;
         }
 
         $type = $message['type'] ?? '';
@@ -137,12 +146,12 @@ class inbound {
             if ($other !== null) {
                 self::own($phone, $other[0], $other[1], $message, $name);
             }
-            return;
+            return false;
         }
         $match = keywords::match($text);
         if ($match === null) {
             self::own($phone, 'text', trim($text), $message, $name);
-            return;
+            return false;
         }
         if ($match['action'] === 'optout') {
             consent::optout($phone, 'keyword', $wamid);
@@ -151,6 +160,7 @@ class inbound {
             $reply = consent::optin_from_message($phone, $match['code'], $wamid, $name);
         }
         send_reply::queue($phone, $reply);
+        return true;
     }
 
     /**

@@ -112,15 +112,16 @@ class conversation {
         if ($messageid !== '') {
             // A webhook that comes twice (the channel did not hear the first answer) brings the same message again.
             $cache = \cache::make('local_oksigeniamarandu', 'inbound');
-            $key = sha1($messageid);
-            if ($cache->get($key)) {
+            $cachekey = sha1($messageid);
+            if ($cache->get($cachekey)) {
                 return [true, null];
             }
-            $cache->set($key, time());
+            $cache->set($cachekey, ['time' => time(), 'by' => '']);
         }
         $channel = telegram::is_chat($address) ? 'telegram' : 'whatsapp';
         $handled = false;
         $reply = null;
+        $by = '';
         $heard = [];
         foreach ($links as $link) {
             $userid = $link->userid === null ? null : (int)$link->userid;
@@ -154,8 +155,29 @@ class conversation {
             if ($reply === null && $said !== null && trim($said) !== '') {
                 $reply = \core_text::substr(trim($said), 0, self::MAXTEXT);
             }
+            if ($by === '' && ($hook->is_handled() || ($said !== null && trim($said) !== ''))) {
+                $by = (string)$link->component;
+            }
+        }
+        if ($messageid !== '' && $by !== '') {
+            $cache->set($cachekey, ['time' => time(), 'by' => $by]);
         }
         return [$handled, $reply];
+    }
+
+    /**
+     * The plugin that answered a message of somebody's own, or kept it, in the last day: so that a shared inbox does not
+     * answer it too.
+     *
+     * @param string $messageid The id the channel gave to the message: the wamid of WhatsApp.
+     * @return string The plugin, or empty if none did, or the message is not known.
+     */
+    public static function taken_by(string $messageid): string {
+        if ($messageid === '') {
+            return '';
+        }
+        $seen = \cache::make('local_oksigeniamarandu', 'inbound')->get(sha1($messageid));
+        return is_array($seen) ? (string)($seen['by'] ?? '') : '';
     }
 
     /**

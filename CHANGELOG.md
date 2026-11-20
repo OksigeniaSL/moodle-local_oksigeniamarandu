@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.36.0 (2026-11-20)
+
+- What the site answers itself on WhatsApp (the words to join and leave, with or without a code, and the buttons of its
+  questions) is no longer passed on to the other address of the webhook: a bot of the shared inbox would answer it too.
+  Everything else goes on as it came.
+- The web service `local_oksigeniamarandu_whatsapp_context`, for the bot of a shared inbox: what the site knows of a
+  WhatsApp number. Whom it joined with, the last notice the site sent it (plugin, notice, label and when) and, for a
+  message given, which plugin of the site answered it or kept it. So the inbox sends a reply to a notice straight to the
+  people of that plugin, and keeps quiet where a plugin already answered. It needs the new capability
+  `local/oksigeniamarandu:inbox` and comes in the service «Oksigenia Marandu, shared inbox».
+
 ## 0.35.0 (2026-11-20)
 
 - «Also pass on to», in the settings of the webhook: an address that gets everything Meta sends to the site, as it

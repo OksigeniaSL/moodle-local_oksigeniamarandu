@@ -15,7 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Who may review what goes to the channel of Telegram of the site, from their chat with the bot.
+ * Who may review what goes to the channel of Telegram of the site, from their chat with the bot, and who may ask what the
+ * site knows of a WhatsApp number (the shared inbox).
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -37,5 +38,12 @@ $capabilities = [
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => ['editingteacher' => CAP_ALLOW, 'teacher' => CAP_ALLOW, 'manager' => CAP_ALLOW],
+    ],
+    // Ask, by web service, what the site knows of a WhatsApp number: the user of the bot of a shared inbox.
+    'local/oksigeniamarandu:inbox' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => ['manager' => CAP_ALLOW],
     ],
 ];

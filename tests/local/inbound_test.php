@@ -297,6 +297,26 @@ final class inbound_test extends \advanced_testcase {
     }
 
     /**
+     * A body is the site's own when every message in it is one the site answered itself: an opt-in, an opt-out. Anything
+     * else in it (a message of somebody's own, a status, another number) makes it a body to pass on.
+     */
+    public function test_own(): void {
+        $this->assertSame(1, inbound::handle($this->payload('34600000001', 'Baja.'), $own));
+        $this->assertTrue($own);
+        $this->assertSame(1, inbound::handle($this->payload('34600000002', 'alta k7m2-q9xa'), $own));
+        $this->assertTrue($own);
+        $this->assertSame(1, inbound::handle($this->payload('34600000001', '¿A qué hora es la reunión?'), $own));
+        $this->assertFalse($own);
+
+        $mixed = $this->payload('34600000001', 'BAJA');
+        $mixed['entry'][0]['changes'][0]['value']['statuses'] = [['id' => 'wamid.OUT', 'status' => 'delivered']];
+        inbound::handle($mixed, $own);
+        $this->assertFalse($own);
+        inbound::handle($this->payload('34600000001', 'BAJA', '9990000000'), $own);
+        $this->assertFalse($own);
+    }
+
+    /**
      * What goes to another number of the same account, or is not a message, is left alone.
      */
     public function test_other_numbers_and_fields(): void {

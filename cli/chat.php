@@ -44,6 +44,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'closed-words' => null,
     'colors' => null,
     'stages' => null,
+    'start-templates' => null,
     'sync' => false,
     'status' => false,
     'disconnect' => false,
@@ -74,6 +75,8 @@ Options:
 --stages=JSON          The stages of the organisation, youngest first: a list of {label, color, dark, code, match,
                        show}; code is the stage the record of families guesses from a group (such as PRI), match a
                        pattern of the group, show a pattern of the part of the group that is shown.
+--start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
+                       separated: they go first when a person starts a conversation.
 --sync                 Fills the index with the conversations of the last month now.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.
@@ -166,6 +169,11 @@ try {
         set_config('chatstages', json_encode(array_values($stages), JSON_UNESCAPED_UNICODE), $component);
         mtrace('Stages: ' . count(\local_oksigeniamarandu\local\chat\family::stages()));
     }
+    if ($options['start-templates'] !== null) {
+        $names = array_filter(array_map('trim', explode(',', $options['start-templates'])), 'strlen');
+        set_config('chatstarttemplates', implode(',', $names), $component);
+        mtrace('Messages to start with: ' . (implode(', ', $names) ?: '-'));
+    }
     if ($options['webhook']) {
         mtrace('Webhook: ' . connection::webhook());
     }
@@ -189,6 +197,12 @@ try {
             })));
         mtrace('Index: ' . $GLOBALS['DB']->count_records(mirror::TABLE) . ' conversations; last pass ' .
             (empty($config->chatsynced) ? 'never' : userdate((int)$config->chatsynced)));
+        $approved = \local_oksigeniamarandu\local\chat\templates::all();
+        $first = array_column(array_filter($approved, function ($one) {
+            return $one['start'];
+        }), 'name');
+        mtrace('Approved messages: ' . count($approved) . ($first ? ' (to start with: ' . implode(', ', $first) . ')' : '') .
+            '; waiting for Meta: ' . \local_oksigeniamarandu\local\chat\templates::pending());
     }
 } catch (\moodle_exception $e) {
     cli_error($e->getMessage() . (empty($e->debuginfo) ? '' : ' (' . $e->debuginfo . ')'));

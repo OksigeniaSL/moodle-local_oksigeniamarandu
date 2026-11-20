@@ -81,17 +81,7 @@ class chat_template extends chat_base {
             }
         }
         $sent = directory::as_person($viewer, function (chatwoot $client) use ($row, $template, $values, $viewer) {
-            $sent = $client->call('POST', '/conversations/' . $row->cwid . '/messages', [
-                'content' => templates::render($template, $values),
-                'message_type' => 'outgoing',
-                'private' => false,
-                'template_params' => [
-                    'name' => $template['name'],
-                    'category' => $template['category'],
-                    'language' => $template['language'],
-                    'processed_params' => ['body' => (object)$values],
-                ],
-            ]);
+            $sent = $client->call('POST', '/conversations/' . $row->cwid . '/messages', templates::message($template, $values));
             if (!$row->assigneeid) {
                 $client->call('POST', '/conversations/' . $row->cwid . '/assignments', ['assignee_id' => $viewer->agent['id']]);
             }

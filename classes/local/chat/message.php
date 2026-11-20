@@ -194,6 +194,10 @@ class message {
                 if (isset($m['team_name'])) {
                     $a->team = $teams[\core_text::strtolower(trim($m['team_name']))] ?? directory::label($m['team_name']);
                 }
+                // Whoever gives it to themself keeps it, as when a person starts a conversation.
+                if (in_array($what, ['gave', 'gaveteam']) && isset($a->to) && trim($m['assignee_name']) === trim($m['user_name'])) {
+                    $what = 'took';
+                }
                 return [get_string('chat:activity:' . $what, 'local_oksigeniamarandu', $a), $what];
             }
         }

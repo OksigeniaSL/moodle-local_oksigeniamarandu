@@ -13,7 +13,9 @@
         action: 'local_oksigeniamarandu_chat_action',
         extras: 'local_oksigeniamarandu_chat_extras',
         contact: 'local_oksigeniamarandu_chat_contact',
-        prefs: 'local_oksigeniamarandu_chat_prefs'
+        prefs: 'local_oksigeniamarandu_chat_prefs',
+        find: 'local_oksigeniamarandu_chat_find',
+        start: 'local_oksigeniamarandu_chat_start'
     };
 
     /* ---------------------------------------------------------------------------------------------------------------
@@ -496,7 +498,7 @@
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
             showResolved: false, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
-            ready: false, failed: 0, expired: false, composerSig: '', busy: {}
+            ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null
         };
         var seq = 0;
 
@@ -1238,7 +1240,8 @@
         }
         function renderListHead() {
             el.lista.innerHTML = '<div class="mrd-lista-cab"><div class="mrd-titulo"><span class="mrd-marca-movil">' + brandMark() +
-                '</span><h1></h1></div><p></p><label class="mrd-buscar">' + ico('buscar') +
+                '</span><h1></h1>' + (READONLY ? '' : '<button type="button" class="mrd-btn mrd-chico mrd-nueva-b" data-a="new" aria-pressed="' +
+                !!st.nueva + '">' + ico('lapiz') + '<span>' + esc(s('newconv')) + '</span></button>') + '</div><p></p><label class="mrd-buscar">' + ico('buscar') +
                 '<input type="search" data-role="buscar" autocomplete="off" placeholder="' + esc(s('search')) + '" aria-label="' +
                 esc(s('search')) + '" value="' + esc(st.search) + '"><button type="button" class="mrd-limpiar" data-a="clearsearch" aria-label="' +
                 esc(s('searchclear')) + '"' + (st.search ? '' : ' hidden') + '>' + ico('cerrar') + '</button></label></div>' +
@@ -1394,6 +1397,10 @@
            Chat: header, thread and composer
            --------------------------------------------------------------------------------------------------------------- */
         function renderChat() {
+            if (st.nueva) {
+                renderNew();
+                return;
+            }
             var c = conv(st.open);
             if (!c) {
                 el.chat.innerHTML = '<div class="mrd-hilo"><div class="mrd-hilo-nada">' + (st.ready ? '<b>' + esc(s('pickone')) + '</b>' : esc(s('loading'))) +
@@ -1965,7 +1972,14 @@
                     langs[t.language] = true;
                 });
                 var showLang = Object.keys(langs).length > 1;
-                h += '<div class="mrd-plantillas">' + tpls.map(function (t, i) {
+                var order = tpls.map(function (t, i) {
+                    return i;
+                }).sort(function (a, b) {
+                    var ka = tpls[a].start === !lastIn ? 0 : 1, kb = tpls[b].start === !lastIn ? 0 : 1;
+                    return ka - kb || a - b;
+                });
+                h += '<div class="mrd-plantillas">' + order.map(function (i) {
+                    var t = tpls[i];
                     return '<button type="button" class="mrd-plantilla" data-a="tpl" data-v="' + i + '"><b>' + ico('mensaje') + esc(tplTitle(t)) +
                         (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span></button>';
                 }).join('') + '</div>';
@@ -1976,22 +1990,44 @@
                 esc(s('writenotebtn')) + '</button></div>';
             box2.innerHTML = h;
         }
+        function sharedPrefix() {
+            var names = (st.extras.templates || []).map(function (t) {
+                return String(t.name || '');
+            });
+            if (names.length < 2) {
+                return '';
+            }
+            var first = names[0], cut = first.indexOf('_') + 1;
+            if (!cut) {
+                return '';
+            }
+            var prefix = first.slice(0, cut);
+            return names.every(function (n) {
+                return n.indexOf(prefix) === 0 && n.length > prefix.length;
+            }) ? prefix : '';
+        }
         function tplTitle(t) {
             if (t.title) {
                 return t.title;
             }
-            return cap(String(t.name || '').replace(/_+/g, ' ').trim());
+            var name = String(t.name || ''), prefix = sharedPrefix();
+            return cap(name.slice(prefix.length).replace(/_+/g, ' ').trim());
         }
-        function tplValue(p, c) {
-            if (/name|nombre|nom\b/i.test(p.key || '')) {
-                return contactFirst(c);
+        function greets(t, k) {
+            var key = String(k).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var re = new RegExp('\\b(?:hola|buenas|buenos d[ií]as|hello|hi|hey|ol[aá]|bonjour|salut|ciao|bon dia|kaixo)[\\s,!¡]+\\{\\{\\s*' + key + '\\s*\\}\\}', 'i');
+            return re.test(String((t && t.body) || ''));
+        }
+        function tplValue(p, c, t) {
+            if (/name|nombre|nom\b/i.test(p.key || '') || greets(t, p.key)) {
+                return firstName(c && c.contact) || '';
             }
-            return p.example || '';
+            return '';
         }
         function tplPlain(t, c) {
             var params = {};
             (t.params || []).forEach(function (p) {
-                params[p.key] = tplValue(p, c);
+                params[p.key] = tplValue(p, c, t) || p.example || '…';
             });
             return String(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
                 return params[k] !== undefined ? params[k] : m;
@@ -2004,8 +2040,8 @@
             });
             var body = esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
                 var p = params[k] || { key: k, example: '' };
-                return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" aria-label="' + esc(s('gap', k)) + '">' +
-                    esc(tplValue(p, c)) + '</span>';
+                return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" data-ejemplo="' + esc(p.example || '') +
+                    '" aria-label="' + esc(s('gap', k)) + '">' + esc(tplValue(p, c, t)) + '</span>';
             });
             var btns = (t.buttons || []).map(function (b) {
                 return '<span>' + esc(b && b.text !== undefined ? b.text : b) + '</span>';
@@ -2588,6 +2624,14 @@
                 toast(s('toastnotfound'), true);
                 return;
             }
+            if (st.nueva) {
+                st.nueva = null;
+                clearTimeout(findT);
+                markNewButton();
+                if (st.open === id) {
+                    renderChat();
+                }
+            }
             if (st.open !== id) {
                 saveDraft();
                 st.open = id;
@@ -3031,32 +3075,38 @@
             addMessagesLocal(m);
             deliver(m);
         }
+        function gapValues() {
+            var gaps = el.chat.querySelectorAll('.mrd-hueco'), params = [], missing = false, seen = {};
+            Array.prototype.forEach.call(gaps, function (g) {
+                var v = g.textContent.replace(/\u00a0/g, ' ').trim(), k = g.getAttribute('data-k');
+                g.classList.toggle('mrd-falta', !v);
+                if (!v) {
+                    missing = true;
+                }
+                if (!seen[k]) {
+                    seen[k] = true;
+                    params.push({ key: k, value: v });
+                }
+            });
+            if (missing) {
+                toast(s('fillgaps'), true);
+                var first = el.chat.querySelector('.mrd-hueco.mrd-falta');
+                if (first) {
+                    first.focus();
+                }
+                return null;
+            }
+            return params;
+        }
         function sendTemplate(btn) {
             var c = conv(st.open), t = (st.extras.templates || [])[st.tpl];
             if (!c || !t) {
                 return;
             }
-            var gaps = el.chat.querySelectorAll('.mrd-hueco'), params = [], missing = false;
-            Array.prototype.forEach.call(gaps, function (g) {
-                var v = g.textContent.replace(/\u00a0/g, ' ').trim();
-                g.classList.toggle('mrd-falta', !v);
-                if (!v) {
-                    missing = true;
-                }
-                params.push({ key: g.getAttribute('data-k'), value: v });
-            });
-            if (missing) {
-                toast(s('fillgaps'), true);
+            var params = gapValues();
+            if (!params) {
                 return;
             }
-            var seen = {};
-            params = params.filter(function (p) {
-                if (seen[p.key]) {
-                    return false;
-                }
-                seen[p.key] = true;
-                return true;
-            });
             var bubble = el.chat.querySelector('.mrd-previa .mrd-msg p');
             var shown = bubble ? bubble.textContent.trim() : '';
             var id = c.id;
@@ -3080,6 +3130,250 @@
                     }
                     renderComposer(true);
                 }
+                refreshAfterData();
+                pollSoon();
+            }).catch(function (e) {
+                busy(btn, false);
+                failToast(e);
+            });
+        }
+
+        /* ---------------------------------------------------------------------------------------------------------------
+           A new conversation: whom (a number, a family, someone who wrote before), from which department and with which
+           approved message. If they have one open that the person sees, that one opens instead.
+           --------------------------------------------------------------------------------------------------------------- */
+        var findT = null, findSeq = 0;
+        function defaultTeam() {
+            var mine = (st.extras.teams || []).filter(function (t) {
+                return t.mine;
+            });
+            return mine.length ? mine[0].id : 0;
+        }
+        function markNewButton() {
+            box.classList.toggle('mrd-con-nueva', !!st.nueva);
+            var b = el.lista.querySelector('.mrd-nueva-b');
+            if (b) {
+                b.setAttribute('aria-pressed', String(!!st.nueva));
+            }
+        }
+        function openNew() {
+            if (READONLY) {
+                return;
+            }
+            closePops();
+            saveDraft();
+            st.nueva = { q: '', found: null, needprefix: false, searching: false, pick: null, team: defaultTeam(), tpl: -1, allteams: false };
+            renderChat();
+            markNewButton();
+            setLayer('chat', true);
+            focusNew();
+        }
+        function closeNew() {
+            if (!st.nueva) {
+                return;
+            }
+            st.nueva = null;
+            clearTimeout(findT);
+            renderChat();
+            markNewButton();
+            if (narrow()) {
+                goBack('lista');
+            }
+        }
+        function focusNew() {
+            var inp = el.chat.querySelector('[data-role="nuevabuscar"]');
+            if (inp && !touchy()) {
+                inp.focus();
+            }
+        }
+        function candContact(x) {
+            return { name: x.name, phone: x.phone, rings: x.rings || [], kind: x.line || (x.rings || []).length ? 'family' : 'unknown' };
+        }
+        function newConvLike() {
+            return { id: 0, contact: candContact(st.nueva.pick || {}) };
+        }
+        function candHtml(x, i) {
+            var title = x.name || (x.source === 'number' ? s('newnumber', fmtPhone(x.phone)) : fmtPhone(x.phone));
+            var state = x.open && x.conversation ? '<span class="mrd-nueva-estado">' + ico('mensaje') + esc(s('newhasopen')) + '</span>'
+                : x.elsewhere ? '<span class="mrd-nueva-estado mrd-ocupada">' + esc(s('newelsewhere', x.elsewhere)) + '</span>' : '';
+            return '<button type="button" class="mrd-nueva-cand" data-a="newpick" data-v="' + i + '">' + avContact(candContact(x), 'mrd-m') +
+                '<span class="mrd-nueva-cand-t"><b>' + esc(title) + '</b>' + (x.line ? '<small>' + esc(x.line) + '</small>' : '') +
+                '<span class="mrd-nueva-meta"><span class="mrd-nueva-fuente">' + esc(s('source' + x.source)) + '</span>' +
+                (x.name ? '<span>' + esc(fmtPhone(x.phone)) + '</span>' : '') + state + '</span></span>' + ico('der', 'mrd-flecha') + '</button>';
+        }
+        function newListHtml() {
+            var n = st.nueva;
+            if (n.needprefix) {
+                return '<p class="mrd-ayuda">' + esc(s('newneedprefix')) + '</p>';
+            }
+            if (!n.found || (!n.found.length && n.searching)) {
+                return '<p class="mrd-ayuda">' + esc(n.searching ? s('newsearching') : s('newsearchhint')) + '</p>';
+            }
+            if (!n.found.length) {
+                return '<p class="mrd-ayuda">' + esc(s('newnone')) + '</p>';
+            }
+            return n.found.map(candHtml).join('');
+        }
+        function refreshNewList() {
+            var list = el.chat.querySelector('.mrd-nueva-lista');
+            if (list) {
+                list.innerHTML = newListHtml();
+            }
+        }
+        function findSoon(q) {
+            var n = st.nueva;
+            n.q = q;
+            clearTimeout(findT);
+            var clean = q.trim();
+            if (clean.length < 2) {
+                n.found = null;
+                n.needprefix = false;
+                n.searching = false;
+                refreshNewList();
+                return;
+            }
+            n.searching = true;
+            refreshNewList();
+            findT = setTimeout(function () {
+                var mine = ++findSeq;
+                tr.call(M.find, { query: clean }).then(function (r) {
+                    if (mine !== findSeq || st.nueva !== n) {
+                        return;
+                    }
+                    n.searching = false;
+                    n.found = (r && r.candidates) || [];
+                    n.needprefix = !!(r && r.needprefix);
+                    refreshNewList();
+                }).catch(function (e) {
+                    if (mine !== findSeq || st.nueva !== n) {
+                        return;
+                    }
+                    n.searching = false;
+                    n.found = [];
+                    refreshNewList();
+                    failToast(e);
+                });
+            }, 300);
+        }
+        function newNoTemplatesHtml() {
+            var n = +st.extras.pending || 0;
+            return '<div class="mrd-nueva-aviso mrd-espera">' + '<span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(s('newnotemplates')) +
+                '</b><p>' + esc(s('newnotemplateshelp')) + ' ' + esc(n === 1 ? s('newpending1') : n ? s('newpending', n) : s('newpendingnone')) +
+                '</p></div></div>';
+        }
+        function pickedHtml(x) {
+            return '<div class="mrd-nueva-para"><span class="mrd-nueva-rotulo">' + esc(s('newto')) + '</span>' + avContact(candContact(x), 'mrd-m') +
+                '<div class="mrd-nueva-cand-t"><b>' + esc(x.name || fmtPhone(x.phone)) + '</b>' + (x.line ? '<small>' + esc(x.line) + '</small>' : '') +
+                (x.name ? '<span class="mrd-nueva-meta"><span>' + esc(fmtPhone(x.phone)) + '</span></span>' : '') + '</div>' +
+                '<button type="button" class="mrd-btn mrd-chico" data-a="newchange">' + esc(s('newchange')) + '</button></div>';
+        }
+        function teamChips() {
+            var all = st.extras.teams || [], n = st.nueva;
+            var mine = all.filter(function (t) {
+                return t.mine;
+            }), rest = all.filter(function (t) {
+                return !t.mine;
+            });
+            var chip = function (id, icon, name) {
+                var on = n.team === id;
+                return '<button type="button" class="mrd-chip' + (on ? ' mrd-on' : '') + '" data-a="newteam" data-v="' + id + '" aria-pressed="' + on + '">' +
+                    ico(icon) + esc(name) + '</button>';
+            };
+            var shown = !mine.length || n.allteams ? mine.concat(rest) : mine.concat(rest.filter(function (t) {
+                return t.id === n.team;
+            }));
+            var folded = all.length - shown.length;
+            return shown.map(function (t) {
+                return chip(t.id, teamIcon(t), t.name);
+            }).join('') + (folded ? '<button type="button" class="mrd-chip mrd-chip-mas" data-a="newallteams">' + esc(s('newmoreteams', folded)) +
+                '</button>' : '') + chip(0, 'nadie', s('noteam'));
+        }
+        function newTplCards() {
+            var tpls = st.extras.templates || [], c = newConvLike(), langs = {};
+            tpls.forEach(function (t) {
+                langs[t.language] = true;
+            });
+            var showLang = Object.keys(langs).length > 1;
+            var card = function (t) {
+                return '<button type="button" class="mrd-plantilla" data-a="newtpl" data-v="' + tpls.indexOf(t) + '"><b>' + ico('mensaje') + esc(tplTitle(t)) +
+                    (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span></button>';
+            };
+            var first = tpls.filter(function (t) {
+                return t.start;
+            }), rest = tpls.filter(function (t) {
+                return !t.start;
+            });
+            if (first.length && rest.length) {
+                return '<h4 class="mrd-nueva-grupo">' + esc(s('newfirstones')) + '</h4><div class="mrd-plantillas">' + first.map(card).join('') + '</div>' +
+                    '<h4 class="mrd-nueva-grupo">' + esc(s('newothers')) + '</h4><div class="mrd-plantillas">' + rest.map(card).join('') + '</div>';
+            }
+            return '<div class="mrd-plantillas">' + tpls.map(card).join('') + '</div>';
+        }
+        function renderNew() {
+            var n = st.nueva, tpls = st.extras.templates || [];
+            var h = '<div class="mrd-nueva"><div class="mrd-nueva-cab"><button type="button" class="mrd-volver" data-a="newclose" aria-label="' +
+                esc(s('newcancel')) + '">' + ico('izq') + '</button><div class="mrd-nueva-tit"><h2>' + esc(s('newconvtitle')) + '</h2><p>' +
+                esc(s('newconvhelp')) + '</p></div><button type="button" class="mrd-btn mrd-chico mrd-nueva-cerrar" data-a="newclose">' + ico('cerrar') +
+                esc(s('newcancel')) + '</button></div><div class="mrd-nueva-cuerpo">';
+            if (!tpls.length) {
+                h += newNoTemplatesHtml();
+            }
+            if (!n.pick) {
+                h += '<h3>' + esc(s('newwho')) + '</h3><label class="mrd-buscar mrd-nueva-buscar">' + ico('buscar') +
+                    '<input type="search" data-role="nuevabuscar" autocomplete="off" enterkeyhint="search" placeholder="' + esc(s('newsearch')) +
+                    '" aria-label="' + esc(s('newsearch')) + '" value="' + esc(n.q) + '"></label><div class="mrd-nueva-lista" aria-live="polite">' +
+                    newListHtml() + '</div>';
+            } else {
+                h += pickedHtml(n.pick);
+                if (n.pick.open && n.pick.conversation) {
+                    h += '<div class="mrd-nueva-aviso">' + ico('mensaje') + '<div><b>' + esc(s('newhasopen')) + '</b></div>' +
+                        '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="newopen" data-v="' + n.pick.conversation + '">' +
+                        esc(s('newopenit')) + '</button></div>';
+                } else if (n.pick.elsewhere) {
+                    h += '<div class="mrd-nueva-aviso mrd-ocupada">' + ico('alerta') + '<div><b>' + esc(s('newbusy', n.pick.elsewhere)) + '</b></div></div>';
+                } else if (tpls.length) {
+                    h += '<h3>' + esc(s('newfrom')) + '</h3><div class="mrd-chips mrd-nueva-deps">' + teamChips() + '</div>';
+                    if (n.tpl >= 0 && tpls[n.tpl]) {
+                        h += previewHtml(newConvLike(), tpls[n.tpl]).replace('data-a="tplback"', 'data-a="newtplback"')
+                            .replace('data-a="tplsend"', 'data-a="newsend"').replace(esc(s('sendtemplate')), esc(s('newsend')));
+                    } else {
+                        h += '<h3>' + esc(s('newpick')) + '</h3>' + newTplCards();
+                    }
+                }
+            }
+            el.chat.innerHTML = h + '</div></div>';
+            st.composerSig = '';
+        }
+        function newSend(btn) {
+            var n = st.nueva, t = n && (st.extras.templates || [])[n.tpl];
+            if (!n || !n.pick || !t) {
+                return;
+            }
+            var params = gapValues();
+            if (!params) {
+                return;
+            }
+            busy(btn, true);
+            tr.call(M.start, { phone: '+' + n.pick.phone, contactname: n.pick.name || '', team: n.team || 0, name: t.name, language: t.language,
+                params: params }).then(function (r) {
+                if (st.nueva !== n) {
+                    return;
+                }
+                if (!r || r.status === 'busy' || !r.conversation) {
+                    busy(btn, false);
+                    toast(r && r.where ? s('newbusy', r.where) : s('newbusyany'), true);
+                    return;
+                }
+                mergeConv(r.conversation);
+                st.nueva = null;
+                markNewButton();
+                var id = r.conversation.id;
+                if (st.open === id) {
+                    renderChat();
+                    loadMessages(id);
+                }
+                openConv(id);
+                toast(r.status === 'exists' ? s('newexists') : s('newstarted'));
                 refreshAfterData();
                 pollSoon();
             }).catch(function (e) {
@@ -3198,7 +3492,78 @@
             }
             var a = t.getAttribute('data-a'), v = t.getAttribute('data-v');
             var c = conv(st.open);
+            var nv = st.nueva;
             switch (a) {
+                case 'new':
+                    if (nv) {
+                        closeNew();
+                    } else {
+                        openNew();
+                    }
+                    break;
+                case 'newclose':
+                    closeNew();
+                    break;
+                case 'newpick':
+                    if (nv && nv.found && nv.found[+v]) {
+                        nv.pick = nv.found[+v];
+                        nv.tpl = -1;
+                        renderNew();
+                    }
+                    break;
+                case 'newchange':
+                    if (nv) {
+                        nv.pick = null;
+                        nv.tpl = -1;
+                        renderNew();
+                        focusNew();
+                    }
+                    break;
+                case 'newteam':
+                    if (nv) {
+                        nv.team = +v;
+                        Array.prototype.forEach.call(el.chat.querySelectorAll('.mrd-nueva-deps .mrd-chip'), function (b) {
+                            var on = +b.getAttribute('data-v') === nv.team;
+                            b.classList.toggle('mrd-on', on);
+                            b.setAttribute('aria-pressed', on);
+                        });
+                    }
+                    break;
+                case 'newallteams':
+                    if (nv) {
+                        nv.allteams = true;
+                        var deps = el.chat.querySelector('.mrd-nueva-deps');
+                        if (deps) {
+                            deps.innerHTML = teamChips();
+                        }
+                    }
+                    break;
+                case 'newtpl':
+                    if (nv) {
+                        nv.tpl = +v;
+                        renderNew();
+                        var gap = el.chat.querySelector('.mrd-hueco:empty') || el.chat.querySelector('.mrd-hueco');
+                        if (gap && !touchy()) {
+                            gap.focus();
+                        }
+                    }
+                    break;
+                case 'newtplback':
+                    if (nv) {
+                        nv.tpl = -1;
+                        renderNew();
+                    }
+                    break;
+                case 'newsend':
+                    newSend(t);
+                    break;
+                case 'newopen':
+                    if (conv(+v)) {
+                        openConv(+v);
+                    } else {
+                        toast(s('toastnotfound'), true);
+                    }
+                    break;
                 case 'inbox':
                     chooseInbox(v);
                     break;
@@ -3437,6 +3802,10 @@
         });
         box.addEventListener('input', function (e) {
             var t = e.target;
+            if (t.getAttribute && t.getAttribute('data-role') === 'nuevabuscar' && st.nueva) {
+                findSoon(t.value);
+                return;
+            }
             if (t.getAttribute && t.getAttribute('data-role') === 'buscar') {
                 st.search = t.value;
                 var clear = el.lista.querySelector('.mrd-limpiar');
@@ -3478,6 +3847,25 @@
                     st.search = '';
                     t.value = '';
                     renderListBody();
+                    return;
+                }
+                if (t.getAttribute && t.getAttribute('data-role') === 'nuevabuscar' && t.value) {
+                    t.value = '';
+                    findSoon('');
+                    return;
+                }
+                if (st.nueva) {
+                    closeNew();
+                }
+                return;
+            }
+            if (t.getAttribute && t.getAttribute('data-role') === 'nuevabuscar' && e.key === 'Enter') {
+                e.preventDefault();
+                var cands = st.nueva && st.nueva.found;
+                if (cands && cands.length && !st.nueva.searching) {
+                    st.nueva.pick = cands[0];
+                    st.nueva.tpl = -1;
+                    renderNew();
                 }
                 return;
             }

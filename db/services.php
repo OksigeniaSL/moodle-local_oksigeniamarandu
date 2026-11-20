@@ -64,6 +64,22 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_find' => [
+        'classname' => \local_oksigeniamarandu\external\chat_find::class,
+        'description' => 'Whom a person of the team can start a conversation with: a number or a name.',
+        'type' => 'read',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
+    'local_oksigeniamarandu_chat_start' => [
+        'classname' => \local_oksigeniamarandu\external\chat_start::class,
+        'description' => 'Starts a conversation of the team with an approved message of WhatsApp.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_action' => [
         'classname' => \local_oksigeniamarandu\external\chat_action::class,
         'description' => 'Keeps, passes, resolves or reopens a conversation of the team, or says who its contact is.',

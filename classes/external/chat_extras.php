@@ -24,7 +24,8 @@ use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\templates;
 
 /**
- * What the page needs once: the saved answers, the approved messages, the people of the team and the departments.
+ * What the page needs once: the saved answers, the approved messages (and how many wait for Meta), the people of the
+ * team and the departments.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -64,7 +65,8 @@ class chat_extras extends chat_base {
         foreach (directory::teams() as $team) {
             $teams[] = $team + ['mine' => in_array($team['id'], $viewer->teams)];
         }
-        return ['canned' => directory::canned(), 'templates' => templates::all(), 'people' => $people, 'teams' => $teams];
+        return ['canned' => directory::canned(), 'templates' => templates::all(), 'pending' => templates::pending(),
+            'people' => $people, 'teams' => $teams];
     }
 
     /**
@@ -90,7 +92,9 @@ class chat_extras extends chat_base {
                 'header' => new external_value(PARAM_RAW, 'Its header'),
                 'footer' => new external_value(PARAM_RAW, 'Its foot'),
                 'buttons' => new external_multiple_structure(new external_value(PARAM_RAW, 'A button')),
+                'start' => new external_value(PARAM_BOOL, 'Whether it is one to write first to someone who never wrote'),
             ])),
+            'pending' => new external_value(PARAM_INT, 'How many messages of the team Meta has not decided yet'),
             'people' => new external_multiple_structure(new external_single_structure([
                 'agentid' => new external_value(PARAM_INT, 'The person in Chatwoot'),
                 'userid' => new external_value(PARAM_INT, 'Their user, or 0'),

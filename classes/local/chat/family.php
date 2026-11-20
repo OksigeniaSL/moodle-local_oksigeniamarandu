@@ -150,7 +150,25 @@ class family {
         if (!$household) {
             return null;
         }
-        $household = (array)$household;
+        $family = self::describe((array)$household);
+        $surname = $family['children'][0]['lastname'] ?? trim((string)($adult->lastname ?? ''));
+        return [
+            'title' => $surname !== '' ? get_string('chat:family:title', 'local_oksigeniamarandu', $surname) : '',
+            'line' => $family['line'],
+            'verified' => !empty($adult->phoneverified),
+            'children' => $family['children'],
+            'adults' => $family['adults'],
+        ];
+    }
+
+    /**
+     * A household of the record as the conversations say it: its children in the order of their stages, with their
+     * group as people say it, its adults and the line that says whose family it is.
+     *
+     * @param array $household As the record gives it.
+     * @return array children, adults (name, phone and verified) and line.
+     */
+    protected static function describe(array $household): array {
         $children = [];
         foreach ($household['children'] ?? [] as $child) {
             $child = (array)$child;
@@ -166,23 +184,119 @@ class family {
         usort($children, function ($a, $b) {
             return [$a['order'], $a['group'], $a['name']] <=> [$b['order'], $b['group'], $b['name']];
         });
-        $others = [];
+        $adults = [];
         foreach ($household['adults'] ?? [] as $one) {
             $one = (array)$one;
-            $others[] = ['name' => trim(($one['firstname'] ?? '') . ' ' . ($one['lastname'] ?? '')),
-                'phone' => preg_replace('/[^0-9]/', '', (string)($one['phone'] ?? ''))];
+            $adults[] = ['name' => trim(($one['firstname'] ?? '') . ' ' . ($one['lastname'] ?? '')),
+                'phone' => preg_replace('/[^0-9]/', '', (string)($one['phone'] ?? '')),
+                'verified' => !empty($one['phoneverified'])];
         }
         $names = array_map(function ($child) {
             return $child['group'] !== '' ? $child['name'] . ' (' . $child['group'] . ')' : $child['name'];
         }, $children);
-        $surname = $children[0]['lastname'] ?? trim((string)($adult->lastname ?? ''));
-        return [
-            'title' => $surname !== '' ? get_string('chat:family:title', 'local_oksigeniamarandu', $surname) : '',
-            'line' => $names ? get_string('chat:family:line', 'local_oksigeniamarandu', self::join($names)) : '',
-            'verified' => !empty($adult->phoneverified),
-            'children' => $children,
-            'adults' => $others,
-        ];
+        $line = $names ? get_string('chat:family:line', 'local_oksigeniamarandu', self::join($names)) : '';
+        return ['children' => $children, 'adults' => $adults, 'line' => $line];
+    }
+
+    /**
+     * The families whose adults or children are called as the words say, for whoever starts a conversation: «pablo»,
+     * «gil» or «laura gil». Each word has to start a word of a name of the family.
+     *
+     * @param string $query What was typed.
+     * @param int $limit How many families at most.
+     * @return array Each with line, children and adults (name, phone, verified and whether their name matched).
+     */
+    public static function search(string $query, int $limit = 6): array {
+        $words = self::words($query);
+        if (!$words || !self::available() || !method_exists(self::API, 'each_household')) {
+            return [];
+        }
+        $found = [];
+        foreach (self::index() as $family) {
+            if (!self::matches($words, $family['words'])) {
+                continue;
+            }
+            $adults = [];
+            foreach ($family['adults'] as $adult) {
+                $adults[] = $adult + ['matched' => self::matches($words, self::words($adult['name']), true)];
+            }
+            usort($adults, function ($a, $b) {
+                return $b['matched'] <=> $a['matched'];
+            });
+            $found[] = ['line' => $family['line'], 'children' => $family['children'], 'adults' => $adults];
+            if (count($found) >= $limit) {
+                break;
+            }
+        }
+        return $found;
+    }
+
+    /**
+     * The roll of families, short, to look names up in it: kept a few minutes, as the rest of the directory.
+     *
+     * @return array Each with words, line, children and adults.
+     */
+    protected static function index(): array {
+        $cache = \cache::make('local_oksigeniamarandu', 'chat');
+        $index = $cache->get('familyindex');
+        if (is_array($index)) {
+            return $index;
+        }
+        $api = self::API;
+        $index = [];
+        foreach ($api::each_household(true, true) as $household) {
+            $family = self::describe((array)$household);
+            $names = array_merge(array_column($family['adults'], 'name'), array_map(function ($child) {
+                return $child['name'] . ' ' . $child['lastname'];
+            }, $family['children']));
+            $index[] = ['words' => self::words(implode(' ', $names)), 'line' => $family['line'],
+                'children' => $family['children'], 'adults' => array_values(array_filter($family['adults'], function ($adult) {
+                    return $adult['phone'] !== '';
+                }))];
+        }
+        $cache->set('familyindex', $index);
+        return $index;
+    }
+
+    /**
+     * The words of a text, in small letters and without accents, to compare names as people type them.
+     *
+     * @param string $text The text.
+     * @return string[]
+     */
+    public static function words(string $text): array {
+        $text = \core_text::strtolower(trim($text));
+        if (class_exists('\\Normalizer')) {
+            $text = preg_replace('/\p{Mn}+/u', '', \Normalizer::normalize($text, \Normalizer::FORM_D));
+        }
+        return array_values(array_filter(preg_split('/[^\p{L}\p{N}]+/u', $text), 'strlen'));
+    }
+
+    /**
+     * Whether each word typed starts a word of the name (or, with $any, at least one does).
+     *
+     * @param string[] $typed The words typed.
+     * @param string[] $words The words of the name.
+     * @param bool $any Whether one is enough.
+     * @return bool
+     */
+    protected static function matches(array $typed, array $words, bool $any = false): bool {
+        foreach ($typed as $one) {
+            $hit = false;
+            foreach ($words as $word) {
+                if (strpos($word, $one) === 0) {
+                    $hit = true;
+                    break;
+                }
+            }
+            if ($hit && $any) {
+                return true;
+            }
+            if (!$hit && !$any) {
+                return false;
+            }
+        }
+        return !$any;
     }
 
     /**

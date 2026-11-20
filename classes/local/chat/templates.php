@@ -28,20 +28,59 @@ class templates {
     /**
      * The approved messages of the inboxes.
      *
-     * @return array Each with name, language, category, body, params (key and example), header, footer and buttons.
+     * @return array Each with name, language, category, body, params (key and example), header, footer, buttons, the
+     *               inbox it belongs to and whether it is one of those to start a conversation with (they go first).
      */
     public static function all(): array {
         $list = [];
         foreach (directory::inboxes() as $inbox) {
             foreach ($inbox['templates'] as $template) {
                 $one = self::read($template);
-                if ($one) {
-                    $list[$one['name'] . '|' . $one['language']] = $one;
+                if ($one && !isset($list[$one['name'] . '|' . $one['language']])) {
+                    $list[$one['name'] . '|' . $one['language']] = $one + ['inbox' => (int)$inbox['id']];
                 }
             }
         }
-        ksort($list);
+        $first = self::first();
+        foreach ($list as $key => $one) {
+            $order = array_search($one['name'], $first, true);
+            $list[$key]['start'] = $order !== false;
+            $list[$key]['order'] = $order === false ? count($first) : $order;
+        }
+        uasort($list, function ($a, $b) {
+            return [$a['order'], $a['name'], $a['language']] <=> [$b['order'], $b['name'], $b['language']];
+        });
         return array_values($list);
+    }
+
+    /**
+     * The approved messages the organisation uses to write first to someone who never wrote (setting
+     * chatstarttemplates): they go first when a person starts a conversation.
+     *
+     * @return string[] Their names, in their order.
+     */
+    public static function first(): array {
+        $names = array_map('trim', explode(',', (string)get_config('local_oksigeniamarandu', 'chatstarttemplates')));
+        return array_values(array_filter($names, 'strlen'));
+    }
+
+    /**
+     * How many messages of the team (not of the notices) Meta has not decided yet: what will come.
+     *
+     * @return int
+     */
+    public static function pending(): int {
+        $count = 0;
+        foreach (directory::inboxes() as $inbox) {
+            foreach ($inbox['templates'] as $template) {
+                $name = (string)($template['name'] ?? '');
+                $status = strtoupper((string)($template['status'] ?? ''));
+                if ($name !== '' && strpos($name, 'mrd_') !== 0 && in_array($status, ['PENDING', 'IN_APPEAL'])) {
+                    $count++;
+                }
+            }
+        }
+        return $count;
     }
 
     /**
@@ -104,6 +143,27 @@ class templates {
             return null;
         }
         return $result;
+    }
+
+    /**
+     * An approved message with its gaps filled, as Chatwoot takes it to send it by WhatsApp.
+     *
+     * @param array $template The message.
+     * @param array $values By gap.
+     * @return array
+     */
+    public static function message(array $template, array $values): array {
+        return [
+            'content' => self::render($template, $values),
+            'message_type' => 'outgoing',
+            'private' => false,
+            'template_params' => [
+                'name' => $template['name'],
+                'category' => $template['category'],
+                'language' => $template['language'],
+                'processed_params' => ['body' => (object)$values],
+            ],
+        ];
     }
 
     /**

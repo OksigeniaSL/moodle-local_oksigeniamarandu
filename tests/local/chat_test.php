@@ -18,14 +18,17 @@ namespace local_oksigeniamarandu\local;
 
 use core_external\external_api;
 use local_oksigeniamarandu\external\chat_action;
+use local_oksigeniamarandu\external\chat_find;
 use local_oksigeniamarandu\external\chat_poll;
 use local_oksigeniamarandu\external\chat_send;
+use local_oksigeniamarandu\external\chat_start;
 use local_oksigeniamarandu\local\chat\chatwoot;
 use local_oksigeniamarandu\local\chat\closed;
 use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\hours;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\starter;
 use local_oksigeniamarandu\local\chat\templates;
 use local_oksigeniamarandu\local\chat\viewer;
 
@@ -44,6 +47,7 @@ use local_oksigeniamarandu\local\chat\viewer;
  * @covers     \local_oksigeniamarandu\local\chat\closed
  * @covers     \local_oksigeniamarandu\local\chat\workcard
  * @covers     \local_oksigeniamarandu\local\chat\notify
+ * @covers     \local_oksigeniamarandu\local\chat\starter
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mirror::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(hours::class)]
@@ -53,6 +57,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 #[\PHPUnit\Framework\Attributes\CoversClass(closed::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\workcard::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\notify::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(starter::class)]
 final class chat_test extends \advanced_testcase {
     /** Monday 16 November 2026 at 12:00 in the Canary Islands (UTC). */
     private const MONDAY_NOON = 1794830400;
@@ -78,6 +83,9 @@ final class chat_test extends \advanced_testcase {
 
             /** @var array The messages of each conversation. */
             public $messages = [];
+
+            /** @var array The contacts made here. */
+            public $contacts = [];
 
             /**
              * Answers as the account would.
@@ -120,6 +128,47 @@ final class chat_test extends \advanced_testcase {
                 }
                 if ($path === '/conversations' && $method === 'GET') {
                     return ['data' => ['payload' => array_values($this->conversations)]];
+                }
+                $people = array_merge(array_column(array_column($this->conversations, 'meta'), 'sender'), $this->contacts);
+                if ($path === '/contacts/search') {
+                    $found = [];
+                    foreach ($people as $one) {
+                        if (strpos($one['phone_number'], $data['q']) !== false || stripos($one['name'], $data['q']) !== false) {
+                            $found[$one['id']] = $one;
+                        }
+                    }
+                    return ['payload' => array_values($found)];
+                }
+                if ($path === '/contacts' && $method === 'POST') {
+                    $contact = ['id' => 300 + count($this->contacts), 'name' => $data['name'],
+                        'phone_number' => $data['phone_number']];
+                    $this->contacts[] = $contact;
+                    return ['payload' => ['contact' => $contact]];
+                }
+                if (preg_match('~^/contacts/(\d+)/conversations$~', $path, $m)) {
+                    return ['payload' => array_values(array_filter($this->conversations, function ($one) use ($m) {
+                        return (int)$one['meta']['sender']['id'] === (int)$m[1];
+                    }))];
+                }
+                if ($path === '/conversations' && $method === 'POST') {
+                    $id = 50 + count($this->conversations);
+                    $sender = null;
+                    foreach ($people as $one) {
+                        $sender = (int)$one['id'] === (int)$data['contact_id'] ? $one : $sender;
+                    }
+                    // A bot in the inbox: Chatwoot makes it pending.
+                    $this->conversations[$id] = ['id' => $id, 'inbox_id' => $data['inbox_id'], 'status' => 'pending',
+                        'updated_at' => '2.0', 'last_activity_at' => time(), 'last_non_activity_message' => ['id' => 700 + $id],
+                        'meta' => ['sender' => $sender, 'team' => $data['team_id'] ? ['id' => $data['team_id']] : null,
+                            'assignee' => ['id' => $data['assignee_id']], 'assignee_type' => 'User']];
+                    $this->messages[$id] = [['id' => 700 + $id, 'message_type' => 1, 'content' => $data['message']['content'],
+                        'private' => false, 'created_at' => time(), 'sender' => ['type' => 'user', 'id' => $data['assignee_id']]]];
+                    return $this->conversations[$id];
+                }
+                if (preg_match('~^/conversations/(\d+)/toggle_status$~', $path, $m)) {
+                    $this->conversations[$m[1]]['status'] = $data['status'];
+                    $this->conversations[$m[1]]['updated_at'] = (string)microtime(true);
+                    return [];
                 }
                 if (preg_match('~^/conversations/(\d+)/messages$~', $path, $m)) {
                     if ($method === 'POST') {
@@ -317,6 +366,7 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame(['Ana passed it to Secretaría', 'passedteam'], message::activity('Asignado a secretaría por Ana Pérez'));
         $this->assertSame(['Ana passed it to Luis', 'gave'], message::activity('Assigned to Luis Gómez by Ana Pérez'));
         $this->assertSame(['Luis marked it resolved', 'resolved'], message::activity('La conversación fue marcada por Luis Gómez'));
+        $this->assertSame(['Ana took it', 'took'], message::activity('Asignado a Ana Pérez via secretaría por Ana Pérez'));
         $this->assertSame(['Algo nuevo', ''], message::activity('Algo nuevo'));
         $user = $this->person('ana@example.com', 'Ana');
         $viewer = viewer::for_user($user);
@@ -336,6 +386,79 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame(['chat_retomar'], array_column($all, 'name'));
         $this->assertSame([['key' => '1', 'example' => 'Laura']], $all[0]['params']);
         $this->assertSame('Hola, Pedro: seguimos con su consulta.', templates::render($all[0], ['1' => 'Pedro']));
+    }
+
+    /**
+     * The messages to write first go first, and those Meta has not decided yet are counted.
+     */
+    public function test_templates_to_start(): void {
+        set_config('chatstarttemplates', 'chat_retomar', 'local_oksigeniamarandu');
+        $all = templates::all();
+        $this->assertSame([true, 3], [$all[0]['start'], $all[0]['inbox']]);
+        $this->assertSame(1, templates::pending());
+        $message = templates::message($all[0], ['1' => 'Pedro']);
+        $this->assertSame(['Hola, Pedro: seguimos con su consulta.', 'chat_retomar'], [$message['content'],
+            $message['template_params']['name']]);
+    }
+
+    /**
+     * A number is written with its country code; a person finds who already has a conversation, and starting one with
+     * someone new makes the contact and the conversation, open, in the department chosen and kept by whoever starts it.
+     */
+    public function test_start(): void {
+        mirror::sync();
+        $this->assertSame('34600000101', starter::number('+34 600 00 01 01'));
+        $this->assertSame('34600000101', starter::number('0034 600-000-101'));
+        $this->assertNull(starter::number('600 00 01 01'));
+        $ana = $this->person('ana@example.com', 'Ana');
+        $luis = $this->person('luis@example.com', 'Luis');
+        $this->setUser($ana);
+
+        $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('+34 600 000 001'));
+        $this->assertSame([['Laura Martín', '34600000001', 'number', 1, true]], array_map(function ($one) {
+            return [$one['name'], $one['phone'], $one['source'], $one['conversation'], $one['open']];
+        }, $found['candidates']));
+        $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('600 000 001'));
+        $this->assertSame([[], true], [$found['candidates'], $found['needprefix']]);
+        $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('Iván'));
+        $this->assertSame([['Iván Torres', 'contact', 0, 'Recibos']], array_map(function ($one) {
+            return [$one['name'], $one['source'], $one['conversation'], $one['elsewhere']];
+        }, $found['candidates']));
+
+        $gaps = [['key' => '1', 'value' => 'Pedro']];
+        $result = external_api::clean_returnvalue(
+            chat_start::execute_returns(),
+            chat_start::execute('+34 600 000 009', 'Pedro Gil', 10, 'chat_retomar', 'es', $gaps)
+        );
+        $this->assertSame('started', $result['status']);
+        $conversation = $result['conversation'];
+        $this->assertSame(['Pedro Gil', '34600000009', 10, true, 'open'], [$conversation['contact']['name'],
+            $conversation['contact']['phone'], $conversation['teamid'], $conversation['assignee']['me'], $conversation['status']]);
+        $made = array_values(array_filter($this->client->calls, function ($call) {
+            return $call[0] === 'POST' && in_array($call[1], ['/contacts', '/conversations']);
+        }));
+        $this->assertSame('+34600000009', $made[0][2]['phone_number']);
+        $this->assertSame([3, 1, 10, 'chat_retomar', 'Hola, Pedro: seguimos con su consulta.'], [$made[1][2]['inbox_id'],
+            $made[1][2]['assignee_id'], $made[1][2]['team_id'], $made[1][2]['message']['template_params']['name'],
+            $made[1][2]['message']['content']]);
+        $this->assertSame('open', $this->client->conversations[$conversation['id']]['status']);
+
+        // Someone with a conversation open: the person who sees it gets it; whoever does not, where it is.
+        $result = external_api::clean_returnvalue(
+            chat_start::execute_returns(),
+            chat_start::execute('+34600000001', '', 10, 'chat_retomar', 'es', $gaps)
+        );
+        $this->assertSame(['exists', 1], [$result['status'], $result['conversation']['id']]);
+        $this->setUser($luis);
+        $result = external_api::clean_returnvalue(
+            chat_start::execute_returns(),
+            chat_start::execute('+34600000001', '', 11, 'chat_retomar', 'es', $gaps)
+        );
+        $this->assertSame(['busy', 'Secretaría'], [$result['status'], $result['where']]);
+        $this->assertArrayNotHasKey('conversation', $result);
+
+        $this->expectException(\moodle_exception::class);
+        chat_start::execute('+34600000010', '', 10, 'chat_retomar', 'es', []);
     }
 
     /**

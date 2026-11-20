@@ -31,6 +31,9 @@ inbox = account.inboxes.find(inbox_id)
 whatsapp = inbox.channel_type == 'Channel::Whatsapp'
 statuses = { 'sent' => 0, 'delivered' => 1, 'read' => 2, 'played' => 2, 'error' => 3 }
 counts = Hash.new(0)
+# The phones this run has seen: a second chat of the same phone (two chats of one person in the app) goes on in the
+# conversation of the first, and a dry run counts it so, as it counts the contacts it would make.
+seen = {}
 
 ActiveRecord::Base.transaction do
   (data['threads'] || []).each do |thread|
@@ -45,7 +48,16 @@ ActiveRecord::Base.transaction do
     counts[:conversations] += 1
     counts[:messages] += messages.size
     counts[:attachments] += messages.count { |m| m['file'].to_s != '' }
-    next if dry
+    if dry
+      existing = account.contacts.find_by(phone_number: "+#{phone}")
+      counts[:contacts] += 1 unless existing || seen[phone]
+      went_on = seen[phone] || (existing && Conversation.where(account_id: account.id, inbox_id: inbox.id, contact_id: existing.id)
+                                 .where("additional_attributes->>'imported_from' IN (?)", imported).exists?)
+      counts[:continued] += 1 if went_on
+      seen[phone] = true
+      next
+    end
+    seen[phone] = true
 
     now = Time.current
     contact = account.contacts.find_by(phone_number: "+#{phone}")

@@ -490,7 +490,7 @@
            State
            --------------------------------------------------------------------------------------------------------------- */
         var st = {
-            cursor: 0, convs: {}, inboxes: null, extras: { canned: [], templates: [], people: [], teams: [] },
+            cursor: 0, convs: {}, inboxes: null, extras: { canned: [], templates: [], people: [], teams: [] }, files: {},
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
@@ -1911,7 +1911,9 @@
                     (note ? ' mrd-on' : '') + '" data-a="mode" data-v="note">' + esc(s('tabnote')) + '</button>' + (note ? '' : plazoHtml(c)) + '</div>' +
                     '<div class="mrd-caja' + (note ? ' mrd-nota-c' : '') + '">' + (note ? '<div class="mrd-aviso-nota">' + ico('nota') + esc(s('notehiddenbox')) +
                     '</div>' : '') + '<div class="mrd-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="' + esc(ph) +
-                    '" data-vacio="' + esc(ph) + '">' + draftOf(state) + '</div><div class="mrd-herr">' +
+                    '" data-vacio="' + esc(ph) + '">' + draftOf(state) + '</div>' + chosenFileHtml() + '<div class="mrd-herr">' +
+                    '<button type="button" class="mrd-herr-b" data-a="attach">' + ico('clip') + '<span class="mrd-t">' + esc(s('attach')) +
+                    '</span></button><input type="file" class="mrd-archivo" hidden>' +
                     (note ? '<button type="button" class="mrd-herr-b' + (st.pop === 'mencion' ? ' mrd-on' : '') + '" data-a="pop" data-v="mencion">' +
                     ico('arroba') + '<span class="mrd-t">' + esc(s('mention')) + '</span></button>'
                         : '<button type="button" class="mrd-herr-b' + (st.pop === 'guardadas' ? ' mrd-on' : '') + '" data-a="pop" data-v="guardadas">' +
@@ -2862,13 +2864,29 @@
         }
 
         /* -------- Sending -------- */
+        var MAXFILE = 16 * 1024 * 1024;
+        function fileType(f) {
+            var t = String(f.type || '');
+            return /^image\//.test(t) ? 'image' : /^audio\//.test(t) ? 'audio' : /^video\//.test(t) ? 'video' : 'file';
+        }
+        // The file chosen for the next message, with a way to take it out.
+        function chosenFileHtml() {
+            var f = st.files[st.open];
+            if (!f) {
+                return '';
+            }
+            var kb = f.size < 1024 * 1024 ? Math.max(1, Math.round(f.size / 1024)) + ' KB' : (f.size / 1048576).toFixed(1).replace('.', ',') + ' MB';
+            return '<div class="mrd-elegido">' + ico('clip') + '<span>' + esc(f.name) + ' · ' + esc(kb) + '</span>' +
+                '<button type="button" class="mrd-enlace" data-a="unattach" aria-label="' + esc(s('removefile')) + '">' + ico('cerrar') + '</button></div>';
+        }
         function send() {
             var c = conv(st.open), ed = el.chat.querySelector('.mrd-editor');
             if (!c || !ed) {
                 return;
             }
             var shown = editorText(ed, false), wire = editorText(ed, true);
-            if (!shown) {
+            var file = st.files[c.id] || null;
+            if (!shown && !file) {
                 ed.focus();
                 return;
             }
@@ -2878,6 +2896,12 @@
                 author: { name: me.name, firstname: me.firstname, me: true }, signature: note ? '' : (me.signature || ''),
                 status: 'pending', pending: true, attachments: [], template: '', conv: c.id
             };
+            if (file) {
+                m.file = file;
+                m.attachments = [{ type: fileType(file), url: /^image\//.test(file.type) ? URL.createObjectURL(file) : '', thumb: '',
+                    name: file.name, size: file.size }];
+                delete st.files[c.id];
+            }
             ed.innerHTML = '';
             if (st.drafts[c.id]) {
                 st.drafts[c.id][st.mode] = '';
@@ -2893,7 +2917,7 @@
                     c.section = 'waiting';
                 }
             }
-            c.preview = { text: shown, incoming: false, private: note, at: m.at, author: { name: me.name, me: true } };
+            c.preview = { text: shown || (file ? file.name : ''), incoming: false, private: note, at: m.at, author: { name: me.name, me: true } };
             c.lastactivity = m.at;
             st.msgs.push(m);
             addMessagesLocal(m);
@@ -2938,9 +2962,27 @@
                 node.outerHTML = msgHtml(m);
             }
         }
+        function upload(m) {
+            var body = new FormData();
+            body.append('sesskey', cfg.sesskey);
+            body.append('conversation', m.conv);
+            body.append('text', m.wire || '');
+            body.append('private', m.kind === 'note' ? '1' : '0');
+            body.append('file', m.file, m.file.name);
+            return fetch(cfg.wwwroot + '/local/oksigeniamarandu/chatupload.php', { method: 'POST', body: body, credentials: 'same-origin' })
+                .then(function (res) {
+                    return res.json().then(function (data) {
+                        if (!res.ok || !data || data.errorcode) {
+                            throw data || { message: '' };
+                        }
+                        return data;
+                    });
+                });
+        }
         function deliver(m) {
             var id = m.conv;
-            tr.call(M.send, { conversation: id, text: m.wire, private: m.kind === 'note' }).then(function (r) {
+            var call = m.file ? upload(m) : tr.call(M.send, { conversation: id, text: m.wire, private: m.kind === 'note' });
+            call.then(function (r) {
                 var msg = r && (r.message || (r.id ? r : null));
                 if (r && r.conversation) {
                     mergeConv(r.conversation);
@@ -3240,6 +3282,30 @@
                     break;
                 case 'send':
                     send();
+                    break;
+                case 'attach': {
+                    var input = el.chat.querySelector('.mrd-archivo');
+                    if (input) {
+                        input.value = '';
+                        input.onchange = function () {
+                            var f = input.files && input.files[0];
+                            if (!f) {
+                                return;
+                            }
+                            if (f.size > MAXFILE) {
+                                toast(s('filetoobig'), true);
+                                return;
+                            }
+                            st.files[st.open] = f;
+                            renderComposer(true);
+                        };
+                        input.click();
+                    }
+                    break;
+                }
+                case 'unattach':
+                    delete st.files[st.open];
+                    renderComposer(true);
                     break;
                 case 'retry':
                     retry(v);

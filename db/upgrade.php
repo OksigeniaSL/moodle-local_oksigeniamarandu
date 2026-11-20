@@ -335,6 +335,16 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026113100, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026120100) {
+        // The last message the index looked at, to tell the people of the team of the new ones.
+        $table = new xmldb_table('local_oksigeniamarandu_conv');
+        $field = new xmldb_field('lastmsgid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'previewat');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026120100, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

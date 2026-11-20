@@ -326,6 +326,16 @@ class directory {
     }
 
     /**
+     * The people of a department.
+     *
+     * @param int $teamid The department.
+     * @return int[]
+     */
+    public static function members_of(int $teamid): array {
+        return array_map('intval', self::data()['members'][$teamid] ?? []);
+    }
+
+    /**
      * The inboxes, with their hours and their approved messages.
      *
      * @return array By id.

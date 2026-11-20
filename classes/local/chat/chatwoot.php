@@ -156,6 +156,62 @@ class chatwoot {
     }
 
     /**
+     * Writes a message with a file in a conversation (multipart, as Chatwoot takes files).
+     *
+     * @param int $conversation The conversation.
+     * @param array $fields content, message_type and private.
+     * @param string $path The file on disk.
+     * @param string $name Its name.
+     * @param string $mimetype Its type.
+     * @return array The message.
+     * @throws \local_oksigeniamarandu\local\api_exception If Chatwoot does not take it.
+     */
+    public function upload(int $conversation, array $fields, string $path, string $name, string $mimetype): array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+        $curl = new \curl(['ignoresecurity' => true]);
+        $curl->setHeader(['api-access-token: ' . $this->token, 'Accept: application/json']);
+        $params = [];
+        foreach ($fields as $key => $value) {
+            $params[$key] = is_bool($value) ? ($value ? 'true' : 'false') : (string)$value;
+        }
+        $params['attachments[]'] = new \CURLFile($path, $mimetype, $name);
+        $url = $this->url . '/api/v1/accounts/' . $this->account . '/conversations/' . $conversation . '/messages';
+        $body = $curl->post($url, $params, ['CURLOPT_CONNECTTIMEOUT' => 5, 'CURLOPT_TIMEOUT' => 120]);
+        if ($curl->get_errno()) {
+            throw new api_exception('error:chatnetwork', s($curl->error));
+        }
+        $code = (int)($curl->get_info()['http_code'] ?? 0);
+        $answer = json_decode((string)$body, true);
+        if ($code < 200 || $code >= 300 || !is_array($answer)) {
+            throw new api_exception('error:chatwoot', $code);
+        }
+        return $answer;
+    }
+
+    /**
+     * Downloads a file of Chatwoot (an attachment) to a path, following its redirections.
+     *
+     * @param string $url The address Chatwoot gave for it.
+     * @param string $path Where to keep it.
+     * @return array [status, content type].
+     */
+    public function download(string $url, string $path): array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+        // Only files of this Chatwoot: an attachment never sends the site elsewhere.
+        if (strpos($url, $this->url . '/') !== 0) {
+            return [0, ''];
+        }
+        $curl = new \curl(['ignoresecurity' => true]);
+        $fp = fopen($path, 'w');
+        $curl->download_one($url, null, ['file' => $fp, 'followlocation' => true, 'maxredirs' => 5, 'timeout' => 120]);
+        fclose($fp);
+        $info = $curl->get_info();
+        return [(int)($info['http_code'] ?? 0), (string)($info['content_type'] ?? '')];
+    }
+
+    /**
      * Sends a request and gives its status and body. The tests replace it.
      *
      * @param string $method The method.

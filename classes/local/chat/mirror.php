@@ -174,6 +174,7 @@ class mirror {
             }
             $row->timemodified = time();
             $DB->update_record(self::TABLE, $row);
+            notify::changed($old, $row, $list);
         } else {
             $row->passedby = 0;
             $row->passedto = 0;
@@ -182,6 +183,7 @@ class mirror {
             $row->timecreated = time();
             $row->timemodified = $row->timecreated;
             $DB->insert_record(self::TABLE, $row);
+            notify::changed(null, $row, $list);
         }
         return true;
     }
@@ -207,14 +209,16 @@ class mirror {
      *
      * @param array $messages The messages, in order, as Chatwoot gives them.
      * @param \stdClass|null $old The row it had, if any.
-     * @return array waitsince, lastincoming, preview, previewkind and previewat.
+     * @return array lastmsgid, waitsince, lastincoming, preview, previewkind and previewat.
      */
     public static function from_messages(array $messages, ?\stdClass $old = null): array {
         $wait = 0;
         $answered = false;
         $lastincoming = 0;
         $preview = null;
+        $lastid = $old ? (int)$old->lastmsgid : 0;
         foreach ($messages as $message) {
+            $lastid = max($lastid, (int)($message['id'] ?? 0));
             $kind = message::kind($message);
             $at = (int)($message['created_at'] ?? 0);
             if ($kind === 'incoming') {
@@ -234,6 +238,7 @@ class mirror {
             $wait = (int)$old->waitsince;
         }
         $result = [
+            'lastmsgid' => $lastid,
             'waitsince' => $wait,
             'lastincoming' => max($lastincoming, $old ? (int)$old->lastincoming : 0),
             'preview' => $old ? (string)$old->preview : '',
@@ -272,6 +277,7 @@ class mirror {
         $row->passedat = time();
         $row->timemodified = time();
         $DB->update_record(self::TABLE, $row);
+        notify::passed($row, $userid);
     }
 
     /**

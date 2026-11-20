@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.39.0 (2026-11-20)
+
+- The people of the team hear on the phone (the app) and in the bell of the site, never by email: whoever has a
+  conversation, when the contact writes; the people of its department, when nobody has it and the contact starts
+  waiting; whoever it is passed to; whoever is named in a note, and everyone in a department named in one (as a bot
+  that warns of long waits does). Only in the hours of the team, but what is passed or named; never to who did it;
+  once in ten minutes for the same conversation. The notice opens the conversation, also inside the app.
+- Files: the page sends a picture, an audio, a video or a document (up to 16 MB) with its text and signature, or in a
+  note; and what comes is served by the site to whoever sees the conversation, so it opens inside the app too.
+- In the Moodle app, the link of a notice of the conversations opens the page inside the app with the session
+  started; no entry of its own in the menu.
+
 ## 0.38.1 (2026-11-20)
 
 - The signature of each person is the one they have in Chatwoot (their profile), as it is: some sign only with their

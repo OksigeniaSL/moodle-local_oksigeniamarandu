@@ -43,6 +43,7 @@ use local_oksigeniamarandu\local\chat\viewer;
  * @covers     \local_oksigeniamarandu\local\chat\templates
  * @covers     \local_oksigeniamarandu\local\chat\closed
  * @covers     \local_oksigeniamarandu\local\chat\workcard
+ * @covers     \local_oksigeniamarandu\local\chat\notify
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mirror::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(hours::class)]
@@ -51,6 +52,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 #[\PHPUnit\Framework\Attributes\CoversClass(templates::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(closed::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\workcard::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\notify::class)]
 final class chat_test extends \advanced_testcase {
     /** Monday 16 November 2026 at 12:00 in the Canary Islands (UTC). */
     private const MONDAY_NOON = 1794830400;
@@ -405,6 +407,53 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame('urgent', $card['alerts'][0]['level']);
         $this->assertStringContainsString('Laura Martín', $card['alerts'][0]['text']);
         $this->assertNull(chat\workcard::for_user((int)$this->person('nadie@example.com', 'Nadie')->id));
+    }
+
+    /**
+     * Whoever is in the department hears when a contact starts waiting and nobody has it, once in ten minutes; whoever
+     * is named in a note, and whoever gets a conversation passed, hear of it too; never the one who did it.
+     */
+    public function test_notify(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $luis = $this->person('luis@example.com', 'Luis');
+        $sink = $this->redirectMessages();
+        $row = $DB->get_record(mirror::TABLE, ['cwid' => 1]);
+        $old = clone $row;
+        $old->waitsince = 0;
+        $old->lastincoming = 0;
+        $row->lastincoming = self::MONDAY_NOON - 60;
+        $row->waitsince = self::MONDAY_NOON - 60;
+        chat\notify::changed($old, $row, [], self::MONDAY_NOON);
+        // The same again, a minute later: held.
+        chat\notify::changed($old, $row, [], self::MONDAY_NOON + 60);
+        // A note of Luis that names Ana.
+        $old->lastmsgid = 10;
+        chat\notify::changed(
+            $old,
+            $row,
+            [['id' => 11, 'message_type' => 1, 'private' => true, 'created_at' => self::MONDAY_NOON,
+            'content' => 'Mira [@Ana](mention://user/1/Ana%20P%C3%A9rez), por favor', 'sender' => ['id' => 2, 'type' => 'user']]],
+            self::MONDAY_NOON
+        );
+        // Luis passes conversation 2 to Ana.
+        mirror::passed(2, (int)$luis->id, 1, 0);
+        $this->runAdhocTasks(\local_oksigeniamarandu\task\chat_notify::class);
+        $messages = $sink->get_messages();
+        $this->assertCount(3, $messages);
+        $this->assertSame([(int)$ana->id], array_unique(array_map('intval', array_column($messages, 'useridto'))));
+        $texts = array_column($messages, 'subject');
+        $this->assertStringContainsString('Laura Martín writes to Secretaría', $texts[0]);
+        $this->assertStringContainsString('Luis names you', $texts[1]);
+        $this->assertStringContainsString('Luis passed you the conversation of Iván Torres', $texts[2]);
+        $this->assertStringContainsString('/local/oksigeniamarandu/chat.php?c=1', $messages[0]->contexturl);
+        // At night nobody hears of a message.
+        $sink->clear();
+        $row->lastincoming = self::MONDAY_NOON + 10 * HOURSECS;
+        chat\notify::changed($old, $row, [], self::MONDAY_NOON + 10 * HOURSECS);
+        $this->runAdhocTasks(\local_oksigeniamarandu\task\chat_notify::class);
+        $this->assertCount(0, $sink->get_messages());
     }
 
     /**

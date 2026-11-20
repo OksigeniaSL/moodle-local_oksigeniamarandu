@@ -103,13 +103,16 @@ class message {
             $name = get_string('chat:fromphone', 'local_oksigeniamarandu');
         }
         $attachments = [];
-        foreach ($message['attachments'] ?? [] as $attachment) {
+        $conversation = (int)($message['conversation_id'] ?? 0);
+        foreach (array_values($message['attachments'] ?? []) as $index => $attachment) {
             $url = (string)($attachment['data_url'] ?? '');
             $type = (string)($attachment['file_type'] ?? 'file');
+            // Served by the site, to whoever sees the conversation: it opens inside the app too.
+            $proxy = new \moodle_url('/local/oksigeniamarandu/chatfile.php', ['c' => $conversation, 'm' => $id, 'a' => $index]);
             $attachments[] = [
                 'type' => in_array($type, ['image', 'audio', 'video']) ? $type : 'file',
-                'url' => $url,
-                'thumb' => (string)($attachment['thumb_url'] ?? ''),
+                'url' => $url === '' ? '' : $proxy->out(false),
+                'thumb' => empty($attachment['thumb_url']) ? '' : (new \moodle_url($proxy, ['t' => 1]))->out(false),
                 'name' => $url === '' ? '' : rawurldecode(basename((string)parse_url($url, PHP_URL_PATH))),
                 'size' => (int)($attachment['file_size'] ?? 0),
             ];

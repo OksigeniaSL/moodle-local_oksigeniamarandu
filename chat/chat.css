@@ -3000,3 +3000,27 @@
 #mrd-chat.mrd-sin-ficha .mrd-ver-ficha {
     display: none;
 }
+#mrd-chat .mrd-elegido {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 10px 6px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: var(--acento-suave);
+    color: var(--tinta);
+    font-size: 13px;
+    min-width: 0;
+}
+#mrd-chat .mrd-elegido span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#mrd-chat .mrd-elegido .mrd-i {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}

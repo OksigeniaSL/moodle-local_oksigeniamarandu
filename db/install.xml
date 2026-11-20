@@ -223,6 +223,7 @@
         <FIELD NAME="preview" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The last message, as text"/>
         <FIELD NAME="previewkind" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="previewat" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="lastmsgid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The last message it looked at, to tell of the new ones"/>
         <FIELD NAME="passedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The user who passed it last, or 0"/>
         <FIELD NAME="passedto" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The person of Chatwoot it was passed to, or 0"/>
         <FIELD NAME="passedteam" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The department it was passed to, or 0"/>

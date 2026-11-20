@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.35.0 (2026-11-20)
+
+- «Also pass on to», in the settings of the webhook: an address that gets everything Meta sends to the site, as it
+  came and with its signature, after the site does its part (joining, leaving, the statuses of what it sent). For the
+  shared inbox where people answer the chats, for example: Meta calls only one address per number. If the address does
+  not take it at once, an ad hoc task tries again later.
+- Meta sends what it says of the templates (approved, rejected, a new category) only to the webhook of the app, whatever
+  account it is about, even when the account or the number has a webhook of its own. A site now takes only what is
+  about its own account: two sites with the same app and templates with the same names mixed them up. And the hourly
+  task asks Meta how the templates of the site are, so a site with a webhook of its own knows when they are approved.
+
 ## 0.34.0 (2026-11-18)
 
 - `cli/setup.php`, for whoever hosts many sites: connects the bot of Telegram with its token from a file or the standard

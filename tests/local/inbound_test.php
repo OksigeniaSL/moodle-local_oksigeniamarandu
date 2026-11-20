@@ -227,11 +227,12 @@ final class inbound_test extends \advanced_testcase {
     }
 
     /**
-     * The webhook of templates updates what Meta says of them, for the whole account.
+     * The webhook of templates updates what Meta says of them, for the whole account of the site and no other.
      */
     public function test_template_updates(): void {
         global $DB, $CFG;
         $CFG->lang = 'es';
+        set_config('wabaid', '2220000000', 'local_oksigeniamarandu');
         $notice = notices::get('local_oksigeniamarandu', 'notification');
         $DB->insert_record(templates::TABLE, (object)['component' => $notice->component, 'notice' => $notice->notice,
             'lang' => 'es', 'name' => notices::template_name($notice), 'status' => 'pending', 'timesubmitted' => 1,
@@ -249,6 +250,19 @@ final class inbound_test extends \advanced_testcase {
 
         $template = templates::get($notice, 'es');
         $this->assertSame(['approved', 'marketing', null], [$template->status, $template->category, $template->reason]);
+
+        // Meta sends what it says of the templates of every account to the webhook of the app: another site with the
+        // same app, and a template with the same name, change nothing here.
+        $other = $update('template_category_update', ['new_category' => 'UTILITY',
+            'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es']);
+        $other['entry'][0]['id'] = '3330000000';
+        inbound::handle($other);
+        $this->assertSame('marketing', templates::get($notice, 'es')->category);
+        set_config('wabaid', '', 'local_oksigeniamarandu');
+        inbound::handle($update('template_category_update', ['new_category' => 'UTILITY',
+            'message_template_name' => 'mrd_local_oksigeniamarandu_notification', 'message_template_language' => 'es']));
+        $this->assertSame('marketing', templates::get($notice, 'es')->category);
+        set_config('wabaid', '2220000000', 'local_oksigeniamarandu');
 
         // A rejection keeps its reason when the category changes afterwards.
         inbound::handle($update('message_template_status_update', ['event' => 'REJECTED',

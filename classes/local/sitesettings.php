@@ -39,6 +39,7 @@ class sitesettings {
             'displayphone' => '',
             'verifytoken' => random_string(32),
             'appsecret' => '',
+            'forwardurl' => '',
             'optinkeywords' => keywords::DEFAULT_OPTIN,
             'optoutkeywords' => keywords::DEFAULT_OPTOUT,
             'usefamily' => 1,

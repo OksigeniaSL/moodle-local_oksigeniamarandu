@@ -23,7 +23,8 @@ use local_oksigeniamarandu\local\templates;
 /**
  * Sends to Meta the templates of the notices a plugin brings in a new version, and the new texts of those that changed,
  * without going back to the wizard. Only on a site that has WhatsApp and already sent its texts once from the wizard:
- * until then, they go from there.
+ * until then, they go from there. Before, it asks Meta how the templates are: Meta tells it only to the webhook of the app,
+ * whatever webhook the account or the number of the site has.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -49,7 +50,10 @@ class sync_templates extends \core\task\scheduled_task {
             return;
         }
         try {
-            $counts = templates::sync(cloud_api::from_config(), $wabaid);
+            $api = cloud_api::from_config();
+            // Meta tells how the templates are only to the webhook of the app, which may be another site: it is asked.
+            templates::refresh($api, $wabaid);
+            $counts = templates::sync($api, $wabaid);
         } catch (api_exception $e) {
             mtrace('Marandu, the templates: ' . $e->getMessage());
             return;

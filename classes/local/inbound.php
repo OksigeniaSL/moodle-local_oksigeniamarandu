@@ -42,8 +42,8 @@ class inbound {
     }
 
     /**
-     * Handles the messages to the number of the site, the statuses of what it sent and what Meta says of its templates;
-     * anything else (other numbers, other fields) is left alone.
+     * Handles the messages to the number of the site, the statuses of what it sent and what Meta says of the templates
+     * of its account; anything else (other numbers, other accounts, other fields) is left alone.
      *
      * @param array $payload The decoded body.
      * @return int How many messages were handled.
@@ -53,13 +53,19 @@ class inbound {
         if ($mine === '' || ($payload['object'] ?? '') !== 'whatsapp_business_account') {
             return 0;
         }
+        $account = (string)get_config('local_oksigeniamarandu', 'wabaid');
         $count = 0;
         foreach ($payload['entry'] ?? [] as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
                 $value = $change['value'] ?? [];
                 $field = $change['field'] ?? '';
                 if ($field === 'message_template_status_update' || $field === 'template_category_update') {
-                    // What Meta says of the templates; it comes for the whole account, without a number.
+                    // What Meta says of the templates; it comes for the whole account, without a number. Meta sends it
+                    // to the webhook of the app whatever account it is about, even when the account or the number
+                    // has a webhook of its own: another site with the same app gets it too, with the same names.
+                    if ($account === '' || (string)($entry['id'] ?? '') !== $account) {
+                        continue;
+                    }
                     // A change of category comes a day before it happens, with the one to come as correct_category.
                     $status = $field === 'message_template_status_update';
                     templates::update_from_meta(

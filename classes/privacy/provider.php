@@ -96,6 +96,10 @@ class provider implements
             'chat' => 'privacy:metadata:telegram:chat',
             'message' => 'privacy:metadata:telegram:message',
         ], 'privacy:metadata:telegram');
+        $collection->add_external_location_link('forward', [
+            'phone' => 'privacy:metadata:forward:phone',
+            'message' => 'privacy:metadata:forward:message',
+        ], 'privacy:metadata:forward');
         return $collection;
     }
 

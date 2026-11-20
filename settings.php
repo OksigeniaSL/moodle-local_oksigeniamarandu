@@ -107,6 +107,13 @@ if ($hassiteconfig) {
             new lang_string('settings:appsecret', 'local_oksigeniamarandu'),
             new lang_string('settings:appsecret_desc', 'local_oksigeniamarandu')
         ));
+        $settings->add(new admin_setting_configtext(
+            'local_oksigeniamarandu/forwardurl',
+            new lang_string('settings:forwardurl', 'local_oksigeniamarandu'),
+            new lang_string('settings:forwardurl_desc', 'local_oksigeniamarandu'),
+            '',
+            PARAM_URL
+        ));
 
         $settings->add(new admin_setting_heading(
             'local_oksigeniamarandu/keywordsheading',

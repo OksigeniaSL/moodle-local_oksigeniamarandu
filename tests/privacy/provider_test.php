@@ -51,7 +51,7 @@ final class provider_test extends provider_testcase {
     }
 
     /**
-     * The tables, the answers among them, WhatsApp and Telegram are declared.
+     * The tables, the answers among them, WhatsApp, Telegram and the other address of the webhook are declared.
      */
     public function test_get_metadata(): void {
         $items = provider::get_metadata(new \core_privacy\local\metadata\collection('local_oksigeniamarandu'))
@@ -60,7 +60,7 @@ final class provider_test extends provider_testcase {
             return $item->get_name();
         }, $items);
         $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
-            'local_oksigeniamarandu_answer', 'local_oksigeniamarandu_post', 'telegram', 'whatsapp'], $names);
+            'local_oksigeniamarandu_answer', 'local_oksigeniamarandu_post', 'telegram', 'whatsapp', 'forward'], $names);
     }
 
     /**

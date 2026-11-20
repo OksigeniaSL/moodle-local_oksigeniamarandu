@@ -31,6 +31,7 @@ define('NO_DEBUG_DISPLAY', true);
 
 require(__DIR__ . '/../../config.php');
 
+use local_oksigeniamarandu\local\forward;
 use local_oksigeniamarandu\local\inbound;
 
 $config = get_config('local_oksigeniamarandu');
@@ -65,8 +66,13 @@ if (!inbound::verify_signature($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '',
 }
 
 $payload = json_decode($raw, true);
-if (is_array($payload)) {
-    inbound::handle($payload);
+try {
+    if (is_array($payload)) {
+        inbound::handle($payload);
+    }
+} finally {
+    // The same body, with its signature, to the other address of the site, if it has one: the shared inbox, say.
+    forward::deliver($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '');
 }
 // Meta only needs to know it arrived; the replies go out later, in an ad hoc task.
 echo 'OK';

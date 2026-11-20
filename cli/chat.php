@@ -47,6 +47,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'start-templates' => null,
     'templates-info' => null,
     'sync' => false,
+    'sync-all' => false,
     'status' => false,
     'disconnect' => false,
 ], ['h' => 'help']);
@@ -81,6 +82,8 @@ Options:
 --templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title,
                        description and, optionally, gaps, what goes in each gap by its key ({\"2\": \"the reason\"}).
 --sync                 Fills the index with the conversations of the last month now.
+--sync-all             Fills the index with every conversation of the inboxes, whenever it was: after bringing a
+                       history into Chatwoot (import_history.rb), which never comes by the webhook.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.
 -h, --help             This help.
@@ -188,6 +191,9 @@ try {
     }
     if ($options['webhook']) {
         mtrace('Webhook: ' . connection::webhook());
+    }
+    if ($options['sync-all']) {
+        mtrace('Conversations kept in the index: ' . mirror::sync_all());
     }
     if ($options['sync']) {
         set_config('chatsynced', 0, $component);

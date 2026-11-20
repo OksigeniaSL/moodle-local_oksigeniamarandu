@@ -116,7 +116,9 @@ class viewer {
         if ($this->seesall) {
             return [$sql, $params];
         }
-        $or = 'c.assigneeid = :meagent OR c.passedto = :meagent2';
+        // What was resolved without a department (a history brought from the phone, say) is the history of a family:
+        // everyone of the team sees it.
+        $or = "c.assigneeid = :meagent OR c.passedto = :meagent2 OR (c.teamid = 0 AND c.status = 'resolved')";
         $params = ['meagent' => $this->agent['id'], 'meagent2' => $this->agent['id']];
         if ($this->teams) {
             [$in, $inparams] = $DB->get_in_or_equal($this->teams, SQL_PARAMS_NAMED, 'myteam');
@@ -137,7 +139,7 @@ class viewer {
             return false;
         }
         return $this->seesall || (int)$row->assigneeid === $this->agent['id'] || (int)$row->passedto === $this->agent['id']
-            || in_array((int)$row->teamid, $this->teams);
+            || in_array((int)$row->teamid, $this->teams) || (!(int)$row->teamid && $row->status === 'resolved');
     }
 
     /**

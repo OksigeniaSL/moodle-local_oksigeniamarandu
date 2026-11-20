@@ -45,6 +45,8 @@ class chat_resolved extends chat_base {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'before' => new external_value(PARAM_INT, 'Only those resolved before this time; 0 for the newest', VALUE_DEFAULT, 0),
+            'id' => new external_value(PARAM_INT, 'One conversation, whenever it was, if the person sees it', VALUE_DEFAULT, 0),
+            'query' => new external_value(PARAM_TEXT, 'Every conversation of whom this finds, whenever it was', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -52,14 +54,25 @@ class chat_resolved extends chat_base {
      * The resolved conversations.
      *
      * @param int $before Only those whose last activity was before this time; 0 for the newest.
+     * @param int $id One conversation only, whenever it was (an old one the card of the contact lists).
+     * @param string $query Every conversation of whom this finds (a name, a phone, a child of the family), whenever.
      * @return array
      */
-    public static function execute(int $before = 0): array {
+    public static function execute(int $before = 0, int $id = 0, string $query = ''): array {
         global $DB;
-        $params = self::validate_parameters(self::execute_parameters(), ['before' => $before]);
+        $params = self::validate_parameters(self::execute_parameters(), ['before' => $before, 'id' => $id, 'query' => $query]);
         $viewer = self::viewer();
         $now = time();
+        if ($params['id']) {
+            $row = $DB->get_record(mirror::TABLE, ['cwid' => $params['id']]);
+            $list = $row && $viewer->sees($row) ? [self::clean($viewer->export($row, $viewer->seen([(int)$row->cwid]), $now))] : [];
+            return ['conversations' => $list, 'more' => false, 'days' => self::DAYS];
+        }
         [$where, $wparams] = $viewer->where();
+        $query = trim($params['query']);
+        if (\core_text::strlen($query) >= 2) {
+            return ['conversations' => self::found($viewer, $where, $wparams, $query, $now), 'more' => false, 'days' => self::DAYS];
+        }
         $sql = "c.status = 'resolved' AND c.lastactivity >= :since";
         $wparams['since'] = $now - self::DAYS * DAYSECS;
         if ($params['before'] > 0) {
@@ -80,6 +93,54 @@ class chat_resolved extends chat_base {
             $list[] = self::clean($viewer->export($row, $seen, $now));
         }
         return ['conversations' => $list, 'more' => $more, 'days' => self::DAYS];
+    }
+
+    /**
+     * Every conversation the person sees of whom a search finds, whenever it was: by the name of the contact, by
+     * their phone, or by any name of their family in the common record (a child, the other adult).
+     *
+     * @param \local_oksigeniamarandu\local\chat\viewer $viewer Who looks.
+     * @param string $where What they see, as SQL.
+     * @param array $wparams Its parameters.
+     * @param string $query What was typed.
+     * @param int $now The time.
+     * @return array The conversations, the newest first.
+     */
+    protected static function found($viewer, string $where, array $wparams, string $query, int $now): array {
+        global $DB;
+        $conditions = [$DB->sql_like('c.name', ':qname', false, false)];
+        $params = ['qname' => '%' . $DB->sql_like_escape($query) . '%'];
+        $digits = preg_replace('/\D/', '', $query);
+        if (strlen($digits) >= 3) {
+            $conditions[] = $DB->sql_like('c.phone', ':qphone');
+            $params['qphone'] = '%' . $digits . '%';
+        }
+        $phones = [];
+        foreach (\local_oksigeniamarandu\local\chat\family::search($query, 10) as $family) {
+            foreach ($family['adults'] as $adult) {
+                if ($adult['phone'] !== '') {
+                    $phones[] = $adult['phone'];
+                }
+            }
+        }
+        if ($phones) {
+            [$in, $inparams] = $DB->get_in_or_equal(array_values(array_unique($phones)), SQL_PARAMS_NAMED, 'fphone');
+            $conditions[] = "c.phone $in";
+            $params += $inparams;
+        }
+        $rows = $DB->get_records_sql(
+            "SELECT c.* FROM {" . mirror::TABLE . "} c WHERE $where AND (" . implode(' OR ', $conditions) . ")
+          ORDER BY c.lastactivity DESC, c.cwid DESC",
+            $wparams + $params,
+            0,
+            self::LIMIT
+        );
+        $seen = $viewer->seen(array_map('intval', array_column($rows, 'cwid')));
+        $list = [];
+        foreach ($rows as $row) {
+            $list[] = self::clean($viewer->export($row, $seen, $now));
+        }
+        return $list;
     }
 
     /**

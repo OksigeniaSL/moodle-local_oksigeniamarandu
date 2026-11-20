@@ -41,6 +41,12 @@ class mirror {
     /** The furthest back the first pass goes. */
     public const FIRST_WINDOW = 31 * DAYSECS;
 
+    /** How many conversations Chatwoot gives in a page of its list. */
+    public const PAGE_SIZE = 25;
+
+    /** The most pages a pass reads: a thousand conversations. */
+    public const PAGES = 40;
+
     /**
      * Brings the index up to date with what changed in Chatwoot since the last pass, with some overlap.
      *
@@ -53,21 +59,59 @@ class mirror {
         $last = (int)get_config('local_oksigeniamarandu', 'chatsynced');
         $window = $last ? min($max, $now - $last + 60) : $max;
         $client = directory::client();
-        $answer = $client->call('GET', '/conversations', [
-            'status' => 'all',
-            'assignee_type' => 'all',
-            'updated_within' => max(60, $window),
-        ]);
         $changed = 0;
         $inboxes = directory::inbox_ids();
-        foreach ($answer['data']['payload'] ?? [] as $conversation) {
-            if ($inboxes && !in_array((int)($conversation['inbox_id'] ?? 0), $inboxes)) {
-                continue;
+        // Page by page: Chatwoot gives 25 at a time.
+        for ($page = 1; $page <= self::PAGES; $page++) {
+            $answer = $client->call('GET', '/conversations', [
+                'status' => 'all',
+                'assignee_type' => 'all',
+                'updated_within' => max(60, $window),
+                'page' => $page,
+            ]);
+            $payload = $answer['data']['payload'] ?? [];
+            foreach ($payload as $conversation) {
+                if ($inboxes && !in_array((int)($conversation['inbox_id'] ?? 0), $inboxes)) {
+                    continue;
+                }
+                $changed += self::store($conversation) ? 1 : 0;
             }
-            $changed += self::store($conversation) ? 1 : 0;
+            if (count($payload) < self::PAGE_SIZE) {
+                break;
+            }
         }
         set_config('chatsynced', $now, 'local_oksigeniamarandu');
         return $changed;
+    }
+
+    /**
+     * Fills the index with every conversation of the inboxes the site attends, whenever it was: what was brought into
+     * Chatwoot directly (the chats of the app of a phone, its history) never comes by the webhook or as a change.
+     *
+     * @return int How many conversations it kept.
+     */
+    public static function sync_all(): int {
+        $client = directory::client();
+        $kept = 0;
+        foreach (directory::inbox_ids() ?: [0] as $inbox) {
+            for ($page = 1; $page <= 10 * self::PAGES; $page++) {
+                $query = ['status' => 'all', 'assignee_type' => 'all', 'page' => $page];
+                if ($inbox) {
+                    $query['inbox_id'] = $inbox;
+                }
+                $payload = $client->call('GET', '/conversations', $query)['data']['payload'] ?? [];
+                foreach ($payload as $conversation) {
+                    if ($inbox && (int)($conversation['inbox_id'] ?? 0) !== (int)$inbox) {
+                        continue;
+                    }
+                    $kept += self::store($conversation) ? 1 : 0;
+                }
+                if (count($payload) < self::PAGE_SIZE) {
+                    break;
+                }
+            }
+        }
+        return $kept;
     }
 
     /**

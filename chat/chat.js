@@ -463,6 +463,9 @@
             return businessMs(c.waitingsince * 1000, nowMs());
         }
         function waitText(c) {
+            return waitTextLoose(c).replace(/ (?=\d|h\b|min\b)/g, '\u00a0');
+        }
+        function waitTextLoose(c) {
             var ms = waitMs(c), min = Math.floor(ms / 60000);
             if (min < 1) {
                 return s('waitnow');
@@ -1693,11 +1696,18 @@
         function byActivity(a, b) {
             return (b.lastactivity || 0) - (a.lastactivity || 0);
         }
+        // Small letters and no accents, as the server compares names: «martin» finds «Martín».
+        function folded(text) {
+            text = String(text || '').toLowerCase();
+            return text.normalize ? text.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : text;
+        }
         function searchMatch(c, q) {
             var ct = c.contact || {};
-            var hay = [ct.name, ct.line, c.preview && c.preview.text, teamName(c.teamid)].join(' ').toLowerCase();
+            var hay = folded([ct.name, ct.line, c.preview && c.preview.text, teamName(c.teamid), digits(ct.phone)].join(' '));
             var d = digits(q);
-            return hay.indexOf(q.toLowerCase()) >= 0 || (d.length >= 3 && digits(ct.phone).indexOf(d) >= 0);
+            return folded(q).split(/\s+/).filter(Boolean).every(function (word) {
+                return hay.indexOf(word) >= 0;
+            }) || (d.length >= 3 && digits(ct.phone).indexOf(d) >= 0);
         }
         function renderListBody() {
             var body = el.lista.querySelector('.mrd-lista-cuerpo');
@@ -2291,6 +2301,33 @@
             var c = conv(st.open);
             hilo.style.background = bgFor(c).css(bgInk()) + ', var(--fondo)';
         }
+        /* On top of a conversation, what came before with the same person: the conversations resolved before (also those
+           brought from the app of the phone), the last one a tap away. */
+        function renderBefore() {
+            var hilo = hiloEl(), c = conv(st.open);
+            if (!hilo) {
+                return;
+            }
+            var was = hilo.querySelector('.mrd-antes');
+            var before = c && st.ficha && st.fichaFor === st.open ? (st.ficha.conversations || []).filter(function (o) {
+                return o.id !== st.open && o.status === 'resolved';
+            }) : [];
+            if (!before.length) {
+                if (was) {
+                    was.remove();
+                }
+                return;
+            }
+            var last = before[0];
+            var html = '<div class="mrd-antes">' + ico('reloj') + '<span>' + esc(s(before.length === 1 ? 'before1' : 'before', {
+                name: contactFirst(c), n: before.length, when: dayText((last.at || 0) * 1000) })) + '</span>' +
+                '<button type="button" class="mrd-btn mrd-chico" data-a="otherconv" data-v="' + last.id + '">' + esc(s('beforesee')) + '</button></div>';
+            if (was) {
+                was.outerHTML = html;
+            } else {
+                hilo.insertAdjacentHTML('afterbegin', html);
+            }
+        }
         function renderThread(keepFromBottom) {
             var hilo = hiloEl();
             if (!hilo) {
@@ -2304,6 +2341,7 @@
             var stick = keepFromBottom === undefined ? true : false;
             var fromBottom = hilo.scrollHeight - hilo.scrollTop;
             hilo.innerHTML = st.msgs.length ? threadHtml() : '<div class="mrd-hilo-nada">' + esc(s('nothread')) + '</div>';
+            renderBefore();
             placeReadBy();
             fillDurations();
             if (stick) {
@@ -3349,6 +3387,7 @@
                 st.fichaKind = c && c.contact ? c.contact.kind : '';
                 box.classList.toggle('mrd-sin-ficha', !f);
                 renderFicha();
+                renderBefore();
             }).catch(function () {
                 if (st.fichaFor !== id) {
                     return;
@@ -3981,7 +4020,7 @@
            A new conversation: whom (a number, a family, someone who wrote before), from which department and with which
            approved message. If they have one open that the person sees, that one opens instead.
            --------------------------------------------------------------------------------------------------------------- */
-        var findT = null, findSeq = 0;
+        var findT = null, findSeq = 0, searchT = null;
         function defaultTeam() {
             var mine = (st.extras.teams || []).filter(function (t) {
                 return t.mine;
@@ -4483,7 +4522,16 @@
                     if (conv(+v)) {
                         openConv(+v);
                     } else {
-                        toast(s('toastnotfound'), true);
+                        // An old one, resolved long ago: the page asks for it.
+                        tr.call(M.resolved, { id: +v }).then(function (r) {
+                            (r.conversations || []).forEach(mergeConv);
+                            if (conv(+v)) {
+                                openConv(+v);
+                            } else {
+                                toast(s('toastnotfound'), true);
+                            }
+                            return r;
+                        }).catch(failToast);
                     }
                     break;
                 case 'capa':
@@ -4720,9 +4768,21 @@
             }
             if (t.getAttribute && t.getAttribute('data-role') === 'buscar') {
                 st.search = t.value;
-                // A search looks in the last days too, not only in what is open.
-                if (st.search.trim() && st.resolved === '') {
-                    loadResolved(0);
+                // A search looks in every conversation of whom it finds, whenever it was, not only in what is open.
+                clearTimeout(searchT);
+                var asked = st.search.trim();
+                if (asked.length >= 2) {
+                    searchT = setTimeout(function () {
+                        tr.call(M.resolved, { query: asked }).then(function (r) {
+                            (r.conversations || []).forEach(mergeConv);
+                            if (st.search.trim() === asked) {
+                                renderListBody();
+                            }
+                            return r;
+                        }).catch(function () {
+                            // What is on the page is still searched.
+                        });
+                    }, 350);
                 }
                 var clear = el.lista.querySelector('.mrd-limpiar');
                 if (clear) {

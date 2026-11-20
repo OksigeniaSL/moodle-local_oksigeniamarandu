@@ -641,6 +641,36 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
+     * What was brought into Chatwoot directly (an old history) comes into the index with a full pass, whenever it was;
+     * an old resolved conversation opens by its number, if the person sees it.
+     */
+    public function test_sync_all_and_old_conversation(): void {
+        global $DB;
+        $this->assertSame(3, mirror::sync_all());
+        $DB->delete_records(mirror::TABLE);
+        $this->assertSame(3, mirror::sync_all());
+        $this->assertSame(3, $DB->count_records(mirror::TABLE));
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 1]);
+        $DB->set_field(mirror::TABLE, 'lastactivity', time() - 200 * DAYSECS, ['cwid' => 1]);
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $old = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 1));
+        $this->assertSame([1], array_column($old['conversations'], 'id'));
+        $recent = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute());
+        $this->assertSame([], $recent['conversations']);
+        // Conversation 2 is of a department Ana does not see.
+        $other = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 2));
+        $this->assertSame([], $other['conversations']);
+        // A search finds every conversation of whom it finds, whenever it was.
+        $found = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 0, 'laura'));
+        $this->assertSame([1], array_column($found['conversations'], 'id'));
+        // Resolved without a department, as a history brought from a phone: everyone of the team sees it.
+        $DB->set_field(mirror::TABLE, 'teamid', 0, ['cwid' => 2]);
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 2]);
+        $other = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 2));
+        $this->assertSame([2], array_column($other['conversations'], 'id'));
+    }
+
+    /**
      * From Telegram, whoever linked their chat keeps a conversation, leaves a note replying to its notice and passes it
      * to another department with the button of that department.
      */

@@ -451,13 +451,7 @@
     background: var(--larga-fondo);
     color: var(--larga-tinta);
 }
-#mrd-chat .mrd-bandeja.mrd-con-pend .mrd-t small:first-of-type {
-    color: var(--ambar-texto);
-    font-weight: 800;
-}
-#mrd-chat .mrd-bandeja.mrd-con-pend.mrd-con-larga .mrd-t small:first-of-type {
-    color: var(--rojo-texto);
-}
+
 #mrd-chat .mrd-bandeja:hover {
     background: var(--hoja-2);
 }
@@ -3567,10 +3561,7 @@
 #mrd-chat .mrd-inicio-n .mrd-cifra {
     font-size: 15px;
 }
-#mrd-chat .mrd-inicio-dep.mrd-con-pend {
-    background: var(--espera-suave);
-    box-shadow: inset 4px 0 0 var(--espera-fondo);
-}
+/* The colour is the badge of the figure; only a department over four hours tints its row: when all stands out, nothing does. */
 #mrd-chat .mrd-inicio-dep.mrd-con-pend.mrd-larga {
     background: var(--larga-suave);
     box-shadow: inset 4px 0 0 var(--larga-fondo);
@@ -3963,4 +3954,24 @@
     display: block;
     color: var(--tinta-2);
     font-size: 12.5px;
+}
+
+/* Before, with the same person: on top of the conversation. */
+#mrd-chat .mrd-antes {
+    align-self: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin: 8px 0 12px;
+    padding: 8px 12px;
+    border: 1px dashed var(--linea-2);
+    border-radius: 12px;
+    background: var(--hoja);
+    color: var(--tinta-2);
+    font-size: 13.5px;
+}
+#mrd-chat .mrd-antes > .mrd-i {
+    width: 16px;
+    height: 16px;
 }

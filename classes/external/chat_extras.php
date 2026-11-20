@@ -88,6 +88,7 @@ class chat_extras extends chat_base {
                 'params' => new external_multiple_structure(new external_single_structure([
                     'key' => new external_value(PARAM_RAW, 'The gap'),
                     'example' => new external_value(PARAM_RAW, 'Its example'),
+                    'label' => new external_value(PARAM_RAW, 'What goes in it, said by the organisation', VALUE_DEFAULT, ''),
                 ])),
                 'header' => new external_value(PARAM_RAW, 'Its header'),
                 'footer' => new external_value(PARAM_RAW, 'Its foot'),

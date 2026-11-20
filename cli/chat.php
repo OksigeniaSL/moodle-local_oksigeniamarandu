@@ -78,8 +78,8 @@ Options:
                        pattern of the group, show a pattern of the part of the group that is shown.
 --start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
                        separated: they go first when a person starts a conversation.
---templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title
-                       and description.
+--templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title,
+                       description and, optionally, gaps, what goes in each gap by its key ({"2": "the reason"}).
 --sync                 Fills the index with the conversations of the last month now.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.

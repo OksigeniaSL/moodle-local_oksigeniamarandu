@@ -28,7 +28,7 @@ class templates {
     /**
      * The approved messages of the inboxes.
      *
-     * @return array Each with name, language, category, body, params (key and example), header, footer, buttons, the
+     * @return array Each with name, language, category, body, params (key, example and label), header, footer, buttons, the
      *               inbox it belongs to and whether it is one of those to start a conversation with (they go first).
      */
     public static function all(): array {
@@ -46,6 +46,11 @@ class templates {
         foreach ($list as $key => $one) {
             $list[$key]['title'] = (string)($info[$one['name']]['title'] ?? '');
             $list[$key]['description'] = (string)($info[$one['name']]['description'] ?? '');
+            // What goes in each gap, said by the organisation: an empty gap says it, not an example that reads as filled.
+            $gaps = (array)($info[$one['name']]['gaps'] ?? []);
+            foreach ($list[$key]['params'] as $n => $param) {
+                $list[$key]['params'][$n]['label'] = trim((string)($gaps[$param['key']] ?? ''));
+            }
             $order = array_search($one['name'], $first, true);
             $list[$key]['start'] = $order !== false;
             $list[$key]['order'] = $order === false ? count($first) : $order;
@@ -69,7 +74,8 @@ class templates {
 
     /**
      * What the organisation calls each approved message and what it says it does (setting chattemplatesinfo, a JSON
-     * object by name with title and description), for the cards the team chooses from.
+     * object by name with title, description and gaps, what goes in each gap by its key), for the cards the team
+     * chooses from.
      *
      * @return array By name.
      */

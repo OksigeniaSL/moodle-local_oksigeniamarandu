@@ -3367,14 +3367,24 @@
     text-decoration: underline dotted;
     text-underline-offset: 3px;
 }
-/* A gap still to fill: in the orange of «1 gap left», which leads to it. */
+/* A gap still to fill says what goes in it, in an orange box with a dashed border, the orange of «Missing: …»,
+   which leads to it; while writing in it, its example shows as a sample. */
 #mrd-chat .mrd-hueco:empty {
-    border-bottom-color: var(--ambar-texto);
+    border: 1.5px dashed var(--ambar-texto);
+    border-radius: 5px;
+    padding: 0 5px;
+    background: transparent;
 }
 #mrd-chat .mrd-hueco:empty::before {
-    content: attr(data-ejemplo);
+    content: attr(data-nombre);
     color: var(--ambar-texto);
+    font-weight: 700;
+}
+#mrd-chat .mrd-hueco:empty:focus::before {
+    content: attr(data-ejemplo);
+    color: var(--tinta-3);
     font-style: italic;
+    font-weight: 400;
 }
 #mrd-chat .mrd-chip.mrd-chip-mas {
     border-style: dashed;
@@ -3590,6 +3600,13 @@
     margin-top: 12px;
 }
 
+/* Where the three cards do not fit in a row, «New» is already above the list. */
+@media (max-width: 1169px) {
+    #mrd-chat .mrd-inicio-t-nueva {
+        display: none;
+    }
+}
+
 @media (max-width: 1100px) {
     #mrd-chat .mrd-inicio-dep {
         grid-template-columns: minmax(0, 1fr) 96px 112px 16px;
@@ -3711,4 +3728,108 @@
     color: var(--tinta-2);
     font-size: 12.5px;
     line-height: 1.35;
+}
+
+/* The tour: the real screen dimmed but for what each step shows, and a card beside it. */
+#mrd-chat .mrd-recorrido {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+}
+#mrd-chat .mrd-recorrido-foco {
+    position: fixed;
+    border-radius: 12px;
+    box-shadow: 0 0 0 4px var(--acento-anillo), 0 0 0 9999px rgba(18, 22, 30, 0.55);
+    pointer-events: none;
+    transition: all 0.2s;
+}
+#mrd-chat .mrd-recorrido-globo {
+    position: fixed;
+    width: 320px;
+    max-width: calc(100vw - 16px);
+    padding: 16px 18px 14px;
+    border-radius: 14px;
+    background: var(--hoja);
+    color: var(--tinta);
+    box-shadow: var(--sombra-pop);
+}
+#mrd-chat .mrd-recorrido-globo small {
+    display: block;
+    color: var(--tinta-3);
+    font-size: 12px;
+    font-weight: 700;
+}
+#mrd-chat .mrd-recorrido-globo b {
+    display: block;
+    margin: 4px 0 6px;
+    font-size: 17px;
+}
+#mrd-chat .mrd-recorrido-globo p {
+    margin: 0 0 14px;
+    color: var(--tinta-2);
+    font-size: 14px;
+    line-height: 1.45;
+}
+#mrd-chat .mrd-recorrido-botones {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+#mrd-chat .mrd-recorrido-saltar {
+    margin-inline-end: auto;
+    border: 0;
+    background: transparent;
+    color: var(--tinta-3);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 0;
+}
+#mrd-chat .mrd-rail-pie {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+#mrd-chat .mrd-rail-pie .mrd-rail-b {
+    flex: 1 1 auto;
+    width: auto;
+}
+#mrd-chat .mrd-pop-ayuda {
+    position: fixed;
+    bottom: 120px;
+    left: 12px;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    padding: 12px;
+    z-index: 40;
+}
+#mrd-chat .mrd-ayuda-fila {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 10px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--tinta);
+    text-align: start;
+    text-decoration: none;
+}
+#mrd-chat .mrd-ayuda-fila:hover {
+    background: var(--acento-suave);
+}
+#mrd-chat .mrd-ayuda-fila > .mrd-i {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-ayuda-fila b {
+    display: block;
+    font-size: 14px;
+}
+#mrd-chat .mrd-ayuda-fila small {
+    display: block;
+    color: var(--tinta-2);
+    font-size: 12.5px;
 }

@@ -1145,6 +1145,116 @@
                 sound + '">' + esc(sound ? s('soundturnoff') : s('soundturnon')) + '</button></div>' +
                 '<p class="mrd-fondo-nota">' + esc(s('noticeswhat')) + '</p></div>';
         }
+        /* ---------------------------------------------------------------------------------------------------------------
+           Help: a short tour over the real screen the first time (the trays, «New», the list, the notices, the help) and
+           another the first time a conversation opens (who has it, its department, the internal note, the 24 hours,
+           resolving it). «Help», always at hand, shows them again and opens the guides. Not on a phone.
+           --------------------------------------------------------------------------------------------------------------- */
+        var TOURS = {
+            inicio: [
+                ['.mrd-bandeja[data-v="mine"]', 'tourmine'],
+                ['.mrd-bandeja[data-v="unassigned"]', 'tourfree'],
+                ['.mrd-bandeja[data-v^="team:"]', 'tourteams'],
+                ['.mrd-nueva-b', 'tournew'],
+                ['.mrd-lista-cuerpo .mrd-conv', 'tourlist'],
+                ['.mrd-rail-b[data-v="avisos"]', 'tournotices'],
+                ['.mrd-rail-b[data-v="ayuda"]', 'tourhelp']
+            ],
+            conv: [
+                ['.mrd-nadie-aviso [data-a="take"], .mrd-mando[data-v="dueno"]', 'tourwho'],
+                ['.mrd-mando[data-v="dep"]', 'tourdep'],
+                ['.mrd-pestana.mrd-nota-p', 'tournote'],
+                ['.mrd-plazo', 'tour24'],
+                ['.mrd-resolver', 'tourresolve']
+            ]
+        };
+        var tour = null;
+        function canTour() {
+            return !narrow() && !READONLY && !cfg.inapp;
+        }
+        function tourSeen(part) {
+            return String(FLAGS.tour || '').split(',').indexOf(part) >= 0;
+        }
+        function startTour(part) {
+            if (!canTour()) {
+                return;
+            }
+            closePops();
+            var steps = TOURS[part].filter(function (x) {
+                return !!box.querySelector(x[0]);
+            });
+            if (!steps.length) {
+                return;
+            }
+            tour = { part: part, steps: steps, i: 0 };
+            drawTour();
+        }
+        function endTour() {
+            var layer = box.querySelector('.mrd-recorrido');
+            if (layer) {
+                layer.remove();
+            }
+            if (tour && !tourSeen(tour.part)) {
+                setFlag('tour', String(FLAGS.tour || '').split(',').filter(Boolean).concat([tour.part]).join(','));
+            }
+            tour = null;
+        }
+        function drawTour() {
+            if (!tour) {
+                return;
+            }
+            var step = tour.steps[tour.i], target = box.querySelector(step[0]);
+            if (!target || narrow()) {
+                endTour();
+                return;
+            }
+            var layer = box.querySelector('.mrd-recorrido');
+            if (!layer) {
+                layer = document.createElement('div');
+                layer.className = 'mrd-recorrido';
+                layer.setAttribute('role', 'dialog');
+                layer.setAttribute('aria-modal', 'true');
+                box.appendChild(layer);
+            }
+            target.scrollIntoView({ block: 'nearest' });
+            var r = target.getBoundingClientRect(), pad = 6, last = tour.i === tour.steps.length - 1;
+            layer.setAttribute('aria-label', s(step[1] + 't'));
+            layer.innerHTML = '<div class="mrd-recorrido-foco" style="left:' + (r.left - pad) + 'px;top:' + (r.top - pad) + 'px;width:' +
+                (r.width + 2 * pad) + 'px;height:' + (r.height + 2 * pad) + 'px"></div><div class="mrd-recorrido-globo">' +
+                '<small>' + esc(s('tourstep', { n: tour.i + 1, total: tour.steps.length })) + '</small><b>' + esc(s(step[1] + 't')) + '</b><p>' +
+                esc(s(step[1] + 'b')) + '</p><div class="mrd-recorrido-botones"><button type="button" class="mrd-recorrido-saltar" data-a="tourend">' +
+                esc(last ? '' : s('tourskip')) + '</button>' + (tour.i ? '<button type="button" class="mrd-btn mrd-chico" data-a="tourprev">' +
+                esc(s('tourprev')) + '</button>' : '') + '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="' + (last ? 'tourend' : 'tournext') +
+                '">' + esc(last ? s('tourdone') : s('tournext')) + '</button></div></div>';
+            var bubble = layer.querySelector('.mrd-recorrido-globo'), bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+            var vw = root.innerWidth, vh = root.innerHeight, x, y;
+            if (r.right + 16 + bw < vw - 8) {
+                x = r.right + 16;
+                y = r.top + r.height / 2 - bh / 2;
+            } else if (r.left - 16 - bw > 8) {
+                x = r.left - 16 - bw;
+                y = r.top + r.height / 2 - bh / 2;
+            } else {
+                x = r.left + r.width / 2 - bw / 2;
+                y = r.bottom + 16 + bh < vh - 8 ? r.bottom + 16 : r.top - 16 - bh;
+            }
+            bubble.style.left = Math.max(8, Math.min(vw - bw - 8, x)) + 'px';
+            bubble.style.top = Math.max(8, Math.min(vh - bh - 8, y)) + 'px';
+            var go = bubble.querySelector('.mrd-primario');
+            if (go) {
+                go.focus({ preventScroll: true });
+            }
+        }
+        function popHelp() {
+            return '<div class="mrd-pop mrd-pop-ayuda" role="dialog" aria-label="' + esc(s('helptitle')) + '"><h5>' + esc(s('helptitle')) + '</h5>' +
+                (canTour() ? '<button type="button" class="mrd-ayuda-fila" data-a="tour" data-v="inicio">' + ico('ojo') + '<span><b>' + esc(s('helptour')) +
+                    '</b><small>' + esc(s('helptourhelp')) + '</small></span></button>' + (conv(st.open) ? '<button type="button" class="mrd-ayuda-fila" data-a="tour" data-v="conv">' +
+                    ico('mensaje') + '<span><b>' + esc(s('helptourconv')) + '</b><small>' + esc(s('helptourconvhelp')) + '</small></span></button>' : '') : '') +
+                (cfg.guides || []).map(function (g) {
+                    return '<a class="mrd-ayuda-fila" href="' + esc(g.url) + '" target="_blank" rel="noopener">' + ico('libro') + '<span><b>' +
+                        esc(s(g.kind === 'coordinate' ? 'guidecoordinate' : 'guideattend')) + '</b><small>' + esc(s('guidepdf')) + '</small></span></a>';
+                }).join('') + '</div>';
+        }
         function toast(text, error) {
             el.toast.innerHTML = ico(error ? 'alerta' : 'check') + '<span>' + esc(text) + '</span>';
             el.toast.classList.toggle('mrd-error', !!error);
@@ -1297,11 +1407,10 @@
             h += legendHtml();
             var sig = me.signature ? '<small title="' + esc(s('signature', me.signature)) + '">' + ico('lapiz') + '<span>' + esc(me.signature) +
                 '</span></small>' : '';
-            if (!READONLY && !cfg.inapp) {
-                h += '<div class="mrd-rail-pie"><button type="button" class="mrd-rail-b" data-a="pop" data-v="avisos" aria-expanded="' +
-                    (st.pop === 'avisos') + '">' + ico(FLAGS.sound === 'off' ? 'mudo' : 'campana') + '<span>' + esc(s('noticestitle')) + '</span></button>' +
-                    (st.pop === 'avisos' ? popNotices() : '') + '</div>';
-            }
+            h += '<div class="mrd-rail-pie">' + (!READONLY && !cfg.inapp ? '<button type="button" class="mrd-rail-b" data-a="pop" data-v="avisos" aria-expanded="' +
+                (st.pop === 'avisos') + '">' + ico(FLAGS.sound === 'off' ? 'mudo' : 'campana') + '<span>' + esc(s('noticestitle')) + '</span></button>' : '') +
+                '<button type="button" class="mrd-rail-b" data-a="pop" data-v="ayuda" aria-expanded="' + (st.pop === 'ayuda') + '">' + ico('ayuda') +
+                '<span>' + esc(s('helptitle')) + '</span></button>' + (st.pop === 'avisos' ? popNotices() : '') + (st.pop === 'ayuda' ? popHelp() : '') + '</div>';
             h += '<div class="mrd-yo">' + avAgent({ name: me.name, firstname: me.firstname, me: true }, 'mrd-m') +
                 '<div class="mrd-yo-t"><b>' + esc(me.name || '') + '</b>' + (READONLY ? '<small><span>' + esc(s('readonlyshort')) + '</span></small>'
                 : sig) + '</div>' +
@@ -1311,9 +1420,9 @@
             var keep = el.rail.scrollTop;
             el.rail.innerHTML = h;
             el.rail.scrollTop = keep;
-            var pp = el.rail.querySelector('.mrd-pop-perfil') || el.rail.querySelector('.mrd-pop-avisos');
+            var pp = el.rail.querySelector('.mrd-pop-perfil') || el.rail.querySelector('.mrd-pop-avisos') || el.rail.querySelector('.mrd-pop-ayuda');
             if (pp) {
-                var anchor = el.rail.querySelector(st.pop === 'avisos' ? '.mrd-rail-b' : '.mrd-yo-mas');
+                var anchor = el.rail.querySelector(st.pop === 'perfil' ? '.mrd-yo-mas' : '.mrd-rail-b[data-v="' + st.pop + '"]');
                 var br = anchor.getBoundingClientRect(), rr = el.rail.getBoundingClientRect();
                 pp.style.bottom = Math.max(8, root.innerHeight - br.top + 8) + 'px';
                 pp.style.left = Math.max(8, rr.left + 10) + 'px';
@@ -1662,7 +1771,7 @@
             h += card('mine', 'yo', s('mine'), mine, s('homeopenfirst'));
             h += card('unassigned', 'nadie', s('unassigned'), free, s('homeopenfirst'));
             if (!READONLY) {
-                h += '<div class="mrd-inicio-t"><div class="mrd-inicio-t1">' + ico('lapiz') + '<b>' + esc(s('newconv')) + '</b></div>' +
+                h += '<div class="mrd-inicio-t mrd-inicio-t-nueva"><div class="mrd-inicio-t1">' + ico('lapiz') + '<b>' + esc(s('newconv')) + '</b></div>' +
                     '<p class="mrd-inicio-n">' + esc(s('newconvhelp')) + '</p>' +
                     '<button type="button" class="mrd-btn mrd-chico" data-a="new">' + esc(s('newconvtitle')) + '</button></div>';
             }
@@ -2475,6 +2584,13 @@
             var re = new RegExp('\\b(?:hola|buenas|buenos d[ií]as|hello|hi|hey|ol[aá]|bonjour|salut|ciao|bon dia|kaixo)[\\s,!¡]+\\{\\{\\s*' + key + '\\s*\\}\\}', 'i');
             return re.test(String((t && t.body) || ''));
         }
+        // What goes in a gap: as the organisation says it, or the name after a greeting, or «write here».
+        function gapLabel(p, t) {
+            if (p.label) {
+                return p.label;
+            }
+            return /name|nombre|nom\b/i.test(p.key || '') || greets(t, p.key) ? s('gapnamename') : s('gapnamefree');
+        }
         function tplValue(p, c, t) {
             if (/name|nombre|nom\b/i.test(p.key || '') || greets(t, p.key)) {
                 return firstName(c && c.contact) || '';
@@ -2497,8 +2613,9 @@
             });
             var body = esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
                 var p = params[k] || { key: k, example: '' };
-                return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" data-ejemplo="' + esc(p.example || '') +
-                    '" aria-label="' + esc(s('gap', k)) + '">' + esc(tplValue(p, c, t)) + '</span>';
+                var label = gapLabel(p, t);
+                return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" data-nombre="' + esc(label) +
+                    '" data-ejemplo="' + esc(p.example || label) + '" aria-label="' + esc(s('gap', label)) + '">' + esc(tplValue(p, c, t)) + '</span>';
             });
             var btns = (t.buttons || []).map(function (b) {
                 return '<span>' + esc(b && b.text !== undefined ? b.text : b) + '</span>';
@@ -2507,14 +2624,16 @@
                 return !tplValue(p, c, t) && all.map(function (x) {
                     return x.key;
                 }).indexOf(p.key) === i;
-            }).length;
+            }).map(function (p) {
+                return gapLabel(p, t);
+            });
             return '<div class="mrd-previa"><div class="mrd-previa-t">' + ico('mensaje') + esc(s('preview', contactFirst(c))) +
                 '<button type="button" data-a="tplback">' + esc(s('pickother')) + '</button></div>' +
                 '<div class="mrd-msg mrd-nos mrd-plantilla">' + (t.header ? '<span class="mrd-cabecera-wa">' + esc(t.header) + '</span>' : '') +
                 '<p>' + body + '</p>' + (t.footer ? '<span class="mrd-pie-wa">' + esc(t.footer) + '</span>' : '') +
                 (btns ? '<div class="mrd-botones-wa">' + btns + '</div>' : '') + '</div>' +
-                '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty + '">' +
-                ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
+                '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty.length + '">' +
+                ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty.length ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
                 esc(gapsText(empty)) + '</small></div></div>';
         }
 
@@ -3209,6 +3328,14 @@
             if (!opts.keepLayer) {
                 setLayer('chat', true);
             }
+            // The first conversation this person opens, after the first tour: what is done inside one.
+            if (!tour && tourSeen('inicio') && !tourSeen('conv') && canTour()) {
+                setTimeout(function () {
+                    if (!tour && conv(st.open)) {
+                        startTour('conv');
+                    }
+                }, 900);
+            }
         }
         function loadMessages(id) {
             tr.call(M.messages, { conversation: id, before: 0 }).then(function (r) {
@@ -3318,6 +3445,9 @@
             updateListTitle();
             renderListBody();
             updateTitle();
+            if (tour) {
+                drawTour();
+            }
             var c = conv(st.open);
             if (!c) {
                 renderHome();
@@ -3626,26 +3756,29 @@
             addMessagesLocal(m);
             deliver(m);
         }
-        function gapsText(n) {
-            return n === 1 ? s('gapsleft1') : n ? s('gapsleft', n) : s('yellowhelp');
+        // What is still missing, by its name: «Missing: what for».
+        function gapsText(missing) {
+            return missing.length ? s('gapsmissing', missing.join(', ')) : s('yellowhelp');
         }
-        // After each key in a gap: how many are left, next to the button that sends.
+        // After each key in a gap: what is left, next to the button that sends.
         function updateGaps() {
-            var seen = {}, empty = 0;
+            var seen = {}, missing = [];
             Array.prototype.forEach.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
                 var k = g.getAttribute('data-k');
                 if (!seen[k]) {
                     seen[k] = true;
-                    empty += g.textContent.replace(/\u00a0/g, ' ').trim() ? 0 : 1;
+                    if (!g.textContent.replace(/\u00a0/g, ' ').trim()) {
+                        missing.push(g.getAttribute('data-nombre') || k);
+                    }
                 }
             });
             var note = el.chat.querySelector('.mrd-huecos-estado'), btn = el.chat.querySelector('.mrd-previa-pie .mrd-btn');
             if (note) {
-                note.textContent = gapsText(empty);
-                note.classList.toggle('mrd-faltan', !!empty);
+                note.textContent = gapsText(missing);
+                note.classList.toggle('mrd-faltan', !!missing.length);
             }
             if (btn) {
-                btn.setAttribute('aria-disabled', String(!!empty));
+                btn.setAttribute('aria-disabled', String(!!missing.length));
             }
         }
         function gapValues() {
@@ -4019,7 +4152,7 @@
             }
             var was = st.pop;
             st.pop = null;
-            if (was === 'perfil' || was === 'avisos') {
+            if (was === 'perfil' || was === 'avisos' || was === 'ayuda') {
                 renderRail();
             } else if (was === 'dep' || was === 'dueno') {
                 renderHead();
@@ -4164,6 +4297,24 @@
                 case 'home':
                     goHome();
                     break;
+                case 'tour':
+                    startTour(v === 'conv' ? 'conv' : 'inicio');
+                    break;
+                case 'tournext':
+                    if (tour) {
+                        tour.i = Math.min(tour.steps.length - 1, tour.i + 1);
+                        drawTour();
+                    }
+                    break;
+                case 'tourprev':
+                    if (tour) {
+                        tour.i = Math.max(0, tour.i - 1);
+                        drawTour();
+                    }
+                    break;
+                case 'tourend':
+                    endTour();
+                    break;
                 case 'gapnext':
                     var gap = Array.prototype.filter.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
                         return !g.textContent.replace(/\u00a0/g, ' ').trim();
@@ -4233,7 +4384,7 @@
                     st.pop = st.pop === v ? null : v;
                     st.popIndex = 0;
                     st.popFilter = '';
-                    if (v === 'perfil' || v === 'avisos') {
+                    if (v === 'perfil' || v === 'avisos' || v === 'ayuda') {
                         renderRail();
                     } else if (v === 'dep' || v === 'dueno') {
                         renderHead();
@@ -4622,6 +4773,11 @@
                 st.ready = true;
                 renderAll();
                 updateTitle();
+                if (!tourSeen('inicio') && canTour()) {
+                    setTimeout(function () {
+                        startTour('inicio');
+                    }, 700);
+                }
                 var want = +startCfg.conversation || 0;
                 if (want && conv(want)) {
                     var wc = conv(want);

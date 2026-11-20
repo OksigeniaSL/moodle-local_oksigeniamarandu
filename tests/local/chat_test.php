@@ -387,7 +387,7 @@ final class chat_test extends \advanced_testcase {
     public function test_templates(): void {
         $all = templates::all();
         $this->assertSame(['chat_retomar'], array_column($all, 'name'));
-        $this->assertSame([['key' => '1', 'example' => 'Laura']], $all[0]['params']);
+        $this->assertSame([['key' => '1', 'example' => 'Laura', 'label' => '']], $all[0]['params']);
         $this->assertSame('Hola, Pedro: seguimos con su consulta.', templates::render($all[0], ['1' => 'Pedro']));
     }
 
@@ -397,10 +397,10 @@ final class chat_test extends \advanced_testcase {
     public function test_templates_to_start(): void {
         set_config('chatstarttemplates', 'chat_retomar', 'local_oksigeniamarandu');
         set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['title' => 'Retomar',
-            'description' => 'Pregunta si siguen por aquí.']]), 'local_oksigeniamarandu');
+            'description' => 'Pregunta si siguen por aquí.', 'gaps' => ['1' => 'nombre']]]), 'local_oksigeniamarandu');
         $all = templates::all();
-        $this->assertSame([true, 3, 'Retomar', 'Pregunta si siguen por aquí.'], [$all[0]['start'], $all[0]['inbox'],
-            $all[0]['title'], $all[0]['description']]);
+        $this->assertSame([true, 3, 'Retomar', 'Pregunta si siguen por aquí.', 'nombre'], [$all[0]['start'], $all[0]['inbox'],
+            $all[0]['title'], $all[0]['description'], $all[0]['params'][0]['label']]);
         $this->assertSame(1, templates::pending());
         $message = templates::message($all[0], ['1' => 'Pedro']);
         $this->assertSame(['Hola, Pedro: seguimos con su consulta.', 'chat_retomar'], [$message['content'],

@@ -530,6 +530,14 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame('local_oksigeniamarandu-chat', $card['key']);
         $this->assertSame(['today'], array_unique(array_column($card['alerts'], 'level')));
         $this->assertCount(2, $card['actions']);
+        // A line about a single conversation opens it, not the list.
+        foreach ($card['alerts'] as $alert) {
+            if (!preg_match('/to answer|nobody has/', $alert['text'])) {
+                continue;
+            }
+            $one = preg_match('/^1 /', $alert['text']) === 1;
+            $this->assertSame($one, strpos($alert['url'], 'c=') !== false, $alert['text']);
+        }
         // Four hours of the team later, the contact of the first conversation has waited too long.
         $GLOBALS['DB']->set_field(mirror::TABLE, 'waitsince', time() - 5 * DAYSECS, ['cwid' => 1]);
         $card = chat\workcard::for_user((int)$ana->id);

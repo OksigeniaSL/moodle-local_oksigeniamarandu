@@ -10,10 +10,14 @@ class MaranduChatLinks extends that.CoreContentLinksHandlerBase {
     }
 
     getActions(siteIds, url) {
+        // The app hands the address relative to the site («/local/…/chat.php?c=4»): made whole again with the site's,
+        // which may live in a folder.
         return [{
             action: async(siteId) => {
                 const site = await that.CoreSitesProvider.getSite(siteId);
-                await site.openInAppWithAutoLogin(url);
+                const whole = /^https?:\/\//i.test(url) ? url
+                    : site.getURL().replace(/\/+$/, '') + '/' + url.replace(/^\/+/, '');
+                await site.openInAppWithAutoLogin(whole);
             },
         }];
     }

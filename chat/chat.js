@@ -1021,7 +1021,7 @@
         }
 
         /* ---------------------------------------------------------------------------------------------------------------
-           Rail: «Mías» and «Sin coger» always on top, then the person's departments
+           Rail: «Mías» and «Sin asignar» always on top, then the person's departments
            --------------------------------------------------------------------------------------------------------------- */
         function brandMark() {
             if (brand.logo) {

@@ -108,12 +108,14 @@ class workcard {
         if ($mine) {
             $text = count($mine) === 1 ? get_string('chat:work:minelineone', self::COMPONENT)
                 : get_string('chat:work:mineline', self::COMPONENT, count($mine));
-            $alerts[] = ['text' => $text,
-                'url' => (new \moodle_url($page, ['b' => 'mine']))->out(false), 'level' => 'today'];
+            // Only one: the line opens it, not the list.
+            $url = count($mine) === 1 ? ['c' => reset($mine)->cwid] : ['b' => 'mine'];
+            $alerts[] = ['text' => $text, 'url' => (new \moodle_url($page, $url))->out(false), 'level' => 'today'];
         }
         if ($unassigned) {
+            $url = count($unassigned) === 1 ? ['c' => reset($unassigned)->cwid] : ['b' => 'unassigned'];
             $alerts[] = ['text' => get_string('chat:work:unassignedline', self::COMPONENT, count($unassigned)),
-                'url' => (new \moodle_url($page, ['b' => 'unassigned']))->out(false), 'level' => 'today'];
+                'url' => (new \moodle_url($page, $url))->out(false), 'level' => 'today'];
         }
         $passed = $DB->get_records_select(
             mirror::TABLE,

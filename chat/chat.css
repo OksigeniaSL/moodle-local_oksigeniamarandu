@@ -4015,3 +4015,45 @@
     padding-top: 10px;
     border-top: 1px solid var(--linea);
 }
+
+/* The filters of the history, and where a search found the words. */
+#mrd-chat .mrd-hist-filtros {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 16px 4px;
+}
+#mrd-chat .mrd-hist-filtros > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#mrd-chat .mrd-hist-filtros .mrd-chip {
+    padding: 4px 10px;
+    font-size: 12.5px;
+}
+#mrd-chat .mrd-hist-dep > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+    cursor: pointer;
+}
+#mrd-chat .mrd-hist-dep > summary::-webkit-details-marker {
+    display: none;
+}
+#mrd-chat .mrd-hist-dep[open] > summary .mrd-flecha {
+    transform: rotate(180deg);
+}
+#mrd-chat .mrd-hist-dep > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+#mrd-chat .mrd-hallado {
+    font-style: italic;
+}
+#mrd-chat .mrd-hallado-cuando {
+    font-weight: 600;
+}

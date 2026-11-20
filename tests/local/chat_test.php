@@ -129,6 +129,17 @@ final class chat_test extends \advanced_testcase {
                 if ($path === '/canned_responses') {
                     return [['short_code' => 'horario', 'content' => 'Atendemos de 7:00 a 17:00.']];
                 }
+                if ($path === '/search/messages') {
+                    $found = [];
+                    foreach ($this->messages as $conversation => $messages) {
+                        foreach ($messages as $message) {
+                            if (stripos($message['content'], $data['q']) !== false) {
+                                $found[] = $message + ['conversation_id' => $conversation];
+                            }
+                        }
+                    }
+                    return ['payload' => ['messages' => $data['page'] > 1 ? [] : $found]];
+                }
                 if ($path === '/conversations' && $method === 'GET') {
                     return ['data' => ['payload' => array_values($this->conversations)]];
                 }
@@ -672,6 +683,56 @@ final class chat_test extends \advanced_testcase {
         $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 2]);
         $other = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 2));
         $this->assertSame([2], array_column($other['conversations'], 'id'));
+    }
+
+    /**
+     * A search finds what was said, messages and notes, with the sentence where it is, only in what the person sees;
+     * the history filters by who had it, by department and from a date.
+     */
+    public function test_search_said_and_history_filters(): void {
+        global $DB;
+        $now = time();
+        $this->client->messages[3][] = $this->message(
+            32,
+            1,
+            'El recibo de octubre ya está pagado; lo miró Luis.',
+            $now - 700,
+            'user',
+            true
+        );
+        mirror::sync();
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', []);
+        $DB->set_field(mirror::TABLE, 'lastactivity', $now - 2 * DAYSECS, ['cwid' => 1]);
+        $DB->set_field(mirror::TABLE, 'lastactivity', $now - 40 * DAYSECS, ['cwid' => 3]);
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        // The word is said in 2 too, but Ana does not see its department.
+        $found = external_api::clean_returnvalue(chat_resolved::execute_returns(), chat_resolved::execute(0, 0, 'recibo'));
+        $this->assertSame([3], array_column($found['conversations'], 'id'));
+        $this->assertSame(
+            [[3, 'El recibo de octubre ya está pagado; lo miró Luis.', $now - 700, true]],
+            array_map('array_values', $found['hits'])
+        );
+
+        $history = function (bool $mine = false, int $team = 0, int $from = 0) {
+            $result = external_api::clean_returnvalue(
+                chat_resolved::execute_returns(),
+                chat_resolved::execute(0, 0, '', true, $mine, $team, $from)
+            );
+            return array_column($result['conversations'], 'id');
+        };
+        $this->assertSame([1, 3], $history());
+        $this->assertSame([3], $history(true));
+        $this->assertSame([1, 3], $history(false, 10));
+        $this->assertSame([], $history(false, 11));
+        $this->assertSame([1], $history(false, 0, $now - 10 * DAYSECS));
+
+        // The sentence: around the words, with what is cut marked, and found without accents.
+        $long = str_repeat('Buenas tardes, ', 6) . 'el menú de la semana que viene ya está' . str_repeat(', gracias', 15) . '.';
+        $snippet = chat_resolved::snippet($long, 'menu');
+        $this->assertStringStartsWith('…', $snippet);
+        $this->assertStringEndsWith('…', $snippet);
+        $this->assertStringContainsString('el menú de la semana', $snippet);
+        $this->assertSame('Hola, ¿qué tal?', chat_resolved::snippet("Hola,\n  ¿qué tal?", 'tal'));
     }
 
     /**

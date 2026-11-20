@@ -277,7 +277,7 @@
         function nowMs() {
             return Date.now() + skew;
         }
-        var fParts, fTime, fWeekday, fDayMonth, fShort, fYear;
+        var fParts, fTime, fWeekday, fDayMonth, fShort, fYear, fMonth;
         function makeFormats(tz) {
             var base = tz ? { timeZone: tz } : {};
             var o = function (x) {
@@ -290,6 +290,7 @@
             fDayMonth = new Intl.DateTimeFormat(LANG, o({ day: 'numeric', month: 'long' }));
             fShort = new Intl.DateTimeFormat(LANG, o({ day: 'numeric', month: 'short' }));
             fYear = new Intl.DateTimeFormat(LANG, o({ year: 'numeric' }));
+            fMonth = new Intl.DateTimeFormat(LANG, o({ month: 'long', year: 'numeric' }));
         }
         try {
             makeFormats(TZ);
@@ -507,7 +508,8 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
+            showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false,
+            hf: { mine: false, team: 0, period: '' }, hits: {}, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
             ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
         };
@@ -1700,8 +1702,12 @@
                 tags.push('<span class="mrd-etq">' + ico('flecha') + esc(c.passed.toteam ? s('passedtoteam', { by: c.passed.by, team: teamName(c.teamid) })
                     : s('passedtoyou', c.passed.by)) + '</span>');
             }
-            var pv = c.preview || {}, txt = esc(pv.text || '');
-            if (pv.private) {
+            var pv = c.preview || {}, txt = esc(pv.text || ''), hit = opts.found && st.search.trim() ? st.hits[c.id] : null;
+            if (hit) {
+                // Where the search found the words: the sentence, and when it was said.
+                txt = ico(hit.note ? 'nota' : 'buscar') + '<b class="mrd-hallado-cuando">' + esc(listTime(hit.at * 1000)) + '</b> · ' +
+                    '<span class="mrd-hallado">' + esc(hit.text) + '</span>';
+            } else if (pv.private) {
                 txt = esc(s('previewnote', pv.text || ''));
             } else if (pv.text && !pv.incoming) {
                 txt = ico('checks') + (pv.author ? esc((pv.author.me ? s('You') : firstName(pv.author)) + ': ') : '') + txt;
@@ -1746,13 +1752,13 @@
             var q = st.search.trim();
             var withTeam = q || st.inbox === 'mine' || st.inbox === 'unassigned';
             var all = allConvs().filter(function (c) {
-                return q ? searchMatch(c, q) : inInbox(c, st.inbox);
+                return q ? searchMatch(c, q) || !!st.hits[c.id] : inInbox(c, st.inbox);
             });
             if (q) {
                 all.sort(byActivity);
                 h = all.length ? '<div class="mrd-grupo-t">' + esc(s('searchresults')) + ' <span>' + all.length + '</span></div>' +
                     all.map(function (c) {
-                        return convItem(c, { withTeam: true });
+                        return convItem(c, { withTeam: true, found: true });
                     }).join('') : '<div class="mrd-vacio">' + esc(s('searchnone', q)) + '</div>';
                 body.innerHTML = h;
                 return;
@@ -1831,16 +1837,73 @@
             }
             return h;
         }
+        // The days of the history: this week day by day, then «Last week», then each month.
+        function weekStart(ms) {
+            var key = dayKey(ms), p = zp(ms), back = (p.wd + 6) % 7;
+            return shiftKey(key, -back);
+        }
+        function historyGroup(ms) {
+            var thisWeek = weekStart(nowMs()), k = dayKey(ms);
+            if (k >= thisWeek) {
+                return dayLabel(ms);
+            }
+            if (k >= shiftKey(thisWeek, -7)) {
+                return s('lastweek');
+            }
+            return cap(fMonth.format(new Date(ms)));
+        }
+        // The start of a day of the site (its time zone), in seconds.
+        function keyTime(key) {
+            var utc = Date.UTC(Math.floor(key / 10000), Math.floor(key / 100) % 100 - 1, key % 100);
+            return Math.floor((utc - zoneOffset(utc)) / 1000);
+        }
+        // The filters of the history, as the server takes them: whose, which department, from when.
+        function historyRange() {
+            var thisWeek = weekStart(nowMs()), p = zp(nowMs());
+            switch (st.hf.period) {
+                case 'week':
+                    return { from: keyTime(thisWeek), before: 0 };
+                case 'lastweek':
+                    return { from: keyTime(shiftKey(thisWeek, -7)), before: keyTime(thisWeek) };
+                case 'month':
+                    return { from: keyTime(p.y * 10000 + p.mo * 100 + 1), before: 0 };
+                default:
+                    return { from: 0, before: 0 };
+            }
+        }
+        function historyMatch(c) {
+            var r = historyRange(), at = c.lastactivity || 0;
+            return (!st.hf.mine || (c.assignee && c.assignee.me)) && (!st.hf.team || c.teamid === st.hf.team) &&
+                (!r.from || at >= r.from) && (!r.before || at < r.before);
+        }
+        function historyFiltersHtml() {
+            var chip = function (a, v, label, on) {
+                return '<button type="button" class="mrd-chip' + (on ? ' mrd-on' : '') + '" data-a="' + a + '" data-v="' + v + '" aria-pressed="' + on + '">' +
+                    esc(label) + '</button>';
+            };
+            var periods = [['', 'periodall'], ['week', 'periodweek'], ['lastweek', 'lastweek'], ['month', 'periodmonth']];
+            var deps = teams().filter(function (t) {
+                return me.seesall || t.mine;
+            });
+            return '<div class="mrd-hist-filtros"><div>' + chip('histmine', '0', s('histall'), !st.hf.mine) + chip('histmine', '1', s('histmine'), st.hf.mine) +
+                '</div><div>' + periods.map(function (x) {
+                    return chip('histperiod', x[0], s(x[1]), st.hf.period === x[0]);
+                }).join('') + '</div>' + (deps.length > 1 ? '<details class="mrd-hist-dep"' + (st.hfDep ? ' open' : '') + '><summary data-a="histdep" class="mrd-chip' +
+                    (st.hf.team ? ' mrd-on' : '') + '" aria-expanded="' + !!st.hfDep + '">' + esc(st.hf.team ? s('histdep', teamName(st.hf.team)) : s('histallteams')) + ico('abajo', 'mrd-flecha') + '</summary><div>' +
+                    chip('histteam', '0', s('histallteams'), !st.hf.team) + deps.map(function (t) {
+                        return chip('histteam', String(t.id), t.name, st.hf.team === t.id);
+                    }).join('') + '</div></details>' : '') + '</div>';
+        }
         function historyHtml(done) {
             if (st.history === '') {
                 loadHistory(0);
             }
-            var h = '', lastKey = 0;
-            done.forEach(function (c) {
-                var ms = (c.lastactivity || 0) * 1000, k = dayKey(ms);
-                if (k !== lastKey) {
-                    lastKey = k;
-                    h += '<div class="mrd-grupo-dia">' + esc(dayLabel(ms)) + '</div>';
+            var h = historyFiltersHtml(), last = '';
+            done.filter(historyMatch).forEach(function (c) {
+                var label = historyGroup((c.lastactivity || 0) * 1000);
+                if (label !== last) {
+                    last = label;
+                    h += '<div class="mrd-grupo-dia">' + esc(label) + '</div>';
                 }
                 h += convItem(c, { withTeam: true });
             });
@@ -1852,7 +1915,7 @@
             } else if (st.historyMore) {
                 h += '<button type="button" class="mrd-ver-resueltas" data-a="historymore">' + esc(s('resolvedmore')) + '</button>';
             } else if (st.history === 'done') {
-                h += '<div class="mrd-resueltas-estado">' + esc(done.length ? s('historyend') : s('historynone')) + '</div>';
+                h += '<div class="mrd-resueltas-estado">' + esc(done.filter(historyMatch).length ? s('historyend') : s('historynone')) + '</div>';
             }
             return h;
         }
@@ -1861,7 +1924,8 @@
                 return;
             }
             st.history = 'loading';
-            tr.call(M.resolved, { all: true, before: before || 0 }).then(function (r) {
+            var range = historyRange();
+            tr.call(M.resolved, { all: true, before: before || range.before, mine: st.hf.mine, team: st.hf.team, from: range.from }).then(function (r) {
                 (r.conversations || []).forEach(mergeConv);
                 st.history = 'done';
                 st.historyMore = !!r.more;
@@ -1893,6 +1957,15 @@
                 st.resolved = 'error';
                 renderListBody();
             });
+        }
+        function oldestHistory() {
+            var min = 0;
+            allConvs().forEach(function (c) {
+                if (c.section === 'resolved' && historyMatch(c) && c.lastactivity && (!min || c.lastactivity < min)) {
+                    min = c.lastactivity;
+                }
+            });
+            return min;
         }
         function oldestResolved() {
             var min = 0;
@@ -4659,7 +4732,29 @@
                     loadResolved(oldestResolved());
                     break;
                 case 'historymore':
-                    loadHistory(st.history === 'error' && !oldestResolved() ? 0 : oldestResolved());
+                    loadHistory(oldestHistory());
+                    renderListBody();
+                    break;
+                case 'histmine':
+                case 'histperiod':
+                case 'histteam':
+                    if (a === 'histmine') {
+                        st.hf.mine = v === '1';
+                    } else if (a === 'histperiod') {
+                        st.hf.period = v;
+                    } else {
+                        st.hf.team = +v;
+                        st.hfDep = false;
+                    }
+                    // Another filter, another history: the server is asked again.
+                    st.history = '';
+                    st.historyMore = false;
+                    renderListBody();
+                    break;
+                case 'histdep':
+                    // Its own state: the list is drawn again with each poll and the departments stay open.
+                    e.preventDefault();
+                    st.hfDep = !st.hfDep;
                     renderListBody();
                     break;
                 case 'clearsearch':
@@ -4886,6 +4981,10 @@
                     searchT = setTimeout(function () {
                         tr.call(M.resolved, { query: asked }).then(function (r) {
                             (r.conversations || []).forEach(mergeConv);
+                            st.hits = {};
+                            (r.hits || []).forEach(function (hit) {
+                                st.hits[hit.conversation] = hit;
+                            });
                             if (st.search.trim() === asked) {
                                 renderListBody();
                             }

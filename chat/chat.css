@@ -3975,3 +3975,23 @@
     width: 16px;
     height: 16px;
 }
+
+/* A person of the team with the picture of their profile. */
+#mrd-chat .mrd-av.mrd-con-foto {
+    padding: 0;
+    overflow: hidden;
+    background: var(--hoja-2);
+}
+#mrd-chat .mrd-av.mrd-con-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+}
+#mrd-chat .mrd-vieja-pie .mrd-btn {
+    margin-inline-start: auto;
+}
+#mrd-chat .mrd-antes.mrd-vieja {
+    border-color: var(--acento-texto);
+    color: var(--tinta);
+}

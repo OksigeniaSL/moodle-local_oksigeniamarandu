@@ -877,13 +877,25 @@
             return '<span class="mrd-av mrd-anillo mrd-con-bicho' + (edge ? ' mrd-borde' : '') + cls +
                 '" style="--anillo: conic-gradient(' + parts + ')" aria-hidden="true">' + bicho(seed) + '</span>';
         }
+        // A person of the team: the picture of their profile, or else their own critter (another seed than the families').
         function avAgent(p, size) {
             if (!p) {
                 return '<span class="mrd-av mrd-nadie ' + (size || '') + '" aria-hidden="true">' + ico('nadie') + '</span>';
             }
             var mine = p.me || (me.agentid && p.agentid === me.agentid);
-            return '<span class="mrd-av mrd-equipo ' + (mine ? 'mrd-yo-av ' : '') + (size || '') + '" aria-hidden="true">' +
-                esc(cap(firstName(p)).charAt(0)) + '</span>';
+            var id = p.agentid || (mine ? me.agentid : 0);
+            var person = (st.extras.people || []).filter(function (x) {
+                return id && x.agentid === id;
+            })[0];
+            var picture = (person && person.picture) || (mine ? me.picture : '') || '';
+            var cls = 'mrd-av mrd-equipo ' + (mine ? 'mrd-yo-av ' : '') + (size || '');
+            if (picture) {
+                return '<span class="' + cls + ' mrd-con-foto" aria-hidden="true"><img src="' + esc(picture) + '" alt="" loading="lazy"></span>';
+            }
+            if (id && root.BichitoHk) {
+                return '<span class="' + cls + ' mrd-con-bicho" aria-hidden="true">' + bicho('equipo-' + id) + '</span>';
+            }
+            return '<span class="' + cls + '" aria-hidden="true">' + esc(cap(firstName(p)).charAt(0)) + '</span>';
         }
         var KIND_LABEL = { staff: 'kindstaff', supplier: 'kindsupplier', alumni: 'kindalumni' };
         // The line under the name: the kind in bold for staff, suppliers and alumni, and a dot of the stage's colour
@@ -2303,12 +2315,34 @@
         }
         /* On top of a conversation, what came before with the same person: the conversations resolved before (also those
            brought from the app of the phone), the last one a tap away. */
+        // The conversation of now with the same person, if the one open is an old one, already resolved.
+        function newerOf(c) {
+            if (!c || c.section !== 'resolved' || !st.ficha || st.fichaFor !== st.open) {
+                return null;
+            }
+            return (st.ficha.conversations || []).filter(function (o) {
+                return o.id !== c.id && o.status !== 'resolved' && (o.at || 0) > (c.lastactivity || 0);
+            })[0] || null;
+        }
         function renderBefore() {
             var hilo = hiloEl(), c = conv(st.open);
             if (!hilo) {
                 return;
             }
             var was = hilo.querySelector('.mrd-antes');
+            var newer = newerOf(c);
+            if (newer) {
+                // An old one, open to read: it says so, and takes back to the one of now.
+                var old = '<div class="mrd-antes mrd-vieja">' + ico('reloj') + '<span>' + esc(s('oldconv', dayText((c.lastactivity || 0) * 1000))) +
+                    '</span><button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="otherconv" data-v="' + newer.id + '">' +
+                    esc(s('backtonow')) + '</button></div>';
+                if (was) {
+                    was.outerHTML = old;
+                } else {
+                    hilo.insertAdjacentHTML('afterbegin', old);
+                }
+                return;
+            }
             var before = c && st.ficha && st.fichaFor === st.open ? (st.ficha.conversations || []).filter(function (o) {
                 return o.id !== st.open && o.status === 'resolved';
             }) : [];
@@ -2506,7 +2540,9 @@
             return lastTemplateWaiting(c) || (st.justStarted === c.id && !st.pickAgain) ? 'waiting' : 'pick';
         }
         function composerSig(c) {
-            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, (st.extras.templates || []).length, st.pop].join('|');
+            var newer = newerOf(c);
+            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, (st.extras.templates || []).length, st.pop,
+                newer ? newer.id : 0].join('|');
         }
         function saveDraft() {
             var ed = el.chat.querySelector('.mrd-editor');
@@ -2644,6 +2680,14 @@
             saveDraft();
             st.composerSig = sig;
             var state = composerState(c), name = contactFirst(c), h = '';
+            var newer = newerOf(c);
+            if (newer && !READONLY) {
+                // Whoever came to an old one answers in the one of now, never here.
+                box2.innerHTML = '<div class="mrd-solo-leer mrd-vieja-pie">' + ico('reloj') + '<span>' + esc(s('oldconvfoot')) + '</span>' +
+                    '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="otherconv" data-v="' + newer.id + '">' +
+                    esc(s('backtonow')) + '</button></div>';
+                return;
+            }
             if (state === 'readonly') {
                 box2.innerHTML = '<div class="mrd-solo-leer">' + ico('ojo') + '<span>' + esc(s('readonly')) + '</span></div>';
                 return;
@@ -3388,6 +3432,7 @@
                 box.classList.toggle('mrd-sin-ficha', !f);
                 renderFicha();
                 renderBefore();
+                renderComposer();
             }).catch(function () {
                 if (st.fichaFor !== id) {
                     return;

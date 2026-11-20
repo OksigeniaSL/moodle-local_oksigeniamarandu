@@ -55,11 +55,12 @@ class chat_extras extends chat_base {
                 'user',
                 'deleted = 0 AND ' . $DB->sql_equal('email', ':email', false),
                 ['email' => $agent['email']],
-                'id',
+                '*',
                 IGNORE_MULTIPLE
             );
             $people[] = ['agentid' => $agent['id'], 'userid' => $user ? (int)$user->id : 0, 'name' => $agent['name'],
-                'firstname' => (string)strtok($agent['name'], ' '), 'teams' => directory::teams_of($agent['id'])];
+                'firstname' => (string)strtok($agent['name'], ' '), 'teams' => directory::teams_of($agent['id']),
+                'picture' => $user ? self::picture($user) : ''];
         }
         $teams = [];
         foreach (directory::teams() as $team) {
@@ -67,6 +68,23 @@ class chat_extras extends chat_base {
         }
         return ['canned' => directory::canned(), 'templates' => templates::all(), 'pending' => templates::pending(),
             'people' => $people, 'teams' => $teams];
+    }
+
+    /**
+     * The picture of the profile of a person of the team, if they put one: the page shows it instead of an initial;
+     * without it, their own critter.
+     *
+     * @param \stdClass $user The user.
+     * @return string Its address, or empty.
+     */
+    public static function picture(\stdClass $user): string {
+        global $PAGE;
+        if (empty($user->picture)) {
+            return '';
+        }
+        $picture = new \user_picture($user);
+        $picture->size = 100;
+        return $picture->get_url($PAGE)->out(false);
     }
 
     /**
@@ -104,6 +122,7 @@ class chat_extras extends chat_base {
                 'name' => new external_value(PARAM_TEXT, 'Their name'),
                 'firstname' => new external_value(PARAM_TEXT, 'Their first name'),
                 'teams' => new external_multiple_structure(new external_value(PARAM_INT, 'A department of theirs')),
+                'picture' => new external_value(PARAM_URL, 'The picture of their profile, or empty', VALUE_DEFAULT, ''),
             ])),
             'teams' => new external_multiple_structure(new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'The department'),

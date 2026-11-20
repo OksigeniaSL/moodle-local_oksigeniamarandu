@@ -116,6 +116,7 @@ $config = [
         'firstname' => (string)$USER->firstname,
         'signature' => $viewer->readonly ? '' : message::signature($viewer),
         'seesall' => $viewer->seesall,
+        'picture' => \local_oksigeniamarandu\external\chat_extras::picture($USER),
         'readonly' => $viewer->readonly,
     ],
     'brand' => [

@@ -1665,6 +1665,35 @@
                 p.textContent = inboxSub();
             }
         }
+        // The text, escaped, with each word searched marked wherever it is (without minding accents or capitals).
+        function markWords(text, query) {
+            text = String(text || '');
+            var folded = '';
+            for (var i = 0; i < text.length; i++) {
+                folded += (text[i].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() || text[i])[0];
+            }
+            var words = String(query || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u)
+                .filter(function (w) {
+                    return w.length >= 2;
+                });
+            var on = [];
+            words.forEach(function (w) {
+                for (var at = folded.indexOf(w); at >= 0; at = folded.indexOf(w, at + w.length)) {
+                    for (var k = at; k < at + w.length; k++) {
+                        on[k] = true;
+                    }
+                }
+            });
+            var h = '', open = false;
+            for (var j = 0; j < text.length; j++) {
+                if (!!on[j] !== open) {
+                    h += open ? '</mark>' : '<mark class="mrd-marca">';
+                    open = !open;
+                }
+                h += esc(text[j]);
+            }
+            return h + (open ? '</mark>' : '');
+        }
         function convItem(c, opts) {
             var ct = c.contact || {};
             var tags = [];
@@ -1705,8 +1734,8 @@
             var pv = c.preview || {}, txt = esc(pv.text || ''), hit = opts.found && st.search.trim() ? st.hits[c.id] : null;
             if (hit) {
                 // Where the search found the words: the sentence, and when it was said.
-                txt = ico(hit.note ? 'nota' : 'buscar') + '<b class="mrd-hallado-cuando">' + esc(listTime(hit.at * 1000)) + '</b> · ' +
-                    '<span class="mrd-hallado">' + esc(hit.text) + '</span>';
+                txt = ico(hit.note ? 'nota' : 'mensaje') + '<b class="mrd-hallado-cuando">' + esc(listTime(hit.at * 1000)) + '</b> · ' +
+                    '<span class="mrd-hallado">' + markWords(hit.text, st.search) + '</span>';
             } else if (pv.private) {
                 txt = esc(s('previewnote', pv.text || ''));
             } else if (pv.text && !pv.incoming) {
@@ -1714,7 +1743,8 @@
             }
             return '<button type="button" class="mrd-conv' + (st.open === c.id ? ' mrd-on' : '') + (c.unread ? ' mrd-nuevo' : '') +
                 '" data-a="conv" data-v="' + c.id + '"' + (st.open === c.id ? ' aria-current="true"' : '') + '>' + avContact(ct) +
-                '<span class="mrd-conv-cuerpo"><span class="mrd-conv-l1"><span class="mrd-conv-nombre">' + esc(ct.name || fmtPhone(ct.phone)) +
+                '<span class="mrd-conv-cuerpo"><span class="mrd-conv-l1"><span class="mrd-conv-nombre">' +
+                (opts.found && st.search.trim() ? markWords(ct.name || fmtPhone(ct.phone), st.search) : esc(ct.name || fmtPhone(ct.phone))) +
                 '</span>' + right + '</span><span class="mrd-conv-rel">' + relHtml(ct) + '</span>' +
                 '<span class="mrd-conv-l1"><span class="mrd-conv-txt">' + txt + '</span>' +
                 (c.unread ? '<span class="mrd-nuevo-punto" role="img" aria-label="' + esc(s('unread')) + '"></span>' : '') + '</span>' +
@@ -1885,14 +1915,29 @@
             var deps = teams().filter(function (t) {
                 return me.seesall || t.mine;
             });
-            return '<div class="mrd-hist-filtros"><div>' + chip('histmine', '0', s('histall'), !st.hf.mine) + chip('histmine', '1', s('histmine'), st.hf.mine) +
-                '</div><div>' + periods.map(function (x) {
+            var row = function (label, inner) {
+                return '<div class="mrd-hist-fila"><span class="mrd-hist-rot">' + esc(s(label)) + '</span><div>' + inner + '</div></div>';
+            };
+            return '<div class="mrd-hist-filtros">' + row('histwho', chip('histmine', '0', s('histall'), !st.hf.mine) +
+                chip('histmine', '1', s('histmine'), st.hf.mine)) + row('histwhen', periods.map(function (x) {
                     return chip('histperiod', x[0], s(x[1]), st.hf.period === x[0]);
-                }).join('') + '</div>' + (deps.length > 1 ? '<details class="mrd-hist-dep"' + (st.hfDep ? ' open' : '') + '><summary data-a="histdep" class="mrd-chip' +
-                    (st.hf.team ? ' mrd-on' : '') + '" aria-expanded="' + !!st.hfDep + '">' + esc(st.hf.team ? s('histdep', teamName(st.hf.team)) : s('histallteams')) + ico('abajo', 'mrd-flecha') + '</summary><div>' +
+                }).join('')) + (deps.length > 1 ? row('histteamrot', '<details class="mrd-hist-dep"' + (st.hfDep ? ' open' : '') +
+                    '><summary data-a="histdep" class="mrd-chip' + (st.hf.team ? ' mrd-on' : '') + '" aria-expanded="' + !!st.hfDep + '">' +
+                    esc(st.hf.team ? teamName(st.hf.team) : s('histallteams')) + ico('abajo', 'mrd-flecha') + '</summary><div>' +
                     chip('histteam', '0', s('histallteams'), !st.hf.team) + deps.map(function (t) {
                         return chip('histteam', String(t.id), t.name, st.hf.team === t.id);
-                    }).join('') + '</div></details>' : '') + '</div>';
+                    }).join('') + '</div></details>') : '') + '</div>';
+        }
+        // What the filters leave out, said as it is: «Nada de lo que llevaste tú la semana pasada en Secretaría.»
+        function historyNoneText() {
+            var parts = [s(st.hf.mine ? 'histnonemine' : 'histnoneall')];
+            if (st.hf.period) {
+                parts.push(s({ week: 'histinweek', lastweek: 'histinlastweek', month: 'histinmonth' }[st.hf.period]));
+            }
+            if (st.hf.team) {
+                parts.push(s('histinteam', teamName(st.hf.team)));
+            }
+            return parts.join(' ') + '.';
         }
         function historyHtml(done) {
             if (st.history === '') {
@@ -1915,7 +1960,10 @@
             } else if (st.historyMore) {
                 h += '<button type="button" class="mrd-ver-resueltas" data-a="historymore">' + esc(s('resolvedmore')) + '</button>';
             } else if (st.history === 'done') {
-                h += '<div class="mrd-resueltas-estado">' + esc(done.filter(historyMatch).length ? s('historyend') : s('historynone')) + '</div>';
+                var none = !done.filter(historyMatch).length, filtered = st.hf.mine || st.hf.period || st.hf.team;
+                h += '<div class="mrd-resueltas-estado">' + esc(!none ? s('historyend') : filtered ? historyNoneText() : s('historynone')) +
+                    (none && filtered ? ' <button type="button" class="mrd-ver-resueltas" data-a="histclear">' + esc(s('histclear')) + '</button>' : '') +
+                    '</div>';
             }
             return h;
         }
@@ -4747,6 +4795,13 @@
                         st.hfDep = false;
                     }
                     // Another filter, another history: the server is asked again.
+                    st.history = '';
+                    st.historyMore = false;
+                    renderListBody();
+                    break;
+                case 'histclear':
+                    st.hf = { mine: false, team: 0, period: '' };
+                    st.hfDep = false;
                     st.history = '';
                     st.historyMore = false;
                     renderListBody();

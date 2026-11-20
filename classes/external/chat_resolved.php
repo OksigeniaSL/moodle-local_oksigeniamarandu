@@ -225,8 +225,8 @@ class chat_resolved extends chat_base {
         if ($at === false) {
             return \core_text::strlen($text) > 120 ? \core_text::substr($text, 0, 117) . '…' : $text;
         }
-        // Whole words at both ends.
-        $start = max(0, $at - 40);
+        // Close before the words, so that they always show, and whole words at both ends.
+        $start = max(0, $at - 24);
         if ($start > 0) {
             $space = mb_strpos($text, ' ', $start);
             $start = $space !== false && $space < $at ? $space + 1 : $start;

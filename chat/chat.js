@@ -498,7 +498,7 @@
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
             showResolved: false, otros: false, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
-            ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null
+            ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
         };
         var seq = 0;
 
@@ -1263,6 +1263,10 @@
             } else if (c.section !== 'resolved') {
                 tags.push('<span class="mrd-etq mrd-sin">' + esc(s('unassigned')) + '</span>');
             }
+            if (opts.withTeam) {
+                var t = team(c.teamid);
+                tags.push('<span class="mrd-etq mrd-dep">' + ico(teamIcon(t)) + esc(t ? t.name : s('noteam')) + '</span>');
+            }
             if (opts.night) {
                 tags.push('<span class="mrd-etq mrd-de-noche">' + ico('luna') + esc(s('wrotenight', fmtTime(c.waitingsince * 1000))) + '</span>');
             }
@@ -1287,10 +1291,6 @@
             if (c.passed && (isMine(c) || c.passed.toteam)) {
                 tags.push('<span class="mrd-etq">' + ico('flecha') + esc(c.passed.toteam ? s('passedtoteam', { by: c.passed.by, team: teamName(c.teamid) })
                     : s('passedtoyou', c.passed.by)) + '</span>');
-            }
-            if (opts.withTeam) {
-                var t = team(c.teamid);
-                tags.push('<span class="mrd-etq mrd-dep">' + ico(teamIcon(t)) + esc(t ? t.name : s('noteam')) + '</span>');
             }
             var pv = c.preview || {}, txt = esc(pv.text || '');
             if (pv.private) {
@@ -1862,7 +1862,7 @@
             if (st.tpl >= 0) {
                 return 'preview';
             }
-            return lastTemplateWaiting(c) ? 'waiting' : 'pick';
+            return lastTemplateWaiting(c) || (st.justStarted === c.id && !st.pickAgain) ? 'waiting' : 'pick';
         }
         function composerSig(c) {
             return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, (st.extras.templates || []).length, st.pop].join('|');
@@ -1948,7 +1948,8 @@
                 return;
             }
             if (state === 'waiting') {
-                box2.innerHTML = '<div class="mrd-esperando"><span class="mrd-reloj">' + ico('mensaje') + '</span><div><b>' + esc(s('sentwait', name)) +
+                box2.innerHTML = '<div class="mrd-esperando"><span class="mrd-reloj">' + ico('mensaje') + '</span><div><b>' +
+                    esc(st.justStarted === c.id ? s('newsentwait', name) : s('sentwait', name)) +
                     '</b><p>' + esc(s('sentwaithelp')) + '</p></div><div class="mrd-esperando-b"><button type="button" class="mrd-btn mrd-chico" data-a="mode" data-v="note">' +
                     ico('nota') + esc(s('tabnote')) + '</button><button type="button" class="mrd-btn mrd-chico" data-a="pickagain">' + ico('mensaje') +
                     esc(s('sendanother')) + '</button></div></div>';
@@ -1975,7 +1976,7 @@
                 var order = tpls.map(function (t, i) {
                     return i;
                 }).sort(function (a, b) {
-                    var ka = tpls[a].start === !lastIn ? 0 : 1, kb = tpls[b].start === !lastIn ? 0 : 1;
+                    var ka = !!tpls[a].start === !lastIn ? 0 : 1, kb = !!tpls[b].start === !lastIn ? 0 : 1;
                     return ka - kb || a - b;
                 });
                 h += '<div class="mrd-plantillas">' + order.map(function (i) {
@@ -2046,13 +2047,19 @@
             var btns = (t.buttons || []).map(function (b) {
                 return '<span>' + esc(b && b.text !== undefined ? b.text : b) + '</span>';
             }).join('');
+            var empty = (t.params || []).filter(function (p, i, all) {
+                return !tplValue(p, c, t) && all.map(function (x) {
+                    return x.key;
+                }).indexOf(p.key) === i;
+            }).length;
             return '<div class="mrd-previa"><div class="mrd-previa-t">' + ico('mensaje') + esc(s('preview', contactFirst(c))) +
                 '<button type="button" data-a="tplback">' + esc(s('pickother')) + '</button></div>' +
                 '<div class="mrd-msg mrd-nos mrd-plantilla">' + (t.header ? '<span class="mrd-cabecera-wa">' + esc(t.header) + '</span>' : '') +
                 '<p>' + body + '</p>' + (t.footer ? '<span class="mrd-pie-wa">' + esc(t.footer) + '</span>' : '') +
                 (btns ? '<div class="mrd-botones-wa">' + btns + '</div>' : '') + '</div>' +
-                '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend">' + ico('enviar') + esc(s('sendtemplate')) +
-                '</button><small>' + esc(s('yellowhelp')) + '</small></div></div>';
+                '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty + '">' +
+                ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty ? ' mrd-faltan' : '') + '">' +
+                esc(gapsText(empty)) + '</small></div></div>';
         }
 
         /* -------- Canned answers («/») and mentions («@») -------- */
@@ -2421,7 +2428,76 @@
             }
             return '';
         }
+        function restoreFicha() {
+            box.classList.toggle('mrd-sin-ficha', !conv(st.open) || st.fichaState === 'error');
+            renderFicha();
+        }
+        // While a new conversation is being chosen: the file of whom was chosen, as the server knows them.
+        function renderNewFicha() {
+            var n = st.nueva;
+            panelFrame = null;
+            panelData = null;
+            if (!n.pick) {
+                el.ficha.innerHTML = '<div class="mrd-ficha-vacia">' + esc(s('newpicknone')) + '</div>';
+                return;
+            }
+            if (!n.ficha) {
+                el.ficha.innerHTML = '<div class="mrd-ficha-vacia">' + esc(n.fichaState === 'error' ? s('fileerror') : s('fileloading')) + '</div>';
+                return;
+            }
+            var f = n.ficha, k = f.kind || 'unknown', c = newConvLike();
+            var h = fichaHead(f, c);
+            if (k === 'family' || k === 'both') {
+                h += contactsHtml(f) + childrenHtml(f) + rowsHtml(f.services, s('services')) + rowsHtml(f.rows, '');
+            } else {
+                h += rowsHtml(f.rows, '');
+            }
+            if (f.panel && f.panel.url) {
+                h += '<div class="mrd-seccion mrd-panel"><iframe src="' + esc(f.panel.url) + '" title="' + esc(s('panel')) + '"></iframe></div>';
+            }
+            h += otherConvsHtml(f);
+            if (f.source) {
+                h += '<div class="mrd-fuente">' + esc(f.source) + '</div>';
+            }
+            el.ficha.innerHTML = h;
+            if (f.panel && f.panel.url) {
+                panelFrame = el.ficha.querySelector('.mrd-panel iframe');
+                panelData = f.panel;
+                panelFrame.addEventListener('load', function () {
+                    postPanelContext();
+                    fitPanel(panelFrame);
+                });
+            }
+        }
+        function loadNewFicha() {
+            var n = st.nueva, x = n && n.pick;
+            if (!x) {
+                renderFicha();
+                return;
+            }
+            n.ficha = null;
+            n.fichaState = 'loading';
+            renderFicha();
+            tr.call(M.contact, { conversation: 0, phone: '+' + x.phone, name: x.name || '' }).then(function (f) {
+                if (st.nueva !== n || n.pick !== x) {
+                    return;
+                }
+                n.ficha = f || null;
+                n.fichaState = f ? 'ok' : 'error';
+                renderFicha();
+            }).catch(function () {
+                if (st.nueva !== n || n.pick !== x) {
+                    return;
+                }
+                n.fichaState = 'error';
+                renderFicha();
+            });
+        }
         function renderFicha() {
+            if (st.nueva) {
+                renderNewFicha();
+                return;
+            }
             var c = conv(st.open);
             panelFrame = null;
             panelData = null;
@@ -2630,10 +2706,14 @@
                 markNewButton();
                 if (st.open === id) {
                     renderChat();
+                    restoreFicha();
                 }
             }
             if (st.open !== id) {
                 saveDraft();
+                if (st.justStarted !== id) {
+                    st.justStarted = 0;
+                }
                 st.open = id;
                 st.msgs = [];
                 st.loaded = false;
@@ -3075,6 +3155,28 @@
             addMessagesLocal(m);
             deliver(m);
         }
+        function gapsText(n) {
+            return n === 1 ? s('gapsleft1') : n ? s('gapsleft', n) : s('yellowhelp');
+        }
+        // After each key in a gap: how many are left, next to the button that sends.
+        function updateGaps() {
+            var seen = {}, empty = 0;
+            Array.prototype.forEach.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
+                var k = g.getAttribute('data-k');
+                if (!seen[k]) {
+                    seen[k] = true;
+                    empty += g.textContent.replace(/\u00a0/g, ' ').trim() ? 0 : 1;
+                }
+            });
+            var note = el.chat.querySelector('.mrd-huecos-estado'), btn = el.chat.querySelector('.mrd-previa-pie .mrd-btn');
+            if (note) {
+                note.textContent = gapsText(empty);
+                note.classList.toggle('mrd-faltan', !!empty);
+            }
+            if (btn) {
+                btn.setAttribute('aria-disabled', String(!!empty));
+            }
+        }
         function gapValues() {
             var gaps = el.chat.querySelectorAll('.mrd-hueco'), params = [], missing = false, seen = {};
             Array.prototype.forEach.call(gaps, function (g) {
@@ -3089,11 +3191,13 @@
                 }
             });
             if (missing) {
-                toast(s('fillgaps'), true);
                 var first = el.chat.querySelector('.mrd-hueco.mrd-falta');
                 if (first) {
                     first.focus();
+                } else {
+                    toast(s('fillgaps'), true);
                 }
+                updateGaps();
                 return null;
             }
             return params;
@@ -3150,7 +3254,6 @@
             return mine.length ? mine[0].id : 0;
         }
         function markNewButton() {
-            box.classList.toggle('mrd-con-nueva', !!st.nueva);
             var b = el.lista.querySelector('.mrd-nueva-b');
             if (b) {
                 b.setAttribute('aria-pressed', String(!!st.nueva));
@@ -3162,8 +3265,11 @@
             }
             closePops();
             saveDraft();
-            st.nueva = { q: '', found: null, needprefix: false, searching: false, pick: null, team: defaultTeam(), tpl: -1, allteams: false };
+            st.nueva = { q: '', found: null, needprefix: false, searching: false, pick: null, team: defaultTeam(), tpl: -1, allteams: false,
+                ficha: null, fichaState: '' };
+            box.classList.remove('mrd-sin-ficha');
             renderChat();
+            renderFicha();
             markNewButton();
             setLayer('chat', true);
             focusNew();
@@ -3175,6 +3281,7 @@
             st.nueva = null;
             clearTimeout(findT);
             renderChat();
+            restoreFicha();
             markNewButton();
             if (narrow()) {
                 goBack('lista');
@@ -3187,7 +3294,7 @@
             }
         }
         function candContact(x) {
-            return { name: x.name, phone: x.phone, rings: x.rings || [], kind: x.line || (x.rings || []).length ? 'family' : 'unknown' };
+            return { name: x.name, phone: x.phone, rings: x.rings || [], line: x.line || '', kind: 'unknown' };
         }
         function newConvLike() {
             return { id: 0, contact: candContact(st.nueva.pick || {}) };
@@ -3197,14 +3304,14 @@
             var state = x.open && x.conversation ? '<span class="mrd-nueva-estado">' + ico('mensaje') + esc(s('newhasopen')) + '</span>'
                 : x.elsewhere ? '<span class="mrd-nueva-estado mrd-ocupada">' + esc(s('newelsewhere', x.elsewhere)) + '</span>' : '';
             return '<button type="button" class="mrd-nueva-cand" data-a="newpick" data-v="' + i + '">' + avContact(candContact(x), 'mrd-m') +
-                '<span class="mrd-nueva-cand-t"><b>' + esc(title) + '</b>' + (x.line ? '<small>' + esc(x.line) + '</small>' : '') +
+                '<span class="mrd-nueva-cand-t"><b>' + esc(title) + '</b>' + (x.line ? '<small class="mrd-rel">' + relHtml(candContact(x)) + '</small>' : '') +
                 '<span class="mrd-nueva-meta"><span class="mrd-nueva-fuente">' + esc(s('source' + x.source)) + '</span>' +
                 (x.name ? '<span>' + esc(fmtPhone(x.phone)) + '</span>' : '') + state + '</span></span>' + ico('der', 'mrd-flecha') + '</button>';
         }
         function newListHtml() {
             var n = st.nueva;
             if (n.needprefix) {
-                return '<p class="mrd-ayuda">' + esc(s('newneedprefix')) + '</p>';
+                return '<div class="mrd-nueva-aviso mrd-espera mrd-prefijo">' + ico('alerta') + '<div><b>' + esc(s('newneedprefix')) + '</b></div></div>';
             }
             if (!n.found || (!n.found.length && n.searching)) {
                 return '<p class="mrd-ayuda">' + esc(n.searching ? s('newsearching') : s('newsearchhint')) + '</p>';
@@ -3263,9 +3370,11 @@
         }
         function pickedHtml(x) {
             return '<div class="mrd-nueva-para"><span class="mrd-nueva-rotulo">' + esc(s('newto')) + '</span>' + avContact(candContact(x), 'mrd-m') +
-                '<div class="mrd-nueva-cand-t"><b>' + esc(x.name || fmtPhone(x.phone)) + '</b>' + (x.line ? '<small>' + esc(x.line) + '</small>' : '') +
+                '<div class="mrd-nueva-cand-t"><b>' + esc(x.name || fmtPhone(x.phone)) + '</b>' +
+                (x.line ? '<small class="mrd-rel">' + relHtml(candContact(x)) + '</small>' : '') +
                 (x.name ? '<span class="mrd-nueva-meta"><span>' + esc(fmtPhone(x.phone)) + '</span></span>' : '') + '</div>' +
-                '<button type="button" class="mrd-btn mrd-chico" data-a="newchange">' + esc(s('newchange')) + '</button></div>';
+                '<span class="mrd-nueva-para-b">' + callButton(x.phone) + '<button type="button" class="mrd-btn mrd-chico" data-a="newchange">' +
+                esc(s('newchange')) + '</button></span></div>';
         }
         function teamChips() {
             var all = st.extras.teams || [], n = st.nueva;
@@ -3285,7 +3394,7 @@
             var folded = all.length - shown.length;
             return shown.map(function (t) {
                 return chip(t.id, teamIcon(t), t.name);
-            }).join('') + (folded ? '<button type="button" class="mrd-chip mrd-chip-mas" data-a="newallteams">' + esc(s('newmoreteams', folded)) +
+            }).join('') + (folded ? '<button type="button" class="mrd-chip mrd-chip-mas" data-a="newallteams">' + ico('der') + esc(s('newmoreteams')) +
                 '</button>' : '') + chip(0, 'nadie', s('noteam'));
         }
         function newTplCards() {
@@ -3366,14 +3475,18 @@
                 }
                 mergeConv(r.conversation);
                 st.nueva = null;
+                restoreFicha();
                 markNewButton();
                 var id = r.conversation.id;
                 if (st.open === id) {
                     renderChat();
                     loadMessages(id);
                 }
+                st.justStarted = r.status === 'started' ? id : 0;
                 openConv(id);
-                toast(r.status === 'exists' ? s('newexists') : s('newstarted'));
+                if (r.status === 'exists') {
+                    toast(s('newexists'));
+                }
                 refreshAfterData();
                 pollSoon();
             }).catch(function (e) {
@@ -3509,6 +3622,7 @@
                         nv.pick = nv.found[+v];
                         nv.tpl = -1;
                         renderNew();
+                        loadNewFicha();
                     }
                     break;
                 case 'newchange':
@@ -3516,6 +3630,7 @@
                         nv.pick = null;
                         nv.tpl = -1;
                         renderNew();
+                        loadNewFicha();
                         focusNew();
                     }
                     break;
@@ -3821,6 +3936,10 @@
             }
             if (t.classList && t.classList.contains('mrd-hueco')) {
                 t.classList.remove('mrd-falta');
+                if (t.innerHTML === '<br>') {
+                    t.innerHTML = '';
+                }
+                updateGaps();
             }
         });
         box.addEventListener('paste', function (e) {
@@ -3866,6 +3985,7 @@
                     st.nueva.pick = cands[0];
                     st.nueva.tpl = -1;
                     renderNew();
+                    loadNewFicha();
                 }
                 return;
             }

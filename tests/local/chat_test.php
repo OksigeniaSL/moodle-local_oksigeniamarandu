@@ -18,6 +18,7 @@ namespace local_oksigeniamarandu\local;
 
 use core_external\external_api;
 use local_oksigeniamarandu\external\chat_action;
+use local_oksigeniamarandu\external\chat_contact;
 use local_oksigeniamarandu\external\chat_find;
 use local_oksigeniamarandu\external\chat_poll;
 use local_oksigeniamarandu\external\chat_send;
@@ -393,8 +394,11 @@ final class chat_test extends \advanced_testcase {
      */
     public function test_templates_to_start(): void {
         set_config('chatstarttemplates', 'chat_retomar', 'local_oksigeniamarandu');
+        set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['title' => 'Retomar',
+            'description' => 'Pregunta si siguen por aquí.']]), 'local_oksigeniamarandu');
         $all = templates::all();
-        $this->assertSame([true, 3], [$all[0]['start'], $all[0]['inbox']]);
+        $this->assertSame([true, 3, 'Retomar', 'Pregunta si siguen por aquí.'], [$all[0]['start'], $all[0]['inbox'],
+            $all[0]['title'], $all[0]['description']]);
         $this->assertSame(1, templates::pending());
         $message = templates::message($all[0], ['1' => 'Pedro']);
         $this->assertSame(['Hola, Pedro: seguimos con su consulta.', 'chat_retomar'], [$message['content'],
@@ -415,9 +419,11 @@ final class chat_test extends \advanced_testcase {
         $this->setUser($ana);
 
         $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('+34 600 000 001'));
-        $this->assertSame([['Laura Martín', '34600000001', 'number', 1, true]], array_map(function ($one) {
+        $this->assertSame([['Laura Martín', '34600000001', 'contact', 1, true]], array_map(function ($one) {
             return [$one['name'], $one['phone'], $one['source'], $one['conversation'], $one['open']];
         }, $found['candidates']));
+        $card = external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(0, '+34600000001', 'Laura'));
+        $this->assertSame(['34600000001', [1]], [$card['phone'], array_column($card['conversations'], 'id')]);
         $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('600 000 001'));
         $this->assertSame([[], true], [$found['candidates'], $found['needprefix']]);
         $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('Iván'));

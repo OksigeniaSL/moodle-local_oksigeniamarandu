@@ -22,10 +22,12 @@ use core_external\external_single_structure;
 use core_external\external_value;
 use local_oksigeniamarandu\local\chat\family;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\starter;
 
 /**
  * Who the contact of a conversation is, for the card beside it: their number, their other conversations and, if the
- * site has it, the card of admissions of Eguahe in a frame.
+ * site has it, the card of admissions of Eguahe in a frame. Also of a number without a conversation, for whoever is
+ * about to start one.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -39,30 +41,46 @@ class chat_contact extends chat_base {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'conversation' => new external_value(PARAM_INT, 'The conversation'),
+            'conversation' => new external_value(PARAM_INT, 'The conversation, or 0 for a number'),
+            'phone' => new external_value(PARAM_RAW_TRIMMED, 'A number, with no conversation', VALUE_DEFAULT, ''),
+            'name' => new external_value(PARAM_TEXT, 'Its name, if known', VALUE_DEFAULT, ''),
         ]);
     }
 
     /**
      * The card.
      *
-     * @param int $conversation The conversation.
+     * @param int $conversation The conversation, or 0.
+     * @param string $phone A number, when there is no conversation.
+     * @param string $name Its name, if known.
      * @return array
      */
-    public static function execute(int $conversation): array {
+    public static function execute(int $conversation, string $phone = '', string $name = ''): array {
         global $DB;
-        $params = self::validate_parameters(self::execute_parameters(), ['conversation' => $conversation]);
+        $params = self::validate_parameters(
+            self::execute_parameters(),
+            ['conversation' => $conversation, 'phone' => $phone, 'name' => $name]
+        );
         $viewer = self::viewer();
-        $row = self::conversation($viewer, $params['conversation']);
+        if ($params['conversation']) {
+            $row = self::conversation($viewer, $params['conversation']);
+        } else {
+            $number = starter::number($params['phone']);
+            if ($number === null) {
+                throw new \moodle_exception('chat:start:badnumber', 'local_oksigeniamarandu');
+            }
+            $row = (object)['cwid' => 0, 'contactid' => 0, 'kind' => '', 'name' => $params['name'], 'phone' => $number];
+        }
         $kind = $row->kind !== '' ? (string)$row->kind : 'unknown';
         $others = [];
-        if ($row->contactid) {
+        if ($row->contactid || $row->cwid === 0) {
             [$where, $wparams] = $viewer->where();
+            $same = $row->contactid ? 'c.contactid = :contactid' : 'c.phone = :phone';
             $rows = $DB->get_records_sql(
                 "SELECT c.* FROM {" . mirror::TABLE . "} c
-                                           WHERE $where AND c.contactid = :contactid AND c.cwid <> :cwid
+                                           WHERE $where AND $same AND c.cwid <> :cwid
                                         ORDER BY c.lastactivity DESC",
-                $wparams + ['contactid' => $row->contactid, 'cwid' => $row->cwid],
+                $wparams + ['contactid' => $row->contactid, 'phone' => $row->phone, 'cwid' => $row->cwid],
                 0,
                 10
             );

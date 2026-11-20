@@ -45,6 +45,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'colors' => null,
     'stages' => null,
     'start-templates' => null,
+    'templates-info' => null,
     'sync' => false,
     'status' => false,
     'disconnect' => false,
@@ -77,6 +78,8 @@ Options:
                        pattern of the group, show a pattern of the part of the group that is shown.
 --start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
                        separated: they go first when a person starts a conversation.
+--templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title
+                       and description.
 --sync                 Fills the index with the conversations of the last month now.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.
@@ -115,8 +118,8 @@ try {
             $env['CHATWOOT_PLATFORM_TOKEN'] ?? '',
             array_filter(array_map('intval', explode(',', (string)$inboxes)))
         );
-        mtrace('Connected: ' . $counts['agents'] . ' users, ' . $counts['teams'] . ' departments, ' . $counts['inboxes'] .
-            ' inboxes' . (empty($env['CHATWOOT_PLATFORM_TOKEN']) ? ', without platform app.' : ', with platform app.'));
+        mtrace('Connected: ' . $counts['agents'] . ' users of the account, ' . $counts['teams'] . ' departments, ' .
+            $counts['inboxes'] . ' inboxes' . (empty($env['CHATWOOT_PLATFORM_TOKEN']) ? ', without platform app.' : ', with platform app.'));
     } else if ($options['inboxes'] !== null) {
         set_config(
             'chatwootinboxes',
@@ -173,6 +176,14 @@ try {
         $names = array_filter(array_map('trim', explode(',', $options['start-templates'])), 'strlen');
         set_config('chatstarttemplates', implode(',', $names), $component);
         mtrace('Messages to start with: ' . (implode(', ', $names) ?: '-'));
+    }
+    if ($options['templates-info'] !== null) {
+        $info = json_decode($options['templates-info'], true);
+        if (!is_array($info)) {
+            cli_error('--templates-info is a JSON object');
+        }
+        set_config('chattemplatesinfo', $info ? json_encode($info, JSON_UNESCAPED_UNICODE) : '', $component);
+        mtrace('Approved messages described: ' . count($info));
     }
     if ($options['webhook']) {
         mtrace('Webhook: ' . connection::webhook());

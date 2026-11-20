@@ -42,7 +42,10 @@ class templates {
             }
         }
         $first = self::first();
+        $info = self::info();
         foreach ($list as $key => $one) {
+            $list[$key]['title'] = (string)($info[$one['name']]['title'] ?? '');
+            $list[$key]['description'] = (string)($info[$one['name']]['description'] ?? '');
             $order = array_search($one['name'], $first, true);
             $list[$key]['start'] = $order !== false;
             $list[$key]['order'] = $order === false ? count($first) : $order;
@@ -62,6 +65,17 @@ class templates {
     public static function first(): array {
         $names = array_map('trim', explode(',', (string)get_config('local_oksigeniamarandu', 'chatstarttemplates')));
         return array_values(array_filter($names, 'strlen'));
+    }
+
+    /**
+     * What the organisation calls each approved message and what it says it does (setting chattemplatesinfo, a JSON
+     * object by name with title and description), for the cards the team chooses from.
+     *
+     * @return array By name.
+     */
+    public static function info(): array {
+        $info = json_decode((string)get_config('local_oksigeniamarandu', 'chattemplatesinfo'), true);
+        return is_array($info) ? $info : [];
     }
 
     /**

@@ -121,6 +121,7 @@ class starter {
         $result = ['name' => $name, 'phone' => $phone, 'line' => '', 'rings' => [], 'source' => $source, 'verified' => false];
         $family = family::of_phone($phone);
         if ($family) {
+            $result['source'] = $source === 'number' ? 'family' : $source;
             foreach ($family['adults'] as $adult) {
                 if ($adult['phone'] === $phone && $result['name'] === '') {
                     $result['name'] = $adult['name'];
@@ -130,9 +131,13 @@ class starter {
             $result['rings'] = self::rings($family['children']);
             $result['verified'] = $family['verified'];
         }
-        if ($result['name'] === '') {
-            $known = $DB->get_records(mirror::TABLE, ['phone' => $phone], 'lastactivity DESC', 'id, name', 0, 1);
-            $result['name'] = $known ? (string)reset($known)->name : '';
+        $known = $DB->get_records(mirror::TABLE, ['phone' => $phone], 'lastactivity DESC', 'id, name, lastincoming', 0, 1);
+        $known = $known ? reset($known) : null;
+        if ($known && $result['name'] === '') {
+            $result['name'] = (string)$known->name;
+        }
+        if ($known && $known->lastincoming && $result['source'] === 'number') {
+            $result['source'] = 'contact';
         }
         return $result;
     }

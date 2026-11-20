@@ -3527,6 +3527,7 @@
     background: var(--acento-suave);
 }
 #mrd-chat .mrd-inicio-dep-cab span {
+    justify-self: start;
     white-space: nowrap;
 }
 #mrd-chat .mrd-inicio-dep-cab,

@@ -36,6 +36,7 @@ use local_oksigeniamarandu\external\chat_prefs;
 use local_oksigeniamarandu\local\answers;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\reminders;
 use local_oksigeniamarandu\local\chat\viewer;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
@@ -112,6 +113,12 @@ class provider implements
             'convid' => 'privacy:metadata:convseen:convid',
             'timeseen' => 'privacy:metadata:convseen:timeseen',
         ], 'privacy:metadata:convseen');
+        $collection->add_database_table(reminders::TABLE, [
+            'userid' => 'privacy:metadata:convrem:userid',
+            'cwid' => 'privacy:metadata:convrem:cwid',
+            'remindat' => 'privacy:metadata:convrem:remindat',
+            'reason' => 'privacy:metadata:convrem:reason',
+        ], 'privacy:metadata:convrem');
         $collection->add_database_table(message::TABLE, [
             'userid' => 'privacy:metadata:convmsg:userid',
             'cwmsgid' => 'privacy:metadata:convmsg:cwmsgid',
@@ -148,6 +155,7 @@ class provider implements
             $DB->record_exists(consent::LINKS, ['userid' => $userid])
             || $DB->record_exists(channel::TABLE, ['decidedby' => $userid])
             || $DB->record_exists(viewer::SEEN, ['userid' => $userid])
+            || $DB->record_exists(reminders::TABLE, ['userid' => $userid])
             || $DB->record_exists(message::TABLE, ['userid' => $userid])
             || $DB->record_exists(mirror::TABLE, ['passedby' => $userid])
         ) {
@@ -168,6 +176,7 @@ class provider implements
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . consent::LINKS . '} WHERE userid IS NOT NULL', []);
         $userlist->add_from_sql('decidedby', 'SELECT decidedby FROM {' . channel::TABLE . '} WHERE decidedby IS NOT NULL', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . viewer::SEEN . '}', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . reminders::TABLE . '}', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . message::TABLE . '}', []);
         $userlist->add_from_sql('passedby', 'SELECT passedby FROM {' . mirror::TABLE . '} WHERE passedby > 0', []);
     }
@@ -233,6 +242,9 @@ class provider implements
             'passed' => array_values(array_map(function ($passed) {
                 return ['conversation' => (int)$passed->cwid, 'time' => transform::datetime($passed->passedat)];
             }, $DB->get_records(mirror::TABLE, ['passedby' => $userid], 'id'))),
+            'reminders' => array_values(array_map(function ($one) {
+                return ['conversation' => (int)$one->cwid, 'day' => transform::datetime($one->remindat), 'reason' => $one->reason];
+            }, $DB->get_records(reminders::TABLE, ['userid' => $userid], 'id'))),
         ];
         if ($numbers || $reviewed || array_filter($conversations)) {
             writer::with_context($context)->export_data(
@@ -286,6 +298,7 @@ class provider implements
         }
         $DB->set_field_select(channel::TABLE, 'decidedby', null, 'decidedby IS NOT NULL');
         $DB->delete_records(viewer::SEEN);
+        $DB->delete_records(reminders::TABLE);
         $DB->delete_records(message::TABLE);
         $DB->set_field_select(mirror::TABLE, 'passedby', 0, 'passedby > 0');
     }
@@ -328,6 +341,7 @@ class provider implements
         $DB->set_field(channel::TABLE, 'decidedby', null, ['decidedby' => $userid]);
         // In the conversations, the messages stay in Chatwoot; here goes what tells who read, wrote or passed.
         $DB->delete_records(viewer::SEEN, ['userid' => $userid]);
+        $DB->delete_records(reminders::TABLE, ['userid' => $userid]);
         $DB->delete_records(message::TABLE, ['userid' => $userid]);
         $DB->set_field(mirror::TABLE, 'passedby', 0, ['passedby' => $userid]);
         foreach ($links as $link) {

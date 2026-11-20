@@ -50,6 +50,11 @@ class chat_sync extends \core\task\scheduled_task {
         try {
             $changed = mirror::sync();
             mtrace('Conversations changed: ' . $changed);
+            // The conversations whose day came, back to whoever asked.
+            $back = \local_oksigeniamarandu\local\chat\reminders::due();
+            if ($back) {
+                mtrace('Conversations back on their day: ' . $back);
+            }
         } finally {
             $lock->release();
         }

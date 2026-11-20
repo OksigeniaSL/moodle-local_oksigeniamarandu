@@ -81,13 +81,19 @@ class chat_poll extends chat_base {
                 }
             }
         } else {
-            // Everything open, and what was resolved today.
+            // Everything open, what was resolved today, and what the person asked to have back on a day.
             $today = usergetmidnight($now);
+            $also = '';
+            $alsoparams = [];
+            if ($viewer->reminders()) {
+                [$in, $alsoparams] = $DB->get_in_or_equal(array_keys($viewer->reminders()), SQL_PARAMS_NAMED, 'remind');
+                $also = " OR c.cwid $in";
+            }
             $conversations = $DB->get_records_sql(
                 "SELECT c.* FROM {" . mirror::TABLE . "} c
-                                                   WHERE $where AND (c.status <> 'resolved' OR c.lastactivity >= :today)
+                                                   WHERE $where AND (c.status <> 'resolved' OR c.lastactivity >= :today$also)
                                                 ORDER BY c.lastactivity DESC",
-                $wparams + ['today' => $today]
+                $wparams + ['today' => $today] + $alsoparams
             );
         }
         $seen = $viewer->seen();

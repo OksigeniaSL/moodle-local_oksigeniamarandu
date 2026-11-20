@@ -47,6 +47,9 @@ class viewer {
     /** @var bool Whether they only look: whoever sees everything without being a person of the account. */
     public $readonly;
 
+    /** @var array|null The reminders this person waits for, once read. */
+    protected $reminders = null;
+
     /**
      * The person.
      *
@@ -212,11 +215,13 @@ class viewer {
             }
         }
         $open = $row->status !== 'resolved';
+        $later = $row->status === 'snoozed';
         $replyuntil = $row->lastincoming ? (int)$row->lastincoming + DAYSECS : 0;
+        $remind = $this->reminders()[(int)$row->cwid] ?? null;
         return [
             'id' => (int)$row->cwid,
             'status' => (string)$row->status,
-            'section' => !$open ? 'resolved' : ($row->waitsince ? 'reply' : 'waiting'),
+            'section' => !$open ? 'resolved' : ($later ? 'later' : ($row->waitsince ? 'reply' : 'waiting')),
             'teamid' => (int)$row->teamid,
             'assignee' => $assignee,
             'contact' => ['id' => (int)$row->contactid, 'name' => (string)$row->name, 'phone' => (string)$row->phone,
@@ -224,7 +229,7 @@ class viewer {
             'preview' => ['text' => (string)$row->preview, 'kind' => (string)$row->previewkind,
                 'incoming' => $row->previewkind === 'incoming', 'private' => $row->previewkind === 'note',
                 'at' => (int)$row->previewat],
-            'waitsince' => $open ? (int)$row->waitsince : 0,
+            'waitsince' => $open && !$later ? (int)$row->waitsince : 0,
             'lastincoming' => (int)$row->lastincoming,
             'canreply' => $replyuntil > $now,
             'replyuntil' => $replyuntil,
@@ -232,7 +237,27 @@ class viewer {
             'passed' => $passed,
             'lastactivity' => (int)$row->lastactivity,
             'rev' => (int)$row->timemodified,
+            'remind' => $remind,
         ];
+    }
+
+    /**
+     * The reminders this person waits for, by conversation (read once).
+     *
+     * @return array
+     */
+    public function reminders(): array {
+        if ($this->reminders === null) {
+            $this->reminders = $this->userid ? reminders::of_user($this->userid) : [];
+        }
+        return $this->reminders;
+    }
+
+    /**
+     * Forgets the reminders read, after one changes.
+     */
+    public function forget_reminders(): void {
+        $this->reminders = null;
     }
 
     /**
@@ -246,7 +271,7 @@ class viewer {
         [$where, $params] = $this->where();
         $rows = $DB->get_records_sql("SELECT c.id, c.teamid, c.assigneeid, c.waitsince
                                         FROM {" . mirror::TABLE . "} c
-                                       WHERE $where AND c.status <> 'resolved'", $params);
+                                       WHERE $where AND c.status <> 'resolved' AND c.status <> 'snoozed'", $params);
         $teams = directory::teams();
         $counts = [];
         $mine = ['reply' => 0, 'total' => 0];

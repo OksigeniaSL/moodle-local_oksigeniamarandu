@@ -56,7 +56,7 @@ class workcard {
         $page = new \moodle_url('/local/oksigeniamarandu/chat.php');
         [$where, $params] = $viewer->where();
         $rows = $DB->get_records_sql("SELECT c.* FROM {" . mirror::TABLE . "} c
-                                       WHERE $where AND c.status <> 'resolved' AND c.waitsince > 0
+                                       WHERE $where AND c.status <> 'resolved' AND c.status <> 'snoozed' AND c.waitsince > 0
                                     ORDER BY c.waitsince ASC", $params);
         $mine = [];
         $unassigned = [];
@@ -120,7 +120,7 @@ class workcard {
         $passed = $DB->get_records_select(
             mirror::TABLE,
             "passedto = :me AND passedat > :since AND passedby <> :userid
-            AND status <> 'resolved'",
+            AND status <> 'resolved' AND status <> 'snoozed'",
             ['me' => $viewer->agent['id'], 'since' => $now - DAYSECS, 'userid' => $userid],
             'passedat DESC',
             '*',

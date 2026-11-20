@@ -51,6 +51,7 @@ use local_oksigeniamarandu\local\chat\viewer;
  * @covers     \local_oksigeniamarandu\local\chat\workcard
  * @covers     \local_oksigeniamarandu\local\chat\notify
  * @covers     \local_oksigeniamarandu\local\chat\starter
+ * @covers     \local_oksigeniamarandu\local\chat\reminders
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mirror::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(hours::class)]
@@ -61,6 +62,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\workcard::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\notify::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(starter::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\reminders::class)]
 final class chat_test extends \advanced_testcase {
     /** Monday 16 November 2026 at 12:00 in the Canary Islands (UTC). */
     private const MONDAY_NOON = 1794830400;
@@ -733,6 +735,68 @@ final class chat_test extends \advanced_testcase {
         $this->assertStringEndsWith('…', $snippet);
         $this->assertStringContainsString('el menú de la semana', $snippet);
         $this->assertSame('Hola, ¿qué tal?', chat_resolved::snippet("Hola,\n  ¿qué tal?", 'tal'));
+    }
+
+    /**
+     * «Remind me»: the conversation is the person's and waits apart until the day chosen, when the team opens; that day
+     * it is open again, with the line as a note and a notice. On a resolved one nothing changes until then.
+     */
+    public function test_remind_me(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $viewer = viewer::for_user($ana);
+        $hours = hours::of_site();
+        // Monday 23 November opens at 7:00 in the Canary Islands (UTC in winter); a Saturday has no hours: 8:00.
+        $monday = self::MONDAY_NOON + 7 * DAYSECS - 5 * HOURSECS;
+        $this->assertSame($monday, $hours->opening('2026-11-23'));
+        $this->assertSame(self::MONDAY_NOON + 5 * DAYSECS - 4 * HOURSECS, $hours->opening('2026-11-21'));
+        $this->assertSame(0, $hours->opening('2026-02-30'));
+
+        $row = $DB->get_record(mirror::TABLE, ['cwid' => 1]);
+        $now = chat\reminders::set($viewer, $row, '2026-11-23', "  Llamar   por\nla beca ", $hours, self::MONDAY_NOON);
+        $this->assertContains(['POST', '/conversations/1/assignments', ['assignee_id' => 1]], $this->client->calls);
+        $this->assertContains(
+            ['POST', '/conversations/1/toggle_status', ['status' => 'snoozed', 'snoozed_until' => $monday]],
+            $this->client->calls
+        );
+        $this->assertSame('snoozed', $now->status);
+        $this->assertSame([1 => ['at' => $monday, 'reason' => 'Llamar por la beca']], chat\reminders::of_user((int)$ana->id));
+        $viewer = viewer::for_user($ana);
+        $shown = $viewer->export($now, [], self::MONDAY_NOON);
+        $this->assertSame(['later', 0, $monday], [$shown['section'], $shown['waitsince'], $shown['remind']['at']]);
+        // Ana's now, but apart: «Mine» counts only conversation 3.
+        $this->assertSame(1, $viewer->inboxes()['mine']['total']);
+
+        // Not yet; then its day.
+        $this->assertSame(0, chat\reminders::due(self::MONDAY_NOON + DAYSECS));
+        $sink = $this->redirectMessages();
+        $this->client->calls = [];
+        $this->assertSame(1, chat\reminders::due($monday + 60));
+        $this->assertContains(['POST', '/conversations/1/toggle_status', ['status' => 'open']], $this->client->calls);
+        $notes = array_values(array_filter($this->client->calls, function ($call) {
+            return $call[1] === '/conversations/1/messages' && $call[0] === 'POST';
+        }));
+        $this->assertSame(['Reminder: Llamar por la beca', true], [$notes[0][2]['content'], $notes[0][2]['private']]);
+        $messages = $sink->get_messages();
+        $this->assertCount(1, $messages);
+        $this->assertSame('For today: Laura Martín. Llamar por la beca', $messages[0]->subject);
+        $this->assertSame([], chat\reminders::of_user((int)$ana->id));
+        $this->assertSame(0, chat\reminders::due($monday + 120));
+
+        // A resolved one stays as it is until its day; taken away, nothing is left.
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 3]);
+        $three = $DB->get_record(mirror::TABLE, ['cwid' => 3]);
+        $this->client->calls = [];
+        chat\reminders::set($viewer, $three, '2026-11-24', '', $hours, self::MONDAY_NOON);
+        $this->assertSame([], $this->client->calls);
+        $this->assertCount(1, chat\reminders::of_user((int)$ana->id));
+        chat\reminders::remove($viewer, $three);
+        $this->assertSame([], chat\reminders::of_user((int)$ana->id));
+        $this->assertSame([], $this->client->calls);
+
+        $this->expectException(\invalid_parameter_exception::class);
+        chat\reminders::set($viewer, $row, '2026-11-16', '', $hours, self::MONDAY_NOON);
     }
 
     /**

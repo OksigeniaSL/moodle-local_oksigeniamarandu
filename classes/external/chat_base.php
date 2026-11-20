@@ -95,7 +95,7 @@ abstract class chat_base extends external_api {
         return new external_single_structure([
             'id' => new external_value(PARAM_INT, 'The number of the conversation in the account'),
             'status' => new external_value(PARAM_ALPHA, 'open, pending, snoozed or resolved'),
-            'section' => new external_value(PARAM_ALPHA, 'reply, waiting or resolved'),
+            'section' => new external_value(PARAM_ALPHA, 'reply, waiting, later (apart until a day) or resolved'),
             'teamid' => new external_value(PARAM_INT, 'Its department, or 0'),
             'assignee' => $person,
             'contact' => new external_single_structure([
@@ -128,6 +128,10 @@ abstract class chat_base extends external_api {
                 'at' => new external_value(PARAM_INT, 'When'),
                 'toteam' => new external_value(PARAM_BOOL, 'Whether it went to the department and not to the person'),
             ], 'Whether someone passed it to whoever looks', VALUE_OPTIONAL),
+            'remind' => new external_single_structure([
+                'at' => new external_value(PARAM_INT, 'When it comes back'),
+                'reason' => new external_value(PARAM_TEXT, 'What for'),
+            ], 'The day whoever looks asked to have it back', VALUE_OPTIONAL),
             'lastactivity' => new external_value(PARAM_INT, 'Its last movement'),
             'rev' => new external_value(PARAM_INT, 'When its row changed: an answer with an older one is out of date'),
         ]);
@@ -180,8 +184,8 @@ abstract class chat_base extends external_api {
      * @return array
      */
     protected static function clean(array $conversation): array {
-        foreach (['assignee', 'passed'] as $field) {
-            if ($conversation[$field] === null) {
+        foreach (['assignee', 'passed', 'remind'] as $field) {
+            if (($conversation[$field] ?? null) === null) {
                 unset($conversation[$field]);
             }
         }

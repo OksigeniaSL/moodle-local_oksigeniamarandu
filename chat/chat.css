@@ -2995,7 +2995,8 @@
         font-size: 13.5px;
         white-space: nowrap;
     }
-    #mrd-chat .mrd-cab-der .mrd-resolver .mrd-t {
+    #mrd-chat .mrd-cab-der .mrd-resolver .mrd-t,
+    #mrd-chat .mrd-cab-der .mrd-recordar .mrd-t {
         display: none;
     }
     #mrd-chat .mrd-cab-der .mrd-ver-ficha {
@@ -4060,6 +4061,9 @@
     gap: 6px;
     margin-top: 6px;
 }
+#mrd-chat .mrd-hist-quitar {
+    margin-top: 10px;
+}
 #mrd-chat .mrd-hallado {
     font-style: italic;
 }
@@ -4073,4 +4077,137 @@
     background: var(--nota);
     color: var(--nota-tinta);
     font-weight: 600;
+}
+
+/* «Remind me»: the button of the head, and its sheet with the days and the line of what for. */
+#mrd-chat .mrd-rem-caja {
+    position: relative;
+}
+#mrd-chat .mrd-btn.mrd-recordar.mrd-on {
+    background: var(--acento-suave);
+    border-color: var(--acento-anillo);
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-pop-recordar {
+    top: calc(100% + 6px);
+    inset-inline-end: 0;
+    width: 330px;
+    max-width: calc(100vw - 24px);
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#mrd-chat .mrd-pop-recordar h5 {
+    margin: 2px 0 0;
+}
+#mrd-chat .mrd-rem-ahora {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+    font-size: 13px;
+    font-weight: 600;
+}
+#mrd-chat .mrd-rem-ahora > span {
+    flex: 1;
+}
+#mrd-chat .mrd-rem-rapidos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#mrd-chat .mrd-rem-rapidos .mrd-chip {
+    padding: 4px 10px;
+    font-size: 12.5px;
+}
+#mrd-chat .mrd-rem-sem,
+#mrd-chat .mrd-rem-dias {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    text-align: center;
+}
+#mrd-chat .mrd-rem-sem span {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tinta-3);
+    text-transform: uppercase;
+    padding-bottom: 2px;
+}
+#mrd-chat .mrd-rem-dia {
+    height: 34px;
+    line-height: 1;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--tinta);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0 2px;
+}
+#mrd-chat .mrd-rem-dia:disabled {
+    color: var(--tinta-3);
+    opacity: .45;
+    font-weight: 400;
+}
+#mrd-chat .mrd-rem-dia.mrd-hoy {
+    box-shadow: inset 0 0 0 1.5px var(--linea-2);
+}
+#mrd-chat .mrd-rem-dia.mrd-on {
+    background: var(--acento-boton);
+    color: #fff;
+}
+
+@media (hover: hover) {
+    #mrd-chat .mrd-rem-dia:not(:disabled):not(.mrd-on):hover {
+        background: var(--acento-suave);
+    }
+}
+#mrd-chat .mrd-rem-l {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-rem-motivo {
+    width: 100%;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: var(--hoja);
+    color: var(--tinta);
+    font-size: 14px;
+    font-weight: 400;
+}
+#mrd-chat .mrd-rem-motivo:focus {
+    outline: none;
+    border-color: var(--acento-texto);
+    box-shadow: 0 0 0 3px var(--acento-anillo);
+}
+#mrd-chat .mrd-rem-ayuda {
+    margin: 0;
+    font-size: 12px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-rem-ok {
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-pop-recordar {
+        position: fixed;
+        inset: auto 12px 12px;
+        width: auto;
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+    }
 }

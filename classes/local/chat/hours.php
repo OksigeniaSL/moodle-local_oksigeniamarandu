@@ -117,6 +117,22 @@ class hours {
     }
 
     /**
+     * When the team starts a day: its opening, or 8:00 if that day has no hours of its own (all day, or no hours at all).
+     *
+     * @param string $ymd The day, Y-m-d.
+     * @return int The moment; 0 if the day is not a date.
+     */
+    public function opening(string $ymd): int {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $ymd, $this->zone);
+        if (!$date || $date->format('Y-m-d') !== $ymd) {
+            return 0;
+        }
+        $span = $this->week[(int)$date->format('w')] ?? null;
+        $minute = $span && $span[0] > 0 ? $span[0] : 8 * 60;
+        return $date->setTime(intdiv($minute, 60), $minute % 60)->getTimestamp();
+    }
+
+    /**
      * Whether the team attends at that moment.
      *
      * @param int $time The moment.

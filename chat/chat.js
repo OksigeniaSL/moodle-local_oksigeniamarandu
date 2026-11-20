@@ -16,6 +16,7 @@
         prefs: 'local_oksigeniamarandu_chat_prefs',
         find: 'local_oksigeniamarandu_chat_find',
         resolved: 'local_oksigeniamarandu_chat_resolved',
+        remind: 'local_oksigeniamarandu_chat_remind',
         flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start'
     };
@@ -376,6 +377,39 @@
             return s('whenday', { day: near ? fWeekday.format(d) : fDayMonth.format(d), time: t });
         }
 
+        /* -------- «Remind me»: the days a person can choose, and when each one starts -------- */
+        function keyIso(k) {
+            var y = Math.floor(k / 10000), mo = Math.floor(k / 100) % 100, d = k % 100;
+            return y + '-' + (mo < 10 ? '0' : '') + mo + '-' + (d < 10 ? '0' : '') + d;
+        }
+        function isoKey(iso) {
+            return +String(iso || '').replace(/-/g, '') || 0;
+        }
+        // The team works that day (without hours, every day).
+        function openDay(k) {
+            return !HOURS_ON || !!windowOfKey(k);
+        }
+        // When a day starts for a reminder: the opening of the team, or 8:00 (as the server does).
+        function remAt(k) {
+            var y = Math.floor(k / 10000), mo = Math.floor(k / 100) % 100, d = k % 100;
+            var w = WEEK[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()];
+            if (HOURS_ON && w && !w.closed && !w.allday) {
+                var o = hm(w.open);
+                if (o[0] * 60 + o[1] > 0) {
+                    return zonedMs(y, mo, d, o[0], o[1]);
+                }
+            }
+            return zonedMs(y, mo, d, 8, 0);
+        }
+        // «mañana», «el lunes», «el 3 de diciembre».
+        function remShort(ms) {
+            var k = dayKey(ms), today = dayKey(nowMs()), d = new Date(ms);
+            if (k === shiftKey(today, 1)) {
+                return s('remtomorrowlow');
+            }
+            return s('remonday', k < shiftKey(today, 7) ? fWeekday.format(d) : fDayMonth.format(d));
+        }
+
         /* -------- Working hours: the wait counts only while the centre is open -------- */
         var HOURS_ON = !!(hours.enabled && hours.week && hours.week.length);
         var WEEK = {};
@@ -508,7 +542,7 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false,
+            rem: { day: '', reason: '' }, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false,
             hf: { mine: false, team: 0, period: '' }, hits: {}, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
             ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
@@ -791,7 +825,8 @@
                 return c.section === 'resolved';
             }
             if (inbox === 'mine') {
-                return isMine(c);
+                // Also what the person asked to have back on a day, though it was resolved.
+                return isMine(c) || !!c.remind;
             }
             if (inbox === 'unassigned') {
                 if (c.assignee || c.section === 'resolved') {
@@ -1699,7 +1734,7 @@
             var tags = [];
             if (c.assignee) {
                 tags.push('<span class="mrd-etq mrd-quien">' + avAgent(c.assignee, 'mrd-s') + esc(isMine(c) ? s('You') : firstName(c.assignee)) + '</span>');
-            } else if (c.section !== 'resolved') {
+            } else if (c.section !== 'resolved' && c.section !== 'later') {
                 tags.push('<span class="mrd-etq mrd-sin">' + esc(s('unassigned')) + '</span>');
             }
             if (opts.withTeam) {
@@ -1710,14 +1745,17 @@
                 tags.push('<span class="mrd-etq mrd-de-noche">' + ico('luna') + esc(s('wrotenight', fmtTime(c.waitingsince * 1000))) + '</span>');
             }
             var right;
-            if (c.section === 'reply' && c.waitingsince && !opts.night) {
+            if (opts.later) {
+                // The day it comes back is in its line: no other date beside it.
+                right = '';
+            } else if (c.section === 'reply' && c.waitingsince && !opts.night) {
                 var wt = waitText(c);
                 right = '<span class="mrd-conv-espera ' + waitTier(c) + '" title="' + esc(s('waits', wt)) + '">' + ico('reloj') + esc(wt) + '</span>';
             } else {
                 var at = (opts.night ? c.waitingsince : (c.lastactivity || (c.preview && c.preview.at) || 0)) * 1000;
                 right = '<span class="mrd-conv-hora">' + esc(at ? (opts.night ? fmtTime(at) : listTime(at)) : '') + '</span>';
             }
-            if (c.section !== 'resolved') {
+            if (c.section !== 'resolved' && c.section !== 'later') {
                 if (!canReply(c)) {
                     tags.push('<span class="mrd-etq mrd-retomar">' + ico('mensaje') + esc(s('retake')) + '</span>');
                 } else if (c.replyuntil && c.replyuntil * 1000 - nowMs() < 4 * 3600000) {
@@ -1732,7 +1770,11 @@
                     : s('passedtoyou', c.passed.by)) + '</span>');
             }
             var pv = c.preview || {}, txt = esc(pv.text || ''), hit = opts.found && st.search.trim() ? st.hits[c.id] : null;
-            if (hit) {
+            if (opts.later && c.remind) {
+                // When it comes back, and what for.
+                txt = ico('campana') + '<b class="mrd-hallado-cuando">' + esc(s('remline', whenPhrase(c.remind.at * 1000))) + '</b>' +
+                    (c.remind.reason ? ' · ' + esc(c.remind.reason) : '');
+            } else if (hit) {
                 // Where the search found the words: the sentence, and when it was said.
                 txt = ico(hit.note ? 'nota' : 'mensaje') + '<b class="mrd-hallado-cuando">' + esc(listTime(hit.at * 1000)) + '</b> · ' +
                     '<span class="mrd-hallado">' + markWords(hit.text, st.search) + '</span>';
@@ -1804,8 +1846,13 @@
             var waiting = all.filter(function (c) {
                 return c.section === 'waiting';
             }).sort(byActivity);
+            var later = all.filter(function (c) {
+                return c.section === 'later' || !!c.remind;
+            }).sort(function (a, b) {
+                return ((a.remind && a.remind.at) || 4e9) - ((b.remind && b.remind.at) || 4e9);
+            });
             var done = all.filter(function (c) {
-                return c.section === 'resolved';
+                return c.section === 'resolved' && later.indexOf(c) < 0;
             }).sort(byActivity);
             var night = isMorning() ? reply.filter(arrivedAtNight).sort(function (a, b) {
                 return a.waitingsince - b.waitingsince;
@@ -1831,6 +1878,12 @@
             if (waiting.length) {
                 h += '<div class="mrd-grupo-t mrd-suave">' + esc(s('groupwaiting')) + ' <span>' + waiting.length + '</span></div>' +
                     waiting.map(item(false)).join('');
+            }
+            if (later.length) {
+                h += '<div class="mrd-grupo-t mrd-suave">' + ico('campana') + esc(s('grouplater')) + ' <span>' + later.length + '</span></div>' +
+                    later.map(function (c) {
+                        return convItem(c, { withTeam: withTeam, later: true });
+                    }).join('');
             }
             h += resolvedHtml(done, item(false));
             body.innerHTML = h;
@@ -1962,7 +2015,8 @@
             } else if (st.history === 'done') {
                 var none = !done.filter(historyMatch).length, filtered = st.hf.mine || st.hf.period || st.hf.team;
                 h += '<div class="mrd-resueltas-estado">' + esc(!none ? s('historyend') : filtered ? historyNoneText() : s('historynone')) +
-                    (none && filtered ? ' <button type="button" class="mrd-ver-resueltas" data-a="histclear">' + esc(s('histclear')) + '</button>' : '') +
+                    (none && filtered ? '<div class="mrd-hist-quitar"><button type="button" class="mrd-btn mrd-chico" data-a="histclear">' +
+                        esc(s('histclear')) + '</button></div>' : '') +
                     '</div>';
             }
             return h;
@@ -2232,6 +2286,11 @@
                 : avAgent(null, 'mrd-s') + '<span>' + esc(s('unassigned')) + '</span>';
             var dis = READONLY ? ' disabled' : '';
             var resolved = c.section === 'resolved';
+            var why = head.querySelector('.mrd-rem-motivo'), typing = why && document.activeElement === why, caret = typing ? why.selectionStart : 0;
+            var remBtn = READONLY ? '' : '<div class="mrd-rem-caja"><button type="button" class="mrd-btn mrd-recordar' + (c.remind ? ' mrd-on' : '') +
+                '" data-a="pop" data-v="recordar" aria-expanded="' + (st.pop === 'recordar') + '" title="' + esc(s('remtitle')) + '">' + ico('campana') +
+                '<span class="mrd-t">' + esc(c.remind ? s('remindback', remShort(c.remind.at * 1000)) : s('remindbtn')) + '</span></button>' +
+                (st.pop === 'recordar' ? popRemind(c) : '') + '</div>';
             head.innerHTML = '<button type="button" class="mrd-volver" data-a="back" data-v="lista" aria-label="' + esc(s('back')) + '">' + ico('izq') + '</button>' +
                 '<h2>' + esc(ct.name || fmtPhone(ct.phone)) + '<span class="mrd-rel">' + relHtml(ct) + '</span></h2>' +
                 '<div class="mrd-mandos"><button type="button" class="mrd-mando" data-a="pop" data-v="dep"' + dis + ' aria-expanded="' + (st.pop === 'dep') + '">' +
@@ -2239,16 +2298,68 @@
                 '<button type="button" class="mrd-mando mrd-quien" data-a="pop" data-v="dueno"' + dis + ' aria-expanded="' + (st.pop === 'dueno') + '">' +
                 owner + (READONLY ? '' : ico('abajo', 'mrd-flecha')) + '</button>' + (st.pop === 'dep' ? popTeams(c) : st.pop === 'dueno' ? popPeople(c) : '') + '</div>' +
                 '<div class="mrd-cab-der"><button type="button" class="mrd-btn mrd-ver-ficha" data-a="ficha">' + ico('ficha') + esc(s('file')) + '</button>' +
-                (READONLY ? '' : resolved
+                remBtn + (READONLY ? '' : resolved
                     ? '<button type="button" class="mrd-btn mrd-hecho mrd-resolver" data-a="reopen" title="' + esc(s('reopen')) + '">' + ico('check') +
                     '<span class="mrd-t">' + esc(s('resolved')) + '</span></button>'
                     : '<button type="button" class="mrd-btn mrd-resolver" data-a="resolve">' + ico('check') + '<span class="mrd-t">' + esc(s('resolve')) +
                     '</span></button>') + '</div>';
+            var why2 = head.querySelector('.mrd-rem-motivo');
+            if (typing && why2) {
+                why2.focus();
+                why2.setSelectionRange(caret, caret);
+            }
             var pm = head.querySelector('.mrd-pop-menu');
             if (pm && st.pop === 'dueno') {
                 var b = head.querySelector('.mrd-mando.mrd-quien');
                 pm.style.setProperty('--x', b.offsetLeft + 'px');
             }
+        }
+        /* «Remind me»: a day (the next ones the team works, or any in the sheet of five weeks) and a line of what for;
+           that day, when the team opens, the conversation is back in «Mine» with the line as a note, and a notice. */
+        function popRemind(c) {
+            var today = dayKey(nowMs()), chosen = isoKey(st.rem.day), quick = [], k = shiftKey(today, 1);
+            for (var i = 0; i < 14 && quick.length < 3; i++, k = shiftKey(k, 1)) {
+                if (openDay(k)) {
+                    quick.push([k, k === shiftKey(today, 1) ? s('remtomorrow') : s('remweekday', fWeekday.format(new Date(remAt(k))))]);
+                }
+            }
+            var week = shiftKey(today, 7);
+            for (var j = 0; j < 7 && !openDay(week); j++) {
+                week = shiftKey(week, 1);
+            }
+            if (quick.every(function (q) {
+                return q[0] !== week;
+            })) {
+                quick.push([week, s('remweek')]);
+            }
+            var dayChip = function (q) {
+                return '<button type="button" class="mrd-chip' + (q[0] === chosen ? ' mrd-on' : '') + '" data-a="remday" data-v="' + keyIso(q[0]) +
+                    '" aria-pressed="' + (q[0] === chosen) + '">' + esc(q[1]) + '</button>';
+            };
+            var start = weekStart(nowMs()), cells = '', heads = '';
+            for (var w = 0; w < 7; w++) {
+                heads += '<span>' + esc(new Intl.DateTimeFormat(LANG, { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 10, 16 + w)))) + '</span>';
+            }
+            for (var n = 0; n < 35; n++) {
+                var key = shiftKey(start, n), d = key % 100, ok = key > today && openDay(key);
+                var label = d === 1 || n === 0 ? fShort.format(new Date(remAt(key))) : String(d);
+                cells += '<button type="button" class="mrd-rem-dia' + (key === chosen ? ' mrd-on' : '') + (key === today ? ' mrd-hoy' : '') + '" data-a="remday" data-v="' +
+                    keyIso(key) + '"' + (ok ? '' : ' disabled') + ' aria-pressed="' + (key === chosen) + '" aria-label="' + esc(dayText(remAt(key))) + '">' +
+                    esc(label) + '</button>';
+            }
+            var at = chosen ? remAt(chosen) : 0;
+            var same = c.remind && chosen === dayKey(c.remind.at * 1000) && st.rem.reason.trim() === c.remind.reason;
+            var okText = !at ? s('remsavenoday') : c.remind ? s('remchange', whenPhrase(at)) : s('remsave', whenPhrase(at));
+            return '<div class="mrd-pop mrd-pop-recordar" role="dialog" aria-label="' + esc(s('remtitle')) + '"><h5>' + esc(s('remtitle')) + '</h5>' +
+                (c.remind ? '<div class="mrd-rem-ahora">' + ico('campana') + '<span>' + esc(s('remnowline', whenPhrase(c.remind.at * 1000))) + '</span>' +
+                    '<button type="button" class="mrd-btn mrd-chico" data-a="remclear">' + esc(s('remclear')) + '</button></div>' : '') +
+                '<div class="mrd-rem-rapidos">' + quick.map(dayChip).join('') + '</div>' +
+                '<div class="mrd-rem-cal"><div class="mrd-rem-sem">' + heads + '</div><div class="mrd-rem-dias">' + cells + '</div></div>' +
+                '<label class="mrd-rem-l"><span>' + esc(s('remreason')) + '</span><input type="text" class="mrd-rem-motivo" maxlength="200" autocomplete="off" ' +
+                'placeholder="' + esc(s('remreasonph')) + '" value="' + esc(st.rem.reason) + '"></label>' +
+                '<p class="mrd-rem-ayuda">' + esc(s('remhelp')) + '</p>' +
+                '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="remsave"' + (at && !same ? '' : ' disabled') + '>' +
+                esc(okText) + '</button></div>';
         }
         function popTeams(c) {
             var all = (st.extras.teams && st.extras.teams.length ? st.extras.teams : teams());
@@ -3969,6 +4080,23 @@
                 throw e;
             });
         }
+        function remind(btn, id, day, reason) {
+            busy(btn, true);
+            return tr.call(M.remind, { conversation: id, day: day, reason: day ? reason : '' }).then(function (r) {
+                var c = r && r.conversation;
+                if (c && c.id) {
+                    mergeConv(c);
+                }
+                st.pop = null;
+                toast(c && c.remind ? s('remtoast', whenPhrase(c.remind.at * 1000)) : s('remcleared'));
+                refreshAfterData();
+                pollSoon();
+                return r;
+            }).catch(function (e) {
+                busy(btn, false);
+                failToast(e);
+            });
+        }
         function busy(btn, on) {
             if (btn) {
                 btn.disabled = on;
@@ -4552,7 +4680,7 @@
             st.pop = null;
             if (was === 'perfil' || was === 'avisos' || was === 'ayuda') {
                 renderRail();
-            } else if (was === 'dep' || was === 'dueno') {
+            } else if (was === 'dep' || was === 'dueno' || was === 'recordar') {
                 renderHead();
             } else {
                 refreshWritePop();
@@ -4799,6 +4927,16 @@
                     st.historyMore = false;
                     renderListBody();
                     break;
+                case 'remday':
+                    st.rem.day = v;
+                    renderHead();
+                    break;
+                case 'remsave':
+                case 'remclear':
+                    if (c) {
+                        remind(t, c.id, a === 'remsave' ? st.rem.day : '', st.rem.reason);
+                    }
+                    break;
                 case 'histclear':
                     st.hf = { mine: false, team: 0, period: '' };
                     st.hfDep = false;
@@ -4826,7 +4964,10 @@
                     st.popFilter = '';
                     if (v === 'perfil' || v === 'avisos' || v === 'ayuda') {
                         renderRail();
-                    } else if (v === 'dep' || v === 'dueno') {
+                    } else if (v === 'dep' || v === 'dueno' || v === 'recordar') {
+                        if (v === 'recordar' && st.pop && c) {
+                            st.rem = { day: c.remind ? keyIso(dayKey(c.remind.at * 1000)) : '', reason: c.remind ? c.remind.reason : '' };
+                        }
                         renderHead();
                     } else {
                         refreshWritePop();
@@ -5023,6 +5164,15 @@
         });
         box.addEventListener('input', function (e) {
             var t = e.target;
+            if (t.classList && t.classList.contains('mrd-rem-motivo')) {
+                st.rem.reason = t.value;
+                // With a reminder already there, a new line is a change to save.
+                var rc = conv(st.open), okb = el.chat.querySelector('.mrd-rem-ok');
+                if (rc && rc.remind && okb && st.rem.day) {
+                    okb.disabled = isoKey(st.rem.day) === dayKey(rc.remind.at * 1000) && t.value.trim() === rc.remind.reason;
+                }
+                return;
+            }
             if (t.getAttribute && t.getAttribute('data-role') === 'nuevabuscar' && st.nueva) {
                 findSoon(t.value);
                 return;
@@ -5079,6 +5229,14 @@
         });
         box.addEventListener('keydown', function (e) {
             var t = e.target;
+            if (e.key === 'Enter' && t.classList && t.classList.contains('mrd-rem-motivo')) {
+                e.preventDefault();
+                var ok = el.chat.querySelector('.mrd-rem-ok');
+                if (ok && !ok.disabled) {
+                    ok.click();
+                }
+                return;
+            }
             if (e.key === 'Escape') {
                 if (!el.visor.hidden) {
                     closeViewer();

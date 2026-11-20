@@ -288,5 +288,24 @@
         <INDEX NAME="field-phonenumberid" UNIQUE="false" FIELDS="field, phonenumberid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_convrem" COMMENT="The day a person asked to be reminded of a conversation, with what for">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="cwid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of the conversation in Chatwoot"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Who asked for it"/>
+        <FIELD NAME="remindat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="When: the opening of the day chosen"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="What for, in a line"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timedone" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When it came back; 0 while it waits"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timedone-remindat" UNIQUE="false" FIELDS="timedone, remindat"/>
+        <INDEX NAME="cwid" UNIQUE="false" FIELDS="cwid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

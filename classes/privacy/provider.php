@@ -38,6 +38,7 @@ use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\viewer;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
+use local_oksigeniamarandu\local\history;
 use local_oksigeniamarandu\local\telegram;
 
 /**
@@ -119,6 +120,9 @@ class provider implements
             'passedby' => 'privacy:metadata:conv:passedby',
             'passedat' => 'privacy:metadata:conv:passedat',
         ], 'privacy:metadata:conv');
+        $collection->add_database_table(history::TABLE, [
+            'payload' => 'privacy:metadata:hist:payload',
+        ], 'privacy:metadata:hist');
         $collection->add_external_location_link('chatwoot', [
             'userid' => 'privacy:metadata:chatwoot:userid',
             'message' => 'privacy:metadata:chatwoot:message',

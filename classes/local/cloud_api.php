@@ -266,6 +266,21 @@ class cloud_api {
     }
 
     /**
+     * Asks Meta, once after a number of the app of WhatsApp Business joins the API (coexistence), for its contacts
+     * (smb_app_state_sync) or its chats (history): they come afterwards to the webhook.
+     *
+     * @param string $phonenumberid The number.
+     * @param string $type smb_app_state_sync or history.
+     * @return string The id of the request, for the support of Meta.
+     * @throws api_exception If Meta does not take it.
+     */
+    public function request_app_data(string $phonenumberid, string $type): string {
+        $answer = $this->post(rawurlencode($phonenumberid) . '/smb_app_data', ['messaging_product' => 'whatsapp',
+            'sync_type' => $type]);
+        return (string)($answer['request_id'] ?? '');
+    }
+
+    /**
      * Posts to the Graph API and turns its errors into exceptions.
      *
      * @param string $path Path after the version, such as <phone number id>/messages.

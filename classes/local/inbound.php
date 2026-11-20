@@ -83,6 +83,13 @@ class inbound {
                     );
                     continue;
                 }
+                if (in_array($field, history::FIELDS, true)) {
+                    // The chats and contacts of a number that came from the app of WhatsApp Business (coexistence):
+                    // kept as they come, for the shared inbox, whatever number of the account they are about.
+                    history::keep($field, $value);
+                    $others++;
+                    continue;
+                }
                 if ($field !== 'messages' || (string)($value['metadata']['phone_number_id'] ?? '') !== $mine) {
                     $others++;
                     continue;

@@ -63,7 +63,7 @@ final class provider_test extends provider_testcase {
         $this->assertEqualsCanonicalizing([consent::CONTACTS, consent::LINKS, consent::LOG, 'local_oksigeniamarandu_queue',
             'local_oksigeniamarandu_answer', 'local_oksigeniamarandu_post', 'telegram', 'whatsapp', 'forward',
             'local_oksigeniamarandu_conv', 'local_oksigeniamarandu_convseen', 'local_oksigeniamarandu_convmsg', 'chatwoot',
-            'local_oksigeniamarandu_chatbackgrounds'], $names);
+            'local_oksigeniamarandu_chatbackgrounds', 'local_oksigeniamarandu_hist'], $names);
     }
 
     /**

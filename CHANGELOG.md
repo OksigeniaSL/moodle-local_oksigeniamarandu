@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.38.0 (2026-11-20)
+
+- For a number that joins the API from the app of WhatsApp Business (coexistence): the site keeps, as they come, the
+  chats and contacts Meta sends once in the day after (`history` and `smb_app_state_sync`), and `cli/history.php` asks
+  Meta for them, says how far they came and writes them in one file, in order and without repeats.
+  `cli/chatwoot/import_history.rb` brings that file into an inbox of Chatwoot: each chat a resolved conversation with
+  every message at its date, written directly, without webhooks, bots or sending to WhatsApp; it can run twice.
+- What a person writes in the app of WhatsApp Business of the number (Chatwoot keeps it as an echo) is an answer of a
+  person in the conversations: it ends the wait, and says it came from the phone.
+- `cli/chat.php --status` tells the people of the team apart from the automatic users.
+
 ## 0.37.2 (2026-11-20)
 
 - The lines of Chatwoot about what happened in a conversation are said as the page says things, with first names and

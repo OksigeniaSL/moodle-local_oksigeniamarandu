@@ -272,5 +272,20 @@
         <INDEX NAME="cwmsgid" UNIQUE="true" FIELDS="cwmsgid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_hist" COMMENT="The chats and contacts of a number that came from the app of WhatsApp Business, as Meta sent them once">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="field" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" COMMENT="history or smb_app_state_sync"/>
+        <FIELD NAME="phonenumberid" TYPE="char" LENGTH="32" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="payload" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="The value of the change, as JSON"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="field-phonenumberid" UNIQUE="false" FIELDS="field, phonenumberid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

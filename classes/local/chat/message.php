@@ -50,6 +50,10 @@ class message {
         if ($type === 'incoming') {
             return 'incoming';
         }
+        if (!empty($message['content_attributes']['external_echo'])) {
+            // Written by a person in the app of WhatsApp Business of the number (coexistence), or brought from it.
+            return 'outgoing';
+        }
         $sender = \core_text::strtolower((string)($message['sender_type'] ?? $message['sender']['type'] ?? ''));
         $senderid = (int)($message['sender_id'] ?? $message['sender']['id'] ?? 0);
         if ($sender === 'user' && !in_array($senderid, self::automatic())) {
@@ -95,6 +99,8 @@ class message {
         if ($userid) {
             $user = \core_user::get_user($userid);
             $name = $user ? fullname($user) : $name;
+        } else if ($name === '' && !empty($message['content_attributes']['external_echo'])) {
+            $name = get_string('chat:fromphone', 'local_oksigeniamarandu');
         }
         $attachments = [];
         foreach ($message['attachments'] ?? [] as $attachment) {

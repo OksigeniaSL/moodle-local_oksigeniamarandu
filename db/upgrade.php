@@ -327,6 +327,14 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026113000, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026113100) {
+        // The chats of a number that comes from the app of WhatsApp Business, kept for the shared inbox.
+        if (!$dbman->table_exists('local_oksigeniamarandu_hist')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_oksigeniamarandu_hist');
+        }
+        upgrade_plugin_savepoint(true, 2026113100, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

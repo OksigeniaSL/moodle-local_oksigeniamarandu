@@ -108,7 +108,7 @@ try {
             $env['CHATWOOT_PLATFORM_TOKEN'] ?? '',
             array_filter(array_map('intval', explode(',', (string)$inboxes)))
         );
-        mtrace('Connected: ' . $counts['agents'] . ' people, ' . $counts['teams'] . ' departments, ' . $counts['inboxes'] .
+        mtrace('Connected: ' . $counts['agents'] . ' users, ' . $counts['teams'] . ' departments, ' . $counts['inboxes'] .
             ' inboxes' . (empty($env['CHATWOOT_PLATFORM_TOKEN']) ? ', without platform app.' : ', with platform app.'));
     } else if ($options['inboxes'] !== null) {
         set_config(
@@ -167,7 +167,9 @@ try {
             (empty($config->chatwootplatform) ? ', without platform app' : ', with platform app'));
         mtrace('Inboxes: ' . (($config->chatwootinboxes ?? '') ?: 'all') . '; webhook: ' .
             (($config->chatwootwebhook ?? 0) ?: 'none'));
-        mtrace('People: ' . count(directory::agents()) . '; departments: ' . count(directory::teams()));
+        $automatic = count(directory::agents()) - count(directory::people());
+        mtrace('People: ' . count(directory::people()) . ($automatic ? ' (and ' . $automatic . ' automatic users)' : '') .
+            '; departments: ' . count(directory::teams()));
         $hours = hours::of_site()->export();
         mtrace('Hours: ' . ($hours['enabled'] ? $hours['timezone'] : 'always open') . '; closed days ahead: ' .
             count(array_filter($hours['closed'], function ($day) {

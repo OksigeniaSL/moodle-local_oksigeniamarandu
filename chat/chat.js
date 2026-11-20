@@ -1006,9 +1006,89 @@
                 // Kept for this visit at least.
             });
         }
+        // The tab says what waits, with a dot of its colour on its icon: for whoever sees everything, all of the centre.
+        var favicon = { base: null, img: null, drawn: '' };
         function updateTitle() {
-            var c = inboxCounts(), n = (c.mine || 0) + (c.unassigned || 0);
+            var n, long;
+            if (me.seesall) {
+                var all = allConvs().filter(function (c) {
+                    return c.section === 'reply';
+                });
+                n = all.length;
+                long = all.some(function (c) {
+                    return waitMs(c) >= 4 * 3600000;
+                });
+            } else {
+                var c = inboxCounts();
+                n = (c.mine || 0) + (c.unassigned || 0);
+                long = longestIn(['mine', 'unassigned']) >= 4 * 3600000;
+            }
             document.title = n ? '(' + n + ') ' + baseTitle : baseTitle;
+            markFavicon(n ? (long ? '#d42c2c' : '#f2a900') : '');
+        }
+        function markFavicon(colour) {
+            var link = document.querySelector('link[rel~="icon"]');
+            if (!link) {
+                if (!colour) {
+                    return;
+                }
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+            if (favicon.base === null) {
+                favicon.base = link.getAttribute('href') || '';
+            }
+            if (favicon.drawn === colour) {
+                return;
+            }
+            favicon.drawn = colour;
+            if (!colour) {
+                if (favicon.base) {
+                    link.href = favicon.base;
+                }
+                return;
+            }
+            var draw = function (img) {
+                try {
+                    var cv = document.createElement('canvas'), g = cv.getContext('2d');
+                    cv.width = cv.height = 64;
+                    if (img) {
+                        g.drawImage(img, 0, 0, 64, 64);
+                    } else {
+                        g.fillStyle = (brand.colors && brand.colors[0]) || '#1b4d8f';
+                        g.fillRect(0, 0, 64, 64);
+                    }
+                    g.beginPath();
+                    g.arc(45, 19, 17, 0, 2 * Math.PI);
+                    g.fillStyle = colour;
+                    g.fill();
+                    g.lineWidth = 5;
+                    g.strokeStyle = '#ffffff';
+                    g.stroke();
+                    link.href = cv.toDataURL('image/png');
+                } catch (e) {
+                    // An icon of another site cannot be drawn on: a plain one with the dot.
+                    if (img) {
+                        draw(null);
+                    }
+                }
+            };
+            if (!favicon.base) {
+                draw(null);
+            } else if (favicon.img) {
+                draw(favicon.img);
+            } else {
+                var img = new Image();
+                img.onload = function () {
+                    favicon.img = img;
+                    draw(img);
+                };
+                img.onerror = function () {
+                    draw(null);
+                };
+                img.src = favicon.base;
+            }
         }
         function canDesktop() {
             return !cfg.inapp && !READONLY && 'Notification' in root;
@@ -1298,14 +1378,34 @@
             }
             return '<span class="mrd-inicial" aria-hidden="true">' + esc(brand.initial || cap(brand.name || '').charAt(0) || '·') + '</span>';
         }
+        /* What waits, seen from afar: a solid badge with the figure, amber, and red when the one that waits longest has
+           waited four hours of the team, as its clock. */
+        function longestIn(keys) {
+            var most = 0;
+            allConvs().forEach(function (c) {
+                if (c.section === 'reply' && keys.some(function (k) {
+                    return inInbox(c, k);
+                })) {
+                    most = Math.max(most, waitMs(c));
+                }
+            });
+            return most;
+        }
+        function pendClass(n, keys) {
+            if (!n) {
+                return '';
+            }
+            return longestIn(keys) >= 4 * 3600000 ? ' mrd-pend mrd-larga' : ' mrd-pend';
+        }
         function trayButton(key, icon, name, lines, n, strong) {
-            var on = st.inbox === key;
+            var on = st.inbox === key, pend = pendClass(n, [key]);
             return '<button type="button" class="mrd-bandeja' + (on ? ' mrd-on' : '') + (strong ? ' mrd-fuerte' : '') + (n ? '' : ' mrd-vacia') +
+                (pend ? ' mrd-con-pend' + (pend.indexOf('mrd-larga') >= 0 ? ' mrd-con-larga' : '') : '') +
                 '" data-a="inbox" data-v="' + esc(key) + '" title="' + esc(name + ': ' + lines.join(' · ')) + '"' +
                 (on ? ' aria-current="true"' : '') + '>' + ico(icon) + '<span class="mrd-t">' + esc(name) +
                 lines.map(function (l) {
                     return '<small>' + esc(l) + '</small>';
-                }).join('') + '</span><span class="mrd-n' + (n ? '' : ' mrd-cero') + '">' + n + '</span></button>';
+                }).join('') + '</span><span class="mrd-n' + (n ? pend : ' mrd-cero') + '">' + n + '</span></button>';
         }
         function teamLines(t) {
             var n = t.reply !== undefined ? t.reply : countLocal('team:' + t.id);
@@ -1377,10 +1477,14 @@
                 var nOthers = others.reduce(function (a, t) {
                     return a + teamLines(t).n;
                 }, 0);
-                h += '<button type="button" class="mrd-bandeja mrd-plegar" data-a="otros" aria-expanded="' + opened + '">' +
+                var pendOthers = pendClass(nOthers, others.map(function (t) {
+                    return 'team:' + t.id;
+                }));
+                h += '<button type="button" class="mrd-bandeja mrd-plegar' + (pendOthers ? ' mrd-con-pend' +
+                    (pendOthers.indexOf('mrd-larga') >= 0 ? ' mrd-con-larga' : '') : '') + '" data-a="otros" aria-expanded="' + opened + '">' +
                     ico(opened ? 'abajo' : 'der') + '<span class="mrd-t">' + esc(s('otherteams')) + '<small>' +
                     esc(nOthers ? s('toreply', nOthers) : s('nothingtoreply')) + '</small></span><span class="mrd-n' +
-                    (nOthers ? '' : ' mrd-cero') + '">' + nOthers + '</span></button>';
+                    (nOthers ? pendOthers : ' mrd-cero') + '">' + nOthers + '</span></button>';
                 if (opened) {
                     var menu = others.filter(function (t) {
                         return !t.internal;
@@ -1758,11 +1862,30 @@
             var free = open.filter(function (c) {
                 return inInbox(c, 'unassigned') && c.section === 'reply';
             }).sort(byWait);
-            var h = '<div class="mrd-inicio"><h2>' + esc(s('homehello', firstName(me) || me.name || '')) + '</h2><div class="mrd-inicio-tarjetas">';
+            var h = '<div class="mrd-inicio"><h2>' + esc(s('homehello', firstName(me) || me.name || '')) + '</h2>';
+            // On top, and in colour, what waits: for whoever sees everything, all of the centre.
+            var waiting = (me.seesall ? open.filter(function (c) {
+                return c.section === 'reply';
+            }) : mine.concat(free.filter(function (c) {
+                return mine.indexOf(c) < 0;
+            }))).sort(byWait);
+            if (waiting.length) {
+                var top = waiting[0], long = waitMs(top) >= 4 * 3600000;
+                h += '<div class="mrd-inicio-aviso' + (long ? ' mrd-larga' : '') + '"><span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' +
+                    waiting.length + '</span><div class="mrd-inicio-aviso-t"><b>' +
+                    esc(s(me.seesall ? (waiting.length === 1 ? 'homepend1all' : 'homependall') : (waiting.length === 1 ? 'homepend1mine' : 'homependmine'),
+                        waiting.length)) + '</b><small>' + esc(s('homelongestwho', { name: (top.contact && top.contact.name) || fmtPhone(top.contact && top.contact.phone),
+                        team: top.teamid ? teamName(top.teamid) : s('noteam'), wait: waitText(top) })) + '</small></div>' +
+                    '<button type="button" class="mrd-btn mrd-primario" data-a="conv" data-v="' + top.id + '">' + esc(s('homeopen')) + '</button></div>';
+            } else {
+                h += '<div class="mrd-inicio-aviso mrd-ok">' + ico('check') + '<b>' + esc(s('alldone')) + '</b></div>';
+            }
+            h += '<div class="mrd-inicio-tarjetas">';
             var card = function (key, icon, title, list, button) {
-                var first = list[0];
+                var first = list[0], long = first && waitMs(first) >= 4 * 3600000;
                 return '<div class="mrd-inicio-t"><div class="mrd-inicio-t1">' + ico(icon) + '<b>' + esc(title) + '</b></div>' +
-                    '<p class="mrd-inicio-n">' + esc(list.length ? s('toreply', list.length) : s('nothingtoreply')) + '</p>' +
+                    '<p class="mrd-inicio-n">' + (list.length ? '<span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' + list.length + '</span> ' +
+                        esc(s('toreplyword')) : esc(s('nothingtoreply'))) + '</p>' +
                     (first ? '<p class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(s('homelongest', waitText(first))) + '</p>' : '') +
                     (first ? '<button type="button" class="mrd-btn mrd-chico' + (key === 'mine' ? ' mrd-primario' : '') + '" data-a="conv" data-v="' + first.id + '">' +
                         esc(button) + '</button>' : '<button type="button" class="mrd-btn mrd-chico" data-a="inbox" data-v="' + key + '">' + esc(s('homesee')) + '</button>') +
@@ -1813,6 +1936,10 @@
         }
         function homeTeamsHtml(open) {
             var by = {};
+            // Every department, those at nought too, dimmed below: so that what waits stands out among them.
+            teams().forEach(function (t) {
+                by[t.id] = [];
+            });
             open.forEach(function (c) {
                 if (c.section !== 'reply') {
                     return;
@@ -1840,6 +1967,9 @@
                 }
                 return { id: +k, list: list, people: people };
             }).sort(function (a, b) {
+                if (!a.list.length || !b.list.length) {
+                    return (b.list.length ? 1 : 0) - (a.list.length ? 1 : 0) || teamName(a.id).localeCompare(teamName(b.id));
+                }
                 return waitMs(b.list[0]) - waitMs(a.list[0]);
             });
             var h = '<div class="mrd-inicio-deps"><h3>' + esc(s('hometeams')) + '</h3>';
@@ -1849,12 +1979,13 @@
             h += '<div class="mrd-inicio-dep mrd-inicio-dep-cab" aria-hidden="true"><span>' + esc(s('hometeamcol')) + '</span><span>' +
                 esc(s('hometoreplycol')) + '</span><span>' + esc(s('homelongestcol')) + '</span><span>' + esc(s('homewhocol')) + '</span><span></span></div>';
             h += rows.map(function (r) {
-                var first = r.list[0];
-                return '<button type="button" class="mrd-inicio-dep" data-a="inbox" data-v="' + (r.id ? 'team:' + r.id : 'noteam') + '" aria-label="' +
+                var first = r.list[0], long = first && waitMs(first) >= 4 * 3600000;
+                return '<button type="button" class="mrd-inicio-dep' + (first ? (long ? ' mrd-con-pend mrd-larga' : ' mrd-con-pend') : ' mrd-inicio-dep-cero') +
+                    '" data-a="inbox" data-v="' + (r.id ? 'team:' + r.id : 'noteam') + '" aria-label="' +
                     esc(s('hometeamopen', { team: r.id ? teamName(r.id) : s('noteam'), n: r.list.length })) + '">' +
                     '<span class="mrd-inicio-dep-n">' + esc(r.id ? teamName(r.id) : s('noteam')) + '</span>' +
-                    '<span class="mrd-inicio-dep-c">' + r.list.length + '</span>' +
-                    '<span class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(waitText(first)) + '</span>' +
+                    '<span class="mrd-inicio-dep-c">' + (first ? '<span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' + r.list.length + '</span>' : '0') +
+                    '</span>' + (first ? '<span class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(waitText(first)) + '</span>' : '<span></span>') +
                     '<span class="mrd-inicio-dep-q">' + esc(r.people.join(' · ')) + '</span>' + ico('der', 'mrd-inicio-dep-ir') + '</button>';
             }).join('');
             return h + '</div>';

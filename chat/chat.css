@@ -81,6 +81,13 @@
     --rojo-texto: #b3101e;
     --rojo-suave: #fde8ea;
     --ambar-texto: #8a5a00;
+    /* What waits for an answer, seen from afar: a solid badge, amber and red with a long wait. */
+    --espera-fondo: #f2a900;
+    --espera-tinta: #2b1c00;
+    --espera-suave: #fff4d6;
+    --larga-fondo: #d42c2c;
+    --larga-tinta: #fff;
+    --larga-suave: #fde6e6;
     --nota: #fff5d6;
     --nota-linea: #f0d68a;
     --nota-tinta: #5a4300;
@@ -114,6 +121,12 @@
     --rojo-texto: #ff8a92;
     --rojo-suave: #3a1c1f;
     --ambar-texto: #f1c45b;
+    --espera-fondo: #f2b52a;
+    --espera-tinta: #241700;
+    --espera-suave: #3a2f12;
+    --larga-fondo: #ef5350;
+    --larga-tinta: #1a0606;
+    --larga-suave: #3d1b1b;
     --nota: #2f2815;
     --nota-linea: #6b5520;
     --nota-tinta: #f5dc94;
@@ -424,6 +437,27 @@
     color: var(--tinta-3);
     font-weight: 600;
 }
+#mrd-chat .mrd-bandeja .mrd-n.mrd-pend {
+    display: inline-block;
+    align-self: center;
+    min-width: 28px;
+    padding: 2px 8px;
+    font-size: 14px;
+    line-height: 1.35;
+    background: var(--espera-fondo);
+    color: var(--espera-tinta);
+}
+#mrd-chat .mrd-bandeja .mrd-n.mrd-pend.mrd-larga {
+    background: var(--larga-fondo);
+    color: var(--larga-tinta);
+}
+#mrd-chat .mrd-bandeja.mrd-con-pend .mrd-t small:first-of-type {
+    color: var(--ambar-texto);
+    font-weight: 800;
+}
+#mrd-chat .mrd-bandeja.mrd-con-pend.mrd-con-larga .mrd-t small:first-of-type {
+    color: var(--rojo-texto);
+}
 #mrd-chat .mrd-bandeja:hover {
     background: var(--hoja-2);
 }
@@ -441,6 +475,14 @@
 #mrd-chat .mrd-bandeja.mrd-on .mrd-n {
     background: var(--acento-boton);
     color: var(--acento-tinta);
+}
+#mrd-chat .mrd-bandeja.mrd-on .mrd-n.mrd-pend {
+    background: var(--espera-fondo);
+    color: var(--espera-tinta);
+}
+#mrd-chat .mrd-bandeja.mrd-on .mrd-n.mrd-pend.mrd-larga {
+    background: var(--larga-fondo);
+    color: var(--larga-tinta);
 }
 #mrd-chat .mrd-bandeja.mrd-fuerte {
     font-size: 15px;
@@ -2755,6 +2797,11 @@
     #mrd-chat .mrd-bandeja .mrd-n.mrd-cero {
         display: none;
     }
+    #mrd-chat .mrd-bandeja .mrd-n.mrd-pend {
+        min-width: 18px;
+        padding: 0 4px;
+        font-size: 10.5px;
+    }
     #mrd-chat .mrd-rotulo-sep {
         display: block;
         height: 1px;
@@ -3450,6 +3497,89 @@
     color: var(--tinta-2);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+/* What waits, on top and in colour, with the one that waits longest and its button. */
+#mrd-chat .mrd-cifra {
+    display: inline-block;
+    min-width: 1.9em;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--espera-fondo);
+    color: var(--espera-tinta);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+#mrd-chat .mrd-cifra.mrd-larga {
+    background: var(--larga-fondo);
+    color: var(--larga-tinta);
+}
+#mrd-chat .mrd-inicio-aviso {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1.5px solid var(--espera-fondo);
+    background: var(--espera-suave);
+}
+#mrd-chat .mrd-inicio-aviso.mrd-larga {
+    border-color: var(--larga-fondo);
+    background: var(--larga-suave);
+}
+#mrd-chat .mrd-inicio-aviso > .mrd-cifra {
+    flex: none;
+    min-width: 2.2em;
+    padding: 4px 12px;
+    font-size: 30px;
+    line-height: 1.1;
+}
+#mrd-chat .mrd-inicio-aviso-t {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+#mrd-chat .mrd-inicio-aviso-t b {
+    font-size: 17px;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-inicio-aviso-t small {
+    font-size: 14px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-inicio-aviso > .mrd-btn {
+    flex: none;
+}
+#mrd-chat .mrd-inicio-aviso.mrd-ok {
+    border-color: var(--linea);
+    background: var(--hoja);
+    color: var(--tinta-2);
+    padding: 12px 16px;
+    gap: 10px;
+}
+#mrd-chat .mrd-inicio-aviso.mrd-ok .mrd-i {
+    width: 18px;
+    height: 18px;
+    color: var(--verde-texto, var(--acento-texto));
+}
+#mrd-chat .mrd-inicio-n .mrd-cifra {
+    font-size: 15px;
+}
+#mrd-chat .mrd-inicio-dep.mrd-con-pend {
+    background: var(--espera-suave);
+    box-shadow: inset 4px 0 0 var(--espera-fondo);
+}
+#mrd-chat .mrd-inicio-dep.mrd-con-pend.mrd-larga {
+    background: var(--larga-suave);
+    box-shadow: inset 4px 0 0 var(--larga-fondo);
+}
+#mrd-chat .mrd-inicio-dep.mrd-inicio-dep-cero {
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-inicio-dep.mrd-inicio-dep-cero .mrd-inicio-dep-n {
+    font-weight: 600;
 }
 #mrd-chat .mrd-inicio-tarjetas {
     display: grid;

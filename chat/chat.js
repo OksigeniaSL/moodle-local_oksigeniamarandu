@@ -1891,11 +1891,103 @@
             return '<span class="mrd-plazo">' + ico('reloj') + esc(s('canwriteuntil', whenPhrase(c.replyuntil * 1000))) + '</span>';
         }
         function renderComposer(force) {
-            var hilo0 = hiloEl(), wasEnd = hilo0 ? atBottom(hilo0) : false;
+            var hilo0 = hiloEl(), wasEnd = hilo0 ? atBottom(hilo0) : false, held = heldComposer();
             renderComposerNow(force);
+            giveComposerBack(held);
             if (wasEnd && hilo0 && hilo0.isConnected) {
                 stickToBottom(hilo0);
             }
+        }
+        /* The composer is drawn again when something about it changes (the approved messages arriving a moment after the
+           conversation opens, the conversation being taken): whoever is typing keeps the box, the caret and the gaps of the
+           message they are filling in. */
+        function heldComposer() {
+            var box2 = el.chat.querySelector('.mrd-escribir'), a = document.activeElement, tpls = st.extras.templates || [];
+            if (!box2) {
+                return null;
+            }
+            var held = { conv: st.open, mode: st.mode, gaps: null, focus: null };
+            var gaps = box2.querySelectorAll('.mrd-hueco');
+            if (gaps.length && tpls[st.tpl] && tpls[st.tpl].name === st.gapsTpl) {
+                held.gaps = { tpl: st.gapsTpl, values: {} };
+                Array.prototype.forEach.call(gaps, function (g) {
+                    var k = g.getAttribute('data-k');
+                    if (!(k in held.gaps.values)) {
+                        held.gaps.values[k] = g.textContent;
+                    }
+                });
+            }
+            if (a && a !== box2 && box2.contains(a) && (a.classList.contains('mrd-editor') || a.classList.contains('mrd-hueco'))) {
+                held.focus = { el: a, gap: a.classList.contains('mrd-hueco') ? a.getAttribute('data-k') : null, caret: caretOffset(a) };
+            }
+            return held;
+        }
+        function giveComposerBack(held) {
+            var box2 = el.chat.querySelector('.mrd-escribir'), tpls = st.extras.templates || [];
+            if (!held || !box2 || held.conv !== st.open) {
+                return;
+            }
+            if (held.gaps && tpls[st.tpl] && tpls[st.tpl].name === held.gaps.tpl) {
+                var changed = false;
+                Array.prototype.forEach.call(box2.querySelectorAll('.mrd-hueco'), function (g) {
+                    var k = g.getAttribute('data-k');
+                    if (k in held.gaps.values && g.textContent !== held.gaps.values[k]) {
+                        g.textContent = held.gaps.values[k];
+                        changed = true;
+                    }
+                });
+                if (changed) {
+                    updateGaps();
+                }
+            }
+            var f = held.focus;
+            if (!f || (f.el.isConnected && document.activeElement === f.el)) {
+                return;
+            }
+            var target = null;
+            if (f.gap === null && st.mode === held.mode) {
+                target = box2.querySelector('.mrd-editor');
+            } else if (f.gap !== null) {
+                target = Array.prototype.filter.call(box2.querySelectorAll('.mrd-hueco'), function (g) {
+                    return g.getAttribute('data-k') === f.gap;
+                })[0] || null;
+            }
+            if (target) {
+                placeCaret(target, f.caret);
+            }
+        }
+        function caretOffset(node) {
+            var sel = window.getSelection();
+            if (!sel || !sel.rangeCount || !node.contains(sel.focusNode)) {
+                return -1;
+            }
+            var r = document.createRange();
+            r.selectNodeContents(node);
+            r.setEnd(sel.focusNode, sel.focusOffset);
+            return r.toString().length;
+        }
+        function placeCaret(node, offset) {
+            node.focus({ preventScroll: true });
+            var sel = window.getSelection();
+            if (!sel) {
+                return;
+            }
+            var r = document.createRange(), left = offset, walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT), t, done = false;
+            while (offset >= 0 && (t = walker.nextNode())) {
+                if (t.length >= left) {
+                    r.setStart(t, left);
+                    r.collapse(true);
+                    done = true;
+                    break;
+                }
+                left -= t.length;
+            }
+            if (!done) {
+                r.selectNodeContents(node);
+                r.collapse(false);
+            }
+            sel.removeAllRanges();
+            sel.addRange(r);
         }
         function renderComposerNow(force) {
             var c = conv(st.open), box2 = el.chat.querySelector('.mrd-escribir');
@@ -1959,6 +2051,7 @@
             }
             var tpls = st.extras.templates || [];
             if (state === 'preview' && tpls[st.tpl]) {
+                st.gapsTpl = tpls[st.tpl].name;
                 box2.innerHTML = previewHtml(c, tpls[st.tpl]);
                 var first = box2.querySelector('.mrd-hueco');
                 if (first && !touchy()) {

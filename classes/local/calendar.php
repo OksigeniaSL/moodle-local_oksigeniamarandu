@@ -457,12 +457,12 @@ class calendar {
     }
 
     /**
-     * Downloads the iCal of the site.
+     * Downloads an iCal: the one of the channel, or the one of the closed days of the conversations.
      *
      * @param string $url Its address.
      * @return string|null Null if it did not come.
      */
-    private static function fetch(string $url): ?string {
+    public static function fetch(string $url): ?string {
         global $CFG;
         require_once($CFG->libdir . '/filelib.php');
         $curl = new \curl(['ignoresecurity' => true]);

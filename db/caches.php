@@ -58,4 +58,10 @@ $definitions = [
         'simplekeys' => true,
         'ttl' => MINSECS,
     ],
+    // The people, departments, inbox and saved answers of the account of Chatwoot of the conversations, for a few minutes.
+    'chat' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'ttl' => 5 * MINSECS,
+    ],
 ];

@@ -38,13 +38,27 @@ class work {
     private const FAILEDFOR = 3 * DAYSECS;
 
     /**
-     * The cards of a user: the channel, if they may review it and the site has one or posts waiting for one.
+     * The cards of a user: the conversations, if they are a person of them; the channel, if they may review it and the
+     * site has one or posts waiting for one.
      *
      * @param int $userid The user.
      * @param int|null $now The time, for the tests; with it, nothing is kept.
      * @return array As the dashboard takes them: key, title, url, status, alerts (text, url, level, due), actions (label, url).
      */
     public static function for_user(int $userid, ?int $now = null): array {
+        $chat = chat\workcard::for_user($userid, $now);
+        $cards = self::channel_card($userid, $now);
+        return $chat ? array_merge([$chat], $cards) : $cards;
+    }
+
+    /**
+     * The card of the channel, if the user may review it.
+     *
+     * @param int $userid The user.
+     * @param int|null $now The time, for the tests; with it, nothing is kept.
+     * @return array No card or one.
+     */
+    private static function channel_card(int $userid, ?int $now): array {
         if (!has_capability('local/oksigeniamarandu:channel', \context_system::instance(), $userid)) {
             return [];
         }

@@ -79,4 +79,14 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    [
+        // The index of the conversations of the team, every minute, also when nobody has the page open.
+        'classname' => 'local_oksigeniamarandu\task\chat_sync',
+        'blocking' => 0,
+        'minute' => '*',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

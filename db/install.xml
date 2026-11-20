@@ -205,5 +205,72 @@
         <INDEX NAME="timeday" UNIQUE="true" FIELDS="timeday"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_conv" COMMENT="The index of the conversations of Chatwoot: department, who has it, state, contact, wait and last message">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="cwid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of the conversation in the account of Chatwoot"/>
+        <FIELD NAME="inboxid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="teamid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The department, or 0"/>
+        <FIELD NAME="assigneeid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The person of Chatwoot who has it, or 0"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="open" SEQUENCE="false" COMMENT="open, pending, snoozed or resolved"/>
+        <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="phone" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Only digits, with the country code"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="What a person marked the contact as, or empty"/>
+        <FIELD NAME="waitsince" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The first message of the contact after the last answer of a person, or 0"/>
+        <FIELD NAME="lastincoming" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The last message of the contact: one can write freely for a day after it"/>
+        <FIELD NAME="lastactivity" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="preview" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="The last message, as text"/>
+        <FIELD NAME="previewkind" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="" SEQUENCE="false"/>
+        <FIELD NAME="previewat" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="passedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The user who passed it last, or 0"/>
+        <FIELD NAME="passedto" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The person of Chatwoot it was passed to, or 0"/>
+        <FIELD NAME="passedteam" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The department it was passed to, or 0"/>
+        <FIELD NAME="passedat" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="cwupdated" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="When Chatwoot last changed it, as it says it"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When its row changed: what the page asks for"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="cwid" UNIQUE="true" FIELDS="cwid"/>
+        <INDEX NAME="timemodified" UNIQUE="false" FIELDS="timemodified"/>
+        <INDEX NAME="contactid" UNIQUE="false" FIELDS="contactid"/>
+        <INDEX NAME="status-teamid" UNIQUE="false" FIELDS="status, teamid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_convseen" COMMENT="When each person last read each conversation">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="convid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of the conversation in Chatwoot"/>
+        <FIELD NAME="timeseen" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid-convid" UNIQUE="true" FIELDS="userid, convid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_convmsg" COMMENT="Who wrote each message sent from Moodle">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="cwmsgid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The message in Chatwoot"/>
+        <FIELD NAME="convid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of its conversation in Chatwoot"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="cwmsgid" UNIQUE="true" FIELDS="cwmsgid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

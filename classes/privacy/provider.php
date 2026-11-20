@@ -31,7 +31,11 @@ use core_privacy\local\request\contextlist;
 use core_privacy\local\request\transform;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
+use local_oksigeniamarandu\external\chat_prefs;
 use local_oksigeniamarandu\local\answers;
+use local_oksigeniamarandu\local\chat\message;
+use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\viewer;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\telegram;
@@ -43,7 +47,8 @@ use local_oksigeniamarandu\local\telegram;
 class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
-    \core_privacy\local\request\plugin\provider {
+    \core_privacy\local\request\plugin\provider,
+    \core_privacy\local\request\user_preference_provider {
     /**
      * What is stored and what goes to WhatsApp.
      *
@@ -100,6 +105,25 @@ class provider implements
             'phone' => 'privacy:metadata:forward:phone',
             'message' => 'privacy:metadata:forward:message',
         ], 'privacy:metadata:forward');
+        $collection->add_database_table(viewer::SEEN, [
+            'userid' => 'privacy:metadata:convseen:userid',
+            'convid' => 'privacy:metadata:convseen:convid',
+            'timeseen' => 'privacy:metadata:convseen:timeseen',
+        ], 'privacy:metadata:convseen');
+        $collection->add_database_table(message::TABLE, [
+            'userid' => 'privacy:metadata:convmsg:userid',
+            'cwmsgid' => 'privacy:metadata:convmsg:cwmsgid',
+            'timecreated' => 'privacy:metadata:convmsg:timecreated',
+        ], 'privacy:metadata:convmsg');
+        $collection->add_database_table(mirror::TABLE, [
+            'passedby' => 'privacy:metadata:conv:passedby',
+            'passedat' => 'privacy:metadata:conv:passedat',
+        ], 'privacy:metadata:conv');
+        $collection->add_external_location_link('chatwoot', [
+            'userid' => 'privacy:metadata:chatwoot:userid',
+            'message' => 'privacy:metadata:chatwoot:message',
+        ], 'privacy:metadata:chatwoot');
+        $collection->add_user_preference(chat_prefs::PREFERENCE, 'privacy:metadata:preference:chatbackgrounds');
         return $collection;
     }
 
@@ -115,6 +139,9 @@ class provider implements
         if (
             $DB->record_exists(consent::LINKS, ['userid' => $userid])
             || $DB->record_exists(channel::TABLE, ['decidedby' => $userid])
+            || $DB->record_exists(viewer::SEEN, ['userid' => $userid])
+            || $DB->record_exists(message::TABLE, ['userid' => $userid])
+            || $DB->record_exists(mirror::TABLE, ['passedby' => $userid])
         ) {
             $contextlist->add_system_context();
         }
@@ -132,6 +159,9 @@ class provider implements
         }
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . consent::LINKS . '} WHERE userid IS NOT NULL', []);
         $userlist->add_from_sql('decidedby', 'SELECT decidedby FROM {' . channel::TABLE . '} WHERE decidedby IS NOT NULL', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . viewer::SEEN . '}', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . message::TABLE . '}', []);
+        $userlist->add_from_sql('passedby', 'SELECT passedby FROM {' . mirror::TABLE . '} WHERE passedby > 0', []);
     }
 
     /**
@@ -182,10 +212,41 @@ class provider implements
             return ['post' => $post->component . '/' . $post->kind, 'decision' => $post->status,
                 'time' => transform::datetime($post->timedecided)];
         }, $DB->get_records(channel::TABLE, ['decidedby' => $contextlist->get_user()->id], 'id')));
-        if ($numbers || $reviewed) {
+        // What the user did in the conversations of the team: what they read, wrote and passed.
+        $userid = $contextlist->get_user()->id;
+        $conversations = [
+            'read' => array_values(array_map(function ($seen) {
+                return ['conversation' => (int)$seen->convid, 'time' => transform::datetime($seen->timeseen)];
+            }, $DB->get_records(viewer::SEEN, ['userid' => $userid], 'id'))),
+            'written' => array_values(array_map(function ($written) {
+                return ['conversation' => (int)$written->convid, 'message' => (int)$written->cwmsgid,
+                    'time' => transform::datetime($written->timecreated)];
+            }, $DB->get_records(message::TABLE, ['userid' => $userid], 'id'))),
+            'passed' => array_values(array_map(function ($passed) {
+                return ['conversation' => (int)$passed->cwid, 'time' => transform::datetime($passed->passedat)];
+            }, $DB->get_records(mirror::TABLE, ['passedby' => $userid], 'id'))),
+        ];
+        if ($numbers || $reviewed || array_filter($conversations)) {
             writer::with_context($context)->export_data(
                 [get_string('pluginname', 'local_oksigeniamarandu')],
-                (object)['numbers' => $numbers, 'reviewed' => $reviewed]
+                (object)['numbers' => $numbers, 'reviewed' => $reviewed, 'conversations' => $conversations]
+            );
+        }
+    }
+
+    /**
+     * Exports how the user wants the backgrounds of the conversations.
+     *
+     * @param int $userid The user.
+     */
+    public static function export_user_preferences(int $userid) {
+        $value = get_user_preferences(chat_prefs::PREFERENCE, null, $userid);
+        if ($value !== null) {
+            writer::export_user_preference(
+                'local_oksigeniamarandu',
+                chat_prefs::PREFERENCE,
+                $value,
+                get_string('privacy:metadata:preference:chatbackgrounds', 'local_oksigeniamarandu')
             );
         }
     }
@@ -205,6 +266,9 @@ class provider implements
             self::delete_user((int)$userid);
         }
         $DB->set_field_select(channel::TABLE, 'decidedby', null, 'decidedby IS NOT NULL');
+        $DB->delete_records(viewer::SEEN);
+        $DB->delete_records(message::TABLE);
+        $DB->set_field_select(mirror::TABLE, 'passedby', 0, 'passedby > 0');
     }
 
     /**
@@ -243,6 +307,10 @@ class provider implements
         $DB->delete_records(consent::LINKS, ['userid' => $userid]);
         // The posts the user reviewed stay, without who said it.
         $DB->set_field(channel::TABLE, 'decidedby', null, ['decidedby' => $userid]);
+        // In the conversations, the messages stay in Chatwoot; here goes what tells who read, wrote or passed.
+        $DB->delete_records(viewer::SEEN, ['userid' => $userid]);
+        $DB->delete_records(message::TABLE, ['userid' => $userid]);
+        $DB->set_field(mirror::TABLE, 'passedby', 0, ['passedby' => $userid]);
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);

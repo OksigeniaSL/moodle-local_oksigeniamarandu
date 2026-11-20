@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.37.0 (2026-11-20)
+
+- The conversations of the team (`chat.php`): where the people of an organisation answer its WhatsApp, over an account
+  of Chatwoot. Trays for what is yours and what nobody has yet, and one for each department; each list in three parts
+  (to answer, waiting for the contact, resolved today); answering with your signature on top, internal notes with
+  mentions, keeping a conversation, passing it to a department or to a person, resolving it; the window of 24 hours,
+  after which only an approved message of the inbox can be sent; saved answers; who of the team read the last message.
+- Departments are the teams of Chatwoot, and a person is the user of Chatwoot with the same email as in Moodle. The site
+  filters who sees what: the administrators of the account and whoever has `local/oksigeniamarandu:chatall` see
+  everything; the rest, their departments and what they have. An administrator of the site who is not a person of the
+  account only reads.
+- The wait counts from the first message of the contact after the last answer of a person (a bot does not end it), and
+  only in the hours of the inbox, without the closed days of a calendar of the site (an iCal; its events starting with
+  «Closed» or «Bank holiday», words of its own).
+- With a platform app of Chatwoot, each person answers, keeps and passes as themself there too, with their own token;
+  without one, the site writes with the token of the connection and the signature says who it was.
+- An index of the conversations in Moodle, kept up to date every minute, from the page every few seconds and, with the
+  webhook of the account, at once (signed and checked). Messages stay in Chatwoot.
+- `cli/chat.php` connects the account (tokens from a file or the standard input), creates the webhook, says which
+  departments are internal and which users are a bot, and the calendar of closed days.
+- The card of the contact can show the card of another plugin in a frame, as a «Dashboard App» of Chatwoot gets it:
+  the one of admissions of Oksigenia Eguahe.
+
 ## 0.36.0 (2026-11-20)
 
 - What the site answers itself on WhatsApp (the words to join and leave, with or without a code, and the buttons of its

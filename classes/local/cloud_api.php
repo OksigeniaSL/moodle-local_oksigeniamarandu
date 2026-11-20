@@ -197,6 +197,21 @@ class cloud_api {
     }
 
     /**
+     * Where Meta sends what reaches the number: the webhook of the number, of its account or of the app, the first one
+     * that is set (by verify, «webhook_configuration»). Empty if Meta does not say.
+     *
+     * @return array application, whatsapp_business_account and phone_number, those there are.
+     */
+    public function webhook_configuration(): array {
+        try {
+            $response = $this->decode($this->request($this->url($this->phonenumberid . '?fields=webhook_configuration')));
+        } catch (api_exception $e) {
+            return [];
+        }
+        return is_array($response['webhook_configuration'] ?? null) ? $response['webhook_configuration'] : [];
+    }
+
+    /**
      * Whether the token reaches the account where the templates are. Meta keeps it apart from the number (the messaging
      * account and the WhatsApp account of a business portfolio): a system user with only the second one reaches the
      * number and not the templates.

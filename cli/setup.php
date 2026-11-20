@@ -34,6 +34,7 @@ use local_oksigeniamarandu\local\telegram_api;
 [$options, $unrecognised] = cli_get_params([
     'help' => false,
     'telegram-token-file' => '',
+    'whatsapp-number' => '',
     'notices' => '',
     'channels' => 'telegram',
     'status' => false,
@@ -43,13 +44,17 @@ if ($unrecognised) {
     cli_error(get_string('cliunknowoption', 'admin', implode("\n  ", $unrecognised)));
 }
 
-if ($options['help'] || ($options['telegram-token-file'] === '' && $options['notices'] === '' && !$options['status'])) {
+$nothing = $options['telegram-token-file'] === '' && $options['whatsapp-number'] === '' && $options['notices'] === '';
+if ($options['help'] || ($nothing && !$options['status'])) {
     echo "Sets up Oksigenia Marandu on this site.
 
 Options:
 --telegram-token-file=PATH  Connects the bot of Telegram whose token is in PATH; - reads it from the standard input.
                             The same bot with a new token keeps everyone; another bot, only from its page if people
                             joined the one of now.
+--whatsapp-number=ID        Moves WhatsApp to another number of the same account and token: its phone number id.
+                            Checks it with Meta, keeps the number it has (the links to join follow it), closes the
+                            24 hours of everyone (they were with the other number) and reads the templates again.
 --notices=PLUGINS           Switches on every notice of these plugins (comma separated, or all), for --channels.
 --channels=CHANNELS         telegram, whatsapp or both (comma separated). Default: telegram.
 --status                    Shows the channels and the notices on.
@@ -75,6 +80,16 @@ try {
         $token = trim($token);
         $bot = setup::telegram(new telegram_api($token), $token);
         mtrace('Telegram: @' . ($bot['username'] ?? '') . ($bot['same'] ? ', the same bot with a new token' : '') . ', connected.');
+    }
+    if ($options['whatsapp-number'] !== '') {
+        $moved = setup::whatsapp_number($options['whatsapp-number']);
+        mtrace('WhatsApp: ' . $moved['number'] . ($moved['name'] !== '' ? ' (' . $moved['name'] . ')' : '') .
+            ($moved['old'] !== '' && $moved['old'] !== $options['whatsapp-number'] ? ', instead of ' . $moved['old'] : '') . '.');
+        mtrace('The 24 hours closed for ' . $moved['reset'] . ' people; templates of the account read again: ' .
+            $moved['templates'] . '.');
+        $hook = $moved['webhook'];
+        mtrace('Meta sends what reaches the number to: ' . ($hook['phone_number'] ?? $hook['whatsapp_business_account']
+            ?? $hook['application'] ?? 'it does not say') . (isset($hook['phone_number']) ? ' (the webhook of the number)' : ''));
     }
     if ($options['notices'] !== '') {
         $keys = setup::notices($list($options['notices']), $list($options['channels']));

@@ -96,6 +96,57 @@ class setup {
     }
 
     /**
+     * Moves the site to another number of the same WhatsApp account, with the same token: the number Meta has for it,
+     * the links to join, the 24 hours of each person (they are with a number) and how the templates are.
+     *
+     * @param string $phonenumberid The id of the number, as Meta gives it.
+     * @param cloud_api|null $api The client for that number, for the tests.
+     * @return array number, name, old (the id before), reset (people whose 24 hours were open), templates (how many
+     *               the site has) and webhook (where Meta sends what reaches the number).
+     */
+    public static function whatsapp_number(string $phonenumberid, ?cloud_api $api = null): array {
+        global $DB;
+        $component = 'local_oksigeniamarandu';
+        if (!preg_match('/^[0-9]{5,30}$/', $phonenumberid)) {
+            throw new \moodle_exception('wizard:error:digits', $component);
+        }
+        $config = get_config($component);
+        if (empty($config->accesstoken)) {
+            throw new api_exception('error:notconfigured');
+        }
+        if (!$api) {
+            $version = empty($config->graphversion) ? cloud_api::DEFAULT_GRAPH_VERSION : $config->graphversion;
+            $api = new cloud_api($phonenumberid, \core\encryption::decrypt($config->accesstoken), $version);
+        }
+        // The number has to answer with the token of the site, and the token still reach the templates.
+        $info = $api->get_phone_number();
+        $wabaid = (string)($config->wabaid ?? '');
+        if ($wabaid !== '' && !$api->reaches_account($wabaid)) {
+            throw new \moodle_exception('wizard:error:waba', $component);
+        }
+        $old = (string)($config->phonenumberid ?? '');
+        set_config('phonenumberid', $phonenumberid, $component);
+        set_config('connectednumber', $info['number'], $component);
+        set_config('connectedname', $info['name'], $component);
+        // The links to join (the page, its QR, the wa.me of the notices) are made from it each time.
+        set_config('displayphone', $info['number'], $component);
+        unset_config('sendblocked', $component);
+        $reset = 0;
+        if ($old !== $phonenumberid) {
+            // The 24 hours of a person are with a number: with another one, what goes out first needs its template.
+            $reset = $DB->count_records_select(consent::CONTACTS, "channel = 'whatsapp' AND lastinbound > 0");
+            $DB->set_field_select(consent::CONTACTS, 'lastinbound', 0, "channel = 'whatsapp'");
+        }
+        $templates = 0;
+        if ($wabaid !== '' && $DB->record_exists(templates::TABLE, [])) {
+            templates::refresh($api, $wabaid);
+            $templates = $DB->count_records(templates::TABLE);
+        }
+        return ['number' => $info['number'], 'name' => $info['name'], 'old' => $old, 'reset' => $reset,
+            'templates' => $templates, 'webhook' => $api->webhook_configuration()];
+    }
+
+    /**
      * How the site is, one line each, for whoever runs the command: the channels and their notices.
      *
      * @return string[]

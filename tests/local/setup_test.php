@@ -93,6 +93,55 @@ final class setup_test extends \advanced_testcase {
     }
 
     /**
+     * Another number of the same account: checked with Meta, kept with the number Meta has (the links to join follow
+     * it), and the 24 hours of everyone closed, because they were with the other number.
+     */
+    public function test_whatsapp_number(): void {
+        global $DB;
+        set_config('accesstoken', \core\encryption::encrypt('token'), 'local_oksigeniamarandu');
+        set_config('phonenumberid', '1111111111', 'local_oksigeniamarandu');
+        set_config('wabaid', '3333333333', 'local_oksigeniamarandu');
+        $contact = consent::get_or_create('34600000001');
+        $DB->set_field(consent::CONTACTS, 'lastinbound', time() - HOURSECS, ['id' => $contact->id]);
+        $api = new class ('2222222222', 'token') extends cloud_api {
+            /**
+             * The number Meta has.
+             *
+             * @return array
+             */
+            public function get_phone_number(): array {
+                return ['number' => '+34 600 00 09 99', 'name' => 'Centro de ejemplo'];
+            }
+            /**
+             * Whether the token reaches the account.
+             *
+             * @param string $wabaid The account.
+             * @return bool
+             */
+            public function reaches_account(string $wabaid): bool {
+                return $wabaid === '3333333333';
+            }
+            /**
+             * Where Meta sends what reaches the number.
+             *
+             * @return array
+             */
+            public function webhook_configuration(): array {
+                return ['phone_number' => 'https://example.com/webhook.php', 'application' => 'https://example.com/app'];
+            }
+        };
+        $moved = setup::whatsapp_number('2222222222', $api);
+        $got = [$moved['number'], $moved['old'], $moved['reset'], $moved['webhook']['phone_number']];
+        $this->assertSame(['+34 600 00 09 99', '1111111111', 1, 'https://example.com/webhook.php'], $got);
+        $config = get_config('local_oksigeniamarandu');
+        $got = [$config->phonenumberid, $config->displayphone, $config->connectednumber];
+        $this->assertSame(['2222222222', '+34 600 00 09 99', '+34 600 00 09 99'], $got);
+        $this->assertSame(0, (int)$DB->get_field(consent::CONTACTS, 'lastinbound', ['id' => $contact->id]));
+        $this->expectException(\moodle_exception::class);
+        setup::whatsapp_number('not a number', $api);
+    }
+
+    /**
      * A token without the shape of one goes nowhere; a good one connects the bot, its webhook and its menu, and the same
      * bot with a new token says so.
      */

@@ -3213,6 +3213,16 @@
 #mrd-chat .mrd-nueva-cand-t .mrd-rel {
     display: block;
 }
+#mrd-chat .mrd-hijo-l {
+    white-space: nowrap;
+}
+
+@media (min-width: 1261px) {
+    /* The file is beside: it has the number and its «Call». */
+    #mrd-chat .mrd-nueva-para-b .mrd-llamar {
+        display: none;
+    }
+}
 #mrd-chat .mrd-buscar input:focus,
 #mrd-chat .mrd-buscar input:focus-visible {
     outline: 0;
@@ -3331,7 +3341,7 @@
     }
     #mrd-chat .mrd-nueva-para-b {
         flex-basis: 100%;
-        justify-content: flex-start;
+        justify-content: flex-end;
     }
     #mrd-chat .mrd-nueva .mrd-plantillas .mrd-plantilla span {
         display: -webkit-box;

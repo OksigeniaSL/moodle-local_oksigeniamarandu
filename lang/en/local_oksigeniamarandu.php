@@ -339,6 +339,7 @@ $string['chatui:dayyesterday'] = 'Yesterday, {$a}';
 $string['chatui:everyone'] = 'Everyone';
 $string['chatui:failed'] = 'It did not arrive: {$a}';
 $string['chatui:failedplain'] = 'It did not arrive';
+$string['chatui:familyadults'] = 'Adults of the family';
 $string['chatui:file'] = 'File';
 $string['chatui:fileerror'] = 'The file could not be loaded.';
 $string['chatui:fileloading'] = 'Loading the file…';

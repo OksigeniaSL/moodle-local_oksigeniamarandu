@@ -885,8 +885,10 @@
                     var n = esc(r.name), at = h.indexOf(n);
                     if (at >= 0) {
                         var col = dataColour(r.color, r.dark);
-                        h = h.slice(0, at) + '<i class="mrd-pe' + (r.dashed ? ' mrd-fuera' : '') + '" style="--e: ' + col.css +
-                            '" aria-hidden="true"></i>' + h.slice(at);
+                        var whole = h.slice(at).match(/^[^(<]*?(?:\s\([^)<]*\))?(?=$|[,;]|\sy\s|\sand\s|\s·)/);
+                        var len = whole ? whole[0].length : n.length;
+                        h = h.slice(0, at) + '<span class="mrd-hijo-l"><i class="mrd-pe' + (r.dashed ? ' mrd-fuera' : '') + '" style="--e: ' + col.css +
+                            '" aria-hidden="true"></i>' + h.slice(at, at + len) + '</span>' + h.slice(at + len);
                     }
                 }
             });
@@ -2349,6 +2351,17 @@
                     '</span><b>' + esc(p.label || p.t || '') + '</b><small>' + esc(p.date || p.c || (i === now ? s('next') : '—')) + '</small></li>';
             }).join('') + '</ol>';
         }
+        function fold(x) {
+            var t = String(x || '').toLowerCase();
+            return t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
+        }
+        function courseText(k) {
+            var label = k.stage && k.stage.label, group = k.group || '';
+            if (label && group && fold(group).indexOf(fold(label)) >= 0) {
+                return group;
+            }
+            return [label, group].filter(Boolean).join(' · ');
+        }
         function childrenHtml(f) {
             var kids = (f.children || []).filter(function (k) {
                 return !k.applying;
@@ -2362,15 +2375,14 @@
                     esc(s('childrencount', kids.length)) + '</small>' : '') + '</h4>' + kids.map(function (k) {
                     var col = k.stage && k.stage.color ? dataColour(k.stage.color, k.stage.dark).css : '';
                     return '<div class="mrd-hijo"><span class="mrd-etapa"' + (col ? ' style="--e: ' + col + '"' : '') + ' aria-hidden="true"></span><span><b>' +
-                        esc(k.name) + '</b>' + (k.group || (k.stage && k.stage.label) ? '<span class="mrd-curso">' +
-                        esc([k.stage && k.stage.label, k.group].filter(Boolean).join(' · ')) + '</span>' : '') +
+                        esc(k.name) + '</b>' + (k.group || (k.stage && k.stage.label) ? '<span class="mrd-curso">' + esc(courseText(k)) + '</span>' : '') +
                         (k.tutor ? '<small>' + esc(s('tutor', k.tutor)) + '</small>' : '') + '</span></div>';
                 }).join('') + '</div>';
             }
             if (applying.length && !f.panel) {
                 h += '<div class="mrd-plaza-en-familia">' + applying.map(function (k) {
                     return '<div class="mrd-seccion"><h4>' + esc(f.kind === 'applicant' ? s('applying') : s('applyingfor')) + '</h4><div class="mrd-pide">' +
-                        '<span class="mrd-curso-pide">' + esc(k.name) + '</span><small>' + esc([k.stage && k.stage.label, k.group].filter(Boolean).join(' · ')) +
+                        '<span class="mrd-curso-pide">' + esc(k.name) + '</span><small>' + esc(courseText(k)) +
                         '</small></div>' + stepsHtml(k.steps) + '</div>';
                 }).join('') + '</div>';
             }
@@ -2385,11 +2397,11 @@
                     '</b>' + (r.detail ? '<small>' + esc(r.detail) + '</small>' : '') + '</span></div>';
             }).join('') + '</div>';
         }
-        function contactsHtml(f) {
+        function contactsHtml(f, quiet) {
             if (!f.contacts || !f.contacts.length) {
                 return '';
             }
-            return '<div class="mrd-seccion"><h4>' + esc(s('whowrites')) + '</h4>' + f.contacts.map(function (k) {
+            return '<div class="mrd-seccion"><h4>' + esc(quiet ? s('familyadults') : s('whowrites')) + '</h4>' + f.contacts.map(function (k) {
                 return '<div class="mrd-contacto"><span class="mrd-av mrd-m mrd-con-bicho" aria-hidden="true">' + bicho(digits(k.phone) || k.name) + '</span><span><b>' +
                     esc(k.name) + (f.contacts.length > 1 && k.conversation && k.conversation === st.open ? ' <span class="mrd-marca-este">' + esc(s('thischat')) + '</span>' : '') +
                     '</b><small>' + esc([k.role, fmtPhone(k.phone)].filter(Boolean).join(' · ')) + '</small></span>' + callButton(k.phone) + '</div>';
@@ -2448,7 +2460,7 @@
             var f = n.ficha, k = f.kind || 'unknown', c = newConvLike();
             var h = fichaHead(f, c);
             if (k === 'family' || k === 'both') {
-                h += contactsHtml(f) + childrenHtml(f) + rowsHtml(f.services, s('services')) + rowsHtml(f.rows, '');
+                h += contactsHtml(f, true) + childrenHtml(f) + rowsHtml(f.services, s('services')) + rowsHtml(f.rows, '');
             } else {
                 h += rowsHtml(f.rows, '');
             }
@@ -2519,7 +2531,7 @@
             var f = st.ficha, k = f.kind || 'unknown', h = fichaHead(f, c);
             h += maybeHtml(f, c);
             if (k === 'family' || k === 'both') {
-                h += contactsHtml(f) + childrenHtml(f) + rowsHtml(f.services, s('services')) + rowsHtml(f.rows, '');
+                h += contactsHtml(f, !c.lastincoming) + childrenHtml(f) + rowsHtml(f.services, s('services')) + rowsHtml(f.rows, '');
             } else if (k === 'applicant') {
                 h += childrenHtml(f) + rowsHtml(f.rows, '');
             } else if (KIND_LABEL[k]) {

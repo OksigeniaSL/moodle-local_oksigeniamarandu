@@ -173,7 +173,7 @@ class queue {
                 $counts['waiting']++;
                 continue;
             }
-            if ($canwait && $perday > 0 && self::sent_today($contact->id, $now, $urgent) >= $perday) {
+            if ($canwait && $perday > 0 && empty($notice->uncapped) && self::sent_today($contact->id, $now, $urgent) >= $perday) {
                 $counts['waiting']++;
                 continue;
             }
@@ -596,7 +596,8 @@ class queue {
             'id, component, notice, urgent'
         );
         return count(array_filter($rows, function ($row) use ($urgent) {
-            return self::can_wait($row, notices::get($row->component, $row->notice), $urgent);
+            $notice = notices::get($row->component, $row->notice);
+            return self::can_wait($row, $notice, $urgent) && empty($notice->uncapped);
         }));
     }
 

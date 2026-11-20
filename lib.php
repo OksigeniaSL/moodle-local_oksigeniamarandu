@@ -42,6 +42,9 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'examples' => ['Lucía Ferrer: ¿Me confirman el recibo de diciembre?'],
             'perweek' => 0,
             'channels' => ['telegram'],
+            // Its own brake (one a conversation every ten minutes, in the hours of the team): the notices a day are for
+            // the families.
+            'uncapped' => true,
         ],
     ];
 }

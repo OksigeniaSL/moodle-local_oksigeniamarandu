@@ -57,6 +57,9 @@ namespace local_oksigeniamarandu\local;
  *
  * The answer reaches the plugin with the hook \local_oksigeniamarandu\hook\answer_received.
  *
+ * A notice for the people who work at the site, with a brake of its own, says 'uncapped' => true: it keeps the quiet
+ * hours, but the notices a day (which protect the families) neither hold it back nor count it.
+ *
  * A notice that only makes sense on some channels says which with 'channels' => ['telegram']: it is not offered, switched
  * on or sent on the others, and it never goes to Meta as a template (a notice of a WhatsApp conversation by WhatsApp
  * says nothing new).
@@ -76,7 +79,8 @@ class notices {
      * Every notice declared on the site, by "component/notice".
      *
      * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor, options, follows (the notice
-     *                     of the same plugin it takes over from, or empty) and channels (those it can go by).
+     *                     of the same plugin it takes over from, or empty), channels (those it can go by) and
+     *                     uncapped (outside the notices a day).
      */
     public static function all(): array {
         $all = [];
@@ -104,6 +108,7 @@ class notices {
                     'options' => self::options((array)($definition['options'] ?? [])),
                     'follows' => self::follows((string)($definition['follows'] ?? ''), $notice),
                     'channels' => self::channels_of((array)($definition['channels'] ?? [])),
+                    'uncapped' => !empty($definition['uncapped']),
                 ];
             }
         }

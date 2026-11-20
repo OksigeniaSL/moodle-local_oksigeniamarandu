@@ -16,6 +16,7 @@
         prefs: 'local_oksigeniamarandu_chat_prefs',
         find: 'local_oksigeniamarandu_chat_find',
         resolved: 'local_oksigeniamarandu_chat_resolved',
+        flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start'
     };
 
@@ -244,6 +245,8 @@
         var LANG = cfg.lang || document.documentElement.lang || 'es';
         var TZ = cfg.timezone || hours.timezone || undefined;
         var READONLY = !!me.readonly;
+        // Small choices of the person, kept on the site: the tour seen, the sound of the notices, notices on this computer.
+        var FLAGS = cfg.flags || { tour: '', sound: 'on', desktop: '' };
         var POLLMS = Math.max(1500, +cfg.pollms || 4000);
 
         function s(key, a) {
@@ -991,6 +994,157 @@
            Toast, network notice, image viewer
            --------------------------------------------------------------------------------------------------------------- */
         var toastT = 0;
+        /* ---------------------------------------------------------------------------------------------------------------
+           Notices while the page is open: the number in the title of the tab, a short sound that can be switched off and,
+           with the page behind other windows, a notice of the system. The same notices as the bell and the phone (the
+           poll brings them), asked for with a button on the screen, never when the page opens.
+           --------------------------------------------------------------------------------------------------------------- */
+        var baseTitle = document.title, seenNotice = {}, audio = null;
+        function setFlag(name, value) {
+            FLAGS[name] = value;
+            tr.call(M.flag, { name: name, value: value }).catch(function () {
+                // Kept for this visit at least.
+            });
+        }
+        function updateTitle() {
+            var c = inboxCounts(), n = (c.mine || 0) + (c.unassigned || 0);
+            document.title = n ? '(' + n + ') ' + baseTitle : baseTitle;
+        }
+        function canDesktop() {
+            return !cfg.inapp && !READONLY && 'Notification' in root;
+        }
+        function desktopState() {
+            if (!canDesktop()) {
+                return 'none';
+            }
+            if (Notification.permission === 'denied') {
+                return 'blocked';
+            }
+            return Notification.permission === 'granted' && FLAGS.desktop !== 'no' ? 'on' : 'off';
+        }
+        function offerDesktop() {
+            return canDesktop() && !narrow() && Notification.permission === 'default' && FLAGS.desktop === '';
+        }
+        function askDesktop() {
+            var done = function (p) {
+                setFlag('desktop', p === 'granted' ? 'yes' : 'no');
+                renderListHead();
+                renderListBody();
+                if (p === 'granted') {
+                    toast(s('desktopready'));
+                } else if (p === 'denied') {
+                    toast(s('desktopblocked'), true);
+                }
+                if (st.pop === 'avisos') {
+                    renderRail();
+                }
+            };
+            try {
+                var asked = Notification.requestPermission(done);
+                if (asked && asked.then) {
+                    asked.then(done);
+                }
+            } catch (e) {
+                done('default');
+            }
+        }
+        // The browsers only let a page sound after a tap or a key: the sound is made ready with the first one.
+        function wakeAudio() {
+            if (audio || !(root.AudioContext || root.webkitAudioContext)) {
+                return;
+            }
+            try {
+                audio = new (root.AudioContext || root.webkitAudioContext)();
+            } catch (e) {
+                audio = null;
+            }
+        }
+        function chime() {
+            if (FLAGS.sound === 'off' || !audio) {
+                return;
+            }
+            try {
+                if (audio.state === 'suspended') {
+                    audio.resume();
+                }
+                var t = audio.currentTime;
+                [[880, 0], [1318.5, 0.13]].forEach(function (n) {
+                    var o = audio.createOscillator(), g = audio.createGain();
+                    o.type = 'sine';
+                    o.frequency.value = n[0];
+                    g.gain.setValueAtTime(0.0001, t + n[1]);
+                    g.gain.exponentialRampToValueAtTime(0.16, t + n[1] + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + n[1] + 0.4);
+                    o.connect(g);
+                    g.connect(audio.destination);
+                    o.start(t + n[1]);
+                    o.stop(t + n[1] + 0.45);
+                });
+            } catch (e) {
+                // Without sound, the notice still shows.
+            }
+        }
+        function onNotices(list) {
+            var fresh = (list || []).filter(function (n) {
+                if (seenNotice[n.id]) {
+                    return false;
+                }
+                seenNotice[n.id] = true;
+                return true;
+            });
+            if (!fresh.length) {
+                return;
+            }
+            chime();
+            var here = document.visibilityState === 'visible' && document.hasFocus();
+            fresh.slice(-3).forEach(function (n) {
+                if (here) {
+                    if (n.conversation !== st.open) {
+                        toast(n.text);
+                    }
+                    return;
+                }
+                if (desktopState() !== 'on') {
+                    return;
+                }
+                try {
+                    var x = new Notification(brand.name || s('apptitle'), { body: n.text, tag: 'mrd-' + (n.conversation || n.id),
+                        icon: brand.logo || undefined });
+                    x.onclick = function () {
+                        root.focus();
+                        if (n.conversation && conv(n.conversation)) {
+                            openConv(n.conversation);
+                        }
+                        x.close();
+                    };
+                } catch (e) {
+                    // A browser that does not show notices from a page.
+                }
+            });
+        }
+        function offerHtml() {
+            if (!offerDesktop()) {
+                return '';
+            }
+            return '<div class="mrd-avisos-oferta">' + ico('campana') + '<div class="mrd-avisos-oferta-t"><b>' + esc(s('desktopoffer')) +
+                '</b><small>' + esc(s('desktopofferhelp')) + '</small><span><button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="desktopon">' +
+                esc(s('desktopon')) + '</button><button type="button" class="mrd-avisos-no" data-a="desktopno">' + esc(s('desktopnotnow')) +
+                '</button></span></div></div>';
+        }
+        function popNotices() {
+            var d = desktopState();
+            var line = d === 'on' ? s('desktopison') : d === 'blocked' ? s('desktopisblocked') : s('desktopisoff');
+            var button = d === 'on' ? '<button type="button" class="mrd-btn mrd-chico" data-a="desktopno">' + esc(s('desktopturnoff')) + '</button>'
+                : d === 'blocked' ? '' : '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="desktopon">' + esc(s('desktopon')) + '</button>';
+            var sound = FLAGS.sound !== 'off';
+            return '<div class="mrd-pop mrd-pop-avisos" role="dialog" aria-label="' + esc(s('noticestitle')) + '"><h5>' + esc(s('noticestitle')) + '</h5>' +
+                (d === 'none' ? '' : '<div class="mrd-avisos-fila">' + ico('campana') + '<div><b>' + esc(s('desktoptitle')) + '</b><small>' + esc(line) +
+                    '</small></div>' + button + '</div>') +
+                '<div class="mrd-avisos-fila">' + ico(sound ? 'sonido' : 'mudo') + '<div><b>' + esc(s('soundtitle')) + '</b><small>' +
+                esc(sound ? s('soundison') : s('soundisoff')) + '</small></div><button type="button" class="mrd-btn mrd-chico" data-a="sound" aria-pressed="' +
+                sound + '">' + esc(sound ? s('soundturnoff') : s('soundturnon')) + '</button></div>' +
+                '<p class="mrd-fondo-nota">' + esc(s('noticeswhat')) + '</p></div>';
+        }
         function toast(text, error) {
             el.toast.innerHTML = ico(error ? 'alerta' : 'check') + '<span>' + esc(text) + '</span>';
             el.toast.classList.toggle('mrd-error', !!error);
@@ -1143,6 +1297,11 @@
             h += legendHtml();
             var sig = me.signature ? '<small title="' + esc(s('signature', me.signature)) + '">' + ico('lapiz') + '<span>' + esc(me.signature) +
                 '</span></small>' : '';
+            if (!READONLY && !cfg.inapp) {
+                h += '<div class="mrd-rail-pie"><button type="button" class="mrd-rail-b" data-a="pop" data-v="avisos" aria-expanded="' +
+                    (st.pop === 'avisos') + '">' + ico(FLAGS.sound === 'off' ? 'mudo' : 'campana') + '<span>' + esc(s('noticestitle')) + '</span></button>' +
+                    (st.pop === 'avisos' ? popNotices() : '') + '</div>';
+            }
             h += '<div class="mrd-yo">' + avAgent({ name: me.name, firstname: me.firstname, me: true }, 'mrd-m') +
                 '<div class="mrd-yo-t"><b>' + esc(me.name || '') + '</b>' + (READONLY ? '<small><span>' + esc(s('readonlyshort')) + '</span></small>'
                 : sig) + '</div>' +
@@ -1152,9 +1311,10 @@
             var keep = el.rail.scrollTop;
             el.rail.innerHTML = h;
             el.rail.scrollTop = keep;
-            var pp = el.rail.querySelector('.mrd-pop-perfil');
+            var pp = el.rail.querySelector('.mrd-pop-perfil') || el.rail.querySelector('.mrd-pop-avisos');
             if (pp) {
-                var br = el.rail.querySelector('.mrd-yo-mas').getBoundingClientRect(), rr = el.rail.getBoundingClientRect();
+                var anchor = el.rail.querySelector(st.pop === 'avisos' ? '.mrd-rail-b' : '.mrd-yo-mas');
+                var br = anchor.getBoundingClientRect(), rr = el.rail.getBoundingClientRect();
                 pp.style.bottom = Math.max(8, root.innerHeight - br.top + 8) + 'px';
                 pp.style.left = Math.max(8, rr.left + 10) + 'px';
             }
@@ -1252,7 +1412,7 @@
                 !!st.nueva + '">' + ico('lapiz') + '<span>' + esc(s('newconv')) + '</span></button>') + '</div><p></p><label class="mrd-buscar">' + ico('buscar') +
                 '<input type="search" data-role="buscar" autocomplete="off" placeholder="' + esc(s('search')) + '" aria-label="' +
                 esc(s('search')) + '" value="' + esc(st.search) + '"><button type="button" class="mrd-limpiar" data-a="clearsearch" aria-label="' +
-                esc(s('searchclear')) + '"' + (st.search ? '' : ' hidden') + '>' + ico('cerrar') + '</button></label></div>' +
+                esc(s('searchclear')) + '"' + (st.search ? '' : ' hidden') + '>' + ico('cerrar') + '</button></label>' + offerHtml() + '</div>' +
                 '<div class="mrd-lista-cuerpo"></div>';
             updateListTitle();
         }
@@ -1510,14 +1670,30 @@
             if (me.seesall) {
                 h += homeTeamsHtml(open);
             }
-            h += '<div class="mrd-inicio-como"><h3>' + esc(s('homehow')) + '</h3><ul>' +
+            h += '<details class="mrd-inicio-como"' + (howFolded() ? '' : ' open') + '><summary><h3>' + esc(s('homehow')) + '</h3>' + ico('abajo') +
+                '</summary><ul>' +
                 '<li><b>' + esc(s('mine')) + '</b>: ' + esc(s('homehowmine')) + '</li>' +
                 '<li><b>' + esc(s('unassigned')) + '</b>: ' + esc(s('homehowfree', s('takeit'))) + '</li>' +
                 '<li><b>' + esc(s('homehowteamsname')) + '</b>: ' + esc(s('homehowteams')) + '</li>' +
                 '<li><b>' + esc(s('tabnote')) + '</b>: ' + esc(s('homehownote')) + '</li>' +
                 '<li><b>' + esc(s('homehow24name')) + '</b>: ' + esc(s('homehow24')) + '</li></ul>' +
-                (guideLinks() ? '<div class="mrd-inicio-ayuda">' + guideLinks() + '</div>' : '') + '</div></div>';
+                (guideLinks() ? '<div class="mrd-inicio-ayuda">' + guideLinks() + '</div>' : '') + '</details></div>';
             return h;
+        }
+        // «How it works» folds for whoever knows it already, and stays folded on this computer.
+        function howFolded() {
+            try {
+                return root.localStorage.getItem('mrd-chat-como') === 'plegado';
+            } catch (e) {
+                return false;
+            }
+        }
+        function keepHow(open) {
+            try {
+                root.localStorage.setItem('mrd-chat-como', open ? 'abierto' : 'plegado');
+            } catch (e) {
+                // A browser without storage opens it each time.
+            }
         }
         // The guides in PDF the person has: whoever attends, and whoever coordinates if they see everything.
         function guideLinks() {
@@ -1561,13 +1737,16 @@
             if (!rows.length) {
                 return h + '<p class="mrd-inicio-n">' + esc(s('hometeamsnone')) + '</p></div>';
             }
+            h += '<div class="mrd-inicio-dep mrd-inicio-dep-cab" aria-hidden="true"><span>' + esc(s('hometeamcol')) + '</span><span>' +
+                esc(s('hometoreplycol')) + '</span><span>' + esc(s('homelongestcol')) + '</span><span>' + esc(s('homewhocol')) + '</span><span></span></div>';
             h += rows.map(function (r) {
                 var first = r.list[0];
-                return '<button type="button" class="mrd-inicio-dep" data-a="inbox" data-v="' + (r.id ? 'team:' + r.id : 'noteam') + '">' +
+                return '<button type="button" class="mrd-inicio-dep" data-a="inbox" data-v="' + (r.id ? 'team:' + r.id : 'noteam') + '" aria-label="' +
+                    esc(s('hometeamopen', { team: r.id ? teamName(r.id) : s('noteam'), n: r.list.length })) + '">' +
                     '<span class="mrd-inicio-dep-n">' + esc(r.id ? teamName(r.id) : s('noteam')) + '</span>' +
-                    '<span class="mrd-inicio-dep-c">' + esc(s('toreply', r.list.length)) + '</span>' +
+                    '<span class="mrd-inicio-dep-c">' + r.list.length + '</span>' +
                     '<span class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(waitText(first)) + '</span>' +
-                    '<span class="mrd-inicio-dep-q">' + esc(r.people.join(' · ')) + '</span></button>';
+                    '<span class="mrd-inicio-dep-q">' + esc(r.people.join(' · ')) + '</span>' + ico('der', 'mrd-inicio-dep-ir') + '</button>';
             }).join('');
             return h + '</div>';
         }
@@ -2335,7 +2514,7 @@
                 '<p>' + body + '</p>' + (t.footer ? '<span class="mrd-pie-wa">' + esc(t.footer) + '</span>' : '') +
                 (btns ? '<div class="mrd-botones-wa">' + btns + '</div>' : '') + '</div>' +
                 '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty + '">' +
-                ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty ? ' mrd-faltan' : '') + '">' +
+                ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
                 esc(gapsText(empty)) + '</small></div></div>';
         }
 
@@ -3138,6 +3317,7 @@
             renderRail();
             updateListTitle();
             renderListBody();
+            updateTitle();
             var c = conv(st.open);
             if (!c) {
                 renderHome();
@@ -3202,6 +3382,7 @@
                 st.inboxes = r.inboxes;
             }
             (r.conversations || []).forEach(mergeConv);
+            onNotices(r.notices);
             var goneOpen = false;
             (r.removed || []).forEach(function (rid) {
                 if (rid === st.open) {
@@ -3838,7 +4019,7 @@
             }
             var was = st.pop;
             st.pop = null;
-            if (was === 'perfil') {
+            if (was === 'perfil' || was === 'avisos') {
                 renderRail();
             } else if (was === 'dep' || was === 'dueno') {
                 renderHead();
@@ -3885,6 +4066,14 @@
             }
         }
 
+        // The sound of the notices is made ready with the first tap or key on the page.
+        box.addEventListener('pointerdown', wakeAudio);
+        box.addEventListener('keydown', wakeAudio);
+        box.addEventListener('toggle', function (e) {
+            if (e.target.classList && e.target.classList.contains('mrd-inicio-como')) {
+                keepHow(e.target.open);
+            }
+        }, true);
         box.addEventListener('click', function (e) {
             var t = e.target.closest('[data-a]');
             if (st.pop && !e.target.closest('.mrd-pop') && !(t && t.getAttribute('data-a') === 'pop')) {
@@ -3975,6 +4164,32 @@
                 case 'home':
                     goHome();
                     break;
+                case 'gapnext':
+                    var gap = Array.prototype.filter.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
+                        return !g.textContent.replace(/\u00a0/g, ' ').trim();
+                    })[0];
+                    if (gap) {
+                        gap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        placeCaret(gap, -1);
+                    }
+                    break;
+                case 'desktopon':
+                    askDesktop();
+                    break;
+                case 'desktopno':
+                    setFlag('desktop', 'no');
+                    renderListHead();
+                    renderListBody();
+                    renderRail();
+                    break;
+                case 'sound':
+                    setFlag('sound', FLAGS.sound === 'off' ? 'on' : 'off');
+                    renderRail();
+                    if (FLAGS.sound !== 'off') {
+                        wakeAudio();
+                        chime();
+                    }
+                    break;
                 case 'otros':
                     st.otros = !st.otros;
                     renderRail();
@@ -4018,7 +4233,7 @@
                     st.pop = st.pop === v ? null : v;
                     st.popIndex = 0;
                     st.popFilter = '';
-                    if (v === 'perfil') {
+                    if (v === 'perfil' || v === 'avisos') {
                         renderRail();
                     } else if (v === 'dep' || v === 'dueno') {
                         renderHead();
@@ -4406,6 +4621,7 @@
                 st.cursor = r.cursor !== undefined ? r.cursor : 0;
                 st.ready = true;
                 renderAll();
+                updateTitle();
                 var want = +startCfg.conversation || 0;
                 if (want && conv(want)) {
                     var wc = conv(want);

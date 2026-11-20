@@ -3363,10 +3363,17 @@
 #mrd-chat .mrd-huecos-estado.mrd-faltan {
     color: var(--ambar-texto);
     font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+/* A gap still to fill: in the orange of «1 gap left», which leads to it. */
+#mrd-chat .mrd-hueco:empty {
+    border-bottom-color: var(--ambar-texto);
 }
 #mrd-chat .mrd-hueco:empty::before {
     content: attr(data-ejemplo);
-    color: var(--tinta-3);
+    color: var(--ambar-texto);
     font-style: italic;
 }
 #mrd-chat .mrd-chip.mrd-chip-mas {
@@ -3494,7 +3501,7 @@
 }
 #mrd-chat .mrd-inicio-dep {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) 128px 104px minmax(0, 2fr);
+    grid-template-columns: minmax(0, 1.3fr) 104px 128px minmax(0, 2fr) 16px;
     gap: 4px 16px;
     align-items: center;
     width: 100%;
@@ -3509,15 +3516,62 @@
 #mrd-chat .mrd-inicio-dep:hover {
     background: var(--acento-suave);
 }
+#mrd-chat .mrd-inicio-dep-cab span {
+    white-space: nowrap;
+}
+#mrd-chat .mrd-inicio-dep-cab,
+#mrd-chat .mrd-inicio-dep-cab:hover {
+    padding-block: 2px 6px;
+    background: transparent;
+    color: var(--tinta-3);
+    font-size: 11.5px;
+    font-weight: 700;
+}
+#mrd-chat .mrd-inicio-dep-ir {
+    width: 16px;
+    height: 16px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-inicio-dep:hover .mrd-inicio-dep-ir {
+    color: var(--acento-texto);
+}
 #mrd-chat .mrd-inicio-dep-n {
     font-weight: 700;
 }
 #mrd-chat .mrd-inicio-dep-c {
     white-space: nowrap;
+    font-weight: 700;
 }
 #mrd-chat .mrd-inicio-dep-q {
     color: var(--tinta-2);
     font-size: 13px;
+}
+#mrd-chat .mrd-inicio-como summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+    cursor: pointer;
+    list-style: none;
+}
+#mrd-chat .mrd-inicio-como summary::-webkit-details-marker {
+    display: none;
+}
+#mrd-chat .mrd-inicio-como summary h3 {
+    margin: 0;
+}
+#mrd-chat .mrd-inicio-como summary .mrd-i {
+    width: 16px;
+    height: 16px;
+    color: var(--tinta-2);
+    transform: rotate(-90deg);
+    transition: transform 0.15s;
+}
+#mrd-chat .mrd-inicio-como[open] summary .mrd-i {
+    transform: none;
+}
+#mrd-chat .mrd-inicio-como[open] summary {
+    margin-bottom: 8px;
 }
 #mrd-chat .mrd-inicio-como ul {
     margin: 0;
@@ -3538,9 +3592,123 @@
 
 @media (max-width: 1100px) {
     #mrd-chat .mrd-inicio-dep {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) 96px 112px 16px;
     }
     #mrd-chat .mrd-inicio-dep-q {
-        grid-column: 1 / -1;
+        grid-column: 1 / -2;
+        grid-row: 2;
     }
+    #mrd-chat .mrd-inicio-dep-ir {
+        grid-column: 4;
+        grid-row: 1;
+    }
+    #mrd-chat .mrd-inicio-dep-cab span:nth-child(4) {
+        display: none;
+    }
+}
+
+/* Notices on this computer: the offer under the search, the button above the person and its pop. */
+#mrd-chat .mrd-avisos-oferta {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--linea-2);
+    border-radius: 12px;
+    background: var(--acento-suave);
+}
+#mrd-chat .mrd-avisos-oferta > .mrd-i {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-avisos-oferta-t {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+#mrd-chat .mrd-avisos-oferta-t b {
+    font-size: 14px;
+}
+#mrd-chat .mrd-avisos-oferta-t small {
+    color: var(--tinta-2);
+    font-size: 12.5px;
+    line-height: 1.35;
+}
+#mrd-chat .mrd-avisos-oferta-t span {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: center;
+    margin-top: 4px;
+}
+#mrd-chat .mrd-avisos-no {
+    border: 0;
+    background: transparent;
+    color: var(--tinta-2);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 0;
+}
+#mrd-chat .mrd-rail-pie {
+    padding: 8px 0 0;
+}
+#mrd-chat .mrd-rail-b {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--tinta-2);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-align: start;
+}
+#mrd-chat .mrd-rail-b .mrd-i {
+    width: 17px;
+    height: 17px;
+}
+#mrd-chat .mrd-rail-b:hover,
+#mrd-chat .mrd-rail-b[aria-expanded="true"] {
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-pop-avisos {
+    position: fixed;
+    bottom: 120px;
+    left: 12px;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    padding: 12px;
+    z-index: 40;
+}
+#mrd-chat .mrd-avisos-fila {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--linea);
+}
+#mrd-chat .mrd-avisos-fila > .mrd-i {
+    width: 20px;
+    height: 20px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-avisos-fila b {
+    display: block;
+    font-size: 14px;
+}
+#mrd-chat .mrd-avisos-fila small {
+    display: block;
+    color: var(--tinta-2);
+    font-size: 12.5px;
+    line-height: 1.35;
 }

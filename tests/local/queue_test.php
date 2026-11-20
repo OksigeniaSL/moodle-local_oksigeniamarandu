@@ -420,6 +420,25 @@ final class queue_test extends \advanced_testcase {
     }
 
     /**
+     * A notice for the people who work at the site (uncapped) neither stops at the notices a day nor counts for them.
+     */
+    public function test_uncapped_over_the_notices_a_day(): void {
+        set_config('capfamily', 1, 'local_oksigeniamarandu');
+        notices::declare_for_tests(['local_oksigeniamarandu' => ['notification' => [
+            'examples' => ['Colegio Ejemplo', 'Reunión el jueves'], 'uncapped' => true]]]);
+        $this->assertTrue(notices::get('local_oksigeniamarandu', 'notification')->uncapped);
+        $this->assertTrue(notices::get('local_oksigeniamarandu', 'chat')->uncapped);
+        $this->approve();
+        $this->family('34600000001');
+        $this->notify();
+        $this->notify();
+        $this->notify();
+        $counts = queue::process($this->fake_api(), self::WEDNESDAY);
+        notices::declare_for_tests([]);
+        $this->assertSame([3, 0], [$counts['sent'], $counts['waiting']]);
+    }
+
+    /**
      * What is urgent, by the plugin or by the site, neither stops at the notices a day nor counts for them.
      */
     public function test_urgent_over_the_notices_a_day(): void {

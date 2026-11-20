@@ -6,12 +6,14 @@
 #
 # Copyright 2026 Oksigenia SL <dev@oksigenia.cc>
 #
-# Brings into an inbox of Chatwoot the chats a WhatsApp number had in the app of WhatsApp Business when it joined the
-# API too (coexistence), as Oksigenia Marandu gives them (cli/history.php --export). Each chat becomes a resolved
-# conversation of its contact, with every message at its own date. The rows are written directly: no webhook, no bot,
-# no automation and nothing is sent to WhatsApp. A message already in the inbox (the same id of WhatsApp) is not written
-# again, so it can run twice. Messages written from the app are outgoing and marked as echoes, as Chatwoot marks those
-# that come live.
+# Brings into an inbox of Chatwoot the chats a WhatsApp number had in the app of WhatsApp Business: those Meta sends
+# when the number joins the API too (coexistence, cli/history.php --export), or those of a backup of the phone
+# (whatsapp_backup.py). Each chat becomes a resolved conversation of its contact, one per contact, with every message
+# at its own date and the attachments the file brings (paths relative to it). The rows are written directly: no
+# webhook, no bot, no automation and nothing is sent to WhatsApp. A message already in the inbox (the same id of
+# WhatsApp) is not written again, and the new ones of a chat go to the conversation it already brought, so it can run
+# again with a newer file. Messages written from the app are outgoing and marked as echoes, as Chatwoot marks those
+# that come live: they count as answered by a person.
 #
 # Inside the Chatwoot container:
 #   bundle exec rails runner /path/import_history.rb ACCOUNT_ID INBOX_ID /path/history.json [--dry-run]
@@ -21,6 +23,9 @@ dry = ARGV.include?('--dry-run')
 abort 'Usage: rails runner import_history.rb ACCOUNT_ID INBOX_ID FILE [--dry-run]' if account_id <= 0 || inbox_id <= 0 || path.empty?
 
 data = JSON.parse(File.read(path))
+base = File.dirname(File.expand_path(path))
+kinds = { 'image' => :image, 'audio' => :audio, 'video' => :video, 'file' => :file }
+imported = %w[whatsapp_business_app whatsapp_backup]
 account = Account.find(account_id)
 inbox = account.inboxes.find(inbox_id)
 whatsapp = inbox.channel_type == 'Channel::Whatsapp'
@@ -39,6 +44,7 @@ ActiveRecord::Base.transaction do
 
     counts[:conversations] += 1
     counts[:messages] += messages.size
+    counts[:attachments] += messages.count { |m| m['file'].to_s != '' }
     next if dry
 
     now = Time.current
@@ -62,13 +68,24 @@ ActiveRecord::Base.transaction do
 
     first = Time.zone.at(messages.first['at'].to_i)
     last = Time.zone.at(messages.last['at'].to_i)
-    # The display id comes from the trigger of the table, as with any conversation.
-    conversation_id = Conversation.insert!({ account_id: account.id, inbox_id: inbox.id, contact_id: contact.id,
-                                             contact_inbox_id: contact_inbox.id,
-                                             status: Conversation.statuses[:resolved], created_at: first, updated_at: last,
-                                             last_activity_at: last,
-                                             additional_attributes: { imported_from: 'whatsapp_business_app' } },
-                                           returning: %w[id]).first['id']
+    # The chat brought before, if any: the new messages go on in it.
+    before = Conversation.where(account_id: account.id, inbox_id: inbox.id, contact_id: contact.id)
+                         .where("additional_attributes->>'imported_from' IN (?)", imported).order(:id).first
+    if before
+      conversation_id = before.id
+      if last > before.last_activity_at
+        Conversation.where(id: before.id).update_all(last_activity_at: last, updated_at: last)
+      end
+      counts[:continued] += 1
+    else
+      # The display id comes from the trigger of the table, as with any conversation.
+      conversation_id = Conversation.insert!({ account_id: account.id, inbox_id: inbox.id, contact_id: contact.id,
+                                               contact_inbox_id: contact_inbox.id,
+                                               status: Conversation.statuses[:resolved], created_at: first, updated_at: last,
+                                               last_activity_at: last,
+                                               additional_attributes: { imported_from: 'whatsapp_business_app' } },
+                                             returning: %w[id]).first['id']
+    end
     rows = messages.map do |m|
       at = Time.zone.at(m['at'].to_i)
       mine = m['from_me'] ? true : false
@@ -79,10 +96,29 @@ ActiveRecord::Base.transaction do
         content_attributes: mine ? { external_echo: true, imported: true } : { imported: true },
         created_at: at, updated_at: at }
     end
-    Message.insert_all!(rows)
+    written = Message.insert_all!(rows, returning: %w[id source_id]).to_h { |r| [r['source_id'], r['id']] }
+    # The attachments, from the files beside the file of the chats; one that is not there is left out.
+    messages.each do |m|
+      next if m['file'].to_s.empty?
+
+      file = File.expand_path(m['file'], base)
+      next counts[:missing] += 1 unless file.start_with?(base) && File.file?(file)
+
+      attachment = Attachment.new(account_id: account.id, message_id: written[m['id']],
+                                  file_type: kinds.fetch(m['type'].to_s, :file))
+      attachment.file.attach(io: File.open(file, 'rb'), filename: m['filename'].to_s.empty? ? File.basename(file) : m['filename'],
+                             content_type: m['mime'].to_s.empty? ? 'application/octet-stream' : m['mime'])
+      begin
+        attachment.save!
+      rescue ActiveRecord::RecordInvalid
+        # A file Chatwoot does not take (its size or its kind): the message stays, without it.
+        counts[:refused] += 1
+      end
+    end
   end
   raise ActiveRecord::Rollback if dry
 end
 
-puts "#{dry ? 'Would write' : 'Written'}: #{counts[:conversations]} conversations, #{counts[:messages]} messages, " \
+puts "#{dry ? 'Would write' : 'Written'}: #{counts[:conversations]} conversations (#{counts[:continued]} went on), " \
+     "#{counts[:messages]} messages, #{counts[:attachments]} attachments (#{counts[:missing]} files not found, #{counts[:refused]} refused), " \
      "#{counts[:contacts]} new contacts; #{counts[:already]} chats already there, #{counts[:empty]} empty"

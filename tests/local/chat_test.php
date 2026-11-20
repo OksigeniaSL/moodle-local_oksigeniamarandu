@@ -641,6 +641,57 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
+     * From Telegram, whoever linked their chat keeps a conversation, leaves a note replying to its notice and passes it
+     * to another department with the button of that department.
+     */
+    public function test_telegram_actions(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $code = \local_oksigeniamarandu\api::invite('local_oksigeniamarandu', 0, (int)$ana->id);
+        $contact = \local_oksigeniamarandu\local\consent::get_or_create('tg:4242');
+        $DB->update_record(\local_oksigeniamarandu\local\consent::CONTACTS, (object)['id' => $contact->id, 'status' => 'active']);
+        $DB->set_field(\local_oksigeniamarandu\local\consent::LINKS, 'contactid', $contact->id, ['code' => $code]);
+        $this->redirectMessages();
+        chat\notify::send(1, (int)$ana->id, 'incoming', ['name' => 'Laura Martín', 'text' => '¿Me confirman el recibo?']);
+        $queue = \local_oksigeniamarandu\local\queue::TABLE;
+        $row = $DB->get_record($queue, ['notice' => 'chat'], '*', MUST_EXIST);
+        $this->assertSame(['c:1', (int)$contact->id], [$row->ref, (int)$row->contactid]);
+        $DB->update_record($queue, (object)['id' => $row->id, 'status' => 'sent', 'wamid' => 'tg.555']);
+        $chat = ['id' => 4242, 'type' => 'private'];
+        $press = function (string $data) use ($chat) {
+            return \local_oksigeniamarandu\local\telegram::handle(['callback_query' => ['id' => 'q' . $data, 'data' => $data,
+                'message' => ['message_id' => 555, 'chat' => $chat]]]);
+        };
+
+        $answer = $press('a:' . $row->token . ':take');
+        $this->assertSame('It is yours: the conversation of Laura Martín.', $answer['text']);
+        $this->assertContains(['POST', '/conversations/1/assignments', ['assignee_id' => 1]], $this->client->calls);
+
+        $note = \local_oksigeniamarandu\local\telegram::handle(['message' => ['message_id' => 556, 'chat' => $chat,
+            'from' => ['id' => 4242], 'text' => 'La llamo mañana', 'reply_to_message' => ['message_id' => 555]]]);
+        $this->assertStringContainsString('Note kept in the conversation of Laura Martín', $note['text']);
+        $posted = array_values(array_filter($this->client->calls, function ($call) {
+            return $call[0] === 'POST' && $call[1] === '/conversations/1/messages';
+        }));
+        $this->assertSame([['La llamo mañana', true]], array_map(function ($call) {
+            return [$call[2]['content'], $call[2]['private']];
+        }, $posted));
+
+        $answer = $press('a:' . $row->token . ':pass');
+        $this->assertSame([[['text' => 'Recibos', 'callback_data' => 'mrdp:1:11']]], $answer['reply_markup']['inline_keyboard']);
+        $answer = $press('mrdp:1:11');
+        $this->assertSame('editMessageText', $answer['method']);
+        $this->assertStringContainsString('Passed to Recibos', $answer['text']);
+        $this->assertContains(['POST', '/conversations/1/assignments', ['team_id' => 11]], $this->client->calls);
+
+        // A chat that is not of the team cannot do anything.
+        $this->assertNull(\local_oksigeniamarandu\local\telegram::handle(['callback_query' => ['id' => 'q9',
+            'data' => 'mrdp:1:10', 'message' => ['message_id' => 9, 'chat' => ['id' => 777, 'type' => 'private']]]])['reply_markup']
+            ?? null);
+    }
+
+    /**
      * The stages are data of the organisation: a group is known by the stage the record guesses or by a pattern, and is
      * shown as people say it; the list of a conversation does not show the signature on top.
      */

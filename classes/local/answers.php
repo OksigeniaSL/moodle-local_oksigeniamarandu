@@ -41,6 +41,9 @@ class answers {
     /** The statuses of a question that has gone out, and so can be answered. */
     private const OUT = ['sent', 'delivered', 'read'];
 
+    /** @var array|null The buttons the plugin put under the last answer, for Telegram. */
+    private static $buttons = null;
+
     /**
      * The buttons of a question on Telegram.
      *
@@ -152,8 +155,16 @@ class answers {
         if ($reply === null) {
             return null;
         }
-        return ['method' => 'sendMessage', 'chat_id' => (string)$chat['id'], 'text' => $reply,
+        $answer = ['method' => 'sendMessage', 'chat_id' => (string)$chat['id'], 'text' => $reply,
             'reply_parameters' => ['message_id' => $messageid, 'allow_sending_without_reply' => true]];
+        if (self::$buttons) {
+            $answer['reply_markup'] = ['inline_keyboard' => array_map(function ($row) {
+                return array_map(function ($button) {
+                    return ['text' => (string)$button[0], 'callback_data' => (string)$button[1]];
+                }, $row);
+            }, self::$buttons)];
+        }
+        return $answer;
     }
 
     /**
@@ -207,6 +218,7 @@ class answers {
             (string)$row->area
         );
         \core\di::get(\core\hook\manager::class)->dispatch($hook);
+        self::$buttons = $hook->get_reply_buttons();
         $lang = $contact->lang ?: null;
         return $hook->get_reply() ?? get_string_manager()->get_string(
             'answer:received',

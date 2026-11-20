@@ -42,6 +42,8 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'examples' => ['Lucía Ferrer: ¿Me confirman el recibo de diciembre?'],
             'perweek' => 0,
             'channels' => ['telegram'],
+            // From Telegram itself: keep it, resolve it or pass it to a department; a reply to the notice is a note.
+            'options' => ['take', 'resolve', 'pass'],
             // Its own brake (one a conversation every ten minutes, in the hours of the team): the notices a day are for
             // the families.
             'uncapped' => true,

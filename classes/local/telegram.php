@@ -223,6 +223,7 @@ class telegram {
     public static function handle(array $update, ?telegram_api $api = null): ?array {
         if (isset($update['callback_query'])) {
             return answers::from_telegram($update['callback_query'], $api)
+                ?? chat\telegram_actions::callback($update['callback_query'], $api)
                 ?? channel::from_telegram($update['callback_query'], $api)
                 ?? telegram_menu::callback($update['callback_query'], $api);
         }
@@ -250,6 +251,13 @@ class telegram {
         if (isset($message['contact']) && is_array($message['contact'])) {
             // The button «Share my number»: to join the family that has it.
             return telegram_menu::shared($address, $message['contact'], (int)($from['id'] ?? 0));
+        }
+        if (isset($message['reply_to_message'], $message['text'])) {
+            // A reply to the notice of a conversation of the team: a note in it.
+            $noted = chat\telegram_actions::note($address, $message);
+            if ($noted !== null) {
+                return $noted;
+            }
         }
         $name = trim(($from['first_name'] ?? '') . ' ' . ($from['last_name'] ?? ''));
         $name = $name === '' ? null : $name;

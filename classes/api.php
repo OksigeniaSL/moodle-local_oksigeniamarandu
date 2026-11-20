@@ -401,7 +401,7 @@ class api {
         if ($ref === '' || \core_text::strlen($ref) > 64) {
             throw new \coding_exception('The reference of a question has from 1 to 64 characters');
         }
-        $contactids = self::joined($component, $itemid, $userid, $area);
+        $contactids = self::by_channels(self::joined($component, $itemid, $userid, $area), $declared);
         foreach ($contactids as $contactid) {
             queue::add(
                 (int)$contactid,
@@ -845,6 +845,25 @@ class api {
     }
 
     /**
+     * Only the contacts of the channels a notice goes by.
+     *
+     * @param int[] $contactids The contacts.
+     * @param \stdClass $declared The notice.
+     * @return int[]
+     */
+    private static function by_channels(array $contactids, \stdClass $declared): array {
+        global $DB;
+        // A notice that only goes by some channels is not queued for the others.
+        $channels = $declared->channels ?? array_keys(notices::SETTING);
+        if (!$contactids || !array_diff(array_keys(notices::SETTING), $channels)) {
+            return $contactids;
+        }
+        [$inids, $idparams] = $DB->get_in_or_equal(array_map('intval', $contactids), SQL_PARAMS_NAMED, 'c');
+        [$inchannels, $chparams] = $DB->get_in_or_equal($channels, SQL_PARAMS_NAMED, 'ch');
+        return $DB->get_fieldset_select(consent::CONTACTS, 'id', "id $inids AND channel $inchannels", $idparams + $chparams);
+    }
+
+    /**
      * Queues a notice for some contacts.
      *
      * @param int[] $contactids The contacts.
@@ -875,18 +894,7 @@ class api {
         $rich = local\rich::clean($rich);
         // Only a language the site has: the texts of the notices are in its language packs.
         $lang = $lang !== '' && self::language($lang) === trim($lang) ? trim($lang) : '';
-        // A notice that only goes by some channels is not queued for the others.
-        $channels = $declared->channels ?? array_keys(notices::SETTING);
-        if ($contactids && array_diff(array_keys(notices::SETTING), $channels)) {
-            [$inids, $idparams] = $DB->get_in_or_equal(array_map('intval', $contactids), SQL_PARAMS_NAMED, 'c');
-            [$inchannels, $chparams] = $DB->get_in_or_equal($channels, SQL_PARAMS_NAMED, 'ch');
-            $contactids = $DB->get_fieldset_select(
-                consent::CONTACTS,
-                'id',
-                "id $inids AND channel $inchannels",
-                $idparams + $chparams
-            );
-        }
+        $contactids = self::by_channels($contactids, $declared);
         foreach ($contactids as $contactid) {
             queue::add(
                 (int)$contactid,

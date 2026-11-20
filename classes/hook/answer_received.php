@@ -33,6 +33,9 @@ final class answer_received {
     /** @var string|null What Marandu answers to the person. */
     private $reply = null;
 
+    /** @var array|null Buttons under the answer, on Telegram. */
+    private $buttons = null;
+
     /**
      * The answer.
      *
@@ -165,5 +168,23 @@ final class answer_received {
      */
     public function get_reply(): ?string {
         return $this->reply;
+    }
+
+    /**
+     * Buttons under the answer, on Telegram: rows of [text, callback data], for a choice that asks something more.
+     *
+     * @param array $rows The rows of buttons.
+     */
+    public function set_reply_buttons(array $rows): void {
+        $this->buttons = $rows;
+    }
+
+    /**
+     * The buttons under the answer, if a listener gave any.
+     *
+     * @return array|null
+     */
+    public function get_reply_buttons(): ?array {
+        return $this->buttons;
     }
 }

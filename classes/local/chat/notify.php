@@ -171,10 +171,18 @@ class notify {
         $message->contexturl = $url->out(false);
         $message->contexturlname = get_string('chat:title', 'local_oksigeniamarandu');
         message_send($message);
-        // And by Telegram, to whoever linked theirs, if the site switched the notice on there: with the same quiet hours
-        // and limits as every notice, and a button that opens the conversation.
+        // And by Telegram, to whoever linked theirs, if the site switched the notice on there: with the quiet hours of every
+        // notice, a button that opens the conversation and others to keep it, resolve it or pass it from there.
         try {
-            \local_oksigeniamarandu\api::notify('local_oksigeniamarandu', 'chat', [$text], $url, 0, (int)$user->id);
+            \local_oksigeniamarandu\api::ask(
+                'local_oksigeniamarandu',
+                'chat',
+                [$text],
+                telegram_actions::REF . $conversation,
+                0,
+                (int)$user->id,
+                $url
+            );
         } catch (\Throwable $e) {
             debugging('Marandu: the notice of the conversation did not go to Telegram: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }

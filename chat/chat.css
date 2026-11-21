@@ -5824,3 +5824,6 @@
         grid-row: 1;
     }
 }
+#mrd-chat .gs-elegir .mrd-btn[aria-disabled="true"] {
+    cursor: default;
+}

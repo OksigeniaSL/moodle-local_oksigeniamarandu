@@ -6744,3 +6744,13 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     margin-top: 0;
 }
 
+
+/* The − and + of the steps and of the plates of hours: drawn, not letters, so that they sit in the middle. */
+.local-oksigeniamarandu-wizard .mrd-paso-i {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+}

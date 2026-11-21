@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.49.1 (2026-11-21)
+
+- Choosing who sees the spend and approves keeps each touch by itself, says who sees it now, and never leaves it to
+  nobody; «Done» folds it (Jujol).
+- Why a send waits comes from the same figure as the bar: the budget spent already, or spent with this send.
+- The − and + of the plates of hours and of the steps, drawn instead of letters, so that they sit in the middle.
+
 ## 0.49.0 (2026-11-21)
 
 - The sends to many: a plugin asks what one would cost (`api::bulk_quote()`) and asks for it (`api::bulk_request()`);

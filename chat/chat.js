@@ -2631,7 +2631,9 @@
         function gsWhy(b) {
             var d = gsData(), m = d.month;
             if (b.why === 'budget') {
-                return s('gswhybudget', m.name);
+                // The same figure as the bar: spent already, or spent with this send.
+                return m.cost >= m.budget ? s('gswhybudget', m.name) :
+                    s('gswhyover', { month: m.name, total: gsMoney(m.cost + b.cost, m.currency), budget: gsMoney(m.budget, m.currency) });
             }
             var t = s('gswhythreshold', gsMoney(d.threshold, b.currency));
             if (m.budget > 0) {
@@ -2735,13 +2737,15 @@
                 var people = (st.extras.people || []).filter(function (p) {
                     return p.userid;
                 });
+                // Each touch keeps itself; the last one marked stays, so that someone always sees it.
                 return '<div class="gs-quienes gs-eligiendo"><div><b>' + esc(s('gswho')) + '</b><small>' + esc(s('gswhopick')) + '</small></div>' +
                     '<div class="gs-elegir">' + people.map(function (p) {
-                        var on = pick.indexOf(p.userid) >= 0;
+                        var on = pick.indexOf(p.userid) >= 0, last = on && pick.length === 1;
                         return '<button type="button" class="mrd-btn mrd-chico' + (on ? ' mrd-on' : '') + '" aria-pressed="' + on + '" data-a="gspick" data-v="' +
-                            p.userid + '">' + avAgent({ agentid: p.agentid, name: p.name }, 'mrd-s') + esc(p.name) + '</button>';
-                    }).join('') + '</div><div class="gs-acciones"><button type="button" class="mrd-btn mrd-primario mrd-chico" data-a="gspeopleok">' +
-                    esc(s('gssave')) + '</button><button type="button" class="mrd-btn mrd-chico" data-a="gspeopleno">' + esc(s('gscancel')) + '</button></div></div>';
+                            p.userid + '"' + (last ? ' aria-disabled="true" title="' + esc(s('gsneedone')) + '"' : '') + '>' +
+                            avAgent({ agentid: p.agentid, name: p.name }, 'mrd-s') + esc(p.name) + '</button>';
+                    }).join('') + '</div><div class="gs-acciones"><button type="button" class="mrd-btn mrd-chico" data-a="gspeopledone">' +
+                    esc(s('gsdonebtn')) + '</button></div></div>';
             }
             return '<div class="gs-quienes"><div><b>' + esc(s('gswho')) + '</b><small>' + esc(s('gswhohelp')) + '</small></div>' +
                 '<span class="gs-caras">' + d.approvers.map(function (p) {
@@ -5795,25 +5799,27 @@
                     break;
                 case 'gspick':
                     var uid = +v, at = st.gsPick.indexOf(uid);
+                    if (at >= 0 && st.gsPick.length === 1) {
+                        toast(s('gsneedone'));
+                        break;
+                    }
                     if (at >= 0) {
                         st.gsPick.splice(at, 1);
                     } else {
                         st.gsPick.push(uid);
                     }
                     renderHome();
-                    break;
-                case 'gspeopleno':
-                    st.gsPick = null;
-                    renderHome();
-                    break;
-                case 'gspeopleok':
-                    var chosen = st.gsPick || [];
-                    st.gsPick = null;
-                    loadSpend({ action: 'people', people: chosen }).then(function (r) {
+                    loadSpend({ action: 'people', people: st.gsPick.slice() }).then(function (r) {
                         if (r) {
-                            toast(s('gspeoplesaved'));
+                            toast(s('gspeoplenow', gsNames(r.approvers.map(function (p) {
+                                return p.firstname;
+                            }), 'gsand')));
                         }
                     });
+                    break;
+                case 'gspeopledone':
+                    st.gsPick = null;
+                    renderHome();
                     break;
                 case 'boardseen':
                     e.stopPropagation();

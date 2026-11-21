@@ -149,6 +149,10 @@ class provider implements
             'timecreated' => 'privacy:metadata:convmsg:timecreated',
         ], 'privacy:metadata:convmsg');
         $collection->add_database_table(mirror::TABLE, [
+            'phone' => 'privacy:metadata:conv:phone',
+            'name' => 'privacy:metadata:conv:name',
+            'kindnote' => 'privacy:metadata:conv:kindnote',
+            'preview' => 'privacy:metadata:conv:preview',
             'passedby' => 'privacy:metadata:conv:passedby',
             'passedat' => 'privacy:metadata:conv:passedat',
         ], 'privacy:metadata:conv');
@@ -415,6 +419,12 @@ class provider implements
                 $DB->delete_records(consent::OPTOUTS, ['contactid' => $link->contactid]);
                 $DB->delete_records(answers::TABLE, ['contactid' => $link->contactid]);
                 $DB->delete_records('local_oksigeniamarandu_queue', ['contactid' => $link->contactid]);
+                // What the index of the conversations keeps of that number goes too; the conversations themselves
+                // are in Chatwoot.
+                $phone = (string)$DB->get_field(consent::CONTACTS, 'phone', ['id' => $link->contactid]);
+                if ($phone !== '' && !telegram::is_chat($phone)) {
+                    $DB->delete_records(mirror::TABLE, ['phone' => $phone]);
+                }
                 $DB->delete_records(consent::CONTACTS, ['id' => $link->contactid]);
             }
         }

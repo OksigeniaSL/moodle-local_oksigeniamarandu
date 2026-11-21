@@ -40,6 +40,7 @@
         <FIELD NAME="bynumber" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether it stands because the family records say the number is that adult's, not because of a code"/>
         <FIELD NAME="timeclaimed" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timeexpires" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Until when the code can be claimed; 0 for always"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -131,6 +132,8 @@
         <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
         <INDEX NAME="wamid" UNIQUE="false" FIELDS="wamid"/>
         <INDEX NAME="token" UNIQUE="true" FIELDS="token"/>
+        <INDEX NAME="timesent" UNIQUE="false" FIELDS="timesent"/>
+        <INDEX NAME="timeclosed-timeexpires" UNIQUE="false" FIELDS="timeclosed, timeexpires"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_oksigeniamarandu_answer" COMMENT="Every answer to a question, as it came: who, which button, when and the ids of the messages">
@@ -244,6 +247,8 @@
         <INDEX NAME="timemodified" UNIQUE="false" FIELDS="timemodified"/>
         <INDEX NAME="contactid" UNIQUE="false" FIELDS="contactid"/>
         <INDEX NAME="status-teamid" UNIQUE="false" FIELDS="status, teamid"/>
+        <INDEX NAME="phone" UNIQUE="false" FIELDS="phone"/>
+        <INDEX NAME="status-lastactivity" UNIQUE="false" FIELDS="status, lastactivity"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_oksigeniamarandu_convseen" COMMENT="When each person last read each conversation">

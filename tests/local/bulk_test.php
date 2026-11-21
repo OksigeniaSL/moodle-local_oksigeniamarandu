@@ -103,14 +103,14 @@ final class bulk_test extends \advanced_testcase {
 
         // Someone who may approve it: approved, it goes, and the plugin can read who did.
         $waiting = api::bulk_request('local_oksigeniamarandu', 'act_invitation', $items, (int)$asker->id, 'Jornada 3');
-        $boss = $this->getDataGenerator()->create_user(['firstname' => 'David', 'lastname' => 'Ramos']);
+        $boss = $this->getDataGenerator()->create_user(['firstname' => 'Héctor', 'lastname' => 'Ruiz']);
         $role = $this->getDataGenerator()->create_role();
         assign_capability('local/oksigeniamarandu:bulkapprove', CAP_ALLOW, $role, \context_system::instance());
         role_assign($role, $boss->id, \context_system::instance());
-        $this->assertSame(['David Ramos'], array_values(array_map('fullname', bulk::approvers())));
+        $this->assertSame(['Héctor Ruiz'], array_values(array_map('fullname', bulk::approvers())));
         $this->assertTrue(bulk::decide($waiting['id'], true, (int)$boss->id));
         $state = api::bulk_state($waiting['id']);
-        $this->assertSame(['queued', 'David Ramos', 3], [$state['status'], $state['decidedby'], $state['sent']]);
+        $this->assertSame(['queued', 'Héctor Ruiz', 3], [$state['status'], $state['decidedby'], $state['sent']]);
         $this->assertFalse(bulk::decide($waiting['id'], false, (int)$boss->id));
 
         // Rejected, nothing goes; and whoever may not approve cannot decide.
@@ -184,9 +184,11 @@ final class bulk_test extends \advanced_testcase {
      * the budget are theirs.
      */
     public function test_who_sees_it(): void {
-        $boss = $this->getDataGenerator()->create_user(['firstname' => 'David']);
-        // Until the site chooses, whoever has the capability through a role: nobody here.
-        $this->assertSame([], spend::people());
+        $boss = $this->getDataGenerator()->create_user(['firstname' => 'Héctor']);
+        // Until the site chooses, whoever has the capability through a role; with nobody, the administrators.
+        $this->assertSame([(int)get_admin()->id], array_map(function ($user) {
+            return (int)$user->id;
+        }, spend::people()));
         spend::set_people([$boss->id]);
         $this->assertSame([(int)$boss->id], array_map(function ($user) {
             return (int)$user->id;

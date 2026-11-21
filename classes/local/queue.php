@@ -27,6 +27,9 @@ namespace local_oksigeniamarandu\local;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class queue {
+    /** Seconds a notice that has to wait (the quiet hours, a template still to approve, a channel stopped) is left aside. */
+    private const LATER = 15 * MINSECS;
+
     /** The code of a request of Telegram refused for what it has inside, as an error of the client gives it. */
     private const TELEGRAM_REFUSED = -400;
 
@@ -156,8 +159,10 @@ class queue {
             $paused[$channel] = $blocked && $blocked->time > $now - self::BLOCKED_RETRY;
         }
 
+        // The urgent first; what has to wait is looked at again a while later (later()), so that a long line of notices
+        // that wait (the quiet hours, a template Meta has not approved) does not hold back what is behind it.
         $select = "status = 'queued' AND (timeretry IS NULL OR timeretry <= :now)";
-        foreach ($DB->get_records_select(self::TABLE, $select, ['now' => $now], 'id ASC', '*', 0, 200) as $row) {
+        foreach ($DB->get_records_select(self::TABLE, $select, ['now' => $now], 'urgent DESC, id ASC', '*', 0, 200) as $row) {
             $key = $row->component . '/' . $row->notice;
             $notice = notices::get($row->component, $row->notice);
             $contact = $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]);
@@ -171,16 +176,25 @@ class queue {
                 continue;
             }
             if ($paused[$channel] || !$clients[$channel]) {
+                self::later($row, $now, self::LATER);
                 $counts['waiting']++;
                 continue;
             }
             $canwait = self::can_wait($row, $notice, $urgent);
             if ($quiet && $canwait) {
+                self::later($row, $now, self::LATER);
                 $counts['waiting']++;
                 continue;
             }
             if ($canwait && $perday > 0 && empty($notice->uncapped) && self::sent_today($contact->id, $now, $urgent) >= $perday) {
+                self::later($row, $now, HOURSECS);
                 $counts['waiting']++;
+                continue;
+            }
+            if (!empty($row->ref) && (int)$DB->get_field(self::TABLE, 'timeclosed', ['id' => $row->id])) {
+                // A question closed since it was read (answered in another way): it does not go.
+                self::finish($row, $now, 'expired', null, null, 'closed');
+                $counts['expired']++;
                 continue;
             }
             $params = json_decode($row->params, true) ?: [];
@@ -218,11 +232,13 @@ class queue {
             }
             $template = $free ? null : templates::approved($notice, $lang);
             if (!$free && !$template) {
+                self::later($row, $now, self::LATER);
                 $counts['waiting']++;
                 continue;
             }
             if (!$free && $cap > 0 && $spent + $cost > $cap + 0.00001) {
                 self::warn_cap($now);
+                self::later($row, $now, HOURSECS);
                 $counts['waiting']++;
                 continue;
             }
@@ -484,16 +500,16 @@ class queue {
             return;
         }
         if (in_array($status, ['delivered', 'read'], true)) {
-            $row->status = $status === 'read' || $row->status === 'read' ? 'read' : 'delivered';
-            $row->timedelivered = $row->timedelivered ?: time();
+            $change = ['status' => $status === 'read' || $row->status === 'read' ? 'read' : 'delivered',
+                'timedelivered' => $row->timedelivered ?: time()];
         } else if ($status === 'failed') {
-            $row->status = 'failed';
-            $row->error = \core_text::substr($error === '' ? 'failed' : $error, 0, 255);
-            $row->errorcode = $code;
+            $change = ['status' => 'failed', 'error' => \core_text::substr($error === '' ? 'failed' : $error, 0, 255),
+                'errorcode' => $code];
         } else {
             return;
         }
-        $DB->update_record(self::TABLE, $row);
+        // Only what changed: a question closed meanwhile stays closed.
+        $DB->update_record(self::TABLE, (object)(['id' => $row->id] + $change));
     }
 
     /**
@@ -510,6 +526,18 @@ class queue {
             $text = str_replace('{{' . ($i + 1) . '}}', $value, $text);
         }
         return $text;
+    }
+
+    /**
+     * Leaves a notice that has to wait out of the next passes for a while.
+     *
+     * @param \stdClass $row The notice.
+     * @param int $now The time.
+     * @param int $seconds For how long.
+     */
+    private static function later(\stdClass $row, int $now, int $seconds): void {
+        global $DB;
+        $DB->set_field(self::TABLE, 'timeretry', $now + $seconds, ['id' => $row->id]);
     }
 
     /**
@@ -700,7 +728,10 @@ class queue {
         // When it went out or failed: the panel counts both by day.
         $row->timesent = $status === 'sent' || $status === 'failed' ? $now : null;
         $row->timeretry = null;
-        $DB->update_record(self::TABLE, $row);
+        // Only what changed here: a question closed meanwhile (api::close_question()) stays closed.
+        $DB->update_record(self::TABLE, (object)['id' => $row->id, 'status' => $row->status, 'kind' => $row->kind,
+            'wamid' => $row->wamid, 'error' => $row->error, 'errorcode' => $row->errorcode, 'timesent' => $row->timesent,
+            'timeretry' => null]);
     }
 
     /**

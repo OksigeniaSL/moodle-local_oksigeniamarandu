@@ -53,6 +53,9 @@ use local_oksigeniamarandu\local\telegram_api;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class api {
+    /** A notice declared with 'ownjoin' reaches only what the user joined with a code of its own plugin (since 0.51.1). */
+    public const OWNJOIN = true;
+
     /**
      * A code that links whoever writes it on WhatsApp with something of a plugin, or with a user.
      *
@@ -63,9 +66,19 @@ class api {
      * @param int $itemid Its item, such as a family; 0 if the link is only for a user.
      * @param int|null $userid The Moodle user, if there is one.
      * @param string $area The kind of item, if the plugin has more than one (such as kitchen); empty for its usual items.
+     * @param int $validfor Seconds the code can be claimed, for a code that must not outlive the moment, such as the one
+     *                      that joins a chat to approve a login: then it is always a new one, and the open ones of before
+     *                      stop working. 0 for a code that stays until someone uses it; the code of a user lasts a day
+     *                      anyway, and the person hears when a number or a chat joins their account.
      * @return string The code.
      */
-    public static function invite(string $component, int $itemid = 0, ?int $userid = null, string $area = ''): string {
+    public static function invite(
+        string $component,
+        int $itemid = 0,
+        ?int $userid = null,
+        string $area = '',
+        int $validfor = 0
+    ): string {
         global $DB;
         $component = clean_param($component, PARAM_COMPONENT);
         if ($component === '') {
@@ -78,10 +91,30 @@ class api {
             $usersql = 'userid = :userid';
             $params['userid'] = $userid;
         }
-        $open = $DB->get_records_select(consent::LINKS, "component = :component AND area = :area AND itemid = :itemid
-            AND $usersql AND contactid IS NULL", $params, 'id ASC', 'id, code', 0, 1);
-        if ($open) {
-            return reset($open)->code;
+        $opensql = "component = :component AND area = :area AND itemid = :itemid AND $usersql AND contactid IS NULL";
+        if ($validfor > 0) {
+            $DB->delete_records_select(consent::LINKS, $opensql, $params);
+        } else if ($userid !== null) {
+            // The code of a person stands for their account: it lasts a day (USER_CODE), then a new one.
+            $open = $DB->get_records_select(
+                consent::LINKS,
+                "$opensql AND timeexpires > :now",
+                $params + ['now' => time() + 60],
+                'id ASC',
+                'id, code',
+                0,
+                1
+            );
+            if ($open) {
+                return reset($open)->code;
+            }
+            $DB->delete_records_select(consent::LINKS, $opensql, $params);
+            $validfor = consent::USER_CODE;
+        } else {
+            $open = $DB->get_records_select(consent::LINKS, "$opensql AND timeexpires = 0", $params, 'id ASC', 'id, code', 0, 1);
+            if ($open) {
+                return reset($open)->code;
+            }
         }
         do {
             $code = keywords::new_code();
@@ -93,6 +126,7 @@ class api {
             'userid' => $userid,
             'code' => $code,
             'timecreated' => time(),
+            'timeexpires' => $validfor > 0 ? time() + $validfor : 0,
         ]);
         return $code;
     }
@@ -249,7 +283,8 @@ class api {
             if ($channel !== '' && $contact->channel !== $channel) {
                 continue;
             }
-            $changed += consent::set_optout($contact, $scope === '' ? 'all' : $scope, $out, $source, $component) ? 1 : 0;
+            $changed += consent::set_optout($contact, $scope === '' ? 'all' : $scope, $out, $source, $component, $itemid)
+                ? 1 : 0;
         }
         return $changed;
     }
@@ -530,7 +565,7 @@ class api {
         global $DB;
         [$declared, $params] = self::prepare($component, $notice, $params);
         $area = self::area($area);
-        $contactids = self::joined($component, $itemid, $userid, $area);
+        $contactids = self::joined($component, $itemid, $userid, $area, $declared->ownjoin);
         if ($only !== '' && $contactids) {
             [$insql, $inparams] = $DB->get_in_or_equal(array_map('intval', $contactids), SQL_PARAMS_NAMED, 'c');
             $contactids = $DB->get_fieldset_select(
@@ -601,7 +636,7 @@ class api {
         if ($ref === '' || \core_text::strlen($ref) > 64) {
             throw new \coding_exception('The reference of a question has from 1 to 64 characters');
         }
-        $contactids = self::by_channels(self::joined($component, $itemid, $userid, $area), $declared);
+        $contactids = self::by_channels(self::joined($component, $itemid, $userid, $area, $declared->ownjoin), $declared);
         foreach ($contactids as $contactid) {
             queue::add(
                 (int)$contactid,
@@ -636,7 +671,7 @@ class api {
         if (!$declared || !$userid) {
             return false;
         }
-        $contactids = self::by_channels(self::joined($component, 0, $userid, ''), $declared);
+        $contactids = self::by_channels(self::joined($component, 0, $userid, '', $declared->ownjoin), $declared);
         foreach ($contactids as $contactid) {
             $contact = $DB->get_record(consent::CONTACTS, ['id' => $contactid]);
             if (!$contact || consent::out_of($contact, $component)) {
@@ -1047,6 +1082,52 @@ class api {
     }
 
     /**
+     * The numbers and chats a user joined with a code of a plugin, such as the chats that can approve their logins: for
+     * a page where the person sees them and takes away one that is not theirs.
+     *
+     * @param string $component The plugin of the code.
+     * @param int $userid The user.
+     * @return array Each with id (to take it away), channel (whatsapp or telegram), name (as the chat or WhatsApp
+     *               gives it, or empty), ending (the last digits of a number; empty for a chat) and since (when it joined).
+     */
+    public static function own_chats(string $component, int $userid): array {
+        global $DB;
+        $rows = $DB->get_records_sql("SELECT l.id, l.timeclaimed, c.phone, c.name
+                                        FROM {" . consent::LINKS . "} l
+                                        JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+                                       WHERE l.component = :component AND l.userid = :userid AND l.bynumber = 0
+                                             AND c.status = :active
+                                    ORDER BY l.timeclaimed ASC", ['component' => $component, 'userid' => $userid,
+            'active' => 'active']);
+        $list = [];
+        foreach ($rows as $row) {
+            $chat = telegram::is_chat((string)$row->phone);
+            $list[] = ['id' => (int)$row->id, 'channel' => $chat ? 'telegram' : 'whatsapp', 'name' => (string)$row->name,
+                'ending' => $chat ? '' : substr((string)$row->phone, -3), 'since' => (int)$row->timeclaimed];
+        }
+        return $list;
+    }
+
+    /**
+     * Takes away one of the numbers or chats a user joined with a code of a plugin (from own_chats()): it gets nothing
+     * of that plugin for that user any more; the rest of the person's notices do not change.
+     *
+     * @param string $component The plugin of the code.
+     * @param int $userid The user.
+     * @param int $id The one to take away, as own_chats() gives it.
+     * @return bool Whether there was one.
+     */
+    public static function unlink_chat(string $component, int $userid, int $id): bool {
+        global $DB;
+        $conditions = ['id' => $id, 'component' => $component, 'userid' => $userid];
+        if (!$DB->record_exists(consent::LINKS, $conditions)) {
+            return false;
+        }
+        $DB->delete_records(consent::LINKS, $conditions);
+        return true;
+    }
+
+    /**
      * The kind of item a plugin gives, checked: empty, or a short name such as kitchen.
      *
      * @param string $area The kind of item.
@@ -1091,11 +1172,17 @@ class api {
      * @param int $itemid The item; 0 for a user.
      * @param int|null $userid The user, if it is for a user.
      * @param string $area The kind of item.
+     * @param bool $ownjoin For a user, only what they joined with a code of this plugin.
      * @return int[]
      */
-    private static function joined(string $component, int $itemid, ?int $userid, string $area): array {
+    private static function joined(string $component, int $itemid, ?int $userid, string $area, bool $ownjoin = false): array {
         global $DB;
-        if ($userid !== null) {
+        if ($userid !== null && $ownjoin) {
+            // Only what the user joined with a code of this plugin: not from their account settings, nor for another
+            // plugin, nor because the family records have the number.
+            $where = 'l.userid = :userid AND l.component = :component AND l.bynumber = 0';
+            $sqlparams = ['userid' => $userid, 'component' => $component];
+        } else if ($userid !== null) {
             $where = 'l.userid = :userid';
             $sqlparams = ['userid' => $userid];
         } else {

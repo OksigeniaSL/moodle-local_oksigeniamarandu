@@ -363,7 +363,7 @@ if ($step === 'account') {
     $context['notices'] = [
         'rows' => $rows,
         'total' => get_string('wizard:notices:cost', $component, format_float($total, 2)),
-        'basis' => get_string('wizard:notices:basis', $component, (object)[
+        'basis' => get_string((int)$estimate === 1 ? 'wizard:notices:basisone' : 'wizard:notices:basis', $component, (object)[
             'families' => $estimate,
             'cost' => format_float(queue::cost(), 3),
         ]),

@@ -144,7 +144,18 @@ class directory {
         $cache = \cache::make('local_oksigeniamarandu', 'chat');
         $data = self::$client ? false : $cache->get('directory');
         if ($data === false) {
-            $data = self::load(self::client());
+            // Chatwoot down or slow: asked again a minute later, not on every page of everyone.
+            if (!self::$client && (int)$cache->get('directoryfailed') > time() - MINSECS) {
+                throw new \local_oksigeniamarandu\local\api_exception('error:chatwoot', '—', null, 'failed a moment ago');
+            }
+            try {
+                $data = self::load(self::client());
+            } catch (\moodle_exception $e) {
+                if (!self::$client) {
+                    $cache->set('directoryfailed', time());
+                }
+                throw $e;
+            }
             if (!self::$client) {
                 $cache->set('directory', $data);
             }

@@ -37,4 +37,12 @@ $messageproviders = [
             'oksigeniamarandu' => MESSAGE_DISALLOWED,
         ],
     ],
+    // A number or a chat joined to your account: if it was not you, you know at once. Never by that same chat.
+    'newchat' => [
+        'defaults' => [
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_FORCED,
+            'oksigeniamarandu' => MESSAGE_DISALLOWED,
+        ],
+    ],
 ];

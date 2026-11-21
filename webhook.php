@@ -67,14 +67,16 @@ if (!inbound::verify_signature($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '',
 
 $payload = json_decode($raw, true);
 $own = false;
+$ours = false;
 try {
     if (is_array($payload)) {
-        inbound::handle($payload, $own);
+        inbound::handle($payload, $own, $ours);
     }
 } finally {
     // The same body, with its signature, to the other address of the site, if it has one: the shared inbox, say. What
     // the site answered itself (opt-ins, opt-outs, the buttons of its questions) stays here: a bot there would answer too.
-    if (!$own) {
+    // Nor what is of another number or account of the same app.
+    if (!$own && $ours) {
         forward::deliver($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '');
     }
 }

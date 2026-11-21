@@ -165,13 +165,18 @@ class spend {
             explode(',', (string)get_config(self::COMPONENT, 'spendpeople'))
         ))));
         if (!$ids) {
-            return array_values(array_filter(get_users_by_capability(
+            $list = array_values(array_filter(get_users_by_capability(
                 \context_system::instance(),
                 'local/oksigeniamarandu:bulkapprove',
                 'u.*',
                 'u.lastname ASC'
             ), function ($user) {
                     return !$user->deleted && !$user->suspended;
+            }));
+            // With nobody chosen and nobody with the capability, the administrators of the site: a send never waits for
+            // nobody.
+            return $list ?: array_values(array_filter(get_admins(), function ($user) {
+                return !$user->deleted && !$user->suspended;
             }));
         }
         $users = $DB->get_records_list('user', 'id', $ids);

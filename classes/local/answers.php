@@ -140,8 +140,11 @@ class answers {
         global $DB;
         [$row, $option] = self::by_data((string)($query['data'] ?? ''));
         $chat = $query['message']['chat'] ?? [];
-        if (!$row || $option === null || ($chat['type'] ?? '') !== 'private') {
+        if (($chat['type'] ?? '') !== 'private') {
             return null;
+        }
+        if (!$row || $option === null) {
+            return self::closed_on_telegram($query, $api);
         }
         $contact = $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]);
         if (!$contact || $contact->phone !== telegram::address((string)$chat['id'])) {
@@ -171,6 +174,40 @@ class answers {
             }, self::$buttons)];
         }
         return $answer;
+    }
+
+    /**
+     * The button of a question that no longer takes answers, pressed on Telegram: the button stops waiting and the message
+     * says that it was answered or that its time is over, without its buttons, so that the person knows it did not count.
+     *
+     * @param array $query The callback_query.
+     * @param telegram_api|null $api The bot, to stop the button waiting.
+     * @return array|null The change of the message, as the answer of the webhook; null if it is not a question of here.
+     */
+    private static function closed_on_telegram(array $query, ?telegram_api $api): ?array {
+        global $DB;
+        if (!preg_match('/^' . self::PREFIX . '([A-Za-z0-9]{1,16}):[a-z0-9]{1,10}$/', (string)($query['data'] ?? ''), $parts)) {
+            return null;
+        }
+        $row = $DB->get_record(queue::TABLE, ['token' => $parts[1]]);
+        $chatid = (string)($query['message']['chat']['id'] ?? '');
+        $contact = $row ? $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]) : null;
+        $notice = $row ? notices::get($row->component, $row->notice) : null;
+        if (!$row || empty($row->ref) || !$contact || !$notice || $contact->phone !== telegram::address($chatid)) {
+            return null;
+        }
+        if ($api && isset($query['id'])) {
+            try {
+                $api->answer_callback((string)$query['id']);
+            } catch (api_exception $e) {
+                debugging('Marandu: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+        }
+        $lang = $row->lang ?: ($contact->lang ?: null);
+        $how = $DB->record_exists(self::TABLE, ['queueid' => $row->id]) ? 'answered' : 'expired';
+        return ['method' => 'editMessageText', 'chat_id' => $chatid, 'message_id' => (int)($query['message']['message_id'] ?? 0),
+            'text' => queue::render($notice, (array)json_decode((string)$row->params, true), $lang) . "\n\n" .
+                get_string_manager()->get_string('answer:closed:' . $how, 'local_oksigeniamarandu', null, $lang)];
     }
 
     /**

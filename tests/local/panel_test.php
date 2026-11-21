@@ -198,7 +198,8 @@ final class panel_test extends \advanced_testcase {
      */
     public function test_waiting(): void {
         $contact = $this->family('34600000001');
-        $this->row($contact, ['status' => 'queued', 'timeretry' => self::WEDNESDAY + 11 * HOURSECS, 'wamid' => null]);
+        $this->row($contact, ['status' => 'queued', 'timeretry' => self::WEDNESDAY + 11 * HOURSECS, 'attempts' => 1,
+            'wamid' => null]);
         $this->row($contact, ['status' => 'queued', 'wamid' => null]);
         $this->row($contact, ['status' => 'queued', 'wamid' => null]);
 

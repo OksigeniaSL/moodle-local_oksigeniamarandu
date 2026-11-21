@@ -303,7 +303,7 @@ class cards {
         }
         $brand = self::brand();
         $cache = \cache::make(self::COMPONENT, 'thumbs');
-        $key = sha1(json_encode($card) . '|' . $brand . '|' . self::org() . '|' . $width);
+        $key = sha1(json_encode($card) . '|' . $brand . '|' . self::org() . '|' . $width . '|' . self::logo_key());
         $kept = $cache->get($key);
         if (is_string($kept)) {
             return $kept;
@@ -1094,6 +1094,11 @@ class cards {
             $pick = $compact ?? $wide;
         }
         $image = $pick === null ? false : @imagecreatefromstring($pick);
+        if ($image && !imageistruecolor($image)) {
+            // A logo of a palette (an 8-bit PNG, a GIF) gives the index of its colours, not the colours: in true colour,
+            // its light or dark is measured right.
+            imagepalettetotruecolor($image);
+        }
         return $image ?: null;
     }
 

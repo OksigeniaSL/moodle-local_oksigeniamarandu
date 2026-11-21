@@ -59,6 +59,9 @@ namespace local_oksigeniamarandu\local;
  * from one of the values of the question, such as numbers to choose from: 'optionlabels' => ['a' => 3] takes it from {{3}}.
  * A question that must not go with a template, whose answers change each time, says 'freeonly' => true: on WhatsApp it only
  * goes inside the 24 hours (as a list when it has four answers), and outside them it is skipped; it never goes to Meta.
+ * A notice for a user that must reach only the chats that user joined with a code of its own plugin, not those joined
+ * from their account settings or for another plugin, says 'ownjoin' => true: such as the approval of a login, whose code
+ * the plugin only gives after another factor.
  *
  * A notice for the people who work at the site, with a brake of its own, says 'uncapped' => true: it keeps the quiet
  * hours, but the notices a day (which protect the families) neither hold it back nor count it.
@@ -111,6 +114,7 @@ class notices {
                     'options' => self::options((array)($definition['options'] ?? []), empty($definition['freeonly']) ? 3 : 4),
                     'optionlabels' => self::optionlabels((array)($definition['optionlabels'] ?? [])),
                     'freeonly' => !empty($definition['freeonly']),
+                    'ownjoin' => !empty($definition['ownjoin']),
                     'follows' => self::follows((string)($definition['follows'] ?? ''), $notice),
                     'channels' => self::channels_of((array)($definition['channels'] ?? [])),
                     'uncapped' => !empty($definition['uncapped']),

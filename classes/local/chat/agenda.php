@@ -106,6 +106,12 @@ class agenda {
                 $contacts[$id]['conversation'] = (int)$row->cwid;
             }
         }
+        // A favourite only stays while the person sees a conversation of it, unless the team marked what it is.
+        foreach ($contacts as $id => $contact) {
+            if (!$contact['conversation'] && !isset($marked[$id])) {
+                unset($contacts[$id]);
+            }
+        }
         $byname = function (array $a, array $b): int {
             return \core_text::strtolower($a['name']) <=> \core_text::strtolower($b['name']);
         };

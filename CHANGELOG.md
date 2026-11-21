@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.51.1 (2026-11-21)
+
+Security and privacy, from a review of 0.35 to 0.51:
+- A notice declared with 'ownjoin' (the approval of a login) only reaches the chats a user joined with a code of its own
+  plugin, never those joined from the account settings or for another plugin (`api::OWNJOIN`). Codes can expire
+  (`invite(..., $validfor)`, always a new one); the code of a user lasts a day; whoever has a new phone joined to their
+  account hears it by email. `api::own_chats()` and `api::unlink_chat()` to see and take away the chats of a plugin.
+- The conversations of the team: being passed one no longer lets you see it for ever; a reminder does not take a
+  conversation from whoever has it now; starting a new one does not bring in one of another department; favourites and
+  the family card only point to what the person sees; an email shared by several accounts is no person of the chat.
+- Opt-outs: joining with the code of a plugin takes back only the «no» to that plugin; the plugins hear the scope of an
+  opt-out (`marandu_optout`, sixth argument); a text to every chat of an item skips the chats that said no to it; a number
+  only typed in the family file is not shown as that family.
+- A send to many is decided once, though two decisions arrive at once; only whoever asked takes it back; the question to
+  the others closes.
+- The webhook keeps and passes on only what is of the number or the account of the site.
+- The privacy provider declares and deletes what the index of the conversations keeps of a number.
+
+Fixes:
+- The update to 0.51.0 also closed the questions that still waited: they would go out with buttons that answer nothing.
+  A question closed while the queue sends stays closed; pressing a button of a closed one says so on Telegram.
+- The closed days of the calendar and the limit of the notices of the chat last as long as they should; Chatwoot down is
+  asked again a minute later, not on every page.
+- Reminders come back even if the list of Chatwoot fails; a send with nobody to approve it goes to the administrators.
+- Logos of a palette (8-bit PNG, GIF), and the logo in the pictures of the page of the channel.
+- The guides of the staff, in the language of the person or in English.
+
 ## 0.51.0 (2026-11-21)
 
 - For the approval of a login from the phone (the factor of Oksigenia Aty): the label of an answer can come from a value

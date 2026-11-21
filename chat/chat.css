@@ -6077,7 +6077,7 @@
     margin-inline-end: 4px;
 }
 
-/* ---------- Several at once (Enrique, 21 Nov 2026: «puede haber varias combinaciones») ----------
+/* ---------- Several at once ----------
    Each row is a box to tick; what a ticked one needs opens under it; the face in the lists is chosen among the ticked */
 #mrd-chat .qf-check {
     width: 20px;

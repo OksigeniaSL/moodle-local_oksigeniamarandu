@@ -37,6 +37,7 @@ final class history_test extends \advanced_testcase {
         parent::setUp();
         $this->resetAfterTest();
         set_config('phonenumberid', '1000000000', 'local_oksigeniamarandu');
+        set_config('wabaid', '3000000000', 'local_oksigeniamarandu');
     }
 
     /**
@@ -119,5 +120,19 @@ final class history_test extends \advanced_testcase {
     public function test_declined(): void {
         inbound::handle($this->payload('history', ['history' => [['errors' => [['code' => history::DECLINED]]]]]));
         $this->assertTrue(history::status()['2000000000']['declined']);
+    }
+
+    /**
+     * What comes of another account of the same app is not this site's to keep, and nothing of it is passed on.
+     */
+    public function test_other_account(): void {
+        global $DB;
+        $payload = $this->payload('history', ['history' => [['threads' => [['id' => '34600000901',
+            'messages' => [$this->message('wamid.X1', '34600000901', 1700000000, 'Hola')]]]]]]);
+        $payload['entry'][0]['id'] = '4000000000';
+        $payload['entry'][0]['changes'][0]['value']['metadata']['phone_number_id'] = '5000000000';
+        $ours = null;
+        inbound::handle($payload, $own, $ours);
+        $this->assertSame([0, false], [$DB->count_records(history::TABLE), $ours]);
     }
 }

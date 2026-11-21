@@ -161,6 +161,10 @@ class reminders {
         if (!$viewer || $viewer->readonly || !$viewer->agent['id'] || !$row) {
             return;
         }
+        if (!$viewer->sees($row)) {
+            // It went to another department or to someone else meanwhile: the reminder does not take it from them.
+            return;
+        }
         if ($row->status === 'snoozed' || $row->status === 'resolved') {
             $row = actions::run($viewer, $row, 'reopen') ?? $row;
         }

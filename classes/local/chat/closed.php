@@ -54,7 +54,7 @@ class closed {
         if (self::$fortests === null && $url === '') {
             return [];
         }
-        $cache = \cache::make('local_oksigeniamarandu', 'chat');
+        $cache = \cache::make('local_oksigeniamarandu', 'chatlong');
         $key = 'closed_' . sha1($url . '|' . self::words());
         $kept = self::$fortests === null ? $cache->get($key) : false;
         if ($kept !== false && $kept['time'] > time() - 12 * HOURSECS) {
@@ -63,8 +63,13 @@ class closed {
         $now = $now ?? time();
         $body = self::$fortests ?? calendar::fetch($url);
         if ($body === null) {
-            // The calendar did not come: the last days read are better than none.
-            return $kept === false ? [] : $kept['days'];
+            // The calendar did not come: the last days read are better than none, and it is not asked for again in
+            // the next half hour.
+            $days = $kept === false ? [] : $kept['days'];
+            if (self::$fortests === null) {
+                $cache->set($key, ['time' => time() - 12 * HOURSECS + 30 * MINSECS, 'days' => $days]);
+            }
+            return $days;
         }
         $days = [];
         foreach (calendar::parse($body, $now - 62 * DAYSECS, $now + 366 * DAYSECS) as $event) {

@@ -94,6 +94,10 @@ class viewer {
             return null;
         }
         $agent = directory::agent_by_email((string)$user->email);
+        if ($agent && !self::only_one_with((string)$user->email)) {
+            // A person of the account is one user of Moodle: where several accounts share the email, none of them is.
+            $agent = null;
+        }
         $seesall = has_capability('local/oksigeniamarandu:chatall', $context, $user);
         if (!$agent) {
             if (!$seesall) {
@@ -104,6 +108,21 @@ class viewer {
         }
         $seesall = $seesall || $agent['role'] === 'administrator';
         return new self((int)$user->id, (string)$user->firstname, $agent, $seesall, directory::teams_of($agent['id']));
+    }
+
+    /**
+     * Whether only one active user of Moodle has an email.
+     *
+     * @param string $email The email.
+     * @return bool
+     */
+    private static function only_one_with(string $email): bool {
+        global $DB;
+        if (trim($email) === '') {
+            return false;
+        }
+        return $DB->count_records_select('user', 'deleted = 0 AND suspended = 0 AND ' .
+            $DB->sql_equal('email', ':email', false), ['email' => $email]) === 1;
     }
 
     /**
@@ -121,8 +140,9 @@ class viewer {
         }
         // What was resolved without a department (a history brought from the phone, say) is the history of a family:
         // everyone of the team sees it.
-        $or = "c.assigneeid = :meagent OR c.passedto = :meagent2 OR (c.teamid = 0 AND c.status = 'resolved')";
-        $params = ['meagent' => $this->agent['id'], 'meagent2' => $this->agent['id']];
+        // Who it was passed to does not count: passing it assigns it, and when it moves on, it is no longer theirs.
+        $or = "c.assigneeid = :meagent OR (c.teamid = 0 AND c.status = 'resolved')";
+        $params = ['meagent' => $this->agent['id']];
         if ($this->teams) {
             [$in, $inparams] = $DB->get_in_or_equal($this->teams, SQL_PARAMS_NAMED, 'myteam');
             $or .= " OR c.teamid $in";
@@ -141,7 +161,7 @@ class viewer {
         if ($row->status === 'pending') {
             return false;
         }
-        return $this->seesall || (int)$row->assigneeid === $this->agent['id'] || (int)$row->passedto === $this->agent['id']
+        return $this->seesall || (int)$row->assigneeid === $this->agent['id']
             || in_array((int)$row->teamid, $this->teams) || (!(int)$row->teamid && $row->status === 'resolved');
     }
 
@@ -206,6 +226,11 @@ class viewer {
         $line = '';
         $rings = [];
         $family = $row->phone !== '' ? family::of_phone((string)$row->phone) : null;
+        if ($family && empty($family['verified'])) {
+            // A number that someone only typed in the family file is not that family in the lists: the card of the
+            // contact says «it may be» when it is opened.
+            $family = null;
+        }
         if ($family && !in_array('family', $marks, true)) {
             $marks[] = 'family';
         }

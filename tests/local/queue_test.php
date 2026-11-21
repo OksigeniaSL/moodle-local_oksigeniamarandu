@@ -391,8 +391,10 @@ final class queue_test extends \advanced_testcase {
         $this->assertSame(1, queue::process($api, self::WEDNESDAY)['waiting']);
         $this->assertSame([], $api->sent);
 
+        // What waits is looked at again a while later.
         set_config('enablednotices', '', 'local_oksigeniamarandu');
-        $this->assertSame(1, queue::process($api, self::WEDNESDAY)['skipped']);
+        $this->assertSame(0, queue::process($api, self::WEDNESDAY)['skipped']);
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY + 16 * MINSECS)['skipped']);
         $this->assertSame('disabled', $DB->get_field(queue::TABLE, 'error', []));
     }
 
@@ -514,9 +516,9 @@ final class queue_test extends \advanced_testcase {
         $counts = queue::process($api, self::WEDNESDAY);
         $this->assertSame([1, 1], [$counts['sent'], $counts['waiting']]);
 
-        // The site marks it as urgent: it does not wait any longer.
+        // The site marks it as urgent: it does not wait any longer, from when it is looked at again.
         set_config('urgentnotices', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu');
-        $counts = queue::process($api, self::WEDNESDAY);
+        $counts = queue::process($api, self::WEDNESDAY + HOURSECS);
         $this->assertSame([1, 0], [$counts['sent'], $counts['waiting']]);
     }
 
@@ -709,9 +711,9 @@ final class queue_test extends \advanced_testcase {
         $this->assertSame(190, queue::blocked()->code);
         $this->assertCount(1, $sink->get_messages());
 
-        // Meanwhile, Meta is not asked every minute.
+        // Meanwhile, Meta is not asked every minute (and the second notice is set aside for a while).
         $api = $this->answering_api([]);
-        $this->assertSame(2, queue::process($api, $now + 5 * MINSECS)['waiting']);
+        $this->assertSame(1, queue::process($api, $now + 5 * MINSECS)['waiting']);
         $this->assertSame([], $api->sent);
 
         // Still broken after a while: no second email the same day.

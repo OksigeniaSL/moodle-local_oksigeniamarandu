@@ -30,6 +30,9 @@ class consent {
     /** Table of links between contacts and whom they stand for. */
     public const LINKS = 'local_oksigeniamarandu_link';
 
+    /** Seconds the code of a user can be claimed: it stands for their account. */
+    public const USER_CODE = DAYSECS;
+
     /** Table of the opt-ins and opt-outs, kept as proof. */
     public const LOG = 'local_oksigeniamarandu_consent';
 
@@ -116,6 +119,13 @@ class consent {
                 return 'unknowncode';
             }
             $link = $DB->get_record(self::LINKS, ['code' => $code]);
+            $expired = $link && !$link->contactid && ((int)$link->timeexpires > 0 ? (int)$link->timeexpires < time()
+                : ($link->userid !== null && (int)$link->timecreated < time() - self::USER_CODE));
+            if ($expired) {
+                // A code that could only be claimed for a while, and its time is over.
+                self::wrong($phone);
+                return 'unknowncode';
+            }
             $mine = $link && $link->contactid
                 && $DB->record_exists(self::CONTACTS, ['id' => $link->contactid, 'phone' => $phone]);
             if (!$link) {
@@ -138,11 +148,19 @@ class consent {
         $contact = self::get_or_create($phone, $name);
         $wasout = $contact->status === 'optedout' || $DB->record_exists(self::OPTOUTS, ['contactid' => $contact->id]);
         self::set_status($contact, 'optin', 'keyword', $detail);
-        $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id]);
+        if ($link && $link->component !== 'core') {
+            // Joining with the code of a plugin takes back the «no» to that plugin only, not to the others.
+            $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id, 'scope' => $link->component]);
+        } else {
+            $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id]);
+        }
         if ($link && !$link->contactid) {
             $link->contactid = $contact->id;
             $link->timeclaimed = time();
             $DB->update_record(self::LINKS, $link);
+            if ($link->userid) {
+                self::tell_account($link, $contact);
+            }
         }
         family::link((int)$contact->id, $adultids);
         if ($wasout) {
@@ -153,6 +171,42 @@ class consent {
             self::callback($link->component, 'marandu_joined', [(int)$link->itemid, (string)$contact->channel, time()]);
         }
         return 'optin';
+    }
+
+    /**
+     * Tells a person that a number or a chat joined their account, by email and in the bell, never by that chat: if it
+     * was not them, they know at once.
+     *
+     * @param \stdClass $link The link that was claimed.
+     * @param \stdClass $contact Who claimed it.
+     */
+    private static function tell_account(\stdClass $link, \stdClass $contact): void {
+        $user = \core_user::get_user((int)$link->userid);
+        if (!$user || $user->deleted || $user->suspended) {
+            return;
+        }
+        $chat = telegram::is_chat((string)$contact->phone);
+        $a = (object)['channel' => $chat ? 'Telegram' : 'WhatsApp', 'site' => format_string(get_site()->fullname),
+            'who' => $chat ? trim((string)$contact->name) : '+' . substr((string)$contact->phone, 0, -4) . '····'];
+        $text = get_string($a->who !== '' ? 'newchat:text' : 'newchat:textnoname', 'local_oksigeniamarandu', $a);
+        $message = new \core\message\message();
+        $message->component = 'local_oksigeniamarandu';
+        $message->name = 'newchat';
+        $message->userfrom = \core_user::get_noreply_user();
+        $message->userto = $user;
+        $message->subject = get_string('newchat:subject', 'local_oksigeniamarandu', $a);
+        $message->fullmessage = $text;
+        $message->fullmessageformat = FORMAT_PLAIN;
+        $message->fullmessagehtml = '';
+        $message->smallmessage = $text;
+        $message->notification = 1;
+        $message->contexturl = (new \moodle_url('/message/notificationpreferences.php'))->out(false);
+        $message->contexturlname = get_string('newchat:where', 'local_oksigeniamarandu');
+        try {
+            message_send($message);
+        } catch (\Throwable $e) {
+            debugging('Marandu: the person was not told of a new chat: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**
@@ -245,9 +299,17 @@ class consent {
      * @param bool $out No more.
      * @param string $source Where it was asked: keyword, wrote, chat, or what the plugin says (eguahe:family…).
      * @param string $except A plugin not to tell, because it asked for it.
+     * @param int|null $exceptitem Only that item of it, not its other items with the same number; null for all of them.
      * @return bool Whether anything changed.
      */
-    public static function set_optout(\stdClass $contact, string $scope, bool $out, string $source, string $except = ''): bool {
+    public static function set_optout(
+        \stdClass $contact,
+        string $scope,
+        bool $out,
+        string $source,
+        string $except = '',
+        ?int $exceptitem = null
+    ): bool {
         global $DB;
         $source = \core_text::substr($source, 0, 100);
         if ($scope === 'all') {
@@ -269,7 +331,7 @@ class consent {
             $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => $out ? 'optout' : 'optin',
                 'source' => $source, 'detail' => 'scope:' . $scope, 'timecreated' => time()]);
         }
-        self::tell($contact, $out, $source, $except);
+        self::tell($contact, $out, $source, $except, $scope, $exceptitem);
         return true;
     }
 
@@ -349,18 +411,31 @@ class consent {
      * @param bool $out No more.
      * @param string $source Where it was asked.
      * @param string $except A plugin not to tell.
+     * @param string $scope What changed: all, or the notices of one plugin. The plugins hear it, so that one does not
+     *                      take another's «no» as its own.
+     * @param int|null $exceptitem Only that item of the plugin not to tell; null for all of them.
      */
-    private static function tell(\stdClass $contact, bool $out, string $source, string $except = ''): void {
+    private static function tell(
+        \stdClass $contact,
+        bool $out,
+        string $source,
+        string $except = '',
+        string $scope = 'all',
+        ?int $exceptitem = null
+    ): void {
         global $DB;
         $links = $DB->get_records_select(
             self::LINKS,
-            "contactid = :contactid AND component <> 'core' AND component <> :except",
-            ['contactid' => $contact->id, 'except' => $except],
+            "contactid = :contactid AND component <> 'core'",
+            ['contactid' => $contact->id],
             'id ASC',
             'id, component, itemid'
         );
         foreach ($links as $link) {
-            $args = [(int)$link->itemid, (string)$contact->channel, $out, $source, time()];
+            if ($except !== '' && $link->component === $except && ($exceptitem === null || (int)$link->itemid === $exceptitem)) {
+                continue;
+            }
+            $args = [(int)$link->itemid, (string)$contact->channel, $out, $source, time(), $scope];
             self::callback($link->component, 'marandu_optout', $args);
         }
     }

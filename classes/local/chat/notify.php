@@ -120,7 +120,7 @@ class notify {
         if (!$news) {
             return;
         }
-        $cache = \cache::make('local_oksigeniamarandu', 'chat');
+        $cache = \cache::make('local_oksigeniamarandu', 'chatlong');
         $people = [];
         foreach ($news as [$agentid, $kind, $values, $held]) {
             $agent = directory::agent($agentid);
@@ -199,14 +199,17 @@ class notify {
         if ($agent['email'] === '' || in_array($agent['id'], directory::automatic_ids())) {
             return null;
         }
-        $user = $DB->get_record_select(
+        // One person only: where the site lets several accounts share an email (a pupil with a parent's), nobody.
+        $users = $DB->get_records_select(
             'user',
             'deleted = 0 AND suspended = 0 AND ' . $DB->sql_equal('email', ':email', false),
             ['email' => $agent['email']],
+            'id ASC',
             '*',
-            IGNORE_MULTIPLE
+            0,
+            2
         );
-        return $user ?: null;
+        return count($users) === 1 ? reset($users) : null;
     }
 
     /**

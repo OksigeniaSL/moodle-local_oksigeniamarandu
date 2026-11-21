@@ -309,7 +309,7 @@ class panel {
      */
     public static function waiting(int $now): array {
         global $DB;
-        $fields = 'id, contactid, component, notice, urgent, kind, timeretry';
+        $fields = 'id, contactid, component, notice, urgent, kind, timeretry, attempts';
         $rows = $DB->get_records(queue::TABLE, ['status' => 'queued'], 'id', $fields);
         if (!$rows) {
             return [];
@@ -340,7 +340,8 @@ class panel {
                 $add('blocked', 'blocked');
                 continue;
             }
-            if ($row->timeretry > $now) {
+            // A retry after an error; a notice only set aside while it waits says why it waits, below.
+            if ($row->timeretry > $now && (int)$row->attempts > 0) {
                 $add('retry', 'retry', (int)$row->timeretry);
                 continue;
             }

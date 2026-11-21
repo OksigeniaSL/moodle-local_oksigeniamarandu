@@ -192,6 +192,31 @@ class bulk {
                 ''
             );
         }
+        // One decision only, though two arrive at once (the web and Telegram, or a double tap): it would go, and be paid,
+        // twice.
+        $lock = \core\lock\lock_config::get_lock_factory('local_oksigeniamarandu_bulk')->get_lock('bulk' . $id, 10);
+        if (!$lock) {
+            return false;
+        }
+        try {
+            return self::decide_locked($id, $approve, $userid, $reason, $only);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Decides a send, with its lock held.
+     *
+     * @param int $id The send.
+     * @param bool $approve Whether it goes.
+     * @param int $userid Who decides.
+     * @param string $reason Why it does not go.
+     * @param string $only Only by this channel, or empty.
+     * @return bool Whether it was decided now.
+     */
+    private static function decide_locked(int $id, bool $approve, int $userid, string $reason, string $only): bool {
+        global $DB;
         $bulk = $DB->get_record(self::TABLE, ['id' => $id], '*', MUST_EXIST);
         if ($bulk->status !== 'pending') {
             return false;
@@ -205,6 +230,8 @@ class bulk {
         if ($approve) {
             self::release($bulk);
         }
+        // The question that went to the others by Telegram is answered.
+        \local_oksigeniamarandu\api::close_question('local_oksigeniamarandu', self::REF . $bulk->id, 'answered');
         self::tell_plugin($bulk);
         self::tell_asker($bulk);
         return true;
@@ -219,14 +246,24 @@ class bulk {
      */
     public static function cancel(int $id, int $userid): bool {
         global $DB;
-        $bulk = $DB->get_record(self::TABLE, ['id' => $id], '*', MUST_EXIST);
-        if ($bulk->status !== 'pending') {
+        $lock = \core\lock\lock_config::get_lock_factory('local_oksigeniamarandu_bulk')->get_lock('bulk' . $id, 10);
+        if (!$lock) {
             return false;
         }
-        $bulk->status = 'cancelled';
-        $bulk->decidedby = $userid;
-        $bulk->timedecided = time();
-        $DB->update_record(self::TABLE, $bulk);
+        try {
+            $bulk = $DB->get_record(self::TABLE, ['id' => $id], '*', MUST_EXIST);
+            // Only whoever asked for it takes it back.
+            if ($bulk->status !== 'pending' || (int)$bulk->userid !== $userid) {
+                return false;
+            }
+            $bulk->status = 'cancelled';
+            $bulk->decidedby = $userid;
+            $bulk->timedecided = time();
+            $DB->update_record(self::TABLE, $bulk);
+        } finally {
+            $lock->release();
+        }
+        \local_oksigeniamarandu\api::close_question('local_oksigeniamarandu', self::REF . $id, 'expired');
         return true;
     }
 

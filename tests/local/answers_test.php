@@ -235,6 +235,45 @@ final class answers_test extends \advanced_testcase {
         $this->assertFalse(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
         consent::optin_from_message('tg:556', api::invite('core', 0, (int)$user->id), 'join');
         $this->assertTrue(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
+        // With 'ownjoin', a chat joined from the account settings does not count; one joined with the plugin's code does.
+        notices::declare_for_tests(['local_oksigeniamarandu' => ['login' => [
+            'examples' => ['School', 'Chrome on Windows, 9:41', '42', '17', '85'],
+            'options' => ['a', 'b', 'c', 'deny'], 'optionlabels' => ['a' => 3, 'b' => 4, 'c' => 5],
+            'freeonly' => true, 'uncapped' => true, 'ownjoin' => true,
+        ]]]);
+        $this->assertFalse(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
+        $this->assertSame(0, api::ask(
+            'local_oksigeniamarandu',
+            'login',
+            ['School', 'x', '1', '2', '3'],
+            'login:0',
+            0,
+            (int)$user->id,
+            null,
+            MINSECS,
+            '',
+            true
+        ));
+        consent::optin_from_message('tg:557', api::invite('local_oksigeniamarandu', 0, (int)$user->id), 'join');
+        $this->assertTrue(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
+        $this->assertSame(1, api::ask(
+            'local_oksigeniamarandu',
+            'login',
+            ['School', 'x', '1', '2', '3'],
+            'login:0',
+            0,
+            (int)$user->id,
+            null,
+            MINSECS,
+            '',
+            true
+        ));
+        $DB->delete_records(queue::TABLE, ['ref' => 'login:0']);
+        notices::declare_for_tests(['local_oksigeniamarandu' => ['login' => [
+            'examples' => ['School', 'Chrome on Windows, 9:41', '42', '17', '85'],
+            'options' => ['a', 'b', 'c', 'deny'], 'optionlabels' => ['a' => 3, 'b' => 4, 'c' => 5],
+            'freeonly' => true, 'uncapped' => true,
+        ]]]);
         $this->assertSame(3, api::ask('local_oksigeniamarandu', 'login', $params, 'login:1', 7, null, null, 3 * MINSECS, '', true));
         $wa = $this->whatsapp();
         $tg = $this->telegram();

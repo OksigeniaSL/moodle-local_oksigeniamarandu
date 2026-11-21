@@ -145,6 +145,10 @@ class family {
         if (!$adults) {
             return null;
         }
+        // An adult whose number the centre checked goes before one whose number someone only typed.
+        usort($adults, function ($a, $b) {
+            return (int)!empty($b->phoneverified) <=> (int)!empty($a->phoneverified);
+        });
         $adult = $adults[0];
         $household = $api::household((int)$adult->familyid, true);
         if (!$household) {

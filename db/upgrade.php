@@ -415,8 +415,39 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
-        $DB->set_field_select('local_oksigeniamarandu_queue', 'timeclosed', time(), 'ref IS NOT NULL');
+        $DB->set_field_select('local_oksigeniamarandu_queue', 'timeclosed', time(), "ref IS NOT NULL
+            AND status IN ('sent', 'delivered', 'read')");
         upgrade_plugin_savepoint(true, 2026121300, 'local', 'oksigeniamarandu');
+    }
+
+    if ($oldversion < 2026121301) {
+        // The update to 0.51.0 closed also the questions that still waited in the queue: they would go out with buttons
+        // that answer nothing. A question waiting is never closed (closing one that waits makes it expired).
+        $DB->set_field_select('local_oksigeniamarandu_queue', 'timeclosed', 0, "status = 'queued' AND timeclosed > 0");
+        // What a site with a year of notices and thousands of conversations looks for every minute.
+        $indexes = [
+            'local_oksigeniamarandu_queue' => [
+                ['timesent', ['timesent']],
+                ['timeclosed-timeexpires', ['timeclosed', 'timeexpires']],
+            ],
+            'local_oksigeniamarandu_conv' => [['phone', ['phone']], ['status-lastactivity', ['status', 'lastactivity']]],
+        ];
+        foreach ($indexes as $name => $list) {
+            $table = new xmldb_table($name);
+            foreach ($list as [$indexname, $fields]) {
+                $index = new xmldb_index($indexname, XMLDB_INDEX_NOTUNIQUE, $fields);
+                if (!$dbman->index_exists($table, $index)) {
+                    $dbman->add_index($table, $index);
+                }
+            }
+        }
+        // Codes that can only be claimed for a while, such as the one that joins a chat to approve a login.
+        $table = new xmldb_table('local_oksigeniamarandu_link');
+        $field = new xmldb_field('timeexpires', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timecreated');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026121301, 'local', 'oksigeniamarandu');
     }
 
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.

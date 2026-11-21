@@ -48,10 +48,13 @@ class inbound {
      * @param array $payload The decoded body.
      * @param bool|null $own Set to whether the body was only messages the site answered itself (opt-ins, opt-outs, codes,
      *                       the buttons of its questions): nobody else needs those, so they are not passed on.
+     * @param bool|null $ours Set to whether anything of the body is of the site: its number, or the templates of its
+     *                        account. What is of another number or account is not passed on either.
      * @return int How many messages were handled.
      */
-    public static function handle(array $payload, ?bool &$own = null): int {
+    public static function handle(array $payload, ?bool &$own = null, ?bool &$ours = null): int {
         $own = false;
+        $ours = false;
         $mine = (string)get_config('local_oksigeniamarandu', 'phonenumberid');
         if ($mine === '' || ($payload['object'] ?? '') !== 'whatsapp_business_account') {
             return 0;
@@ -71,6 +74,7 @@ class inbound {
                     if ($account === '' || (string)($entry['id'] ?? '') !== $account) {
                         continue;
                     }
+                    $ours = true;
                     // A change of category comes a day before it happens, with the one to come as correct_category.
                     $status = $field === 'message_template_status_update';
                     templates::update_from_meta(
@@ -83,12 +87,21 @@ class inbound {
                     );
                     continue;
                 }
+                $number = (string)($value['metadata']['phone_number_id'] ?? '');
                 if (in_array($field, history::FIELDS, true)) {
                     // The chats and contacts of a number that came from the app of WhatsApp Business (coexistence):
-                    // kept as they come, for the shared inbox, whatever number of the account they are about.
-                    history::keep($field, $value);
+                    // kept as they come, for the shared inbox, whatever number of the account of the site they are about
+                    // (the one that moves to the API may not be the site's yet); those of other accounts are not its to
+                    // keep.
+                    if ($number === $mine || ($account !== '' && (string)($entry['id'] ?? '') === $account)) {
+                        history::keep($field, $value);
+                        $ours = true;
+                    }
                     $others++;
                     continue;
+                }
+                if ($number === $mine) {
+                    $ours = true;
                 }
                 if ($field !== 'messages' || (string)($value['metadata']['phone_number_id'] ?? '') !== $mine) {
                     $others++;

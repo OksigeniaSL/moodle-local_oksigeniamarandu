@@ -215,7 +215,8 @@ final class telegram_test extends \advanced_testcase {
         queue::add((int)$contact->id, $notice, ['Colegio Ejemplo', 'Hoy'], null, true, DAYSECS, self::WEDNESDAY);
         $bot = $this->bot();
         queue::process(null, self::WEDNESDAY, $bot);
-        $this->assertSame([true, false], array_column($bot->sent, 4));
+        // The urgent one goes first.
+        $this->assertSame([false, true], array_column($bot->sent, 4));
         telegram::handle($this->message(560, '/mute'));
         $this->assertSame(0, (int)$DB->get_field(consent::CONTACTS, 'silent', ['id' => $contact->id]));
 
@@ -284,7 +285,7 @@ final class telegram_test extends \advanced_testcase {
         $this->assertSame(1, queue::process(null, self::WEDNESDAY)['waiting']);
 
         $bot = $this->bot();
-        $this->assertSame(1, queue::process(null, self::WEDNESDAY, $bot)['sent']);
+        $this->assertSame(1, queue::process(null, self::WEDNESDAY + 16 * MINSECS, $bot)['sent']);
         [$chat, $text, $url, $label] = $bot->sent[0];
         $this->assertSame('555', $chat);
         $this->assertSame(queue::render($notice, ['Colegio Ejemplo', 'Reunión el jueves']), $text);

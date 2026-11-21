@@ -234,6 +234,11 @@ class conversation {
                                         ORDER BY c.id", $params);
         $results = [];
         foreach ($contacts as $contact) {
+            if ($address === null && consent::out_of($contact, $component)) {
+                // To every chat of the item: not to one that said no to this plugin (the answer to whoever wrote goes
+                // with its address).
+                continue;
+            }
             $telegramchat = telegram::is_chat($contact->phone);
             $result = [
                 'channel' => $telegramchat ? 'telegram' : 'whatsapp',

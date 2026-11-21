@@ -257,6 +257,21 @@ class starter {
     }
 
     /**
+     * Whether an inbox keeps one conversation per contact, as Chatwoot says of it.
+     *
+     * @param int $inboxid The inbox.
+     * @return bool True too if Chatwoot cannot say, to be on the safe side.
+     */
+    private static function locked(int $inboxid): bool {
+        try {
+            $inbox = directory::client()->call('GET', '/inboxes/' . $inboxid);
+        } catch (\moodle_exception $e) {
+            return true;
+        }
+        return !array_key_exists('lock_to_single_conversation', $inbox) || !empty($inbox['lock_to_single_conversation']);
+    }
+
+    /**
      * Starts the conversation with an approved message, in the inbox of that message, kept by whoever starts it.
      *
      * @param viewer $viewer Who starts it.
@@ -280,9 +295,26 @@ class starter {
         $contact = self::contact($phone);
         if ($contact) {
             $existing = directory::client()->call('GET', '/contacts/' . (int)$contact['id'] . '/conversations');
-            foreach ($existing['payload'] ?? [] as $one) {
-                if ((int)($one['inbox_id'] ?? 0) !== $inboxid || ($one['status'] ?? '') === 'resolved') {
-                    continue;
+            $mine = array_values(array_filter($existing['payload'] ?? [], function ($one) use ($inboxid) {
+                return (int)($one['inbox_id'] ?? 0) === $inboxid;
+            }));
+            usort($mine, function ($a, $b) {
+                return (int)($b['last_activity_at'] ?? 0) <=> (int)($a['last_activity_at'] ?? 0);
+            });
+            $locked = null;
+            foreach ($mine as $one) {
+                if (($one['status'] ?? '') === 'resolved') {
+                    // An inbox that keeps one conversation per contact gives back the last one, resolved or not: it
+                    // would come here with its history, so whoever does not see it does not start it.
+                    $locked = $locked ?? self::locked($inboxid);
+                    if (!$locked) {
+                        continue;
+                    }
+                    $row = mirror::refresh((int)$one['id'], false);
+                    if ($row && !$viewer->sees($row)) {
+                        return ['status' => 'busy', 'where' => self::where_it_is($row)];
+                    }
+                    break;
                 }
                 $row = mirror::refresh((int)$one['id'], false);
                 if ($row && $viewer->sees($row)) {

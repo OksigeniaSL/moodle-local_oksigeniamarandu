@@ -70,4 +70,11 @@ $definitions = [
         'simplekeys' => true,
         'ttl' => 5 * MINSECS,
     ],
+    // What lasts longer in the conversations: the closed days of the calendar (each says when it was read) and when
+    // each person last heard of each conversation, so that they hear it at most once every ten minutes.
+    'chatlong' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'ttl' => DAYSECS,
+    ],
 ];

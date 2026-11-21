@@ -211,6 +211,13 @@ class mirror {
         $row = (object)((array)$row + self::from_messages($list, $old ?: null, $fresh));
         if ($old) {
             $row->id = $old->id;
+            // The line «they passed it to you» stops once it is someone else's or another department's.
+            if ((int)$old->passedto && (int)$row->assigneeid !== (int)$old->passedto) {
+                $row->passedto = 0;
+            }
+            if ((int)$old->passedteam && (int)$row->teamid !== (int)$old->passedteam) {
+                $row->passedteam = 0;
+            }
             $same = true;
             foreach ((array)$row as $field => $value) {
                 if ($field !== 'cwupdated' && (string)$old->$field !== (string)$value) {

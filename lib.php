@@ -49,7 +49,7 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'uncapped' => true,
         ],
         'board' => [
-            'examples' => ['David Ramos: El lunes 23 no hay comedor: arreglan la cocina.'],
+            'examples' => ['Héctor Ruiz: El lunes 23 no hay comedor: arreglan la cocina.'],
             'perweek' => 0,
             'channels' => ['telegram'],
             // The «Seen» of the board, pressed on Telegram itself.
@@ -58,7 +58,7 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
         ],
         // A send to many that waits for approval, to whoever may approve it: «Approve» and «Reject» from Telegram itself.
         'bulk' => [
-            'examples' => ['Mary: Invitación a la jornada de puertas abiertas, 142 por WhatsApp, 8,52 EUR'],
+            'examples' => ['Inés: Invitación a la jornada de puertas abiertas, 142 por WhatsApp, 8,52 EUR'],
             'perweek' => 0,
             'channels' => ['telegram'],
             'options' => ['approve', 'reject'],

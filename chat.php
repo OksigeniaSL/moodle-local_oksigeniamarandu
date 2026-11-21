@@ -95,7 +95,8 @@ foreach (['attend' => 'atender', 'coordinate' => 'coordinar'] as $kind => $file)
     if ($kind === 'coordinate' && !$viewer->seesall) {
         continue;
     }
-    foreach (array_unique([$lang, 'es', 'en']) as $one) {
+    // In the language of the person, or in English; never in another one they may not read.
+    foreach (array_unique([$lang, 'en']) as $one) {
         $path = '/local/oksigeniamarandu/help/guide/guia-chat-' . $file . '-' . $one . '.pdf';
         if (is_readable($CFG->dirroot . $path)) {
             $guides[] = ['kind' => $kind, 'url' => (new moodle_url($path, ['v' => $version]))->out(false)];

@@ -109,9 +109,14 @@ class chat_contact extends chat_base {
                 $result['children'][] = ['name' => trim($child['name'] . ' ' . $child['lastname']), 'group' => $child['group'],
                     'tutor' => '', 'stage' => $child['stage'] ?? ['label' => '', 'color' => '', 'dark' => ''], 'applying' => false];
             }
-            foreach ($family['adults'] as $adult) {
-                $conversation = $adult['phone'] === '' ? false : $DB->get_field_sql("SELECT MAX(cwid) FROM {" . mirror::TABLE . "}
-                    WHERE phone = :phone", ['phone' => $adult['phone']]);
+            [$seeswhere, $seesparams] = $viewer->where();
+            // The adults of the family and their numbers, only when the centre checked this one.
+            foreach ($family['verified'] ? $family['adults'] : [] as $adult) {
+                // The newest conversation of that adult that this person can open.
+                $conversation = $adult['phone'] === '' ? false : $DB->get_field_sql(
+                    "SELECT MAX(c.cwid) FROM {" . mirror::TABLE . "} c WHERE c.phone = :phone AND $seeswhere",
+                    ['phone' => $adult['phone']] + $seesparams
+                );
                 $result['contacts'][] = ['name' => $adult['name'], 'role' => '', 'phone' => $adult['phone'],
                     'conversation' => (int)$conversation];
             }

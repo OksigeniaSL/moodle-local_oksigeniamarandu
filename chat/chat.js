@@ -6243,6 +6243,9 @@
                     var next = was ? mine.filter(function (m) {
                         return m !== v;
                     }) : mine.concat([v]);
+                    // At once in the card too: a second mark ticked before the first one is saved counts on top of it.
+                    var auto = st.ficha.familyauto && (st.ficha.marks || []).indexOf('family') >= 0;
+                    st.ficha.marks = (auto ? ['family'] : []).concat(next);
                     busy(t, true);
                     act(c.id, 'whois', 0, JSON.stringify({ marks: next })).then(function () {
                         toast(s(was ? 'qfunmarked' : 'qfmarked', s('mark' + v)));

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.53.1 (2026-11-21)
+
+- The guide «Attend» with the messages of the team (16 pages): «Messages of the team», «Writing to somebody», the board
+  and the phone; «Coordinate» names their notice on Telegram.
+- In the messages of the team, «Share a conversation» instead of «Pass a conversation»: it only shows it, while «Pass
+  to…» in a conversation with a family hands it over.
+
 ## 0.53.0 (2026-11-21)
 
 - Messages of the team, in «Within the team» next to the board: between two people, and one conversation for each

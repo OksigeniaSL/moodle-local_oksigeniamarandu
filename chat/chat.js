@@ -3265,7 +3265,7 @@
             }
             r.focus = false;
         }
-        /* «Pasar una conversación»: the conversations with families, as the search of the list finds them (names, pupils,
+        /* «Share a conversation»: the conversations with families, as the search of the list finds them (names, pupils,
            phones and what was said, also the resolved ones); with nothing written, those open now. */
         function popPassConv() {
             return '<div class="mrd-pop mrd-pop-escribir mrd-pop-eqpasar" role="dialog" aria-label="' + esc(s('eqpass')) + '"><h5>' + esc(s('eqpass')) +

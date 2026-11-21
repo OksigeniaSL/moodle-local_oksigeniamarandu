@@ -46,6 +46,9 @@ $string['alta:title'] = 'Avisos de {$a} por WhatsApp';
 $string['alta:wait'] = 'Esperando tu mensaje';
 $string['alta:wait_help'] = 'Si ya has pulsado Enviar en WhatsApp, esto cambia solo en unos segundos.';
 $string['alta:yourphone'] = 'Tu móvil';
+$string['answer:choose'] = 'Elegir';
+$string['answer:closed:answered'] = 'Respondido.';
+$string['answer:closed:expired'] = 'Caducado: ya no se puede contestar.';
 $string['answer:received'] = 'Recibido: «{$a}».';
 $string['blockmail:body'] = 'Meta no deja mandar mensajes de WhatsApp a {$a->site}: {$a->problem}
 

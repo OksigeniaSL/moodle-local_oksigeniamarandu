@@ -201,6 +201,84 @@ final class answers_test extends \advanced_testcase {
     }
 
     /**
+     * Whether a login is theirs, with the number to choose: the labels of the answers come from the values; on WhatsApp
+     * only inside the 24 hours and as a list (four answers); the first answer counts, the question closes and a late
+     * one does not; on Telegram the message says it was answered, or that its time is over.
+     */
+    public function test_login_check_question(): void {
+        global $DB;
+        \local_oksigeniamarandu_test_string_manager::use_with(['local_oksigeniamarandu' => [
+            'marandu:login' => 'Login', 'marandu:login_desc' => 'Is it you?',
+            'marandu:login_template' => '{{1}}: is it you? {{2}}.', 'marandu:login_option_deny' => 'It was not me',
+            'marandu:login_button' => 'Open',
+        ]]);
+        notices::declare_for_tests(['local_oksigeniamarandu' => ['login' => [
+            'examples' => ['School', 'Chrome on Windows, 9:41', '42', '17', '85'],
+            'options' => ['a', 'b', 'c', 'deny'], 'optionlabels' => ['a' => 3, 'b' => 4, 'c' => 5],
+            'freeonly' => true, 'uncapped' => true,
+        ]]]);
+        $login = notices::get('local_oksigeniamarandu', 'login');
+        $this->assertSame([4, true], [count($login->options), $login->freeonly]);
+        $this->assertSame('17', notices::option_label($login, 'b', 'en', ['School', 'x', '42', '17', '85']));
+        set_config('enablednotices', 'local_oksigeniamarandu/login', 'local_oksigeniamarandu');
+        set_config('telegramnotices', 'local_oksigeniamarandu/login', 'local_oksigeniamarandu');
+        $this->join('34600000001');
+        $this->join('34600000002', true);
+        $this->join('tg:555');
+        $params = ['School', 'Chrome on Windows, 9:41', '42', '17', '85'];
+        // Whether it would reach a user, without sending: with no chat of theirs, no; with a Telegram, yes; with only a
+        // WhatsApp outside the 24 hours, no.
+        $user = $this->getDataGenerator()->create_user();
+        $this->assertFalse(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
+        consent::optin_from_message('34600000009', api::invite('core', 0, (int)$user->id), 'join');
+        $DB->set_field(consent::CONTACTS, 'lastinbound', time() - 3 * DAYSECS, ['phone' => '34600000009']);
+        $this->assertFalse(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
+        consent::optin_from_message('tg:556', api::invite('core', 0, (int)$user->id), 'join');
+        $this->assertTrue(api::reaches('local_oksigeniamarandu', 'login', (int)$user->id));
+        $this->assertSame(3, api::ask('local_oksigeniamarandu', 'login', $params, 'login:1', 7, null, null, 3 * MINSECS, '', true));
+        $wa = $this->whatsapp();
+        $tg = $this->telegram();
+        $counts = queue::process($wa, self::WEDNESDAY, $tg);
+        $this->assertSame([2, 1], [$counts['sent'], $counts['skipped']]);
+        // Outside the 24 hours, not by WhatsApp; inside, a list of the four.
+        $this->assertSame('skipped', $DB->get_field_sql("SELECT q.status FROM {" . queue::TABLE . "} q
+            JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid WHERE c.phone = ?", ['34600000001']));
+        $list = $wa->posted[0]['interactive'];
+        $this->assertSame(['list', ['42', '17', '85', 'It was not me']], [$list['type'],
+            array_column($list['action']['sections'][0]['rows'], 'title')]);
+        // On Telegram, one row with the four.
+        $this->assertSame(
+            ['42', '17', '85', 'It was not me'],
+            array_column($tg->calls[0][1]['reply_markup']['inline_keyboard'][0], 'text')
+        );
+
+        // Chosen on Telegram: the plugin hears «b»; then it closes the question, and the WhatsApp list no longer answers.
+        $row = $DB->get_record_sql("SELECT q.* FROM {" . queue::TABLE . "} q
+            JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid WHERE c.phone = ?", ['tg:555']);
+        telegram::handle(['callback_query' => ['id' => 'cb555', 'data' => 'a:' . $row->token . ':b', 'from' => ['id' => 555],
+            'message' => ['message_id' => 5, 'chat' => ['id' => 555, 'type' => 'private']]]]);
+        $this->assertSame(['login:1', 'b'], [end($this->heard)->get_ref(), end($this->heard)->get_option()]);
+        $this->assertSame(3, api::close_question('local_oksigeniamarandu', 'login:1'));
+        $warow = $DB->get_record_sql("SELECT q.* FROM {" . queue::TABLE . "} q JOIN {" . consent::CONTACTS . "} c
+            ON c.id = q.contactid WHERE c.phone = ?", ['34600000002']);
+        $this->assertFalse(answers::from_whatsapp(
+            ['from' => '34600000002', 'id' => 'wamid.L1', 'type' => 'interactive',
+            'interactive' => ['type' => 'list_reply', 'list_reply' => ['id' => 'a:' . $warow->token . ':a', 'title' => '42']]],
+            '34600000002'
+        ));
+
+        // Another one nobody answers: when its time is over, the message of Telegram says so, without its buttons.
+        api::ask('local_oksigeniamarandu', 'login', $params, 'login:2', 7, null, null, MINSECS, '', true);
+        queue::process($wa, self::WEDNESDAY, $tg);
+        $tg->calls = [];
+        queue::process($wa, time() + 2 * MINSECS, $tg);
+        $edit = array_values(array_filter($tg->calls, fn($call) => $call[0] === 'editMessageText'));
+        $this->assertCount(1, $edit);
+        $this->assertStringEndsWith(get_string('answer:closed:expired', 'local_oksigeniamarandu'), $edit[0][1]['text']);
+        $this->assertArrayNotHasKey('reply_markup', $edit[0][1]);
+    }
+
+    /**
      * A question that cannot wait, such as whether a login is theirs: urgent, and worth asking only for minutes.
      */
     public function test_urgent_question(): void {

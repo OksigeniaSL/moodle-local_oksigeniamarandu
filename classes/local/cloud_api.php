@@ -164,6 +164,36 @@ class cloud_api {
     }
 
     /**
+     * Sends a text with a list to choose from, for a question of more answers than the three buttons WhatsApp allows.
+     * Only inside the 24 hours after the number last wrote.
+     *
+     * @param string $to Digits with the country code.
+     * @param string $text The text, up to 1024 characters.
+     * @param string $button The label of the button that opens the list, up to 20 characters.
+     * @param array $rows Each with id (up to 200 characters) and title (up to 24), ten at most.
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    public function send_list(string $to, string $text, string $button, array $rows): string {
+        return $this->send_message([
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => 'interactive',
+            'interactive' => [
+                'type' => 'list',
+                'body' => ['text' => \core_text::substr($text, 0, 1024)],
+                'action' => [
+                    'button' => \core_text::substr($button, 0, 20),
+                    'sections' => [['rows' => array_map(function ($row) {
+                        return ['id' => $row['id'], 'title' => \core_text::substr($row['title'], 0, 24)];
+                    }, array_slice($rows, 0, 10))]],
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * Sends an image with its text below, such as the card of a confirmation. Only inside the 24 hours after the number
      * last wrote.
      *

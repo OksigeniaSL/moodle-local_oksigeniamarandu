@@ -139,6 +139,12 @@ class queue {
 
         $counts['expired'] = $DB->count_records_select(self::TABLE, 'status = ? AND timeexpires < ?', ['queued', $now]);
         $DB->set_field_select(self::TABLE, 'status', 'expired', 'status = ? AND timeexpires < ?', ['queued', $now]);
+        // The questions that went out and whose time is over: their buttons die, and on Telegram the message says so.
+        $over = $DB->get_records_select(self::TABLE, "ref IS NOT NULL AND timeclosed = 0 AND timeexpires < :now
+            AND status IN ('sent', 'delivered', 'read')", ['now' => $now], 'id ASC', '*', 0, 50);
+        foreach ($over as $row) {
+            self::close($row, 'expired', $telegram, $now);
+        }
 
         // While the account of a channel has a problem, one try now and then is enough to see whether it is fixed; the
         // other channel goes on.
@@ -203,6 +209,13 @@ class queue {
             }
             // A notice that Meta refused as free text goes with its template.
             $free = $row->kind !== 'template' && !empty($contact->lastinbound) && $contact->lastinbound > $now - self::WINDOW;
+            if (!$free && $notice->freeonly) {
+                // Never with a template, such as a question whose answers change each time: outside the 24 hours, not by
+                // WhatsApp.
+                self::finish($row, $now, 'skipped', null, null, 'freeonly');
+                $counts['skipped']++;
+                continue;
+            }
             $template = $free ? null : templates::approved($notice, $lang);
             if (!$free && !$template) {
                 $counts['waiting']++;
@@ -220,8 +233,19 @@ class queue {
                     if ($row->url) {
                         $text .= "\n" . templates::button_url($row->token);
                     }
-                    $wamid = $question ? $api->send_buttons($contact->phone, $text, answers::whatsapp_buttons($row, $notice, $lang))
-                        : $api->send_text($contact->phone, $text);
+                    $buttons = $question ? answers::whatsapp_buttons($row, $notice, $lang) : [];
+                    if (count($buttons) > 3) {
+                        // More answers than the three buttons WhatsApp allows: a list.
+                        $wamid = $api->send_list($contact->phone, $text, get_string_manager()->get_string(
+                            'answer:choose',
+                            'local_oksigeniamarandu',
+                            null,
+                            $lang ?: null
+                        ), $buttons);
+                    } else {
+                        $wamid = $question ? $api->send_buttons($contact->phone, $text, $buttons)
+                            : $api->send_text($contact->phone, $text);
+                    }
                     self::finish($row, $now, 'sent', 'text', $wamid);
                 } else {
                     // The quick replies of a question go before the link, which comes after them in the template.
@@ -486,6 +510,50 @@ class queue {
             $text = str_replace('{{' . ($i + 1) . '}}', $value, $text);
         }
         return $text;
+    }
+
+    /**
+     * Closes a question: it takes no more answers, what has not gone does not go, and on Telegram its message says that it
+     * was answered or that its time is over, without its buttons. WhatsApp cannot change a message that went.
+     *
+     * @param \stdClass $row The question, in the queue.
+     * @param string $how answered or expired; a question that got an answer in its time says answered anyway.
+     * @param telegram_api|null $telegram The bot, to change its message; null not to.
+     * @param int|null $now The time.
+     */
+    public static function close(\stdClass $row, string $how, ?telegram_api $telegram, ?int $now = null): void {
+        global $DB;
+        $now = $now ?? time();
+        if ($row->status === 'queued') {
+            $DB->update_record(self::TABLE, (object)['id' => $row->id, 'status' => 'expired', 'timeclosed' => $now]);
+            return;
+        }
+        $DB->set_field(self::TABLE, 'timeclosed', $now, ['id' => $row->id]);
+        if (!$telegram || strpos((string)$row->wamid, 'tg.') !== 0) {
+            return;
+        }
+        $contact = $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]);
+        $notice = notices::get($row->component, $row->notice);
+        if (!$contact || !$notice || !telegram::is_chat($contact->phone)) {
+            return;
+        }
+        if ($DB->record_exists(answers::TABLE, ['queueid' => $row->id])) {
+            $how = 'answered';
+        }
+        $lang = $row->lang ?: ($contact->lang ?: null);
+        $text = self::render($notice, (array)json_decode((string)$row->params, true), $lang) . "\n\n" .
+            get_string_manager()->get_string(
+                'answer:closed:' . ($how === 'answered' ? 'answered' : 'expired'),
+                'local_oksigeniamarandu',
+                null,
+                $lang
+            );
+        try {
+            $telegram->edit_text(telegram::chat($contact->phone), (int)substr((string)$row->wamid, 3), $text);
+        } catch (api_exception $e) {
+            // An old message, or one the person deleted: the question is closed all the same.
+            debugging('Marandu: a question was not changed on Telegram: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**

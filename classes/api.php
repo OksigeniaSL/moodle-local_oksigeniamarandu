@@ -621,6 +621,70 @@ class api {
     }
 
     /**
+     * Whether a notice of a plugin would reach a user now, without sending anything: a chat of Telegram, or a WhatsApp
+     * where it can go (inside the 24 hours, for a notice that never goes with a template), with the notice switched on
+     * for that channel. For instance, to offer a person the approval of a login from Telegram only if it can reach them.
+     *
+     * @param string $component The plugin that declares the notice.
+     * @param string $notice The notice.
+     * @param int $userid The user.
+     * @return bool
+     */
+    public static function reaches(string $component, string $notice, int $userid): bool {
+        global $DB;
+        $declared = local\notices::get($component, $notice);
+        if (!$declared || !$userid) {
+            return false;
+        }
+        $contactids = self::by_channels(self::joined($component, 0, $userid, ''), $declared);
+        foreach ($contactids as $contactid) {
+            $contact = $DB->get_record(consent::CONTACTS, ['id' => $contactid]);
+            if (!$contact || consent::out_of($contact, $component)) {
+                continue;
+            }
+            $channel = telegram::is_chat($contact->phone) ? 'telegram' : 'whatsapp';
+            if (!in_array($declared->key, local\notices::enabled($channel), true)) {
+                continue;
+            }
+            if ($channel === 'telegram' || !$declared->freeonly || (int)$contact->lastinbound > time() - queue::WINDOW) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Closes a question asked with ask(), such as when it was answered in another way (in the app, or by another channel):
+     * what has not gone does not go, it takes no more answers, and on Telegram its message says that it was answered or
+     * that its time is over, without its buttons. A question whose time is over closes by itself.
+     *
+     * @param string $component The plugin that asked it.
+     * @param string $ref The reference it was asked with.
+     * @param string $how answered or expired.
+     * @return int How many messages it closed.
+     */
+    public static function close_question(string $component, string $ref, string $how = 'answered'): int {
+        global $DB;
+        if (!in_array($how, ['answered', 'expired'], true)) {
+            throw new \coding_exception('A question closes as answered or expired');
+        }
+        try {
+            $bot = telegram_api::is_configured() ? telegram_api::from_config() : null;
+        } catch (local\api_exception $e) {
+            $bot = null;
+        }
+        $rows = $DB->get_records_select(
+            queue::TABLE,
+            'component = :component AND ref = :ref AND timeclosed = 0',
+            ['component' => $component, 'ref' => $ref]
+        );
+        foreach ($rows as $row) {
+            queue::close($row, $how, $bot);
+        }
+        return count($rows);
+    }
+
+    /**
      * Sends a text of the plugin now, such as what its team answers to what a person wrote, to the numbers and chats that
      * joined for one of its items. What people write of their own reaches the plugin with the hook
      * \\local_oksigeniamarandu\\hook\\message_received.

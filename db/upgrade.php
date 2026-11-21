@@ -407,6 +407,18 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026121200, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026121300) {
+        // When a question stops taking answers. Those already out count as closed, so that their messages are not
+        // rewritten all at once.
+        $table = new xmldb_table('local_oksigeniamarandu_queue');
+        $field = new xmldb_field('timeclosed', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timeclicked');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $DB->set_field_select('local_oksigeniamarandu_queue', 'timeclosed', time(), 'ref IS NOT NULL');
+        upgrade_plugin_savepoint(true, 2026121300, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

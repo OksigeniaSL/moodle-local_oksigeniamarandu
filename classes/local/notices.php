@@ -50,12 +50,15 @@ namespace local_oksigeniamarandu\local;
  * where that one is on. After that, it is a notice like any other, which the site switches on or off.
  *
  * A notice can be a question with buttons to answer it, sent with api::ask(): 'options' => ['yes', 'no'] (up to three,
- * short keys), each with its label in the language pack, up to 20 characters:
+ * short keys; four with 'freeonly'), each with its label in the language pack, up to 20 characters:
  *
  *     $string['marandu:consent_option_yes'] = 'I authorise';
  *     $string['marandu:consent_option_no'] = 'I do not authorise';
  *
- * The answer reaches the plugin with the hook \local_oksigeniamarandu\hook\answer_received.
+ * The answer reaches the plugin with the hook \local_oksigeniamarandu\hook\answer_received. The label of an answer can come
+ * from one of the values of the question, such as numbers to choose from: 'optionlabels' => ['a' => 3] takes it from {{3}}.
+ * A question that must not go with a template, whose answers change each time, says 'freeonly' => true: on WhatsApp it only
+ * goes inside the 24 hours (as a list when it has four answers), and outside them it is skipped; it never goes to Meta.
  *
  * A notice for the people who work at the site, with a brake of its own, says 'uncapped' => true: it keeps the quiet
  * hours, but the notices a day (which protect the families) neither hold it back nor count it.
@@ -105,7 +108,9 @@ class notices {
                     'examples' => array_map('strval', array_values((array)($definition['examples'] ?? []))),
                     'perweek' => max(0.0, (float)($definition['perweek'] ?? 1)),
                     'askedfor' => !empty($definition['askedfor']),
-                    'options' => self::options((array)($definition['options'] ?? [])),
+                    'options' => self::options((array)($definition['options'] ?? []), empty($definition['freeonly']) ? 3 : 4),
+                    'optionlabels' => self::optionlabels((array)($definition['optionlabels'] ?? [])),
+                    'freeonly' => !empty($definition['freeonly']),
                     'follows' => self::follows((string)($definition['follows'] ?? ''), $notice),
                     'channels' => self::channels_of((array)($definition['channels'] ?? [])),
                     'uncapped' => !empty($definition['uncapped']),
@@ -117,16 +122,34 @@ class notices {
     }
 
     /**
-     * The answers of a question, as declared: short keys, at most three, as WhatsApp takes its buttons.
+     * The answers of a question, as declared: short keys, at most three, as WhatsApp takes its buttons; four for a question
+     * that never goes with a template, which WhatsApp shows as a list.
      *
      * @param array $options The keys.
+     * @param int $max How many at most.
      * @return string[]
      */
-    private static function options(array $options): array {
+    private static function options(array $options, int $max = 3): array {
         $keys = array_values(array_unique(array_filter(array_map('strval', $options), function ($key) {
             return (bool)preg_match('/^[a-z0-9]{1,10}$/', $key);
         })));
-        return array_slice($keys, 0, 3);
+        return array_slice($keys, 0, $max);
+    }
+
+    /**
+     * Which value of the question gives the label of each answer, as declared: the number of its {{n}}.
+     *
+     * @param array $labels By key of the answer.
+     * @return int[]
+     */
+    private static function optionlabels(array $labels): array {
+        $out = [];
+        foreach ($labels as $key => $index) {
+            if (preg_match('/^[a-z0-9]{1,10}$/', (string)$key) && (int)$index >= 1) {
+                $out[(string)$key] = (int)$index;
+            }
+        }
+        return $out;
     }
 
     /**
@@ -182,10 +205,13 @@ class notices {
      * @param \stdClass $notice The notice.
      * @param string $option The key of the answer.
      * @param string|null $lang The language; the current one if null.
+     * @param array $params The values of the question, for a label that comes from one of them.
      * @return string Up to 20 characters.
      */
-    public static function option_label(\stdClass $notice, string $option, ?string $lang = null): string {
-        return \core_text::substr(self::text($notice, 'option_' . $option, $lang), 0, 20);
+    public static function option_label(\stdClass $notice, string $option, ?string $lang = null, array $params = []): string {
+        $index = $notice->optionlabels[$option] ?? 0;
+        $value = $index ? trim((string)($params[$index - 1] ?? '')) : '';
+        return \core_text::substr($value !== '' ? $value : self::text($notice, 'option_' . $option, $lang), 0, 20);
     }
 
     /**

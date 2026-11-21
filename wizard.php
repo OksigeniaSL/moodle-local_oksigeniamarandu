@@ -289,6 +289,10 @@ if ($step === 'account') {
     $groups = [];
     $counts = ['todo' => 0, 'pending' => 0];
     foreach ($allnotices as $notice) {
+        if ($notice->freeonly) {
+            // It never goes with a template: nothing to send to Meta.
+            continue;
+        }
         foreach (notices::languages() as $lang) {
             $template = templates::get($notice, $lang);
             $status = $template ? $template->status : 'todo';

@@ -46,6 +46,9 @@ $string['alta:title'] = 'Notices from {$a} on WhatsApp';
 $string['alta:wait'] = 'Waiting for your message';
 $string['alta:wait_help'] = 'If you have already tapped Send in WhatsApp, this changes by itself in a few seconds.';
 $string['alta:yourphone'] = 'Your mobile';
+$string['answer:choose'] = 'Choose';
+$string['answer:closed:answered'] = 'Answered.';
+$string['answer:closed:expired'] = 'Time is over: it can no longer be answered.';
 $string['answer:received'] = 'Received: «{$a}».';
 $string['blockmail:body'] = 'Meta does not let {$a->site} send WhatsApp messages: {$a->problem}
 

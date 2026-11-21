@@ -53,8 +53,10 @@ class answers {
      * @return array Each with data and text.
      */
     public static function telegram_choices(\stdClass $row, \stdClass $notice, ?string $lang): array {
-        return array_map(function ($option) use ($row, $notice, $lang) {
-            return ['data' => self::PREFIX . $row->token . ':' . $option, 'text' => notices::option_label($notice, $option, $lang)];
+        $params = (array)json_decode((string)$row->params, true);
+        return array_map(function ($option) use ($row, $notice, $lang, $params) {
+            return ['data' => self::PREFIX . $row->token . ':' . $option,
+                'text' => notices::option_label($notice, $option, $lang, $params)];
         }, $notice->options);
     }
 
@@ -67,8 +69,10 @@ class answers {
      * @return array Each with id and title.
      */
     public static function whatsapp_buttons(\stdClass $row, \stdClass $notice, ?string $lang): array {
-        return array_map(function ($option) use ($row, $notice, $lang) {
-            return ['id' => self::PREFIX . $row->token . ':' . $option, 'title' => notices::option_label($notice, $option, $lang)];
+        $params = (array)json_decode((string)$row->params, true);
+        return array_map(function ($option) use ($row, $notice, $lang, $params) {
+            return ['id' => self::PREFIX . $row->token . ':' . $option,
+                'title' => notices::option_label($notice, $option, $lang, $params)];
         }, $notice->options);
     }
 
@@ -84,8 +88,10 @@ class answers {
         $type = $message['type'] ?? '';
         $row = null;
         $option = null;
-        if ($type === 'interactive' && ($message['interactive']['type'] ?? '') === 'button_reply') {
-            [$row, $option] = self::by_data((string)($message['interactive']['button_reply']['id'] ?? ''));
+        $interactive = (string)($message['interactive']['type'] ?? '');
+        if ($type === 'interactive' && in_array($interactive, ['button_reply', 'list_reply'], true)) {
+            // A reply button, or a row of the list of a question of four answers.
+            [$row, $option] = self::by_data((string)($message['interactive'][$interactive]['id'] ?? ''));
         } else if ($type === 'button' && !empty($message['context']['id'])) {
             $rows = $DB->get_records_select(
                 queue::TABLE,
@@ -223,7 +229,7 @@ class answers {
         return $hook->get_reply() ?? get_string_manager()->get_string(
             'answer:received',
             'local_oksigeniamarandu',
-            $notice ? notices::option_label($notice, $option, $lang) : $option,
+            $notice ? notices::option_label($notice, $option, $lang, (array)json_decode((string)$row->params, true)) : $option,
             $lang
         );
     }
@@ -243,6 +249,10 @@ class answers {
         if (!$row || empty($row->ref) || !in_array($row->status, self::OUT, true)) {
             return [null, null];
         }
+        // A question closed (answered elsewhere) or past its time is not answered any more: a late «yes» is not one.
+        if (!empty($row->timeclosed) || ((int)$row->timeexpires > 0 && (int)$row->timeexpires < time())) {
+            return [null, null];
+        }
         $notice = notices::get($row->component, $row->notice);
         return $notice && in_array($parts[2], $notice->options, true) ? [$row, $parts[2]] : [null, null];
     }
@@ -256,7 +266,10 @@ class answers {
      */
     private static function by_label(\stdClass $row, string $label): ?string {
         $notice = notices::get($row->component, $row->notice);
-        if (!$notice || !in_array($row->status, self::OUT, true)) {
+        if (
+            !$notice || !in_array($row->status, self::OUT, true) || !empty($row->timeclosed)
+                || ((int)$row->timeexpires > 0 && (int)$row->timeexpires < time())
+        ) {
             return null;
         }
         $label = \core_text::strtolower(trim($label));

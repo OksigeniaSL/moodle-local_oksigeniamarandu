@@ -121,6 +121,7 @@
         <FIELD NAME="timesent" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When it went out, or when it failed"/>
         <FIELD NAME="timedelivered" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="timeclicked" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timeclosed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When a question stopped taking answers: answered elsewhere, or past its time"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

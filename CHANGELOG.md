@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.51.0 (2026-11-21)
+
+- For the approval of a login from the phone (the factor of Oksigenia Aty): the label of an answer can come from a value
+  of the question ('optionlabels'), as the numbers to choose from; up to four answers, which WhatsApp shows as a list;
+  'freeonly', a question that never goes with a template, only inside the 24 hours on WhatsApp.
+- A question closes: answered elsewhere (`api::close_question()`) or when its time is over, what has not gone does not go,
+  a late answer does not count, and on Telegram its message says «Answered» or «Time is over», without its buttons.
+- `api::reaches()`: whether a notice would reach a user now, without sending anything.
+
 ## 0.50.4 (2026-11-21)
 
 - Who hears when the month reaches its spending limit or a channel stops: one or more addresses, separated by commas.

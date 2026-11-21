@@ -104,6 +104,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_board' => [
+        'classname' => \local_oksigeniamarandu\external\chat_board::class,
+        'description' => 'The board of the team: its notices, and putting one, marking one seen or changing one.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_agenda' => [
         'classname' => \local_oksigeniamarandu\external\chat_agenda::class,
         'description' => 'The address book of the conversations: the favourites of the person and the contacts of the centre.',

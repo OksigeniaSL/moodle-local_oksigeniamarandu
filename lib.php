@@ -48,6 +48,14 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             // the families.
             'uncapped' => true,
         ],
+        'board' => [
+            'examples' => ['David Ramos: El lunes 23 no hay comedor: arreglan la cocina.'],
+            'perweek' => 0,
+            'channels' => ['telegram'],
+            // The «Seen» of the board, pressed on Telegram itself.
+            'options' => ['seen'],
+            'uncapped' => true,
+        ],
     ];
 }
 

@@ -19,6 +19,7 @@ namespace local_oksigeniamarandu\local;
 use core_external\external_api;
 use local_oksigeniamarandu\external\chat_action;
 use local_oksigeniamarandu\external\chat_agenda;
+use local_oksigeniamarandu\external\chat_board;
 use local_oksigeniamarandu\external\chat_contact;
 use local_oksigeniamarandu\external\chat_find;
 use local_oksigeniamarandu\external\chat_flag;
@@ -54,6 +55,7 @@ use local_oksigeniamarandu\local\chat\viewer;
  * @covers     \local_oksigeniamarandu\local\chat\starter
  * @covers     \local_oksigeniamarandu\local\chat\reminders
  * @covers     \local_oksigeniamarandu\local\chat\agenda
+ * @covers     \local_oksigeniamarandu\local\chat\board
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mirror::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(hours::class)]
@@ -66,6 +68,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 #[\PHPUnit\Framework\Attributes\CoversClass(starter::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\reminders::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\agenda::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\board::class)]
 final class chat_test extends \advanced_testcase {
     /** Monday 16 November 2026 at 12:00 in the Canary Islands (UTC). */
     private const MONDAY_NOON = 1794830400;
@@ -832,6 +835,82 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame([103, 101], chat\agenda::favourites((int)$ana->id));
         $book = external_api::clean_returnvalue(chat_agenda::execute_returns(), chat_agenda::execute(101, false));
         $this->assertSame([103], array_column($book['favourites'], 'contactid'));
+    }
+
+    /**
+     * The board: a notice reaches the people of the departments chosen (or the whole team), each marks it seen once;
+     * only whoever put it tells again, changes it or takes it off.
+     */
+    public function test_board(): void {
+        $ana = $this->person('ana@example.com', 'Ana');
+        $luis = $this->person('luis@example.com', 'Luis');
+        $marta = $this->person('marta@example.com', 'Marta');
+        $viewana = viewer::for_user($ana);
+        $viewluis = viewer::for_user($luis);
+        $sink = $this->redirectMessages();
+        $id = chat\board::post($viewana, 'La fotocopiadora vuelve a funcionar.', [11], false, self::MONDAY_NOON);
+        $messages = $sink->get_messages();
+        $this->assertCount(1, $messages);
+        $this->assertSame(
+            [(int)$luis->id, 'Ana, on the board: La fotocopiadora vuelve a funcionar.'],
+            [(int)$messages[0]->useridto, $messages[0]->subject]
+        );
+        $items = chat\board::for_viewer($viewluis, self::MONDAY_NOON);
+        $this->assertSame([[$id, false, 0, 2, 1, ['recibos']]], array_map(function ($item) {
+            $teams = array_map('strtolower', $item['teams']);
+            return [$item['id'], $item['mine'], $item['seen'], $item['total'], $item['seencount'], $teams];
+        }, $items));
+        $this->assertSame(1, chat\board::counts((int)$luis->id)['tosee']);
+        $this->assertTrue(chat\board::seen((int)$luis->id, $id, self::MONDAY_NOON + 60));
+        $this->assertFalse(chat\board::seen((int)$luis->id, $id, self::MONDAY_NOON + 120));
+        $this->assertSame(0, chat\board::counts((int)$luis->id)['tosee']);
+        $this->assertSame(2, chat\board::for_viewer($viewana, self::MONDAY_NOON)[0]['seencount']);
+        // Marta is in no department of it: she does not see it.
+        $this->assertSame([], chat\board::for_viewer(viewer::for_user($marta), self::MONDAY_NOON));
+
+        // For the whole team: the three people (the bot of the account is not one).
+        $sink->clear();
+        $all = chat\board::post($viewana, 'El lunes no hay comedor.', [], true, self::MONDAY_NOON);
+        $this->assertCount(2, $sink->get_messages());
+        $this->assertSame(3, chat\board::for_viewer($viewana, self::MONDAY_NOON)[0]['total']);
+        $sink->clear();
+        chat\board::remind($viewana, $all, (int)$marta->id, self::MONDAY_NOON + 300);
+        $this->assertSame('Ana reminds you, on the board: El lunes no hay comedor.', $sink->get_messages()[0]->subject);
+        chat\board::change($viewana, $all, 'El lunes 23 no hay comedor.', self::MONDAY_NOON + 400);
+        $this->assertSame(
+            ['El lunes 23 no hay comedor.', true],
+            array_values(array_intersect_key(chat\board::for_viewer($viewana, self::MONDAY_NOON)[0], ['text' => 0, 'edited' => 0]))
+        );
+        chat\board::change($viewana, $all, null, self::MONDAY_NOON + 500);
+        $this->assertSame([$id], array_column(chat\board::for_viewer($viewana, self::MONDAY_NOON), 'id'));
+
+        // The service gives the same, and only whoever put a notice changes it.
+        $this->setUser($luis);
+        $board = external_api::clean_returnvalue(chat_board::execute_returns(), chat_board::execute());
+        $this->assertSame([$id], array_column($board['items'], 'id'));
+        $this->expectException(\moodle_exception::class);
+        chat_board::execute('remove', $id);
+    }
+
+    /**
+     * A history brought in from a phone opens no 24 hours (Meta counts only what reaches the API); a full pass that
+     * rebuilds writes again what changed in Chatwoot without moving its time, such as a department set in bulk.
+     */
+    public function test_imported_and_rebuild(): void {
+        global $DB;
+        $now = time();
+        $imported = [['id' => 1, 'message_type' => 0, 'content' => 'Recibido, gracias', 'created_at' => $now - 600,
+            'private' => false, 'sender' => ['type' => 'contact', 'id' => 1], 'content_attributes' => ['imported' => true]]];
+        $this->assertSame(0, mirror::from_messages($imported)['lastincoming']);
+        $imported[0]['content_attributes'] = [];
+        $this->assertSame($now - 600, mirror::from_messages($imported)['lastincoming']);
+
+        mirror::sync_all();
+        $this->client->conversations[2]['meta']['team'] = ['id' => 10];
+        $this->assertSame([0, 3], mirror::sync_all());
+        $this->assertSame(11, (int)$DB->get_field(mirror::TABLE, 'teamid', ['cwid' => 2]));
+        $this->assertSame([1, 3], mirror::sync_all(true));
+        $this->assertSame(10, (int)$DB->get_field(mirror::TABLE, 'teamid', ['cwid' => 2]));
     }
 
     /**

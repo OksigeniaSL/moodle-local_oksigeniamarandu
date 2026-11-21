@@ -88,9 +88,10 @@ class mirror {
      * Fills the index with every conversation of the inboxes the site attends, whenever it was: what was brought into
      * Chatwoot directly (the chats of the app of a phone, its history) never comes by the webhook or as a change.
      *
+     * @param bool $rebuild Every row written again from Chatwoot, also what changed there without moving its time.
      * @return array [how many it kept new or changed, how many of those inboxes the index has].
      */
-    public static function sync_all(): array {
+    public static function sync_all(bool $rebuild = false): array {
         $client = directory::client();
         $kept = 0;
         $seen = [];
@@ -105,7 +106,9 @@ class mirror {
                     if ($inbox && (int)($conversation['inbox_id'] ?? 0) !== (int)$inbox) {
                         continue;
                     }
-                    $kept += self::store($conversation) ? 1 : 0;
+                    // Rebuilt, each row is written again from what Chatwoot says (its department, its state, its 24
+                    // hours), also what changed there without moving its time, and nobody hears of it.
+                    $kept += self::store($conversation, $rebuild, true, $rebuild) ? 1 : 0;
                     $seen[(int)($conversation['id'] ?? 0)] = true;
                 }
                 if (count($payload) < self::PAGE_SIZE) {
@@ -172,7 +175,7 @@ class mirror {
      * @param bool $messages Whether to ask for its messages too.
      * @return bool Whether its row changed.
      */
-    public static function store(array $conversation, bool $force = false, bool $messages = true): bool {
+    public static function store(array $conversation, bool $force = false, bool $messages = true, bool $fresh = false): bool {
         global $DB;
         $id = (int)($conversation['id'] ?? 0);
         if (!$id) {
@@ -204,7 +207,7 @@ class mirror {
             // Without its messages, what the conversation itself says.
             $list = array_filter([$conversation['last_non_activity_message'] ?? null]);
         }
-        $row = (object)((array)$row + self::from_messages($list, $old ?: null));
+        $row = (object)((array)$row + self::from_messages($list, $old ?: null, $fresh));
         if ($old) {
             $row->id = $old->id;
             $same = true;
@@ -220,7 +223,9 @@ class mirror {
             }
             $row->timemodified = time();
             $DB->update_record(self::TABLE, $row);
-            notify::changed($old, $row, $list);
+            if (!$fresh) {
+                notify::changed($old, $row, $list);
+            }
         } else {
             $row->passedby = 0;
             $row->passedto = 0;
@@ -257,7 +262,7 @@ class mirror {
      * @param \stdClass|null $old The row it had, if any.
      * @return array lastmsgid, waitsince, lastincoming, preview, previewkind and previewat.
      */
-    public static function from_messages(array $messages, ?\stdClass $old = null): array {
+    public static function from_messages(array $messages, ?\stdClass $old = null, bool $fresh = false): array {
         $wait = 0;
         $answered = false;
         $lastincoming = 0;
@@ -269,7 +274,11 @@ class mirror {
             $at = (int)($message['created_at'] ?? 0);
             if ($kind === 'incoming') {
                 $wait = $wait ?: $at;
-                $lastincoming = max($lastincoming, $at);
+                // What came to the phone before the number was on the API (a history brought in) opens no 24 hours:
+                // Meta counts only what reaches the API.
+                if (empty($message['content_attributes']['imported'])) {
+                    $lastincoming = max($lastincoming, $at);
+                }
             } else if ($kind === 'outgoing') {
                 $wait = 0;
                 $answered = true;
@@ -286,7 +295,7 @@ class mirror {
         $result = [
             'lastmsgid' => $lastid,
             'waitsince' => $wait,
-            'lastincoming' => max($lastincoming, $old ? (int)$old->lastincoming : 0),
+            'lastincoming' => $fresh ? $lastincoming : max($lastincoming, $old ? (int)$old->lastincoming : 0),
             'preview' => $old ? (string)$old->preview : '',
             'previewkind' => $old ? (string)$old->previewkind : '',
             'previewat' => $old ? (int)$old->previewat : 0,

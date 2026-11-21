@@ -46,6 +46,10 @@ class telegram_actions {
      * @param answer_received $hook The answer.
      */
     public static function answered(answer_received $hook): void {
+        if ($hook->get_component() === 'local_oksigeniamarandu' && $hook->get_notice() === 'board') {
+            self::board_seen($hook);
+            return;
+        }
         if ($hook->get_component() !== 'local_oksigeniamarandu' || $hook->get_notice() !== 'chat') {
             return;
         }
@@ -83,6 +87,39 @@ class telegram_actions {
         } catch (\moodle_exception $e) {
             $hook->set_reply(self::str('failed', $name));
         }
+    }
+
+    /**
+     * «Seen» pressed on Telegram on a notice of the board.
+     *
+     * @param answer_received $hook The answer.
+     */
+    private static function board_seen(answer_received $hook): void {
+        $ref = $hook->get_ref();
+        $id = strpos($ref, board::REF) === 0 ? (int)substr($ref, strlen(board::REF)) : 0;
+        $userid = self::user_of_chat($hook->get_address());
+        if (!$id || !$userid) {
+            $hook->set_reply(self::str('notyours', ''));
+            return;
+        }
+        $hook->set_reply(self::str(board::seen($userid, $id) ? 'boardseen' : 'boardalready', ''));
+    }
+
+    /**
+     * The user a chat of Telegram is linked to, if it is active.
+     *
+     * @param string $address The chat, as Marandu writes it.
+     * @return int The user; 0 if none.
+     */
+    private static function user_of_chat(string $address): int {
+        global $DB;
+        return (int)$DB->get_field_sql(
+            "SELECT l.userid FROM {" . consent::LINKS . "} l
+               JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+              WHERE c.phone = :phone AND c.status = 'active' AND l.userid IS NOT NULL",
+            ['phone' => $address],
+            IGNORE_MULTIPLE
+        );
     }
 
     /**
@@ -176,13 +213,7 @@ class telegram_actions {
      */
     private static function who_and_what(string $address, string $ref): array {
         global $DB;
-        $userid = (int)$DB->get_field_sql(
-            "SELECT l.userid FROM {" . consent::LINKS . "} l
-               JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
-              WHERE c.phone = :phone AND c.status = 'active' AND l.userid IS NOT NULL",
-            ['phone' => $address],
-            IGNORE_MULTIPLE
-        );
+        $userid = self::user_of_chat($address);
         $user = $userid ? \core_user::get_user($userid) : null;
         $viewer = $user && !$user->deleted && !$user->suspended ? viewer::for_user($user) : null;
         if (!$viewer || $viewer->readonly) {

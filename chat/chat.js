@@ -18,6 +18,7 @@
         resolved: 'local_oksigeniamarandu_chat_resolved',
         remind: 'local_oksigeniamarandu_chat_remind',
         agenda: 'local_oksigeniamarandu_chat_agenda',
+        board: 'local_oksigeniamarandu_chat_board',
         flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start'
     };
@@ -94,6 +95,11 @@
         abajo: '<path d="M6 9.5l6 6 6-6"/>',
         play: '<path d="M7 4.5v15l12.5-7.5z"/>',
         pausa: '<path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z"/>',
+        'eq-sala': '<path d="M3.5 6.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2z"/>' +
+            '<path d="M15.5 9h3a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v3l-3.5-3h-3.5a2 2 0 0 1-2-2v-1.5"/>',
+        'eq-pin': '<path d="M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5z"/><path d="M12 12v8.5"/>',
+        'eq-tablon': '<rect x="3.5" y="4.5" width="17" height="14" rx="2"/><path d="M7.5 9h6M7.5 12.5h9M7.5 16h4"/>' +
+            '<path d="M8 20.5l1.5-2M16 20.5l-1.5-2"/>',
         estrella: '<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>',
         gente: '<circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.5c1-3.4 3.4-5.2 6.2-5.2s5.2 1.8 6.2 5.2"/>' +
             '<circle cx="16.8" cy="9.5" r="2.7"/><path d="M16.4 14.4c2.4.2 4.1 1.8 4.8 4.6"/>',
@@ -549,7 +555,15 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            rem: { day: '', reason: '' }, agenda: null, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false,
+            rem: { day: '', reason: '' }, agenda: null, board: null, boardOpen: 0, boardNew: null, boardEdit: null, boardRev: -1,
+            boardDone: false, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: (function () {
+                try {
+                    var v = root.localStorage.getItem('mrd-chat-otros');
+                    return v === 'abierto' ? true : v === 'plegado' ? false : null;
+                } catch (e) {
+                    return null;
+                }
+            })(), otrosNow: false,
             hf: { mine: false, team: 0, period: '' }, hits: {}, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
             ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
@@ -1534,9 +1548,10 @@
                 return !c.teamid && c.section !== 'resolved';
             });
             if (me.seesall && (others.length || noteam)) {
-                var opened = st.otros || others.some(function (t) {
+                var opened = st.otros !== null ? st.otros : others.some(function (t) {
                     return st.inbox === 'team:' + t.id;
                 }) || st.inbox === 'noteam';
+                st.otrosNow = opened;
                 var nOthers = others.reduce(function (a, t) {
                     return a + teamLines(t).n;
                 }, 0);
@@ -1570,6 +1585,15 @@
                     }
                     h += '</div>';
                 }
+            }
+            // Between the team: the board (the team's violet, never the amber of waiting families).
+            if (!READONLY) {
+                var tosee = boardToSee().length;
+                h += '<div class="mrd-rail-equipo"><div class="mrd-rotulo eq-rotulo">' + ico('candado') + esc(s('teamzone')) + '</div>' +
+                    '<button type="button" class="mrd-bandeja' + (st.inbox === 'board' ? ' eq-on' : '') + (tosee ? ' mrd-con-pend' : ' mrd-vacia') +
+                    '" data-a="inbox" data-v="board"' + (st.inbox === 'board' ? ' aria-current="true"' : '') + '>' + ico('eq-tablon') +
+                    '<span class="mrd-t">' + esc(s('board')) + '<small>' + esc(tosee ? s('boardtosee', tosee) : s('boardnone')) + '</small></span>' +
+                    '<span class="mrd-n eq-n' + (tosee ? ' mrd-pend' : ' mrd-cero') + '">' + tosee + '</span></button></div>';
             }
             // The history: everything resolved, whenever it was, also what was said on WhatsApp before the chat.
             h += '<div class="mrd-rail-historia">' + trayButton('history', 'libro', s('history'), [s('historyline')], 0) +
@@ -1619,7 +1643,10 @@
             };
             el.pie.innerHTML = tab('mine', 'yo', s('mine'), counts.mine) + tab('unassigned', 'nadie', s('unassigned'), counts.unassigned) +
                 '<button type="button" class="' + (st.capa === 'bandejas' || (inTeam && st.capa === 'lista') ? 'mrd-on' : '') +
-                '" data-a="capa" data-v="bandejas">' + ico('edificio') + esc(s('tabteams')) + '</button>';
+                '" data-a="capa" data-v="bandejas">' + ico('edificio') + esc(s('tabteams')) + '</button>' +
+                (READONLY ? '' : '<button type="button" class="eq-pie' + (st.inbox === 'board' && st.capa === 'lista' ? ' mrd-on' : '') +
+                    '" data-a="inbox" data-v="board">' + ico('eq-tablon') + esc(s('tabteam')) +
+                    (boardToSee().length ? '<span class="mrd-n">' + boardToSee().length + '</span>' : '') + '</button>');
         }
         function popProfile() {
             var t = bgInk();
@@ -1698,6 +1725,15 @@
             return parts.join(' · ');
         }
         function renderListHead() {
+            el.lista.classList.toggle('eq-lista', st.inbox === 'board');
+            el.lista.classList.toggle('eq-tablon', st.inbox === 'board');
+            if (st.inbox === 'board') {
+                el.lista.innerHTML = '<div class="mrd-lista-cab"><div class="mrd-titulo"><span class="mrd-marca-movil">' + brandMark() +
+                    '</span><h1>' + esc(s('board')) + '</h1><button type="button" class="mrd-btn mrd-chico mrd-nueva-b eq-btn" data-a="boardnew">' +
+                    ico('eq-pin') + '<span>' + esc(s('boardnewbtn')) + '</span></button></div><p class="eq-solo">' + ico('candado') + '<span>' +
+                    esc(s('boardsolo')) + '</span></p></div><div class="mrd-lista-cuerpo"></div>';
+                return;
+            }
             el.lista.innerHTML = '<div class="mrd-lista-cab"><div class="mrd-titulo"><span class="mrd-marca-movil">' + brandMark() +
                 '</span><h1></h1>' + (READONLY ? '' : '<button type="button" class="mrd-btn mrd-chico mrd-nueva-b" data-a="new" aria-pressed="' +
                 !!st.nueva + '">' + ico('lapiz') + '<span>' + esc(s('newconv')) + '</span></button>') + '</div><p></p><label class="mrd-buscar">' + ico('buscar') +
@@ -1709,7 +1745,7 @@
         }
         function updateListTitle() {
             var h1 = el.lista.querySelector('h1'), p = el.lista.querySelector('.mrd-lista-cab p');
-            if (h1) {
+            if (h1 && st.inbox !== 'board') {
                 h1.textContent = inboxTitle();
                 p.textContent = inboxSub();
             }
@@ -1858,6 +1894,17 @@
                 body.innerHTML = agendaHtml();
                 body.scrollTop = keep;
                 return;
+            }
+            if (st.inbox === 'board') {
+                body.innerHTML = boardListHtml();
+                body.scrollTop = keep;
+                return;
+            }
+            // On a phone, with no start page, what the board asks of the person goes on top of each tray.
+            if (narrow() && !READONLY) {
+                h += boardToSee().map(function (b) {
+                    return boardCard(b, { movil: true });
+                }).join('');
             }
             var reply = all.filter(function (c) {
                 return c.section === 'reply';
@@ -2147,6 +2194,271 @@
                 return r;
             }).catch(failToast);
         }
+        /* -------- The board of the team: notices for a department or the whole team, each person marks «Seen» -------- */
+        function boardItems() {
+            return st.board && typeof st.board === 'object' ? st.board.items : [];
+        }
+        function boardToSee() {
+            return boardItems().filter(function (b) {
+                return !b.mine && !b.seen;
+            });
+        }
+        function boardItem(id) {
+            return boardItems().filter(function (b) {
+                return b.id === id;
+            })[0] || null;
+        }
+        function loadBoard(args, then) {
+            if (READONLY) {
+                return Promise.resolve(null);
+            }
+            if (!args && !st.board) {
+                st.board = 'loading';
+            }
+            return tr.call(M.board, args || {}).then(function (r) {
+                st.board = r;
+                st.boardRev = r.rev;
+                if (then) {
+                    then(r);
+                }
+                // On the board with nothing open on the right: the first notice to see, or the newest.
+                if (st.inbox === 'board' && !st.boardNew && !boardItem(st.boardOpen)) {
+                    var first = boardToSee()[0] || boardItems()[0];
+                    st.boardOpen = first ? first.id : 0;
+                }
+                renderRail();
+                renderPie(inboxCounts());
+                if (st.inbox === 'board') {
+                    renderListBody();
+                    renderBoardPane();
+                } else {
+                    renderListBody();
+                    renderHome();
+                }
+                return r;
+            }).catch(function (e) {
+                if (!st.board || typeof st.board !== 'object') {
+                    st.board = 'error';
+                }
+                if (args) {
+                    failToast(e);
+                }
+                if (st.inbox === 'board') {
+                    renderListBody();
+                }
+            });
+        }
+        function boardFace(p, size) {
+            var mine = me.userid ? p.userid === me.userid : p.agentid === me.agentid;
+            return avAgent({ agentid: p.agentid, name: p.name, me: mine }, size || 'mrd-m');
+        }
+        function boardFor(b) {
+            return '<span class="eq-para">' + ico(b.all ? 'gente' : 'bandeja') + esc(b.all ? s('boardforall') : s('boardfor', joinList(b.teams))) + '</span>';
+        }
+        function boardHead(b) {
+            return '<div class="eq-aviso-de">' + ico('eq-pin', 'eq-pin') + '<b>' + esc(b.mine ? s('You') : b.author.name) + '</b>' + boardFor(b) +
+                esc(whenPhrase(b.at * 1000)) + '</div>';
+        }
+        function boardCount(b) {
+            return '<span class="eq-cuantos">' + esc(s('boardseenby')) + ' <b>' + esc(s('boardnoft', { n: b.seencount, t: b.total })) + '</b></span>';
+        }
+        function boardMissing(b) {
+            var names = b.people.filter(function (p) {
+                return !p.seenat;
+            }).map(function (p) {
+                return p.firstname || p.name;
+            });
+            return names.length ? s(names.length === 1 ? 'boardmissing' : 'boardmissingmany', joinList(names)) : '';
+        }
+        function boardBar(b) {
+            return '<span class="eq-barra"><i style="width: ' + Math.round(100 * b.seencount / Math.max(1, b.total)) + '%"></i></span>';
+        }
+        // A notice as a card: in the list, on the start page, on top of a tray on a phone, or open on the right.
+        function boardCard(b, o) {
+            o = o || {};
+            var done = b.seencount >= b.total, pending = !b.mine && !b.seen;
+            var seenBtn = '<button type="button" class="mrd-btn' + (o.grande ? '' : ' mrd-chico') + ' eq-visto-b" data-a="boardseen" data-v="' + b.id + '">' +
+                ico('ojo') + esc(s('boardseen')) + '</button>';
+            var foot;
+            if (done) {
+                foot = '<span class="eq-visto-ya">' + ico('checks') + esc(s('boardseenbyall')) + '</span>';
+            } else if (pending) {
+                foot = seenBtn + boardCount(b);
+            } else if (b.mine) {
+                var miss = boardMissing(b);
+                foot = boardCount(b) + (miss ? '<span class="eq-cuantos">· ' + esc(miss) + '</span>' : '');
+            } else {
+                foot = '<span class="eq-visto-ya">' + ico('check') + esc(s('boardseenbyyou')) + '</span>' + boardCount(b);
+            }
+            var text = st.boardEdit && st.boardEdit.id === b.id && o.grande
+                ? '<div class="eq-escribe" contenteditable="true" role="textbox" aria-multiline="true" aria-label="' + esc(s('boardph')) + '"></div>'
+                : '<div class="eq-aviso-txt">' + textHtml(b.text) + '</div>';
+            var open = o.grande ? '' : ' data-a="boardopen" data-v="' + b.id + '" role="button" tabindex="0"';
+            if (o.inicio) {
+                return '<div class="eq-aviso"' + open + '>' + boardHead(b) + text + '<div class="eq-lado">' + seenBtn + boardCount(b) + '</div></div>';
+            }
+            return '<div class="eq-aviso' + (o.on ? ' mrd-on' : '') + (done ? ' eq-hecho' : '') + (o.movil ? ' eq-movil-aviso' : '') + '"' + open + '>' +
+                boardHead(b) + text + '<div class="eq-aviso-pie">' + foot + (o.grande && !done ? boardBar(b) : '') + '</div>' +
+                (!o.grande && !o.movil && !done ? '<div class="eq-aviso-pie">' + boardBar(b) + '</div>' : '') + '</div>';
+        }
+        function boardListHtml() {
+            if (st.board === null) {
+                loadBoard();
+            }
+            if (st.board === null || st.board === 'loading') {
+                return '<div class="mrd-resueltas-estado">' + esc(s('resolvedloading')) + '</div>';
+            }
+            if (st.board === 'error') {
+                return '<div class="mrd-resueltas-estado">' + esc(s('resolvederror')) + ' <button type="button" class="mrd-ver-resueltas" data-a="boardagain">' +
+                    esc(s('retry')) + '</button></div>';
+            }
+            var items = boardItems(), h = '';
+            var group = function (key, list, soft) {
+                if (!list.length) {
+                    return '';
+                }
+                return '<div class="mrd-grupo-t' + (soft ? ' mrd-suave' : '') + '">' + esc(s(key)) + ' <span>' + list.length + '</span></div>' +
+                    list.map(function (b) {
+                        return boardCard(b, { on: st.boardOpen === b.id });
+                    }).join('');
+            };
+            var done = items.filter(function (b) {
+                return b.seencount >= b.total;
+            });
+            var open = items.filter(function (b) {
+                return b.seencount < b.total;
+            });
+            h += group('boardgrouptosee', open.filter(function (b) {
+                return !b.mine && !b.seen;
+            }));
+            h += group('boardgroupmine', open.filter(function (b) {
+                return b.mine;
+            }));
+            h += group('boardgroupseen', open.filter(function (b) {
+                return !b.mine && b.seen;
+            }), true);
+            if (done.length) {
+                h += '<div class="mrd-grupo-t mrd-suave">' + esc(s('boardgroupdone')) + '</div>' + (st.boardDone ? done.map(function (b) {
+                    return boardCard(b, { on: st.boardOpen === b.id });
+                }).join('') : '<button type="button" class="eq-plegado" data-a="boarddone">' + ico('der') +
+                    esc(s(done.length === 1 ? 'boarddonefold1' : 'boarddonefold', done.length)) + '</button>');
+            }
+            return h || '<p class="mrd-agenda-vacio">' + esc(s('boardempty')) + '</p>';
+        }
+        // The right side of the board: the notice open (who has seen it, and what whoever put it can do), or a new one.
+        function renderBoardPane() {
+            if (st.inbox !== 'board' || conv(st.open)) {
+                return;
+            }
+            var ed = el.chat.querySelector('.eq-escribe'), typing = ed && document.activeElement === ed;
+            var head = '<div class="mrd-chat-cab"><button type="button" class="mrd-volver" data-a="back" data-v="lista" aria-label="' + esc(s('back')) + '">' +
+                ico('izq') + '</button><div class="eq-cab-quien"><span class="eq-tile">' + ico('eq-tablon') + '</span><h2>' + esc(s('board')) +
+                '<small>' + esc(s('boardsub')) + '</small></h2></div></div>';
+            var body;
+            if (st.boardNew) {
+                body = boardNewHtml();
+            } else {
+                var b = boardItem(st.boardOpen);
+                body = b ? boardOpenHtml(b) : '<div class="mrd-hilo-nada">' + esc(boardItems().length ? s('boardpick') : s('boardempty')) + '</div>';
+            }
+            el.chat.innerHTML = head + '<div class="eq-tablon-hoja">' + body + '</div>';
+            var box2 = el.chat.querySelector('.eq-escribe');
+            if (box2) {
+                box2.textContent = st.boardNew ? st.boardNew.text : st.boardEdit ? st.boardEdit.text : '';
+                if (typing || (st.boardEdit && !st.boardEdit.shown) || (st.boardNew && !st.boardNew.shown)) {
+                    caretToEnd(box2);
+                    if (st.boardEdit) {
+                        st.boardEdit.shown = true;
+                    }
+                    if (st.boardNew) {
+                        st.boardNew.shown = true;
+                    }
+                }
+            }
+        }
+        function boardOpenHtml(b) {
+            var seen = b.people.filter(function (p) {
+                return p.seenat;
+            }), missing = b.people.filter(function (p) {
+                return !p.seenat;
+            });
+            var people = seen.map(function (p) {
+                return '<div><span class="eq-cara">' + boardFace(p) + '<span class="eq-ok">' + ico('check') + '</span></span><span><b>' +
+                    esc(p.userid === me.userid ? s('You') : p.name) + '</b><small class="eq-visto-t">' + esc(s('boardseenat', listTime(p.seenat * 1000))) +
+                    '</small></span></div>';
+            }).join('') + missing.map(function (p) {
+                return '<div><span class="eq-cara eq-falta">' + boardFace(p) + '</span><span><b>' + esc(p.userid === me.userid ? s('You') : p.name) +
+                    '</b><small>' + esc(s('boardyet')) + '</small></span></div>';
+            }).join('');
+            var h = boardCard(b, { grande: true }) + '<div class="eq-bloque"><h3>' + esc(s('boardwho')) + '</h3><div class="eq-gente">' + people + '</div>';
+            if (b.mine && st.boardEdit && st.boardEdit.id === b.id) {
+                h += '<div class="eq-acciones"><button type="button" class="mrd-btn eq-btn" data-a="boardeditsave" data-v="' + b.id + '">' + ico('check') +
+                    esc(s('boardsave')) + '</button><button type="button" class="mrd-btn" data-a="boardeditcancel">' + esc(s('boardcancel')) + '</button></div>';
+            } else if (b.mine) {
+                var names = missing.map(function (p) {
+                    return p.firstname || p.name;
+                });
+                h += '<div class="eq-acciones">' + (missing.length ? '<button type="button" class="mrd-btn eq-btn" data-a="boardremind" data-v="' + b.id + '">' +
+                    ico('campana') + esc(missing.length === 1 ? s('boardremindone', names[0]) : s('boardremindall')) + '</button>' : '') +
+                    '<button type="button" class="mrd-btn" data-a="boardedit" data-v="' + b.id + '">' + ico('lapiz') + esc(s('boardedit')) + '</button>' +
+                    '<button type="button" class="mrd-btn" data-a="boardremove" data-v="' + b.id + '">' + ico('cerrar') + esc(s('boardremove')) + '</button></div>' +
+                    (missing.length ? '<p class="eq-cuantos">' + esc(s('boardstays', joinList(names))) + '</p>' : '');
+            }
+            return h + '</div>';
+        }
+        // Who a new notice reaches: the people of the departments chosen, or the whole team, and whoever puts it.
+        function boardAudience() {
+            var n = st.boardNew, seen = {}, list = [];
+            var add = function (p) {
+                if (p && p.agentid && !seen[p.agentid]) {
+                    seen[p.agentid] = true;
+                    list.push(p);
+                }
+            };
+            add({ agentid: me.agentid, name: me.name, userid: me.userid });
+            if (n.all) {
+                (st.extras.people || []).forEach(add);
+            } else {
+                Object.keys(n.teams).forEach(function (id) {
+                    if (n.teams[id]) {
+                        peopleIn(+id).forEach(add);
+                    }
+                });
+            }
+            return list;
+        }
+        function boardNewHtml() {
+            var n = st.boardNew;
+            var chip = function (a, v, icon, label, on) {
+                return '<button type="button" class="eq-chip" data-a="' + a + '" data-v="' + v + '" aria-pressed="' + on + '">' + ico(icon) + esc(label) + '</button>';
+            };
+            var chips = teams().filter(function (t) {
+                return !t.internal || me.seesall || t.mine;
+            }).map(function (t) {
+                return chip('boardteam', t.id, teamIcon(t), t.name, !n.all && !!n.teams[t.id]);
+            }).join('') + chip('boardall', '1', 'gente', s('boardallteam'), n.all);
+            var who = boardAudience(), any = n.all || Object.keys(n.teams).some(function (id) {
+                return n.teams[id];
+            });
+            var ready = any && n.text.trim() !== '';
+            var teamNames = n.all ? [] : teams().filter(function (t) {
+                return n.teams[t.id];
+            }).map(function (t) {
+                return t.name;
+            });
+            return '<div class="eq-bloque"><h3>' + esc(s('boardforwhom')) + '</h3><div class="eq-chips">' + chips + '</div></div>' +
+                '<div class="eq-aviso"><div class="eq-aviso-de">' + ico('eq-pin', 'eq-pin') + '<b>' + esc(s('You')) + '</b>' +
+                (any ? boardFor({ all: n.all, teams: teamNames }) : '') + '</div>' +
+                '<div class="eq-escribe" contenteditable="true" role="textbox" aria-multiline="true" aria-label="' + esc(s('boardph')) + '" data-ph="' +
+                esc(s('boardph')) + '"></div>' +
+                (any ? '<div class="eq-aviso-pie"><span class="eq-cuantos">' + esc(s('boardwillsee')) + ' <b>' + esc(s('boardpeople', who.length)) + '</b></span>' +
+                    '<span class="eq-caras">' + who.map(function (p) {
+                        return boardFace(p, 'mrd-m');
+                    }).join('') + '</span></div>' : '') +
+                '<div class="eq-acciones"><button type="button" class="mrd-btn eq-btn" data-a="boardpost"' + (ready ? '' : ' disabled') + '>' + ico('eq-pin') +
+                esc(s('boardpost')) + '</button><button type="button" class="mrd-btn" data-a="boardnewcancel">' + esc(s('boardcancel')) + '</button>' +
+                '<span class="eq-cuantos">' + esc(s('boardpostnote')) + '</span></div></div>';
+        }
         function loadHistory(before) {
             if (st.history === 'loading') {
                 return;
@@ -2223,6 +2535,11 @@
                 return;
             }
             var c = conv(st.open);
+            el.chat.classList.toggle('eq-sala', !c && st.inbox === 'board');
+            if (!c && st.inbox === 'board') {
+                renderBoardPane();
+                return;
+            }
             if (!c) {
                 el.chat.innerHTML = st.ready ? '<div class="mrd-hilo mrd-inicio-hilo">' + homeHtml() + '</div>'
                     : '<div class="mrd-hilo"><div class="mrd-hilo-nada">' + esc(s('loading')) + '</div></div>';
@@ -2264,6 +2581,12 @@
                     '<button type="button" class="mrd-btn mrd-primario" data-a="conv" data-v="' + top.id + '">' + esc(s('homeopen')) + '</button></div>';
             } else {
                 h += '<div class="mrd-inicio-aviso mrd-ok">' + ico('check') + '<b>' + esc(s('alldone')) + '</b></div>';
+            }
+            var mineToSee = READONLY ? [] : boardToSee();
+            if (mineToSee.length) {
+                h += '<section class="eq-inicio"><h3>' + ico('eq-tablon') + esc(s('boardforyou')) + '</h3>' + mineToSee.map(function (b) {
+                    return boardCard(b, { inicio: true });
+                }).join('') + '</section>';
             }
             h += '<div class="mrd-inicio-tarjetas">';
             var card = function (key, icon, title, list, button) {
@@ -2392,7 +2715,7 @@
             }
         }
         function renderHome() {
-            if (!st.ready || st.nueva || conv(st.open)) {
+            if (!st.ready || st.nueva || conv(st.open) || st.inbox === 'board') {
                 return;
             }
             var box = el.chat.querySelector('.mrd-inicio');
@@ -4150,6 +4473,10 @@
             if (r.inboxes) {
                 st.inboxes = r.inboxes;
             }
+            if (r.board && r.board.rev !== st.boardRev && st.board !== 'loading') {
+                st.boardRev = r.board.rev;
+                loadBoard();
+            }
             (r.conversations || []).forEach(mergeConv);
             onNotices(r.notices);
             var goneOpen = false;
@@ -4836,6 +5163,17 @@
             }
         }
         function chooseInbox(key) {
+            if (key === 'board') {
+                st.open = 0;
+                st.nueva = null;
+                if (!st.boardNew && !boardItem(st.boardOpen)) {
+                    var first = boardToSee()[0] || boardItems()[0];
+                    st.boardOpen = first ? first.id : 0;
+                }
+            } else {
+                st.boardNew = null;
+                st.boardEdit = null;
+            }
             st.inbox = key;
             st.search = '';
             st.showResolved = false;
@@ -4844,6 +5182,13 @@
             renderListBody();
             setLayer('lista', narrow() && st.capa === 'bandejas');
             syncUrl();
+            if (key === 'board') {
+                renderChat();
+                if (st.board === null) {
+                    loadBoard();
+                }
+                return;
+            }
             if (!narrow()) {
                 var c = conv(st.open);
                 if (!c || !inInbox(c, key)) {
@@ -4998,7 +5343,12 @@
                     }
                     break;
                 case 'otros':
-                    st.otros = !st.otros;
+                    st.otros = !st.otrosNow;
+                    try {
+                        root.localStorage.setItem('mrd-chat-otros', st.otros ? 'abierto' : 'plegado');
+                    } catch (e2) {
+                        // Without storage it goes back to opening on its own.
+                    }
                     renderRail();
                     break;
                 case 'conv':
@@ -5017,6 +5367,103 @@
                         findSoon('+' + who.phone);
                         renderNew();
                     }
+                    break;
+                case 'boardopen':
+                    st.boardOpen = +v;
+                    st.boardNew = null;
+                    st.boardEdit = null;
+                    if (st.inbox !== 'board') {
+                        chooseInbox('board');
+                    }
+                    renderListBody();
+                    renderBoardPane();
+                    setLayer('chat', true);
+                    break;
+                case 'boardseen':
+                    e.stopPropagation();
+                    loadBoard({ action: 'seen', id: +v }, function () {
+                        toast(s('boardmarked'));
+                    });
+                    break;
+                case 'boardnew':
+                    if (st.inbox !== 'board') {
+                        chooseInbox('board');
+                    }
+                    st.boardNew = { teams: {}, all: false, text: '', shown: false };
+                    st.boardEdit = null;
+                    Object.keys(myTeamIds()).forEach(function (id) {
+                        st.boardNew.teams[id] = true;
+                    });
+                    renderBoardPane();
+                    setLayer('chat', true);
+                    break;
+                case 'boardnewcancel':
+                    st.boardNew = null;
+                    renderBoardPane();
+                    break;
+                case 'boardteam':
+                    if (st.boardNew) {
+                        st.boardNew.all = false;
+                        st.boardNew.teams[v] = !st.boardNew.teams[v];
+                        renderBoardPane();
+                    }
+                    break;
+                case 'boardall':
+                    if (st.boardNew) {
+                        st.boardNew.all = !st.boardNew.all;
+                        renderBoardPane();
+                    }
+                    break;
+                case 'boardpost':
+                    if (st.boardNew) {
+                        var bn = st.boardNew, teamIds = Object.keys(bn.teams).filter(function (id) {
+                            return bn.teams[id];
+                        }).map(Number);
+                        busy(t, true);
+                        loadBoard({ action: 'post', text: bn.text.trim(), teams: bn.all ? [] : teamIds, all: bn.all }, function (r) {
+                            st.boardNew = null;
+                            st.boardOpen = r.posted;
+                            toast(s('boardposted'));
+                        });
+                    }
+                    break;
+                case 'boardremind':
+                    loadBoard({ action: 'remind', id: +v }, function () {
+                        toast(s('boardreminded'));
+                    });
+                    break;
+                case 'boardedit':
+                    var be = boardItem(+v);
+                    if (be) {
+                        st.boardEdit = { id: be.id, text: be.text, shown: false };
+                        renderBoardPane();
+                    }
+                    break;
+                case 'boardeditcancel':
+                    st.boardEdit = null;
+                    renderBoardPane();
+                    break;
+                case 'boardeditsave':
+                    if (st.boardEdit && st.boardEdit.text.trim()) {
+                        loadBoard({ action: 'edit', id: +v, text: st.boardEdit.text.trim() }, function () {
+                            st.boardEdit = null;
+                            toast(s('boardsaved'));
+                        });
+                    }
+                    break;
+                case 'boardremove':
+                    loadBoard({ action: 'remove', id: +v }, function () {
+                        st.boardOpen = 0;
+                        toast(s('boardremoved'));
+                    });
+                    break;
+                case 'boarddone':
+                    st.boardDone = true;
+                    renderListBody();
+                    break;
+                case 'boardagain':
+                    st.board = null;
+                    renderListBody();
                     break;
                 case 'agendaagain':
                     st.agenda = null;
@@ -5308,6 +5755,22 @@
         });
         box.addEventListener('input', function (e) {
             var t = e.target;
+            if (t.classList && t.classList.contains('eq-escribe')) {
+                var typed = t.innerText.replace(/\u00a0/g, ' ');
+                if (st.boardNew) {
+                    st.boardNew.text = typed;
+                    var okp = el.chat.querySelector('[data-a="boardpost"]');
+                    var anyTeam = st.boardNew.all || Object.keys(st.boardNew.teams).some(function (id) {
+                        return st.boardNew.teams[id];
+                    });
+                    if (okp) {
+                        okp.disabled = !(anyTeam && typed.trim());
+                    }
+                } else if (st.boardEdit) {
+                    st.boardEdit.text = typed;
+                }
+                return;
+            }
             if (t.classList && t.classList.contains('mrd-rem-motivo')) {
                 st.rem.reason = t.value;
                 // With a reminder already there, a new line is a change to save.
@@ -5532,6 +5995,13 @@
                 st.inboxes = r.inboxes || null;
                 (r.conversations || []).forEach(mergeConv);
                 st.cursor = r.cursor !== undefined ? r.cursor : 0;
+                if (r.board) {
+                    st.boardRev = r.board.rev;
+                }
+                if (startCfg.aviso) {
+                    st.boardOpen = +startCfg.aviso;
+                }
+                loadBoard();
                 st.ready = true;
                 renderAll();
                 updateTitle();

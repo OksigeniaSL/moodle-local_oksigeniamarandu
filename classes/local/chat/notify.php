@@ -194,7 +194,7 @@ class notify {
      * @param array $agent The person.
      * @return \stdClass|null
      */
-    protected static function user_of(array $agent): ?\stdClass {
+    public static function user_of(array $agent): ?\stdClass {
         global $DB;
         if ($agent['email'] === '' || in_array($agent['id'], directory::automatic_ids())) {
             return null;

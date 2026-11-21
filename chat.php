@@ -32,6 +32,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 
 $conversation = optional_param('c', 0, PARAM_INT);
 $tray = optional_param('b', '', PARAM_ALPHANUMEXT);
+$aviso = optional_param('aviso', 0, PARAM_INT);
 
 $context = context_system::instance();
 $url = new moodle_url('/local/oksigeniamarandu/chat.php', array_filter(['c' => $conversation, 'b' => $tray]));
@@ -126,7 +127,7 @@ $config = [
         'colors' => $colors,
     ],
     'hours' => $hours->export(),
-    'start' => ['conversation' => $conversation, 'inbox' => $tray !== '' ? $tray : 'mine'],
+    'start' => ['conversation' => $conversation, 'inbox' => $tray !== '' ? $tray : 'mine', 'aviso' => $aviso],
     'backgrounds' => chat_prefs::current(),
     'flags' => \local_oksigeniamarandu\external\chat_flag::current(),
     'favs' => \local_oksigeniamarandu\local\chat\agenda::favourites((int)$USER->id),

@@ -124,6 +124,7 @@ class chat_poll extends chat_base {
             'removed' => $removed,
             'messages' => $messages,
             'readby' => $readby,
+            'board' => \local_oksigeniamarandu\local\chat\board::counts($viewer->userid),
         ];
     }
 

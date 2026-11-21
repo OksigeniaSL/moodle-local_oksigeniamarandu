@@ -211,6 +211,12 @@ class directory {
      */
     public static function label(string $name): string {
         $name = trim($name);
+        // The name the centre gives it to be shown (Chatwoot loses the capitals of «ESO»), if it gave one.
+        $shown = json_decode((string)get_config('local_oksigeniamarandu', 'chatteamnames'), true);
+        $key = \core_text::strtolower($name);
+        if (is_array($shown) && isset($shown[$key]) && trim((string)$shown[$key]) !== '') {
+            return trim((string)$shown[$key]);
+        }
         return \core_text::strtoupper(\core_text::substr($name, 0, 1)) . \core_text::substr($name, 1);
     }
 

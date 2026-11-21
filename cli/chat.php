@@ -44,10 +44,12 @@ use local_oksigeniamarandu\local\chat\mirror;
     'closed-words' => null,
     'colors' => null,
     'stages' => null,
+    'team-names' => null,
     'start-templates' => null,
     'templates-info' => null,
     'sync' => false,
     'sync-all' => false,
+    'rebuild' => false,
     'status' => false,
     'disconnect' => false,
 ], ['h' => 'help']);
@@ -77,6 +79,8 @@ Options:
 --stages=JSON          The stages of the organisation, youngest first: a list of {label, color, dark, code, match,
                        show}; code is the stage the record of families guesses from a group (such as PRI), match a
                        pattern of the group, show a pattern of the part of the group that is shown.
+--team-names=JSON      The name to show of each department, by its name in Chatwoot, which keeps them in small letters:
+                       {\"dirección de eso\": \"Dirección de ESO\"}. Without one, its first letter in capitals.
 --start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
                        separated: they go first when a person starts a conversation.
 --templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title,
@@ -84,6 +88,8 @@ Options:
 --sync                 Fills the index with the conversations of the last month now.
 --sync-all             Fills the index with every conversation of the inboxes, whenever it was: after bringing a
                        history into Chatwoot (import_history.rb), which never comes by the webhook.
+--rebuild              With --sync-all: every row written again from Chatwoot (its department, its state, its 24
+                       hours), also what changed there without moving its time, such as departments set in bulk.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.
 -h, --help             This help.
@@ -176,6 +182,19 @@ try {
         set_config('chatstages', json_encode(array_values($stages), JSON_UNESCAPED_UNICODE), $component);
         mtrace('Stages: ' . count(\local_oksigeniamarandu\local\chat\family::stages()));
     }
+    if ($options['team-names'] !== null) {
+        $names = json_decode($options['team-names'], true);
+        if (!is_array($names)) {
+            cli_error('--team-names is a JSON object');
+        }
+        $clean = [];
+        foreach ($names as $from => $to) {
+            $clean[\core_text::strtolower(trim((string)$from))] = trim((string)$to);
+        }
+        set_config('chatteamnames', $clean ? json_encode($clean, JSON_UNESCAPED_UNICODE) : '', $component);
+        \local_oksigeniamarandu\local\chat\directory::forget();
+        mtrace('Departments with a name of their own: ' . count($clean));
+    }
     if ($options['start-templates'] !== null) {
         $names = array_filter(array_map('trim', explode(',', $options['start-templates'])), 'strlen');
         set_config('chatstarttemplates', implode(',', $names), $component);
@@ -193,7 +212,7 @@ try {
         mtrace('Webhook: ' . connection::webhook());
     }
     if ($options['sync-all']) {
-        [$kept, $all] = mirror::sync_all();
+        [$kept, $all] = mirror::sync_all((bool)$options['rebuild']);
         mtrace("Conversations in the index: $all ($kept new or changed)");
     }
     if ($options['sync']) {

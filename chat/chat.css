@@ -4306,3 +4306,770 @@
         opacity: 1;
     }
 }
+
+/* «Entre el equipo» in Marandu's chat (Jujol, 21 Nov 2026): the team's own messages (person to person, and one per
+   department) and the board (avisos each person marks «Visto»). Over the real chat.css; everything new is .eq-*.
+   The team's colour is violet: never the blue of the families, the yellow of the notes or the amber and red of
+   waiting. What is between the team sits on a violet surface with no paper pattern, so it can never be taken for a
+   conversation with a family, whatever background each person chose for those. */
+#mrd-chat {
+    --eq: #5b3fc4;
+    --eq-2: #4a31a8;
+    --eq-tinta: #fff;
+    --eq-texto: #4a30ad;
+    --eq-suave: #eeeafb;
+    --eq-fondo: #f3f1fa;
+    --eq-burbuja: #e4ddfa;
+    --eq-linea: #d5cbf2;
+    --eq-borde: #b8a8ea;
+    --eq-visto: #067e36;
+    --eq-visto-suave: #e4f3e9;
+}
+#mrd-chat.mrd-dark {
+    --eq: #6b52d6;
+    --eq-2: #7c65e0;
+    --eq-tinta: #fff;
+    --eq-texto: #c9bcff;
+    --eq-suave: #262140;
+    --eq-fondo: #15131d;
+    --eq-burbuja: #2e2753;
+    --eq-linea: #3a3260;
+    --eq-borde: #5a4c94;
+    --eq-visto: #6fd197;
+    --eq-visto-suave: #16301f;
+}
+
+/* ---------- The rail: «Entre el equipo», with its two entries ---------- */
+#mrd-chat .mrd-bandeja .mrd-n.eq-n,
+#mrd-chat .eq-n {
+    background: var(--eq);
+    color: var(--eq-tinta);
+    font-weight: 800;
+}
+#mrd-chat .mrd-bandeja.eq-on {
+    background: var(--eq-suave);
+}
+#mrd-chat .mrd-bandeja.eq-on,
+#mrd-chat .mrd-bandeja.eq-on .mrd-i,
+#mrd-chat .mrd-bandeja.eq-on .mrd-t small {
+    color: var(--eq-texto);
+}
+#mrd-chat .mrd-bandeja.eq-on .mrd-n.eq-n {
+    background: var(--eq);
+    color: var(--eq-tinta);
+}
+#mrd-chat .eq-rotulo {
+    color: var(--eq-texto);
+}
+#mrd-chat .eq-rotulo .mrd-i {
+    width: 13px;
+    height: 13px;
+    vertical-align: -2px;
+    margin-inline-end: 4px;
+}
+
+/* ---------- The list ---------- */
+#mrd-chat .eq-lista .mrd-lista-cab h1 {
+    color: var(--eq-texto);
+}
+#mrd-chat .eq-solo {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    color: var(--eq-texto);
+    font-weight: 600;
+}
+#mrd-chat .eq-solo .mrd-i {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    margin-top: 2px;
+}
+#mrd-chat .eq-lista .mrd-btn.eq-btn,
+#mrd-chat .mrd-btn.eq-btn {
+    background: var(--eq);
+    border-color: var(--eq);
+    color: var(--eq-tinta);
+}
+#mrd-chat .mrd-btn.eq-btn:hover {
+    background: var(--eq-2);
+    border-color: var(--eq-2);
+}
+#mrd-chat .mrd-btn.eq-btn-borde {
+    color: var(--eq-texto);
+    border-color: var(--eq-borde);
+}
+#mrd-chat .eq-lista .mrd-conv.mrd-on {
+    background: var(--eq-suave);
+}
+#mrd-chat .eq-lista .mrd-conv.mrd-on::before {
+    background: var(--eq);
+}
+#mrd-chat .eq-lista .mrd-conv .eq-n {
+    flex: none;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: inline-grid;
+    place-items: center;
+    font-size: 12.5px;
+}
+#mrd-chat .eq-lista .mrd-conv.eq-sin-leer .mrd-conv-txt {
+    color: var(--tinta);
+    font-weight: 700;
+}
+#mrd-chat .eq-lista .mrd-conv .mrd-conv-hora {
+    margin-inline-start: auto;
+}
+/* A department: its icon in a square tile, the team's square, never the families' circle */
+#mrd-chat .eq-tile {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    background: var(--eq-suave);
+    color: var(--eq-texto);
+    border: 1px solid var(--eq-linea);
+}
+#mrd-chat .eq-tile .mrd-i {
+    width: 21px;
+    height: 21px;
+}
+#mrd-chat .eq-caras {
+    display: inline-flex;
+    align-items: center;
+}
+#mrd-chat .eq-caras .mrd-av {
+    box-shadow: 0 0 0 2px var(--hoja);
+}
+#mrd-chat .eq-caras .mrd-av + .mrd-av {
+    margin-inline-start: -5px;
+}
+#mrd-chat .eq-mas {
+    margin: 10px 12px 14px;
+    width: calc(100% - 24px);
+    justify-content: center;
+}
+#mrd-chat .eq-buscar-equipo input {
+    border-color: var(--eq-borde);
+}
+
+/* The picker of «Escribir a…»: the whole team, by department, faces first */
+#mrd-chat .eq-persona {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    padding: 9px 16px;
+    border: 0;
+    background: none;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+#mrd-chat .eq-persona:hover,
+#mrd-chat .eq-persona.mrd-on {
+    background: var(--eq-suave);
+}
+#mrd-chat .eq-persona b {
+    display: block;
+    font-weight: 700;
+}
+#mrd-chat .eq-persona small {
+    display: block;
+    color: var(--tinta-3);
+    font-size: 13px;
+}
+#mrd-chat .eq-persona .eq-ya {
+    margin-inline-start: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--eq-texto);
+    white-space: nowrap;
+}
+
+/* ---------- The conversation between the team ---------- */
+#mrd-chat .mrd-chat.eq-sala .mrd-hilo {
+    background: var(--eq-fondo);
+}
+#mrd-chat .mrd-chat.eq-sala .mrd-chat-cab {
+    border-bottom: 0;
+}
+#mrd-chat .eq-cab-quien {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    min-width: 0;
+}
+#mrd-chat .eq-cab-quien h2 {
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 800;
+}
+#mrd-chat .eq-cab-quien h2 small {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--tinta-3);
+}
+/* The band that says it: who sees this, and that no family does */
+#mrd-chat .eq-banda {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 20px;
+    background: var(--eq);
+    color: var(--eq-tinta);
+    font-size: 14px;
+    font-weight: 600;
+}
+#mrd-chat .eq-banda b {
+    font-weight: 800;
+}
+#mrd-chat .eq-banda .mrd-i {
+    width: 17px;
+    height: 17px;
+    flex: none;
+}
+#mrd-chat .mrd-msg.eq-otro {
+    align-self: flex-start;
+    background: var(--hoja);
+    border: 1px solid var(--eq-linea);
+    border-end-start-radius: 4px;
+}
+#mrd-chat .mrd-msg.eq-yo {
+    align-self: flex-end;
+    background: var(--eq-burbuja);
+    border-end-end-radius: 4px;
+}
+#mrd-chat .mrd-msg.eq-yo .mrd-msg-pie .mrd-i {
+    color: var(--eq-texto);
+}
+/* In a department, each one's face beside what they wrote, and their name over it */
+#mrd-chat .eq-fila {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    align-self: flex-start;
+    /* stylelint-disable-next-line csstree/validator */
+    max-width: min(80%, 580px);
+}
+#mrd-chat .eq-fila .mrd-msg {
+    max-width: none;
+}
+#mrd-chat .eq-fila .mrd-de {
+    color: var(--eq-texto);
+}
+#mrd-chat .eq-sistema {
+    align-self: center;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+    margin: 6px 0;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+#mrd-chat .eq-sistema .mrd-i {
+    width: 14px;
+    height: 14px;
+}
+/* A conversation with a family, passed inside: a card that opens it; the family keeps its circle */
+#mrd-chat .eq-ref {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: var(--fondo);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin: 4px 0 6px;
+    min-width: 280px;
+}
+#mrd-chat .eq-ref b {
+    display: block;
+    font-weight: 800;
+    font-size: 14px;
+}
+#mrd-chat .eq-ref small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+}
+#mrd-chat .eq-ref .mrd-abrir {
+    margin-inline-start: auto;
+    white-space: nowrap;
+    color: var(--acento-texto);
+    font-weight: 800;
+    font-size: 13.5px;
+}
+#mrd-chat .eq-vacio {
+    margin: auto;
+    text-align: center;
+    color: var(--tinta-2);
+    max-width: 360px;
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+}
+#mrd-chat .eq-vacio b {
+    color: var(--tinta);
+    font-size: 16px;
+}
+/* The box to write: no tabs, no 24 hours, no signature; the line that says who will read it */
+#mrd-chat .eq-sala .mrd-escribir-cab {
+    min-height: 0;
+}
+#mrd-chat .mrd-herr .eq-btn {
+    margin-inline-start: auto;
+}
+#mrd-chat .eq-privada {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--eq-texto);
+}
+#mrd-chat .eq-privada .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .eq-sala .mrd-caja:focus-within {
+    border-color: var(--eq);
+    box-shadow: 0 0 0 3px var(--eq-linea);
+}
+
+/* ---------- The board: avisos that each person marks «Visto» ---------- */
+#mrd-chat .eq-aviso {
+    position: relative;
+    background: var(--hoja);
+    border: 1px solid var(--eq-linea);
+    border-radius: 12px;
+    padding: 14px 16px 14px 18px;
+    box-shadow: var(--sombra-hoja);
+    display: grid;
+    gap: 8px;
+}
+#mrd-chat .eq-aviso::before {
+    content: '';
+    position: absolute;
+    inset-block: 12px;
+    inset-inline-start: -1px;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: var(--eq);
+}
+#mrd-chat .eq-aviso-de {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+    flex-wrap: wrap;
+}
+#mrd-chat .eq-aviso-de b {
+    color: var(--tinta-2);
+    font-weight: 800;
+}
+#mrd-chat .eq-pin {
+    width: 18px;
+    height: 18px;
+    color: var(--eq-texto);
+    flex: none;
+}
+#mrd-chat .eq-para {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    background: var(--eq-suave);
+    color: var(--eq-texto);
+    border-radius: 999px;
+    padding: 1px 9px;
+    font-weight: 800;
+    font-size: 12.5px;
+}
+#mrd-chat .eq-aviso-txt {
+    font-size: 15.5px;
+    line-height: 1.45;
+    color: var(--tinta);
+}
+#mrd-chat .eq-aviso-pie {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+#mrd-chat .eq-cuantos {
+    font-size: 13px;
+    color: var(--tinta-2);
+}
+#mrd-chat .eq-cuantos b {
+    color: var(--tinta);
+}
+/* «Visto»: one press, and the face of who pressed it lights up */
+#mrd-chat .mrd-btn.eq-visto-b {
+    background: var(--eq);
+    border-color: var(--eq);
+    color: var(--eq-tinta);
+    gap: 7px;
+}
+#mrd-chat .mrd-btn.eq-visto-b .mrd-i {
+    width: 17px;
+    height: 17px;
+}
+#mrd-chat .eq-visto-ya {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font-weight: 800;
+    font-size: 13.5px;
+    color: var(--eq-visto);
+    background: var(--eq-visto-suave);
+    border-radius: 999px;
+    padding: 4px 11px;
+}
+#mrd-chat .eq-visto-ya .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .eq-barra {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--eq-linea);
+    overflow: hidden;
+    flex: 1 1 120px;
+}
+#mrd-chat .eq-barra i {
+    display: block;
+    height: 100%;
+    background: var(--eq);
+    border-radius: inherit;
+}
+/* The faces: who has seen it in colour with a tick, who has not yet in a dashed, faded square */
+#mrd-chat .eq-quienes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#mrd-chat .eq-cara {
+    position: relative;
+    display: inline-flex;
+}
+#mrd-chat .eq-cara .eq-ok {
+    position: absolute;
+    inset-inline-end: -4px;
+    bottom: -4px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--eq-visto);
+    color: var(--hoja);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 0 2px var(--hoja);
+}
+#mrd-chat .eq-cara .eq-ok .mrd-i {
+    width: 11px;
+    height: 11px;
+}
+#mrd-chat .eq-cara.eq-falta .mrd-av {
+    opacity: 0.38;
+    filter: grayscale(1);
+}
+#mrd-chat .eq-cara.eq-falta::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border: 1.5px dashed var(--tinta-3);
+    border-radius: 12px;
+}
+
+/* The board in the list column */
+#mrd-chat .eq-tablon .mrd-lista-cuerpo {
+    padding: 4px 12px 16px;
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    background: var(--eq-fondo);
+}
+#mrd-chat .eq-tablon .mrd-grupo-t {
+    padding-inline: 4px;
+    background: none;
+}
+#mrd-chat .eq-tablon .eq-aviso {
+    padding: 12px 13px 12px 15px;
+    gap: 7px;
+    cursor: pointer;
+}
+#mrd-chat .eq-tablon .eq-aviso.mrd-on {
+    border-color: var(--eq);
+    box-shadow: 0 0 0 2px var(--eq-linea);
+}
+#mrd-chat .eq-tablon .eq-aviso .eq-aviso-txt {
+    font-size: 14.5px;
+}
+#mrd-chat .eq-tablon .eq-hecho {
+    opacity: 0.75;
+}
+#mrd-chat .eq-tablon .eq-hecho::before {
+    background: var(--eq-visto);
+}
+#mrd-chat .eq-plegado {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px dashed var(--eq-borde);
+    border-radius: 10px;
+    color: var(--eq-texto);
+    font-weight: 700;
+    font-size: 14px;
+    background: none;
+}
+
+/* The aviso open, on the right */
+#mrd-chat .eq-tablon-hoja {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: var(--eq-fondo);
+    padding: 28px 32px;
+    display: grid;
+    align-content: start;
+    gap: 18px;
+}
+#mrd-chat .eq-tablon-hoja .eq-aviso {
+    max-width: 680px;
+    padding: 20px 22px 20px 24px;
+    gap: 14px;
+}
+#mrd-chat .eq-tablon-hoja .eq-aviso-txt {
+    font-size: 18px;
+    line-height: 1.5;
+}
+#mrd-chat .eq-tablon-hoja .eq-aviso .mrd-btn {
+    min-height: 42px;
+}
+#mrd-chat .eq-bloque {
+    max-width: 680px;
+    display: grid;
+    gap: 10px;
+}
+#mrd-chat .eq-bloque h3 {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+}
+#mrd-chat .eq-gente {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px 14px;
+}
+#mrd-chat .eq-gente > div {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    min-width: 0;
+}
+#mrd-chat .eq-gente b {
+    display: block;
+    font-weight: 700;
+    font-size: 14px;
+}
+#mrd-chat .eq-gente small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+}
+#mrd-chat .eq-gente .eq-visto-t {
+    color: var(--eq-visto);
+    font-weight: 700;
+}
+#mrd-chat .eq-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Writing an aviso: on the card itself, as it will look; who it goes to, as chips */
+#mrd-chat .eq-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#mrd-chat .eq-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    border: 1px solid var(--linea-2);
+    background: var(--hoja);
+    color: var(--tinta-2);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+}
+#mrd-chat .eq-chip .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .eq-chip[aria-pressed="true"] {
+    background: var(--eq);
+    border-color: var(--eq);
+    color: var(--eq-tinta);
+}
+#mrd-chat .eq-escribe {
+    min-height: 96px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--tinta);
+    outline: 0;
+    border-bottom: 1px dashed var(--eq-linea);
+    padding-bottom: 8px;
+}
+#mrd-chat .eq-escribe .eq-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--eq);
+    vertical-align: -3px;
+    margin-inline-start: 1px;
+}
+
+/* ---------- On the home panel: what the board asks of me ---------- */
+#mrd-chat .eq-inicio {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+#mrd-chat .eq-inicio h3 {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--eq-texto);
+}
+#mrd-chat .eq-inicio h3 .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .eq-inicio .eq-aviso {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 18px;
+    background: var(--eq-fondo);
+}
+#mrd-chat .eq-inicio .eq-aviso > .eq-aviso-de,
+#mrd-chat .eq-inicio .eq-aviso > .eq-aviso-txt {
+    grid-column: 1;
+}
+#mrd-chat .eq-inicio .eq-aviso > .eq-lado {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    display: grid;
+    gap: 6px;
+    justify-items: end;
+}
+
+/* ---------- The phone: «Equipo» in the bar below, and its two halves ---------- */
+#mrd-chat .eq-seg {
+    display: none;
+}
+#mrd-chat .mrd-pie-movil .eq-pie.mrd-on {
+    color: var(--eq-texto);
+}
+#mrd-chat .mrd-pie-movil .eq-pie .mrd-n {
+    background: var(--eq);
+    color: var(--eq-tinta);
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .eq-seg {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        padding: 4px;
+        margin-top: 10px;
+        border-radius: 12px;
+        background: var(--eq-suave);
+    }
+    #mrd-chat .eq-seg button {
+        border: 0;
+        border-radius: 9px;
+        padding: 8px;
+        background: none;
+        font: inherit;
+        font-weight: 800;
+        color: var(--eq-texto);
+        display: inline-flex;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+    }
+    #mrd-chat .eq-seg button[aria-pressed="true"] {
+        background: var(--hoja);
+        box-shadow: var(--sombra-hoja);
+    }
+    #mrd-chat .eq-seg .eq-n {
+        min-width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        font-size: 12px;
+        padding: 0 5px;
+    }
+    #mrd-chat .eq-banda {
+        padding: 8px 14px;
+        font-size: 13.5px;
+    }
+    #mrd-chat .eq-ref {
+        min-width: 0;
+    }
+    #mrd-chat .eq-movil-aviso {
+        margin: 8px 12px 4px;
+    }
+    #mrd-chat .eq-movil-aviso .eq-aviso-txt {
+        font-size: 14.5px;
+    }
+}
+
+/* Wired in the plugin: the section of the rail, the empty box with what goes in it (and none of Moodle's
+   [contenteditable] styles), and the empty star of the address book over the row instead of keeping a gap. */
+#mrd-chat .mrd-rail-equipo {
+    margin-top: 6px;
+}
+#mrd-chat .eq-escribe[contenteditable] {
+    border-top: 0;
+    border-inline: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    white-space: pre-wrap;
+}
+#mrd-chat .eq-escribe:empty::before {
+    content: attr(data-ph);
+    color: var(--tinta-3);
+}
+#mrd-chat .eq-aviso[data-a] {
+    cursor: pointer;
+}
+#mrd-chat .eq-aviso .eq-aviso-txt {
+    white-space: pre-wrap;
+}
+#mrd-chat .mrd-agenda-fila {
+    position: relative;
+}
+#mrd-chat .mrd-agenda-fila .mrd-estrella:not(.mrd-on) {
+    position: absolute;
+    inset-inline-end: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}

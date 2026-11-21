@@ -40,7 +40,9 @@ class chat_flag extends chat_base {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'name' => new external_value(PARAM_ALPHA, 'tour, sound or desktop'),
-            'value' => new external_value(PARAM_ALPHANUMEXT, 'Its value: the tour seen, on or off, yes or no'),
+            // The tours seen go as a list (inicio,conv): a type without commas turned it down, and the tour of the
+            // conversation came back every time.
+            'value' => new external_value(PARAM_TEXT, 'Its value: the tours seen (comma separated), on or off, yes or no'),
         ]);
     }
 
@@ -56,6 +58,9 @@ class chat_flag extends chat_base {
         $viewer = self::viewer();
         if (!array_key_exists($params['name'], self::FLAGS)) {
             throw new \invalid_parameter_exception('Unknown choice');
+        }
+        if (!preg_match('/^[a-z0-9_,-]*$/', $params['value'])) {
+            throw new \invalid_parameter_exception('Unknown value');
         }
         set_user_preference('local_oksigeniamarandu_chat' . $params['name'], substr($params['value'], 0, 30), $viewer->userid);
         return ['ok' => true];

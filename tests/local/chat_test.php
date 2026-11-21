@@ -652,6 +652,9 @@ final class chat_test extends \advanced_testcase {
         chat_flag::execute('sound', 'off');
         chat_flag::execute('tour', '1');
         $this->assertSame(['tour' => '1', 'sound' => 'off', 'desktop' => ''], chat_flag::current());
+        // Both tours seen: the list is kept, with its comma.
+        chat_flag::execute('tour', 'inicio,conv');
+        $this->assertSame('inicio,conv', chat_flag::current()['tour']);
         $this->expectException(\invalid_parameter_exception::class);
         chat_flag::execute('colour', 'red');
     }

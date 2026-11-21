@@ -4570,9 +4570,9 @@
 }
 #mrd-chat .eq-vacio {
     margin: auto;
+    padding: 0 24px;
     text-align: center;
     color: var(--tinta-2);
-    max-width: 360px;
     display: grid;
     gap: 10px;
     justify-items: center;
@@ -5025,6 +5025,125 @@
 }
 #mrd-chat .eq-aviso .eq-aviso-txt {
     white-space: pre-wrap;
+}
+
+/* Wired in the plugin, «Mensajes» (0.53): «Equipo» as the title on a phone, the band hidden while the conversation is
+   not known yet, the card of a family as a button that opens it (and still, in the box, before it goes), the hole of a
+   face in a run of messages of the same person, and the hover of the tools in the team's violet. */
+#mrd-chat .eq-h-movil {
+    display: none;
+}
+#mrd-chat .eq-banda[hidden] {
+    display: none;
+}
+#mrd-chat .eq-vacio .eq-vacio-i {
+    width: 40px;
+    height: 40px;
+    color: var(--eq-texto);
+}
+#mrd-chat .eq-vacio .mrd-btn {
+    margin-top: 6px;
+}
+#mrd-chat button.eq-ref {
+    width: 100%;
+    text-align: start;
+    color: inherit;
+    font: inherit;
+}
+#mrd-chat button.eq-ref:hover {
+    border-color: var(--eq-borde);
+}
+#mrd-chat .eq-ref .mrd-av {
+    flex: none;
+}
+#mrd-chat .eq-ref-t {
+    min-width: 0;
+}
+#mrd-chat .eq-adjunta {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin: 10px 10px 0 12px;
+}
+#mrd-chat .eq-adjunta .eq-ref {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+}
+#mrd-chat .eq-adjunta-x {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--tinta-2);
+}
+#mrd-chat .eq-adjunta-x:hover {
+    background: var(--hoja-2);
+    color: var(--tinta);
+}
+#mrd-chat .eq-cara-hueco {
+    flex: none;
+    width: 32px;
+}
+#mrd-chat .eq-persona .eq-persona-t {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+#mrd-chat .eq-persona .eq-ya {
+    flex: 0 1 auto;
+    max-width: 48%;
+    white-space: normal;
+    text-align: end;
+}
+#mrd-chat .eq-sala .mrd-herr-b:hover,
+#mrd-chat .eq-sala .mrd-herr-b.mrd-on {
+    background: var(--eq-suave);
+    color: var(--eq-texto);
+}
+#mrd-chat .mrd-pop-eqpasar .mrd-pop-fila:hover,
+#mrd-chat .mrd-pop-eqpasar .mrd-pop-fila.mrd-on {
+    background: var(--eq-suave);
+}
+#mrd-chat .mrd-pop-eqpasar h5 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+#mrd-chat .mrd-pop-sub {
+    margin: 2px 8px 4px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-conv-rel .eq-caras {
+    vertical-align: -5px;
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .eq-h-ancho {
+        display: none;
+    }
+    #mrd-chat .eq-h-movil {
+        display: inline;
+    }
+    #mrd-chat .eq-seg button {
+        min-height: 44px;
+    }
+    #mrd-chat .eq-fila {
+        max-width: 94%;
+    }
+    #mrd-chat .mrd-herr .mrd-btn.eq-btn,
+    #mrd-chat .eq-sala .mrd-mas-antiguos {
+        min-height: 44px;
+    }
+    #mrd-chat .eq-adjunta {
+        margin: 8px 6px 0 10px;
+    }
 }
 
 /* The category of an approved message and its rough price, at the foot of its card (Jujol, 21 Nov 2026): teal for

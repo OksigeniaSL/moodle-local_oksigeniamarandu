@@ -125,6 +125,7 @@ class chat_poll extends chat_base {
             'messages' => $messages,
             'readby' => $readby,
             'board' => \local_oksigeniamarandu\local\chat\board::counts($viewer->userid),
+            'team' => \local_oksigeniamarandu\local\chat\team::counts($viewer),
         ];
     }
 
@@ -153,7 +154,7 @@ class chat_poll extends chat_base {
             $query = [];
             parse_str((string)parse_url((string)$row->contexturl, PHP_URL_QUERY), $query);
             $list[] = ['id' => (int)$row->id, 'text' => (string)$row->subject, 'conversation' => (int)($query['c'] ?? 0),
-                'at' => (int)$row->timecreated];
+                'team' => (int)($query['eq'] ?? 0), 'at' => (int)$row->timecreated];
         }
         return $list;
     }
@@ -232,6 +233,7 @@ class chat_poll extends chat_base {
                 'id' => new external_value(PARAM_INT, 'The notice'),
                 'text' => new external_value(PARAM_TEXT, 'What it says'),
                 'conversation' => new external_value(PARAM_INT, 'The conversation it is about, or 0'),
+                'team' => new external_value(PARAM_INT, 'The conversation of the team it is about, or 0'),
                 'at' => new external_value(PARAM_INT, 'When'),
             ]), 'The notices of the conversations this person got since the cursor', VALUE_DEFAULT, []),
             'conversations' => new external_multiple_structure(self::conversation_structure()),
@@ -241,6 +243,14 @@ class chat_poll extends chat_base {
                 'name' => new external_value(PARAM_TEXT, 'The first name'),
                 'at' => new external_value(PARAM_INT, 'When they read it'),
             ]), 'Who else of the team read the last message of the contact in the conversation open'),
+            'board' => new external_single_structure([
+                'tosee' => new external_value(PARAM_INT, 'Notices of the board this person has to see'),
+                'rev' => new external_value(PARAM_INT, 'The last time anything of theirs on the board moved'),
+            ]),
+            'team' => new external_single_structure([
+                'unread' => new external_value(PARAM_INT, 'Messages of the team this person has not read'),
+                'rev' => new external_value(PARAM_INT, 'The last time anything of their conversations of the team moved'),
+            ]),
         ]);
     }
 }

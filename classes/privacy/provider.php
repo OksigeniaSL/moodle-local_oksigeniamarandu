@@ -37,6 +37,7 @@ use local_oksigeniamarandu\local\answers;
 use local_oksigeniamarandu\local\chat\agenda;
 use local_oksigeniamarandu\local\bulk;
 use local_oksigeniamarandu\local\chat\board;
+use local_oksigeniamarandu\local\chat\team;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\reminders;
@@ -131,6 +132,20 @@ class provider implements
             'userid' => 'privacy:metadata:boardto:userid',
             'timeseen' => 'privacy:metadata:boardto:timeseen',
         ], 'privacy:metadata:boardto');
+        $collection->add_database_table(team::CONVS, [
+            'usera' => 'privacy:metadata:teamconv:usera',
+            'userb' => 'privacy:metadata:teamconv:userb',
+        ], 'privacy:metadata:teamconv');
+        $collection->add_database_table(team::MESSAGES, [
+            'userid' => 'privacy:metadata:teammsg:userid',
+            'text' => 'privacy:metadata:teammsg:text',
+            'timecreated' => 'privacy:metadata:teammsg:timecreated',
+        ], 'privacy:metadata:teammsg');
+        $collection->add_database_table(team::READS, [
+            'userid' => 'privacy:metadata:teamread:userid',
+            'lastread' => 'privacy:metadata:teamread:lastread',
+            'timeread' => 'privacy:metadata:teamread:timeread',
+        ], 'privacy:metadata:teamread');
         $collection->add_database_table(bulk::TABLE, [
             'userid' => 'privacy:metadata:bulk:userid',
             'decidedby' => 'privacy:metadata:bulk:decidedby',
@@ -191,6 +206,9 @@ class provider implements
             || $DB->record_exists(bulk::TABLE, ['decidedby' => $userid])
             || $DB->record_exists(message::TABLE, ['userid' => $userid])
             || $DB->record_exists(mirror::TABLE, ['passedby' => $userid])
+            || $DB->record_exists(team::MESSAGES, ['userid' => $userid])
+            || $DB->record_exists(team::READS, ['userid' => $userid])
+            || $DB->record_exists_select(team::CONVS, 'usera = ? OR userb = ?', [$userid, $userid])
         ) {
             $contextlist->add_system_context();
         }
@@ -216,6 +234,10 @@ class provider implements
         $userlist->add_from_sql('decidedby', 'SELECT decidedby FROM {' . bulk::TABLE . '} WHERE decidedby > 0', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . message::TABLE . '}', []);
         $userlist->add_from_sql('passedby', 'SELECT passedby FROM {' . mirror::TABLE . '} WHERE passedby > 0', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . team::MESSAGES . '}', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . team::READS . '}', []);
+        $userlist->add_from_sql('usera', 'SELECT usera FROM {' . team::CONVS . '} WHERE usera > 0', []);
+        $userlist->add_from_sql('userb', 'SELECT userb FROM {' . team::CONVS . '} WHERE userb > 0', []);
     }
 
     /**
@@ -292,6 +314,10 @@ class provider implements
                 return ['label' => $one->label, 'status' => $one->status, 'asked' => (int)$one->userid === (int)$userid,
                     'time' => transform::datetime($one->timecreated)];
             }, $DB->get_records_select(bulk::TABLE, 'userid = ? OR decidedby = ?', [$userid, $userid], 'id'))),
+            'team' => array_values(array_map(function ($one) {
+                return ['conversation' => (int)$one->convid, 'kind' => $one->kind, 'text' => (string)$one->text,
+                    'time' => transform::datetime($one->timecreated)];
+            }, $DB->get_records_select(team::MESSAGES, "userid = ? AND kind IN ('text', 'conv')", [$userid], 'id'))),
         ];
         if ($numbers || $reviewed || array_filter($conversations)) {
             writer::with_context($context)->export_data(
@@ -361,6 +387,9 @@ class provider implements
         $DB->delete_records(bulk::TABLE);
         $DB->delete_records(message::TABLE);
         $DB->set_field_select(mirror::TABLE, 'passedby', 0, 'passedby > 0');
+        $DB->delete_records(team::READS);
+        $DB->delete_records(team::MESSAGES);
+        $DB->delete_records(team::CONVS);
     }
 
     /**
@@ -414,6 +443,8 @@ class provider implements
         $DB->set_field(bulk::TABLE, 'decidedby', 0, ['decidedby' => $userid]);
         $DB->delete_records(message::TABLE, ['userid' => $userid]);
         $DB->set_field(mirror::TABLE, 'passedby', 0, ['passedby' => $userid]);
+        // The messages of the team: their conversations with another person, whole, and what they wrote or read.
+        team::delete_user($userid);
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);

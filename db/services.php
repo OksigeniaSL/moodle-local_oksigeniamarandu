@@ -112,6 +112,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_team' => [
+        'classname' => \local_oksigeniamarandu\external\chat_team::class,
+        'description' => 'The messages of the team: between two people and of each department.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_spend' => [
         'classname' => \local_oksigeniamarandu\external\chat_spend::class,
         'description' => 'What WhatsApp costs this month and the sends to many that wait for approval; approving or rejecting '

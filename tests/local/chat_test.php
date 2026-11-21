@@ -28,6 +28,7 @@ use local_oksigeniamarandu\external\chat_resolved;
 use local_oksigeniamarandu\external\chat_send;
 use local_oksigeniamarandu\external\chat_spend;
 use local_oksigeniamarandu\external\chat_start;
+use local_oksigeniamarandu\external\chat_team;
 use local_oksigeniamarandu\local\chat\chatwoot;
 use local_oksigeniamarandu\local\chat\closed;
 use local_oksigeniamarandu\local\chat\directory;
@@ -99,6 +100,9 @@ final class chat_test extends \advanced_testcase {
             /** @var array The contacts made here. */
             public $contacts = [];
 
+            /** @var array|null The people of each department, by department, instead of the usual. */
+            public $teammembers = null;
+
             /**
              * Answers as the account would.
              *
@@ -121,6 +125,11 @@ final class chat_test extends \advanced_testcase {
                     return [['id' => 10, 'name' => 'secretaría'], ['id' => 11, 'name' => 'recibos']];
                 }
                 if (preg_match('~^/teams/(\d+)/team_members$~', $path, $m)) {
+                    if ($this->teammembers !== null) {
+                        return array_map(function ($id) {
+                            return ['id' => $id];
+                        }, $this->teammembers[(int)$m[1]] ?? []);
+                    }
                     return $m[1] == 10 ? [['id' => 1]] : [['id' => 2]];
                 }
                 if ($path === '/inboxes') {
@@ -1009,6 +1018,101 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame(11, (int)$DB->get_field(mirror::TABLE, 'teamid', ['cwid' => 2]));
         $this->assertSame([1, 3], mirror::sync_all(true));
         $this->assertSame(10, (int)$DB->get_field(mirror::TABLE, 'teamid', ['cwid' => 2]));
+    }
+
+    /**
+     * The messages of the team: between two people, nobody else sees them; one notice until it is read or half an hour
+     * passes; the conversation of a department follows who is in it, with a line when somebody comes in; a card passes a
+     * conversation with a family; and an account that passes to another person takes its conversations with it.
+     */
+    public function test_team_messages(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $luis = $this->person('luis@example.com', 'Luis');
+        $marta = $this->person('marta@example.com', 'Marta');
+        [$viewana, $viewluis, $viewmarta] = [viewer::for_user($ana), viewer::for_user($luis), viewer::for_user($marta)];
+        $sink = $this->redirectMessages();
+        $now = self::MONDAY_NOON;
+
+        // Ana writes to Luis: the conversation is made, Luis is told once.
+        $sent = chat\team::send($viewana, 0, (int)$luis->id, 0, 'Hola, Luis: ¿tienes el recibo de Leo?', 0, $now);
+        $id = (int)$sent['conversation']->id;
+        $this->assertSame(
+            ['Ana, privately: Hola, Luis: ¿tienes el recibo de Leo?'],
+            array_column($sink->get_messages(), 'subject')
+        );
+        $this->assertSame((int)$luis->id, (int)$sink->get_messages()[0]->useridto);
+        $this->assertSame(1, chat\team::counts($viewluis)['unread']);
+        $list = chat\team::list($viewluis);
+        $dm = array_values(array_filter($list, function ($one) {
+            return $one['kind'] === 'dm';
+        }))[0];
+        $this->assertSame([$id, 1, (int)$ana->id], [$dm['id'], $dm['unread'], $dm['other']['userid']]);
+        // A second message before Luis reads: no second notice.
+        $sink->clear();
+        chat\team::send($viewana, $id, 0, 0, 'Es para hoy.', 0, $now + 60);
+        $this->assertCount(0, $sink->get_messages());
+        // Luis reads; the next one tells him again.
+        chat\team::read($viewluis, chat\team::get($viewluis, $id), $now + 120);
+        $this->assertSame(0, chat\team::counts($viewluis)['unread']);
+        chat\team::send($viewana, $id, 0, 0, 'Gracias.', 0, $now + 180);
+        $this->assertCount(1, $sink->get_messages());
+        // Marta is not in it.
+        try {
+            chat\team::get($viewmarta, $id);
+            $this->fail('Marta does not see the conversation of Ana and Luis');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('chat:team:notyours', $e->errorcode);
+        }
+
+        // The department of Ana: in her list even empty. Luis comes in: a line, and nothing waits as unread for him.
+        $this->assertContains('team', array_column(chat\team::list($viewana), 'kind'));
+        $this->client->teammembers = [10 => [1, 2], 11 => [2]];
+        chat\directory::forget();
+        chat\team::forget();
+        $viewluis = viewer::for_user($luis);
+        $conv = chat\team::of_team(10, $now + 200);
+        $export = chat\team::export($viewluis, $conv);
+        $this->assertSame(['joined'], array_column($export['messages'], 'kind'));
+        $this->assertSame((int)$luis->id, $export['messages'][0]['author']['userid']);
+        $sink->clear();
+        chat\team::send(viewer::for_user($ana), 0, 0, 10, 'Mañana abrimos a las 8.', 0, $now + 300);
+        $this->assertSame(['Ana, in Secretaría: Mañana abrimos a las 8.'], array_column($sink->get_messages(), 'subject'));
+        $this->assertSame(2, chat\team::counts($viewluis)['unread']);
+
+        // Marta sees every conversation with families: she passes one to Ana as a card.
+        $sent = chat\team::send($viewmarta, 0, (int)$ana->id, 0, '', 1, $now + 400);
+        $card = chat\team::export($viewmarta, $sent['conversation'])['messages'][0];
+        $this->assertSame(['conv', 1], [$card['kind'], $card['conv']['cwid']]);
+
+        // The service: Luis opens the one with Marta, which does not exist yet, and reads the list.
+        $this->setUser($luis);
+        $got = external_api::clean_returnvalue(
+            chat_team::execute_returns(),
+            chat_team::execute('open', 0, (int)$marta->id)
+        );
+        $this->assertSame([0, 'dm', []], [$got['conversation']['id'], $got['conversation']['kind'],
+            $got['conversation']['messages']]);
+        $this->assertSame(2, $got['unread']);
+        $this->assertArrayNotHasKey('other', array_values(array_filter($got['list'], function ($one) {
+            return $one['kind'] === 'team';
+        }))[0]);
+        $got = external_api::clean_returnvalue(chat_team::execute_returns(), chat_team::execute(
+            'send',
+            0,
+            (int)$marta->id,
+            0,
+            'Hola, Marta.'
+        ));
+        $this->assertGreaterThan(0, $got['sent']);
+        $this->assertTrue($got['conversation']['messages'][0]['mine']);
+
+        // The account of Ana passes to another person: her conversations with another person go with her.
+        \local_oksigeniamarandu\api::account_reassigned((int)$ana->id);
+        $this->assertFalse($DB->record_exists(chat\team::CONVS, ['id' => $id]));
+        $this->assertFalse($DB->record_exists(chat\team::MESSAGES, ['userid' => $ana->id]));
+        $sink->close();
     }
 
     /**

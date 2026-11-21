@@ -56,6 +56,15 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'options' => ['seen'],
             'uncapped' => true,
         ],
+        // The messages of the team, between two people or in a department: only by Telegram, with a button that opens
+        // the conversation; switched on wherever the notice of the conversations is.
+        'team' => [
+            'examples' => ['Ana, en privado: ¿Me pasas el certificado de Leo?'],
+            'perweek' => 0,
+            'channels' => ['telegram'],
+            'uncapped' => true,
+            'follows' => 'chat',
+        ],
         // A send to many that waits for approval, to whoever may approve it: «Approve» and «Reject» from Telegram itself.
         'bulk' => [
             'examples' => ['Inés: Invitación a la jornada de puertas abiertas, 142 por WhatsApp, 8,52 EUR'],

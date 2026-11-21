@@ -409,5 +409,59 @@
         <KEY NAME="bulkid" TYPE="foreign" FIELDS="bulkid" REFTABLE="local_oksigeniamarandu_bulk" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_teamconv" COMMENT="The conversations of the team, never seen by a family: between two people, or of a department">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="dm, between two people, or team, of a department"/>
+        <FIELD NAME="teamid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The department of the account of conversations"/>
+        <FIELD NAME="usera" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Between two people: the one with the lower id"/>
+        <FIELD NAME="userb" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="And the other"/>
+        <FIELD NAME="members" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Of a department: its users when last looked, to say who came in or left"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Its last message"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="kind-teamid-usera-userb" UNIQUE="true" FIELDS="kind, teamid, usera, userb"/>
+        <INDEX NAME="usera" UNIQUE="false" FIELDS="usera"/>
+        <INDEX NAME="userb" UNIQUE="false" FIELDS="userb"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_teammsg" COMMENT="The messages of the conversations of the team">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="convid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Who wrote it; in a line, who came in or left"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="6" NOTNULL="true" SEQUENCE="false" COMMENT="text, conv (the card of a conversation with a family), joined or left"/>
+        <FIELD NAME="text" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="cwid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The conversation with a family it passes"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="convid" TYPE="foreign" FIELDS="convid" REFTABLE="local_oksigeniamarandu_teamconv" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_teamread" COMMENT="What each person read of each conversation of the team, and when they were last told">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="convid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="lastread" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The last message read"/>
+        <FIELD NAME="timeread" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timenotified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="convid" TYPE="foreign" FIELDS="convid" REFTABLE="local_oksigeniamarandu_teamconv" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="convid-userid" UNIQUE="true" FIELDS="convid, userid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

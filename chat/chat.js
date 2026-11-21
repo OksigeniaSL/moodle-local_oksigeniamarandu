@@ -19,6 +19,7 @@
         remind: 'local_oksigeniamarandu_chat_remind',
         agenda: 'local_oksigeniamarandu_chat_agenda',
         board: 'local_oksigeniamarandu_chat_board',
+        team: 'local_oksigeniamarandu_chat_team',
         spend: 'local_oksigeniamarandu_chat_spend',
         flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start'
@@ -99,6 +100,7 @@
         'eq-sala': '<path d="M3.5 6.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2z"/>' +
             '<path d="M15.5 9h3a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v3l-3.5-3h-3.5a2 2 0 0 1-2-2v-1.5"/>',
         'eq-pin': '<path d="M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5z"/><path d="M12 12v8.5"/>',
+        'eq-mas-p': '<circle cx="10" cy="8" r="3.5"/><path d="M3.5 19.5c1.2-3.4 3.8-5.2 6.5-5.2 1.4 0 2.7.4 3.8 1.3M18 14v6M15 17h6"/>',
         'eq-tablon': '<rect x="3.5" y="4.5" width="17" height="14" rx="2"/><path d="M7.5 9h6M7.5 12.5h9M7.5 16h4"/>' +
             '<path d="M8 20.5l1.5-2M16 20.5l-1.5-2"/>',
         estrella: '<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>',
@@ -590,7 +592,13 @@
             // Passing on, second step: the department chosen and a line for it. What was just passed on or resolved, to
             // undo it. The conversations whose approved messages were unfolded to write. Where the search looked. The
             // sends decided on this page, on top of what was decided.
-            pass: null, undo: null, unfold: {}, searchFor: '', searchScope: '', gsJust: {}
+            pass: null, undo: null, unfold: {}, searchFor: '', searchScope: '', gsJust: {},
+            // Messages between the team (chat_team): the lists, how many wait unread and the poll's mark of change; the
+            // conversation open; «Write to…» and what is searched in it; what each conversation has half written and the
+            // conversation with a family about to go as a card; the search of the cards; the last half of «Equipo» on a
+            // phone and the last tray with families.
+            team: null, teamUnread: 0, teamRev: -1, room: null, rooms: {}, teamPick: false, teamQ: '', teamDrafts: {}, teamCards: {},
+            passQ: '', passFound: {}, passFor: '', teamHalf: 'team', lastTray: ''
         };
         var seq = 0;
 
@@ -1286,8 +1294,10 @@
             chime();
             var here = document.visibilityState === 'visible' && document.hasFocus();
             fresh.slice(-3).forEach(function (n) {
+                // A message of the team says so with «team», its conversation between the team.
+                var reading = n.team ? st.inbox === 'team' && !!st.room && st.room.id === n.team : n.conversation === st.open;
                 if (here) {
-                    if (n.conversation !== st.open) {
+                    if (!reading) {
                         toast(n.text);
                     }
                     return;
@@ -1300,7 +1310,9 @@
                         icon: brand.logo || undefined });
                     x.onclick = function () {
                         root.focus();
-                        if (n.conversation && conv(n.conversation)) {
+                        if (n.team) {
+                            openRoom('c' + n.team);
+                        } else if (n.conversation && conv(n.conversation)) {
                             openConv(n.conversation);
                         }
                         x.close();
@@ -1622,14 +1634,18 @@
                     h += '</div>';
                 }
             }
-            // Between the team: the board (the team's violet, never the amber of waiting families).
+            // Between the team: the messages and the board (the team's violet, never the amber of waiting families).
             if (!READONLY) {
-                var tosee = boardToSee().length;
+                var tosee = boardToSee().length, unread = teamUnread();
+                var zoneTray = function (key, icon, name, line, n) {
+                    var on = st.inbox === key;
+                    return '<button type="button" class="mrd-bandeja' + (on ? ' eq-on' : '') + (n ? ' mrd-con-pend' : ' mrd-vacia') + '" data-a="inbox" data-v="' +
+                        key + '" title="' + esc(name + ': ' + line) + '"' + (on ? ' aria-current="true"' : '') + '>' + ico(icon) + '<span class="mrd-t">' +
+                        esc(name) + '<small>' + esc(line) + '</small></span><span class="mrd-n eq-n' + (n ? ' mrd-pend' : ' mrd-cero') + '">' + n + '</span></button>';
+                };
                 h += '<div class="mrd-rail-equipo"><div class="mrd-rotulo eq-rotulo">' + ico('candado') + esc(s('teamzone')) + '</div>' +
-                    '<button type="button" class="mrd-bandeja' + (st.inbox === 'board' ? ' eq-on' : '') + (tosee ? ' mrd-con-pend' : ' mrd-vacia') +
-                    '" data-a="inbox" data-v="board"' + (st.inbox === 'board' ? ' aria-current="true"' : '') + '>' + ico('eq-tablon') +
-                    '<span class="mrd-t">' + esc(s('board')) + '<small>' + esc(tosee ? s('boardtosee', tosee) : s('boardnone')) + '</small></span>' +
-                    '<span class="mrd-n eq-n' + (tosee ? ' mrd-pend' : ' mrd-cero') + '">' + tosee + '</span></button></div>';
+                    zoneTray('team', 'eq-sala', s('eqmessages'), unread ? s('eqrailunread', unread) : s('eqrailnone'), unread) +
+                    zoneTray('board', 'eq-tablon', s('board'), tosee ? s('boardtosee', tosee) : s('boardnone'), tosee) + '</div>';
             }
             // The history: everything resolved, whenever it was, also what was said on WhatsApp before the chat.
             h += '<div class="mrd-rail-historia">' + trayButton('history', 'libro', s('history'), [s('historyline')], 0) +
@@ -1663,6 +1679,11 @@
                 pp.style.left = Math.max(8, rr.left + 10) + 'px';
             }
             renderPie(counts);
+            // The two halves of «Equipo» on a phone keep their figures with each poll.
+            var seg = el.lista.querySelector('.eq-seg');
+            if (seg && inZone() && seg.getAttribute('data-sig') !== zoneSig()) {
+                seg.outerHTML = zoneSeg();
+            }
         }
         // What each colour and shape marks, folded in one line that leaves room for the trays; it stays as the person left it.
         function legendHtml() {
@@ -1701,11 +1722,15 @@
         // The phone's bar, also on the start: «Inicio», «Mías», «Sin asignar», «Menú» (the departments, the history, the
         // address book, the notices and the help) and the team.
         function atHome() {
-            return st.capa === 'chat' && !st.open && !st.nueva && st.inbox !== 'board';
+            return st.capa === 'chat' && !st.open && !st.nueva && !inZone();
+        }
+        // Between the team: the messages and the board, apart from the trays of the families.
+        function inZone() {
+            return st.inbox === 'team' || st.inbox === 'board';
         }
         function renderPie(counts) {
-            // «Menú» stays lit for a department, the history or the address book; not for the board.
-            var inMenu = st.inbox !== 'mine' && st.inbox !== 'unassigned' && st.inbox !== 'board';
+            // «Menú» stays lit for a department, the history or the address book; not for what is between the team.
+            var inMenu = st.inbox !== 'mine' && st.inbox !== 'unassigned' && !inZone();
             var home = atHome();
             box.classList.toggle('mrd-en-inicio', home);
             var tab = function (key, icon, label, n) {
@@ -1714,14 +1739,16 @@
                     ico(icon) + esc(label) + (n ? '<span class="mrd-n">' + n + '</span>' : '') + '</button>';
             };
             var menuOn = st.capa === 'bandejas' || (inMenu && st.capa === 'lista');
+            // «Equipo»: the messages unread and the notices to see, together.
+            var zoneOn = inZone() && st.capa === 'lista', nTeam = teamUnread() + boardToSee().length;
             el.pie.innerHTML = '<button type="button" class="' + (home ? 'mrd-on' : '') + '" data-a="home"' + (home ? ' aria-current="true"' : '') + '>' +
                 ico('casa') + esc(s('tabhome')) + '</button>' +
                 tab('mine', 'yo', s('mine'), counts.mine) + tab('unassigned', 'nadie', s('unassigned'), counts.unassigned) +
                 '<button type="button" class="' + (menuOn ? 'mrd-on' : '') + '" data-a="capa" data-v="bandejas"' + (menuOn ? ' aria-current="true"' : '') + '>' +
                 ico('menu') + esc(s('tabmenu')) + '</button>' +
-                (READONLY ? '' : '<button type="button" class="eq-pie' + (st.inbox === 'board' && st.capa === 'lista' ? ' mrd-on' : '') +
-                    '" data-a="inbox" data-v="board">' + ico('eq-tablon') + esc(s('tabteam')) +
-                    (boardToSee().length ? '<span class="mrd-n">' + boardToSee().length + '</span>' : '') + '</button>');
+                (READONLY ? '' : '<button type="button" class="eq-pie' + (zoneOn ? ' mrd-on' : '') + '" data-a="inbox" data-v="equipo"' +
+                    (zoneOn ? ' aria-current="true"' : '') + '>' + ico('eq-sala') + esc(s('tabteam')) + (nTeam ? '<span class="mrd-n">' + nTeam + '</span>' : '') +
+                    '</button>');
         }
         function popProfile() {
             var t = bgInk();
@@ -1799,14 +1826,42 @@
             }
             return parts.join(' · ');
         }
+        // On a phone, «Equipo» is one tab with its two halves, «Mensajes | Tablón»; on a computer each has its own tray.
+        function zoneSig() {
+            return st.inbox + '|' + teamUnread() + '|' + boardToSee().length;
+        }
+        function zoneSeg() {
+            var half = function (key, icon, label, n) {
+                return '<button type="button" data-a="inbox" data-v="' + key + '" aria-pressed="' + (st.inbox === key) + '">' + ico(icon) + esc(label) +
+                    (n ? ' <span class="eq-n">' + n + '</span>' : '') + '</button>';
+            };
+            return '<div class="eq-seg" role="group" aria-label="' + esc(s('teamzone')) + '" data-sig="' + esc(zoneSig()) + '">' +
+                half('team', 'eq-sala', s('eqmessages'), teamUnread()) + half('board', 'eq-tablon', s('board'), boardToSee().length) + '</div>';
+        }
+        function zoneTitle(label) {
+            return '<span class="eq-h-ancho">' + esc(label) + '</span><span class="eq-h-movil">' + esc(s('tabteam')) + '</span>';
+        }
         function renderListHead() {
-            el.lista.classList.toggle('eq-lista', st.inbox === 'board');
+            el.lista.classList.toggle('eq-lista', inZone());
             el.lista.classList.toggle('eq-tablon', st.inbox === 'board');
             if (st.inbox === 'board') {
                 el.lista.innerHTML = '<div class="mrd-lista-cab"><div class="mrd-titulo"><span class="mrd-marca-movil">' + brandMark() +
-                    '</span><h1>' + esc(s('board')) + '</h1><button type="button" class="mrd-btn mrd-chico mrd-nueva-b eq-btn" data-a="boardnew">' +
+                    '</span><h1>' + zoneTitle(s('board')) + '</h1><button type="button" class="mrd-btn mrd-chico mrd-nueva-b eq-btn" data-a="boardnew">' +
                     ico('eq-pin') + '<span>' + esc(s('boardnewbtn')) + '</span></button></div><p class="eq-solo">' + ico('candado') + '<span>' +
-                    esc(s('boardsolo')) + '</span></p></div><div class="mrd-lista-cuerpo"></div>';
+                    esc(s('boardsolo')) + '</span></p>' + zoneSeg() + '</div><div class="mrd-lista-cuerpo"></div>';
+                return;
+            }
+            if (st.inbox === 'team') {
+                // «Write to…» is the same list turned into the whole team: no form.
+                var picking = st.teamPick;
+                el.lista.innerHTML = '<div class="mrd-lista-cab"><div class="mrd-titulo"><span class="mrd-marca-movil">' + brandMark() + '</span><h1>' +
+                    (picking ? esc(s('eqpicktitle')) : zoneTitle(s('eqmessages'))) + '</h1><button type="button" class="mrd-btn mrd-chico mrd-nueva-b eq-btn" ' +
+                    'data-a="eqpick" aria-pressed="' + picking + '">' + ico('eq-mas-p') + '<span>' + esc(s('eqnew')) + '</span></button></div>' +
+                    '<p class="eq-solo">' + ico('candado') + '<span>' + esc(picking ? s('eqpicknote') : s('eqsolo')) + '</span></p>' +
+                    '<label class="mrd-buscar eq-buscar-equipo">' + ico('buscar') + '<input type="search" data-role="eqbuscar" autocomplete="off" placeholder="' +
+                    esc(s('eqsearch')) + '" aria-label="' + esc(s('eqsearch')) + '" value="' + esc(st.teamQ) + '"><button type="button" class="mrd-limpiar" ' +
+                    'data-a="eqclear" aria-label="' + esc(s('searchclear')) + '"' + (st.teamQ ? '' : ' hidden') + '>' + ico('cerrar') + '</button></label>' +
+                    zoneSeg() + '</div><div class="mrd-lista-cuerpo"></div>';
                 return;
             }
             el.lista.innerHTML = '<div class="mrd-lista-cab"><div class="mrd-titulo"><span class="mrd-marca-movil">' + brandMark() +
@@ -1820,7 +1875,7 @@
         }
         function updateListTitle() {
             var h1 = el.lista.querySelector('h1'), p = el.lista.querySelector('.mrd-lista-cab p');
-            if (h1 && st.inbox !== 'board') {
+            if (h1 && !inZone()) {
                 h1.textContent = inboxTitle();
                 p.textContent = inboxSub();
             }
@@ -1944,6 +1999,11 @@
             var keep = body.scrollTop, h = '';
             if (!st.ready) {
                 body.innerHTML = '<div class="mrd-vacio">' + esc(s('loading')) + '</div>';
+                return;
+            }
+            if (st.inbox === 'team') {
+                body.innerHTML = teamListHtml();
+                body.scrollTop = keep;
                 return;
             }
             var q = st.search.trim();
@@ -2587,6 +2647,876 @@
                 esc(s('boardpost')) + '</button><button type="button" class="mrd-btn" data-a="boardnewcancel">' + esc(s('boardcancel')) + '</button>' +
                 '<span class="eq-cuantos">' + esc(s('boardpostnote')) + '</span></div></div>';
         }
+
+        /* -------- Messages between the team (chat_team): person to person, and one conversation per department, which
+           whoever is in it sees. Four signs say it is not a family, whatever each person chose for those: the team's
+           violet, a plain surface, a band that says who sees it and the faces in squares. A conversation with a family
+           can go inside, as a card that opens it. Kept by Marandu, not in Chatwoot nor in the messaging of the platform. */
+        function teamData() {
+            return st.team && typeof st.team === 'object' ? st.team : null;
+        }
+        function teamList() {
+            var d = teamData();
+            return d ? d.list || [] : [];
+        }
+        function teamPeople() {
+            var d = teamData();
+            return d ? d.people || [] : [];
+        }
+        function teamUnread() {
+            return st.teamUnread || 0;
+        }
+        function isMe(p) {
+            return !!p && (me.userid ? p.userid === me.userid : !!p.agentid && p.agentid === me.agentid);
+        }
+        // Someone of the team in their rounded square: the picture of their profile, or else their own critter.
+        function avTeam(p, size) {
+            if (!p) {
+                return avAgent(null, size);
+            }
+            if (isMe(p)) {
+                return avAgent({ agentid: me.agentid, name: me.name, firstname: me.firstname, me: true }, size);
+            }
+            var cls = 'mrd-av mrd-equipo ' + (size || '');
+            if (p.picture) {
+                return '<span class="' + cls + ' mrd-con-foto" aria-hidden="true"><img src="' + esc(p.picture) + '" alt="" loading="lazy"></span>';
+            }
+            if (root.BichitoHk) {
+                return '<span class="' + cls + ' mrd-con-bicho" aria-hidden="true">' + bicho(p.agentid ? 'equipo-' + p.agentid : 'equipo-u' + p.userid, false) +
+                    '</span>';
+            }
+            return '<span class="' + cls + '" aria-hidden="true">' + esc(cap(firstName(p)).charAt(0)) + '</span>';
+        }
+        function teamFaces(people, size) {
+            return '<span class="eq-caras">' + people.slice(0, 5).map(function (p) {
+                return avTeam(p, size || 'mrd-s');
+            }).join('') + '</span>';
+        }
+        // A department in its square tile, with the picture of its name.
+        function teamTile(teamid, name) {
+            return '<span class="eq-tile" aria-hidden="true">' + ico(teamIcon(team(teamid) || { name: name })) + '</span>';
+        }
+        function teamCount(n) {
+            return n === 1 ? s('eqnpeople1') : s('eqnpeople', n);
+        }
+        // The departments of someone of the team, by their names.
+        function teamDeps(p) {
+            var one = p ? teamPeople().filter(function (x) {
+                return x.userid === p.userid;
+            })[0] : null;
+            return ((one && one.teamids) || (p && p.teamids) || []).map(function (id) {
+                var t = team(id);
+                return t ? t.name : '';
+            }).filter(Boolean);
+        }
+        // Who is in a department: the others by their first names, and «tú» at the end.
+        function teamNames(people) {
+            var others = people.filter(function (p) {
+                return !isMe(p);
+            }).map(firstName);
+            return joinList(people.length > others.length ? others.concat([s('you')]) : others);
+        }
+        function loadTeam(args, quiet) {
+            if (READONLY) {
+                return Promise.resolve(null);
+            }
+            if (st.team === null) {
+                st.team = 'loading';
+            }
+            var asked = st.room ? st.room.key : '';
+            var full = { action: '', id: 0, userid: 0, teamid: 0, text: '', cwid: 0, before: 0 };
+            Object.keys(args || {}).forEach(function (k) {
+                full[k] = args[k];
+            });
+            return tr.call(M.team, full).then(function (r) {
+                takeTeam(r || {}, asked, full.action === 'older');
+                return r;
+            }).catch(function (e) {
+                if (!teamData()) {
+                    st.team = 'error';
+                }
+                // A message that does not go says so on itself.
+                if (full.action && full.action !== 'send' && !quiet) {
+                    failToast(e);
+                }
+                if (st.inbox === 'team') {
+                    renderListBody();
+                }
+                throw e;
+            });
+        }
+        function takeTeam(r, asked, older) {
+            st.team = { list: r.list || [], people: r.people || [], teams: r.teams || [], unread: +r.unread || 0 };
+            st.teamUnread = st.team.unread;
+            var room = st.room;
+            if (r.conversation && room && room.key === asked) {
+                takeRoom(r.conversation, older);
+                if (st.inbox === 'team' && !conv(st.open) && el.chat.classList.contains('eq-sala')) {
+                    renderRoomHead();
+                    renderRoomComposer();
+                    renderRoomThread(older ? 'older' : room.drawn ? '' : 'end');
+                    room.drawn = true;
+                }
+            }
+            renderRail();
+            if (st.inbox === 'team') {
+                renderListBody();
+                if (!st.room && !st.teamPick) {
+                    openFirstRoom();
+                }
+            }
+        }
+        // On a computer something is always open on the right: what waits unread, or the newest.
+        function openFirstRoom() {
+            if (narrow() || !teamData()) {
+                return;
+            }
+            var first = teamList().filter(function (x) {
+                return x.unread;
+            })[0] || teamList()[0];
+            if (first) {
+                openRoom('c' + first.id, { keepLayer: true });
+            } else {
+                renderTeamPane();
+            }
+        }
+        // What the server says of the conversation open: its people and its last messages (or those before, with «older»).
+        function takeRoom(c, older) {
+            var r = st.room;
+            if (c.id && !r.id) {
+                r.id = c.id;
+                r.key = 'c' + c.id;
+                r.userid = 0;
+                r.teamid = 0;
+                syncUrl();
+            }
+            st.rooms[r.key] = r;
+            var incoming = c.messages || [];
+            if (older || r.olderDone) {
+                var seen = {};
+                r.msgs = incoming.concat(r.msgs || []).filter(function (m) {
+                    if (seen[m.id]) {
+                        return false;
+                    }
+                    seen[m.id] = true;
+                    return true;
+                }).sort(function (a, b) {
+                    return (a.at - b.at) || (a.id - b.id);
+                });
+                if (older) {
+                    r.more = !!c.more;
+                    r.olderDone = true;
+                }
+            } else {
+                r.msgs = incoming.slice();
+                r.more = !!c.more;
+            }
+            r.conv = c;
+            r.loaded = true;
+        }
+        // The conversation open, as soon as it is chosen: what the list or the team already says of it.
+        function roomItem() {
+            var r = st.room;
+            if (!r) {
+                return null;
+            }
+            return teamList().filter(function (x) {
+                return r.id ? x.id === r.id : r.userid ? x.kind === 'dm' && !!x.other && x.other.userid === r.userid : x.kind === 'team' && x.teamid === r.teamid;
+            })[0] || null;
+        }
+        function roomConv() {
+            var r = st.room;
+            if (!r) {
+                return null;
+            }
+            if (r.conv) {
+                return r.conv;
+            }
+            var it = roomItem();
+            if (it) {
+                return it;
+            }
+            if (r.id) {
+                // Opened from a notice before the list came: nothing to say of it until the server answers.
+                return { id: r.id, kind: '', teamid: 0, teamname: '', other: null, people: [] };
+            }
+            if (r.userid) {
+                var p = teamPeople().filter(function (x) {
+                    return x.userid === r.userid;
+                })[0];
+                return { id: 0, kind: 'dm', teamid: 0, teamname: '', other: p || { userid: r.userid, name: '', firstname: '' }, people: [] };
+            }
+            var t = (teamData() ? teamData().teams : []).filter(function (x) {
+                return x.id === r.teamid;
+            })[0];
+            return { id: 0, kind: 'team', teamid: r.teamid, teamname: t ? t.name : teamName(r.teamid), other: null, people: [] };
+        }
+        // How many see a department's conversation: its people, or what the list of departments says.
+        function roomSize(c) {
+            var t = (teamData() ? teamData().teams : []).filter(function (x) {
+                return x.id === c.teamid;
+            })[0];
+            return (c.people || []).length || (t ? t.count : 0);
+        }
+        function roomArgs(action) {
+            var r = st.room;
+            return { action: action, id: r.id || 0, userid: r.id ? 0 : r.userid || 0, teamid: r.id ? 0 : r.teamid || 0 };
+        }
+        /* Opens a conversation of the team: «c<id>», or before it exists «u<userid>» (with a person) or «t<teamid>» (a
+           department). The page reads it at once if it is in sight. */
+        function openRoom(key, opts) {
+            opts = opts || {};
+            var m = /^([cut])(\d+)$/.exec(String(key || ''));
+            if (!m || READONLY) {
+                return;
+            }
+            if (m[1] === 'u') {
+                var p = teamPeople().filter(function (x) {
+                    return x.userid === +m[2];
+                })[0];
+                if (p && p.dm) {
+                    m = ['', 'c', String(p.dm)];
+                }
+            } else if (m[1] === 't') {
+                var dep = teamList().filter(function (x) {
+                    return x.kind === 'team' && x.teamid === +m[2];
+                })[0];
+                if (dep) {
+                    m = ['', 'c', String(dep.id)];
+                }
+            }
+            key = m[1] + m[2];
+            if (st.inbox !== 'team') {
+                enterZone('team');
+                renderRail();
+                renderListHead();
+            }
+            if (!st.room || st.room.key !== key) {
+                saveTeamDraft();
+                // Each conversation keeps what it had on this page (its messages, one that did not go), shown at once.
+                st.room = st.rooms[key] || (st.rooms[key] = { key: key, id: m[1] === 'c' ? +m[2] : 0, userid: m[1] === 'u' ? +m[2] : 0,
+                    teamid: m[1] === 't' ? +m[2] : 0, conv: null, msgs: [], pending: [], loaded: false, more: false, older: false, olderDone: false });
+                st.room.drawn = false;
+                st.pop = null;
+            }
+            var room = st.room;
+            var it = roomItem();
+            if (it && it.unread) {
+                st.teamUnread = Math.max(0, st.teamUnread - it.unread);
+                it.unread = 0;
+            }
+            renderTeamPane();
+            renderListBody();
+            renderRail();
+            var item = el.lista.querySelector('.mrd-conv.mrd-on, .eq-persona.mrd-on');
+            if (item && item.scrollIntoView) {
+                item.scrollIntoView({ block: 'nearest' });
+            }
+            syncUrl();
+            if (!opts.keepLayer) {
+                setLayer('chat', true);
+            }
+            // The box takes the keys: now, or as soon as it is there (opened from a notice before the list came).
+            var ed = el.chat.querySelector('.eq-editor');
+            room.focus = !touchy() && !opts.keepLayer && !ed;
+            if (ed && !touchy() && !opts.keepLayer) {
+                caretToEnd(ed);
+            }
+            loadTeam(roomArgs(room.id && !document.hidden ? 'read' : 'open'), true).catch(function (e) {
+                // One this person does not see any more (out of the department, from an old notice): the list instead.
+                if (st.room === room && !room.loaded) {
+                    st.room = null;
+                    delete st.rooms[room.key];
+                    syncUrl();
+                    toast(s('eqgone'), true);
+                    renderTeamPane();
+                    renderListBody();
+                    openFirstRoom();
+                } else {
+                    failToast(e);
+                }
+                return null;
+            });
+        }
+        function saveTeamDraft() {
+            var ed = el.chat.querySelector('.eq-editor');
+            if (ed && st.room) {
+                var html = ed.innerHTML === '<br>' ? '' : ed.innerHTML;
+                if (html) {
+                    st.teamDrafts[st.room.key] = html;
+                } else {
+                    delete st.teamDrafts[st.room.key];
+                }
+            }
+        }
+        // The list: the person's departments first, then the conversations person to person, the newest first.
+        function teamListHtml() {
+            if (st.team === null) {
+                loadTeam().catch(function () {
+                    return null;
+                });
+            }
+            if (st.team === null || st.team === 'loading') {
+                return '<div class="mrd-resueltas-estado">' + esc(s('loading')) + '</div>';
+            }
+            if (st.team === 'error') {
+                return '<div class="mrd-resueltas-estado">' + esc(s('resolvederror')) + ' <button type="button" class="mrd-ver-resueltas" data-a="eqagain">' +
+                    esc(s('retry')) + '</button></div>';
+            }
+            var q = st.teamQ.trim();
+            if (st.teamPick || q) {
+                return teamPickHtml(q);
+            }
+            var deps = teamList().filter(function (x) {
+                return x.kind === 'team';
+            }), dms = teamList().filter(function (x) {
+                return x.kind === 'dm';
+            });
+            var h = '';
+            if (deps.length) {
+                h += '<div class="mrd-grupo-t">' + ico('gente') + esc(deps.length === 1 ? s('yourteam') : s('yourteams')) + '</div>' + deps.map(teamItem).join('');
+            }
+            h += '<div class="mrd-grupo-t">' + ico('yo') + esc(s('eqpeople')) + '</div>' +
+                (dms.length ? dms.map(teamItem).join('') : '<p class="mrd-agenda-vacio">' + esc(s('eqnobodyyet')) + '</p>');
+            return h + '<button type="button" class="mrd-btn eq-btn-borde eq-mas" data-a="eqpick">' + ico('eq-mas-p') + esc(s('eqwritemore')) + '</button>';
+        }
+        // What was said last: «Tomás: …» in a department, «Tú: …» what is yours, and the lines of who came or left.
+        function teamPreview(x) {
+            var l = x.last;
+            if (l.kind === 'joined' || l.kind === 'left') {
+                return esc(s(l.kind === 'joined' ? 'eqjoined' : 'eqleft', { name: l.firstname || '', team: x.teamname }));
+            }
+            var who = me.userid && l.userid === me.userid ? s('You') : x.kind === 'team' ? l.firstname : '';
+            return esc((who ? who + ': ' : '') + (l.text || ''));
+        }
+        function teamItem(x) {
+            var on = !!st.room && st.room.id === x.id, n = x.unread || 0, last = x.last, at = (last && last.at) || 0, av, name, rel;
+            if (x.kind === 'team') {
+                var people = x.people || [];
+                av = teamTile(x.teamid, x.teamname);
+                name = x.teamname;
+                rel = people.length ? teamFaces(people) + ' ' + esc(teamCount(people.length)) : '';
+            } else {
+                av = avTeam(x.other, '');
+                name = (x.other && x.other.name) || '';
+                rel = esc(joinList(teamDeps(x.other)));
+            }
+            return '<button type="button" class="mrd-conv' + (on ? ' mrd-on' : '') + (n ? ' eq-sin-leer' : '') + '" data-a="eqopen" data-v="c' + x.id + '"' +
+                (on ? ' aria-current="true"' : '') + '>' + av + '<span class="mrd-conv-cuerpo"><span class="mrd-conv-l1"><span class="mrd-conv-nombre">' + esc(name) +
+                '</span><span class="mrd-conv-hora">' + esc(at ? listTime(at * 1000) : '') + '</span></span>' +
+                (rel ? '<span class="mrd-conv-rel">' + rel + '</span>' : '') + '<span class="mrd-conv-l1"><span class="mrd-conv-txt">' +
+                (last ? teamPreview(x) : esc(s('eqlistempty'))) + '</span>' + (n ? '<span class="eq-n" role="img" aria-label="' + esc(s('eqrailunread', n)) + '">' +
+                n + '</span>' : '') + '</span></span></button>';
+        }
+        /* «Write to…»: the whole team, a department first, then each person under their department, with a face and what
+           they do; «Ya tienes conversación» where there is one. A touch opens it, empty if it is new: no form. The search of
+           the list finds here whoever it names. */
+        function teamPickHtml(q) {
+            var d = teamData(), words = folded(q).split(/\s+/).filter(Boolean);
+            var hit = function (text) {
+                var ws = folded(text).split(/[^\p{L}\p{N}]+/u);
+                return words.every(function (w) {
+                    return ws.some(function (x) {
+                        return x.indexOf(w) === 0;
+                    });
+                });
+            };
+            var on = function (key) {
+                return !!st.room && (st.room.key === key);
+            };
+            var h = '';
+            var deps = d.teams.filter(function (t) {
+                return hit(t.name);
+            });
+            if (deps.length) {
+                h += '<div class="mrd-grupo-t">' + ico('gente') + esc(s('eqpickteams')) + '</div>' + deps.map(function (t) {
+                    var it = teamList().filter(function (x) {
+                        return x.kind === 'team' && x.teamid === t.id;
+                    })[0];
+                    var key = it ? 'c' + it.id : 't' + t.id, who = it && it.people && it.people.length ? teamNames(it.people) : teamCount(t.count);
+                    return '<button type="button" class="eq-persona' + (on(key) ? ' mrd-on' : '') + '" data-a="eqopen" data-v="' + key + '">' + teamTile(t.id, t.name) +
+                        '<span class="eq-persona-t"><b>' + esc(t.name) + '</b><small>' + esc(who) + '</small></span>' + (it && it.last ? '<span class="eq-ya">' + esc(s('eqalready')) + '</span>' : '') + '</button>';
+                }).join('');
+            }
+            // Each person once, under the first of their departments: those of whoever looks first, then the others.
+            var order = d.teams.map(function (t) {
+                return t.id;
+            });
+            teamPeople().forEach(function (p) {
+                (p.teamids || []).forEach(function (id) {
+                    if (order.indexOf(id) < 0) {
+                        order.push(id);
+                    }
+                });
+            });
+            var placed = {}, groups = [];
+            order.concat([0]).forEach(function (id) {
+                var list = teamPeople().filter(function (p) {
+                    var ids = p.teamids || [];
+                    return !placed[p.userid] && (id ? ids.indexOf(id) >= 0 : !ids.length) && hit(p.name + ' ' + teamDeps(p).join(' '));
+                });
+                list.forEach(function (p) {
+                    placed[p.userid] = true;
+                });
+                if (list.length) {
+                    groups.push({ name: id ? teamName(id) : s('noteam'), people: list });
+                }
+            });
+            h += groups.map(function (g) {
+                return '<div class="mrd-grupo-t">' + esc(g.name) + '</div>' + g.people.map(function (p) {
+                    var key = p.dm ? 'c' + p.dm : 'u' + p.userid, deps2 = teamDeps(p);
+                    return '<button type="button" class="eq-persona' + (on(key) ? ' mrd-on' : '') + '" data-a="eqopen" data-v="' + key + '">' + avTeam(p, '') +
+                        '<span class="eq-persona-t"><b>' + esc(p.name) + '</b>' + (deps2.length ? '<small>' + esc(joinList(deps2)) + '</small>' : '') + '</span>' +
+                        (p.dm ? '<span class="eq-ya">' + esc(s('eqalready')) + '</span>' : '') + '</button>';
+                }).join('');
+            }).join('');
+            return h || '<p class="mrd-agenda-vacio">' + esc(s('eqpicknone')) + '</p>';
+        }
+        // The right side: the conversation open, with its band, its thread and its box; or what to do with none.
+        function renderTeamPane() {
+            if (st.inbox !== 'team' || conv(st.open) || st.nueva) {
+                return;
+            }
+            var ed = el.chat.querySelector('.eq-editor'), typing = !!ed && document.activeElement === ed;
+            saveTeamDraft();
+            el.chat.classList.add('eq-sala');
+            if (!st.room) {
+                var none = teamData() && !teamList().length;
+                el.chat.innerHTML = '<div class="mrd-hilo">' + (none ? '<div class="eq-vacio">' + ico('eq-sala', 'eq-vacio-i') + '<b>' + esc(s('eqpaneempty')) +
+                    '</b><span>' + esc(s('eqpaneemptyhelp')) + '</span><button type="button" class="mrd-btn eq-btn" data-a="eqpick">' + ico('eq-mas-p') +
+                    esc(s('eqnew')) + '</button></div>' : '<div class="mrd-hilo-nada">' + esc(teamData() ? s('eqpanepick') : s('loading')) + '</div>') + '</div>';
+                return;
+            }
+            el.chat.innerHTML = '<div class="mrd-chat-cab"></div><div class="eq-banda" role="note"></div><div class="mrd-hilo" tabindex="-1"></div>' +
+                '<div class="mrd-escribir"></div>';
+            renderRoomHead();
+            renderRoomThread('end');
+            renderRoomComposer();
+            st.room.drawn = st.room.loaded;
+            if (typing) {
+                var again = el.chat.querySelector('.eq-editor');
+                if (again) {
+                    caretToEnd(again);
+                }
+            }
+        }
+        function renderRoomHead() {
+            var head = el.chat.querySelector('.mrd-chat-cab'), band = el.chat.querySelector('.eq-banda'), c = roomConv();
+            if (!head || !band || !c) {
+                return;
+            }
+            band.hidden = !c.kind;
+            if (!c.kind) {
+                head.innerHTML = '<button type="button" class="mrd-volver" data-a="back" data-v="lista" aria-label="' + esc(s('back')) + '">' + ico('izq') + '</button>';
+                return;
+            }
+            var face, title, sub;
+            if (c.kind === 'dm') {
+                var o = c.other || {};
+                face = avTeam(o, '');
+                title = o.name || '';
+                sub = esc(joinList(teamDeps(o)));
+            } else {
+                var people = c.people || [];
+                face = teamTile(c.teamid, c.teamname);
+                title = c.teamname;
+                sub = people.length ? teamFaces(people) + ' ' + esc(teamNames(people)) : '';
+            }
+            head.innerHTML = '<button type="button" class="mrd-volver" data-a="back" data-v="lista" aria-label="' + esc(s('back')) + '">' + ico('izq') + '</button>' +
+                '<div class="eq-cab-quien">' + face + '<h2>' + esc(title) + (sub ? '<small>' + sub + '</small>' : '') + '</h2></div>';
+            var n = roomSize(c);
+            band.innerHTML = ico('candado') + '<span>' + (c.kind === 'dm'
+                ? '<b>' + esc(s('eqbanddmb', firstName(c.other))) + '</b> ' + esc(s('eqbanddm'))
+                : '<b>' + esc(s('eqbandteamb', c.teamname)) + '</b>' + (n ? ' ' + esc(n === 1 ? s('eqbandteam1') : s('eqbandteam', n)) : '')) + '</span>';
+        }
+        // The thread; new messages at the end keep whoever reads further up where they were.
+        function renderRoomThread(how) {
+            var r = st.room, hilo = el.chat.querySelector('.mrd-hilo');
+            if (!r || !hilo || !el.chat.classList.contains('eq-sala')) {
+                return;
+            }
+            if (!r.loaded) {
+                hilo.innerHTML = '<div class="mrd-hilo-nada">' + esc(s('loading')) + '</div>';
+                return;
+            }
+            var c = roomConv(), msgs = (r.msgs || []).concat(r.pending || []);
+            var fromBottom = hilo.scrollHeight - hilo.scrollTop, top = hilo.scrollTop, end = atBottom(hilo);
+            hilo.innerHTML = msgs.length ? roomThreadHtml(c, msgs) : roomEmptyHtml(c);
+            if (how === 'older') {
+                hilo.scrollTop = hilo.scrollHeight - fromBottom;
+            } else if (how === 'end' || end) {
+                stickToBottom(hilo);
+            } else {
+                hilo.scrollTop = top;
+            }
+        }
+        function roomEmptyHtml(c) {
+            if (c.kind === 'dm') {
+                var name = firstName(c.other);
+                return '<div class="eq-vacio">' + avTeam(c.other, '') + '<b>' + esc(s('eqemptydm', name)) + '</b><span>' + esc(s('eqemptydmhelp', name)) + '</span></div>';
+            }
+            return '<div class="eq-vacio">' + teamTile(c.teamid, c.teamname) + '<b>' + esc(s('eqemptyteam', c.teamname)) + '</b><span>' +
+                esc(s('eqemptyteamhelp', c.teamname)) + '</span></div>';
+        }
+        function sameRun(a, b) {
+            var talk = function (m) {
+                return !!m && (m.kind === 'text' || m.kind === 'conv') && !!m.author;
+            };
+            return talk(a) && talk(b) && a.author.userid === b.author.userid && dayKey(a.at * 1000) === dayKey(b.at * 1000) && Math.abs(b.at - a.at) < 600;
+        }
+        function roomThreadHtml(c, msgs) {
+            var r = st.room, h = '', last = 0;
+            if (r.more) {
+                h += '<button type="button" class="mrd-mas-antiguos" data-a="eqolder">' + esc(r.older ? s('loading') : s('olderload')) + '</button>';
+            }
+            msgs.forEach(function (m, i) {
+                var k = dayKey((m.at || 0) * 1000);
+                if (k !== last) {
+                    h += '<span class="mrd-dia" data-day="' + k + '">' + esc(dayLabel((m.at || 0) * 1000)) + '</span>';
+                    last = k;
+                }
+                h += roomMsgHtml(c, m, msgs[i - 1], msgs[i + 1]);
+            });
+            return h;
+        }
+        // A message: yours on the right, in the team's bubble; in a department, each one's face and name beside theirs.
+        function roomMsgHtml(c, m, prev, next) {
+            var time = m.at ? fmtTime(m.at * 1000) : '', id = ' data-id="' + esc(m.id) + '"';
+            if (m.kind === 'joined' || m.kind === 'left') {
+                var who = m.author || {};
+                var line = m.kind === 'joined' && isMe(who) ? s('eqjoinedyou', c.teamname) : s(m.kind === 'joined' ? 'eqjoined' : 'eqleft', { name: who.name || '',
+                    team: c.teamname });
+                return '<div class="eq-sistema"' + id + '>' + ico('yo') + '<span>' + esc(line) + (time ? ' · ' + esc(time) : '') + '</span></div>';
+            }
+            var mine = m.mine || m.pending || m.failed;
+            var body = (m.kind === 'conv' && m.conv ? cardHtml(m.conv, true) : '') + (m.text ? '<p>' + textHtml(m.text, false) + '</p>' : '');
+            var foot = '<div class="mrd-msg-pie">' + esc(time) + (mine ? (m.pending ? ico('reloj') : m.failed ? ico('alerta', 'mrd-mal') : ico('check')) : '') +
+                '</div>';
+            if (mine) {
+                return '<div class="mrd-msg eq-yo' + (m.pending ? ' mrd-pendiente' : '') + (m.failed ? ' mrd-fallo' : '') + '"' + id + '>' + body + foot +
+                    (m.failed ? '<div class="mrd-fallo-l">' + esc(s('notsent')) + '<button type="button" data-a="eqretry" data-v="' + esc(m.id) + '">' +
+                    esc(s('retry')) + '</button></div>' : '') + '</div>';
+            }
+            if (c.kind === 'team') {
+                var first = !sameRun(prev, m), lastOne = !sameRun(m, next);
+                return '<div class="eq-fila' + (first ? '' : ' eq-sigue') + '"' + id + '>' + (lastOne ? avTeam(m.author, 'mrd-m')
+                    : '<span class="eq-cara-hueco" aria-hidden="true"></span>') + '<div class="mrd-msg eq-otro">' + (first ? '<div class="mrd-de">' +
+                    esc((m.author && m.author.name) || '') + '</div>' : '') + body + foot + '</div></div>';
+            }
+            return '<div class="mrd-msg eq-otro"' + id + '>' + body + foot + '</div>';
+        }
+        /* A conversation with a family passed between the team: a card with the family in its circle, what the card says
+           of it and «Abrir». In the box, before it goes, the same card, still. */
+        function cardOf(id) {
+            var c = conv(id);
+            if (!c) {
+                return null;
+            }
+            var ct = c.contact || {};
+            return { cwid: id, name: ct.name || fmtPhone(ct.phone), status: c.status, teamname: c.teamid ? teamName(c.teamid) : '' };
+        }
+        function cardHtml(card, live) {
+            var c = conv(card.cwid), ct = c && c.contact ? c.contact : { name: card.name || '', phone: card.phone || '', kind: card.kind || 'unknown',
+                line: card.line || '', rings: card.rings || [] };
+            var status = card.status === 'resolved' ? s('eqcardresolved') : card.status === 'snoozed' ? s('eqcardlater') : card.status ? s('eqcardopen') : '';
+            var inner = avContact(ct) + '<span class="eq-ref-t"><b>' + esc(card.name || ct.name || fmtPhone(ct.phone)) + '</b><small>' +
+                esc([ct.line, card.teamname, status].filter(Boolean).join(' · ')) + '</small></span>';
+            return live ? '<button type="button" class="eq-ref" data-a="eqconv" data-v="' + esc(card.cwid) + '">' + inner + '<span class="mrd-abrir">' + esc(s('open')) +
+                '</span></button>' : '<div class="eq-ref">' + inner + '</div>';
+        }
+        // The box: no tabs, no approved messages, no 24 hours and no signature; over it, who will read it.
+        function renderRoomComposer(force) {
+            var r = st.room, box2 = el.chat.querySelector('.mrd-escribir'), c = roomConv();
+            if (!r || !box2 || !c) {
+                return;
+            }
+            var who = '', to = '', n = roomSize(c);
+            if (c.kind === 'dm') {
+                who = s('eqseesdm', firstName(c.other));
+                to = firstName(c.other);
+            } else if (c.kind) {
+                who = n === 1 ? s('eqseesteam1') : s('eqseesteam', { n: n, team: c.teamname });
+                to = c.teamname;
+            }
+            var card = st.teamCards[r.key] ? cardOf(st.teamCards[r.key]) : null;
+            // Drawn again only when what it says changes: whoever is typing keeps the box, the caret and a menu open.
+            var sig = [r.key, who, to, card ? card.cwid : 0].join('|');
+            if (!force && box2.getAttribute('data-sig') === sig) {
+                return;
+            }
+            var ed0 = box2.querySelector('.eq-editor'), typing = !!ed0 && document.activeElement === ed0;
+            saveTeamDraft();
+            box2.setAttribute('data-sig', sig);
+            if (!c.kind) {
+                box2.innerHTML = '';
+                return;
+            }
+            box2.innerHTML ='<div class="mrd-escribir-cab"><span class="eq-privada">' + ico('candado') + esc(who) + '</span></div>' +
+                '<div class="mrd-caja">' + (card ? '<div class="eq-adjunta">' + cardHtml(card, false) + '<button type="button" class="eq-adjunta-x" data-a="eqcardoff" ' +
+                'aria-label="' + esc(s('eqcardoff')) + '" title="' + esc(s('eqcardoff')) + '">' + ico('cerrar') + '</button></div>' : '') +
+                '<div class="mrd-editor eq-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="' + esc(s('eqwriteto', to)) + '" data-vacio="' +
+                esc(s('eqwriteto', to)) + '">' + (st.teamDrafts[r.key] || '') + '</div><div class="mrd-herr"><button type="button" class="mrd-herr-b' +
+                (st.pop === 'eqpasar' ? ' mrd-on' : '') + '" data-a="pop" data-v="eqpasar" aria-expanded="' + (st.pop === 'eqpasar') + '">' + ico('mensaje') +
+                '<span class="mrd-t">' + esc(s('eqpass')) + '</span></button><button type="button" class="mrd-btn eq-btn" data-a="eqsend">' + ico('enviar') +
+                esc(s('send')) + '</button></div></div>' + (st.pop === 'eqpasar' ? popPassConv() : '');
+            var busyElsewhere = document.activeElement && document.activeElement !== document.body && !box2.contains(document.activeElement);
+            if (typing || (r.focus && !busyElsewhere)) {
+                caretToEnd(box2.querySelector('.eq-editor'));
+            }
+            r.focus = false;
+        }
+        /* «Pasar una conversación»: the conversations with families, as the search of the list finds them (names, pupils,
+           phones and what was said, also the resolved ones); with nothing written, those open now. */
+        function popPassConv() {
+            return '<div class="mrd-pop mrd-pop-escribir mrd-pop-eqpasar" role="dialog" aria-label="' + esc(s('eqpass')) + '"><h5>' + esc(s('eqpass')) +
+                ' <span>' + esc(s('eqpasshelp')) + '</span></h5><label class="mrd-buscar">' + ico('buscar') + '<input type="search" data-role="eqpasarbuscar" ' +
+                'autocomplete="off" placeholder="' + esc(s('eqpasssearch')) + '" aria-label="' + esc(s('eqpasssearch')) + '" value="' + esc(st.passQ) + '"></label>' +
+                '<div class="mrd-pop-lista" role="listbox">' + passRows() + '</div></div>';
+        }
+        function passRows() {
+            var q = st.passQ.trim();
+            var list = allConvs().filter(function (c) {
+                return q ? searchMatch(c, q) || (st.passFor === q && !!st.passFound[c.id]) : c.section !== 'resolved';
+            }).sort(function (a, b) {
+                return ((a.section === 'resolved') - (b.section === 'resolved')) || byActivity(a, b);
+            }).slice(0, 40);
+            var h = q ? '' : '<p class="mrd-pop-sub">' + esc(s('eqpassrecent')) + '</p>';
+            if (!list.length) {
+                return h + '<p class="mrd-pop-nada">' + esc(q && st.passFor !== q ? s('loading') : s('eqpassnone')) + '</p>';
+            }
+            return h + list.map(function (c, i) {
+                var ct = c.contact || {}, name = ct.name || fmtPhone(ct.phone);
+                var status = c.section === 'resolved' ? s('eqcardresolved') : c.section === 'later' ? s('eqcardlater') : s('eqcardopen');
+                return '<button type="button" role="option" class="mrd-pop-fila' + (i === 0 && q ? ' mrd-on' : '') + '" data-a="eqcard" data-v="' + c.id +
+                    '" aria-selected="' + (i === 0 && !!q) + '">' + avContact(ct, 'mrd-m') + '<span><b>' + (q ? markWords(name, q) : esc(name)) + '</b><small>' +
+                    esc([ct.line, c.teamid ? teamName(c.teamid) : '', status].filter(Boolean).join(' · ')) + '</small></span></button>';
+            }).join('');
+        }
+        var passT = 0;
+        function passSearch(text) {
+            st.passQ = text;
+            var asked = text.trim(), list = el.chat.querySelector('.mrd-pop-eqpasar .mrd-pop-lista');
+            if (list) {
+                list.innerHTML = passRows();
+            }
+            clearTimeout(passT);
+            if (asked.length < 2) {
+                st.passFor = asked;
+                return;
+            }
+            passT = setTimeout(function () {
+                tr.call(M.resolved, { query: asked }).then(function (r) {
+                    (r.conversations || []).forEach(mergeConv);
+                    st.passFound = {};
+                    (r.conversations || []).forEach(function (c) {
+                        st.passFound[c.id] = true;
+                    });
+                    (r.hits || []).forEach(function (hit) {
+                        st.passFound[hit.conversation] = true;
+                    });
+                    st.passFor = asked;
+                    var now2 = el.chat.querySelector('.mrd-pop-eqpasar .mrd-pop-lista');
+                    if (now2 && st.passQ.trim() === asked) {
+                        now2.innerHTML = passRows();
+                    }
+                    return r;
+                }).catch(function () {
+                    // What is on the page is still searched.
+                    st.passFor = asked;
+                    var now3 = el.chat.querySelector('.mrd-pop-eqpasar .mrd-pop-lista');
+                    if (now3) {
+                        now3.innerHTML = passRows();
+                    }
+                });
+            }, 300);
+        }
+        function chooseCard(id) {
+            var r = st.room;
+            if (!r || !conv(id)) {
+                return;
+            }
+            saveTeamDraft();
+            st.teamCards[r.key] = id;
+            st.pop = null;
+            st.passQ = '';
+            renderRoomComposer();
+            var ed = el.chat.querySelector('.eq-editor');
+            if (ed) {
+                caretToEnd(ed);
+            }
+        }
+        function teamSend() {
+            var r = st.room, ed = el.chat.querySelector('.eq-editor');
+            if (!r || !ed) {
+                return;
+            }
+            var text = editorText(ed, false), cwid = st.teamCards[r.key] || 0;
+            if (!text && !cwid) {
+                ed.focus();
+                return;
+            }
+            if (text.length > 4000) {
+                toast(s('eqtoolong'), true);
+                return;
+            }
+            var m = { id: 'tmp' + (++seq), kind: cwid ? 'conv' : 'text', text: text, at: Math.floor(nowMs() / 1000), mine: true, pending: true,
+                author: { userid: me.userid, agentid: me.agentid, name: me.name, firstname: me.firstname }, cwid: cwid, conv: cwid ? cardOf(cwid) : null };
+            ed.innerHTML = '';
+            delete st.teamDrafts[r.key];
+            delete st.teamCards[r.key];
+            var att = el.chat.querySelector('.eq-adjunta');
+            if (att) {
+                att.remove();
+            }
+            r.pending = (r.pending || []).concat([m]);
+            renderRoomThread('end');
+            ed.focus();
+            teamDeliver(r, m);
+        }
+        function teamDeliver(r, m) {
+            // The conversation it was written in, although another one may be open by the time it goes.
+            var args = { action: 'send', id: r.id || 0, userid: r.id ? 0 : r.userid || 0, teamid: r.id ? 0 : r.teamid || 0, text: m.text, cwid: m.cwid || 0 };
+            var wasPicking = st.teamPick;
+            return loadTeam(args).then(function (res) {
+                r.pending = (r.pending || []).filter(function (x) {
+                    return x !== m;
+                });
+                if (st.room === r) {
+                    renderRoomThread('end');
+                }
+                // The first message to someone new: back to the list, where the conversation now is.
+                if (wasPicking && st.teamPick && st.inbox === 'team') {
+                    st.teamPick = false;
+                    st.teamQ = '';
+                    renderListHead();
+                    renderListBody();
+                }
+                pollSoon();
+                return res;
+            }).catch(function () {
+                m.pending = false;
+                m.failed = true;
+                if (st.room === r) {
+                    renderRoomThread();
+                }
+                return null;
+            });
+        }
+        function teamRetry(id) {
+            var r = st.room, m = r ? (r.pending || []).filter(function (x) {
+                return String(x.id) === String(id);
+            })[0] : null;
+            if (!m) {
+                return;
+            }
+            m.failed = false;
+            m.pending = true;
+            m.at = Math.floor(nowMs() / 1000);
+            r.pending = r.pending.filter(function (x) {
+                return x !== m;
+            }).concat([m]);
+            renderRoomThread('end');
+            teamDeliver(r, m);
+        }
+        function teamOlder() {
+            var r = st.room, first = r && (r.msgs || [])[0];
+            if (!r || !r.id || r.older || !r.more || !first) {
+                return;
+            }
+            r.older = true;
+            var b = el.chat.querySelector('[data-a="eqolder"]');
+            if (b) {
+                b.textContent = s('loading');
+            }
+            var args = roomArgs('older');
+            args.before = first.id;
+            loadTeam(args).then(function (res) {
+                r.older = false;
+                return res;
+            }).catch(function () {
+                r.older = false;
+                return null;
+            });
+        }
+        // The family's conversation of a card, with the permissions of always: in its own tray, out of the team's.
+        function openFamily(id) {
+            var go = function () {
+                if (conv(id)) {
+                    openConv(id);
+                } else {
+                    toast(s('eqcardnoaccess'), true);
+                }
+            };
+            if (conv(id)) {
+                go();
+                return;
+            }
+            tr.call(M.resolved, { id: id }).then(function (r) {
+                (r.conversations || []).forEach(mergeConv);
+                go();
+                return r;
+            }).catch(function () {
+                toast(s('eqcardnoaccess'), true);
+                return null;
+            });
+        }
+        // The poll says how many wait unread and whether anything moved: then the list, and what is open, are asked again.
+        function teamPolled(t) {
+            var open = st.inbox === 'team' && st.room && st.room.id && !conv(st.open);
+            var changed = t.rev !== st.teamRev;
+            // What arrives in the conversation open is read in a moment: the count waits for that, without a jump.
+            if (!(changed && open && !document.hidden)) {
+                st.teamUnread = +t.unread || 0;
+            }
+            // While the list is on its way, the change waits for the next poll.
+            if (!changed || READONLY || st.team === 'loading') {
+                return;
+            }
+            st.teamRev = t.rev;
+            if (open && !document.hidden) {
+                loadTeam(roomArgs('read')).catch(function () {
+                    return null;
+                });
+            } else if (st.team !== null) {
+                loadTeam().catch(function () {
+                    return null;
+                });
+            }
+        }
+        // Into the messages or the board: no conversation with a family stays open beside them.
+        function enterZone(key) {
+            if (!inZone()) {
+                st.lastTray = st.inbox;
+            }
+            st.inbox = key;
+            st.teamHalf = key;
+            st.open = 0;
+            st.msgs = [];
+            st.more = false;
+            st.nueva = null;
+            st.search = '';
+            st.showResolved = false;
+            if (key !== 'board') {
+                st.boardNew = null;
+                st.boardEdit = null;
+            }
+            if (key !== 'team') {
+                st.teamPick = false;
+                st.teamQ = '';
+            }
+            renderFicha();
+        }
+        // «Equipo» on a phone opens the half with something new; with both or neither, the last one.
+        function zoneHalf() {
+            var u = teamUnread(), b = boardToSee().length;
+            if (u && !b) {
+                return 'team';
+            }
+            if (b && !u) {
+                return 'board';
+            }
+            return st.teamHalf || 'team';
+        }
         function loadHistory(before) {
             if (st.history === 'loading') {
                 return;
@@ -2658,14 +3588,18 @@
            Chat: header, thread and composer
            --------------------------------------------------------------------------------------------------------------- */
         function renderChat() {
+            var c = conv(st.open);
+            el.chat.classList.toggle('eq-sala', !st.nueva && !c && inZone());
             if (st.nueva) {
                 renderNew();
                 return;
             }
-            var c = conv(st.open);
-            el.chat.classList.toggle('eq-sala', !c && st.inbox === 'board');
             if (!c && st.inbox === 'board') {
                 renderBoardPane();
+                return;
+            }
+            if (!c && st.inbox === 'team') {
+                renderTeamPane();
                 return;
             }
             if (!c) {
@@ -3201,6 +4135,16 @@
             if (st.nueva) {
                 closeNew();
             }
+            // The start belongs to the families' trays: from what is between the team, back to the last of those.
+            if (inZone()) {
+                st.inbox = st.lastTray || 'mine';
+                st.boardNew = null;
+                st.boardEdit = null;
+                st.teamPick = false;
+                st.teamQ = '';
+                renderRail();
+                renderListHead();
+            }
             st.open = 0;
             st.msgs = [];
             st.ficha = null;
@@ -3214,7 +4158,7 @@
             }
         }
         function renderHome() {
-            if (!st.ready || st.nueva || conv(st.open) || st.inbox === 'board') {
+            if (!st.ready || st.nueva || conv(st.open) || inZone()) {
                 return;
             }
             // Whoever is writing why they reject a send keeps the box as it is.
@@ -4303,6 +5247,12 @@
                 box2.insertAdjacentHTML('beforeend', popCanned(conv(st.open)));
             } else if (st.pop === 'mencion') {
                 box2.insertAdjacentHTML('beforeend', popMention());
+            } else if (st.pop === 'eqpasar' && st.room && !conv(st.open)) {
+                box2.insertAdjacentHTML('beforeend', popPassConv());
+            }
+            var pass = box2.querySelector('[data-v="eqpasar"]');
+            if (pass) {
+                pass.setAttribute('aria-expanded', String(st.pop === 'eqpasar'));
             }
         }
         function textBeforeCaret(ed) {
@@ -4978,6 +5928,17 @@
                 toast(s('toastnotfound'), true);
                 return;
             }
+            // From what is between the team (a card, a notice), the conversation opens in the tray where it is.
+            if (inZone()) {
+                st.inbox = c.section === 'resolved' ? 'history' : isMine(c) ? 'mine' : c.teamid ? 'team:' + c.teamid : !c.assignee ? 'unassigned' : 'mine';
+                st.boardNew = null;
+                st.boardEdit = null;
+                st.teamPick = false;
+                st.teamQ = '';
+                st.pop = null;
+                renderRail();
+                renderListHead();
+            }
             if (st.nueva) {
                 st.nueva = null;
                 clearTimeout(findT);
@@ -5208,6 +6169,9 @@
                 st.boardRev = r.board.rev;
                 loadBoard();
             }
+            if (r.team) {
+                teamPolled(r.team);
+            }
             (r.conversations || []).forEach(mergeConv);
             onNotices(r.notices);
             var goneOpen = false;
@@ -5242,6 +6206,13 @@
         }
         document.addEventListener('visibilitychange', function () {
             schedule(document.hidden ? interval() : 0);
+            // Back in sight with a conversation of the team open that got messages meanwhile: they are read now.
+            var it = !document.hidden && st.inbox === 'team' && !conv(st.open) && st.room && st.room.id ? roomItem() : null;
+            if (it && it.unread) {
+                loadTeam(roomArgs('read')).catch(function () {
+                    return null;
+                });
+            }
         });
 
         /* -------- Actions -------- */
@@ -6125,22 +7096,32 @@
                 } else {
                     u.searchParams.delete('c');
                 }
+                // A conversation of the team, as the notices link it (chat.php?eq=…).
+                if (st.inbox === 'team' && st.room && st.room.id) {
+                    u.searchParams.set('eq', String(st.room.id));
+                } else {
+                    u.searchParams.delete('eq');
+                }
                 history.replaceState(history.state, '', u.toString());
             } catch (e) {
                 // An app window without an address to change.
             }
         }
         function chooseInbox(key) {
-            if (key === 'board') {
-                st.open = 0;
-                st.nueva = null;
-                if (!st.boardNew && !boardItem(st.boardOpen)) {
+            if (key === 'equipo') {
+                key = zoneHalf();
+            }
+            if (key === 'board' || key === 'team') {
+                enterZone(key);
+                if (key === 'board' && !st.boardNew && !boardItem(st.boardOpen)) {
                     var first = boardToSee()[0] || boardItems()[0];
                     st.boardOpen = first ? first.id : 0;
                 }
             } else {
                 st.boardNew = null;
                 st.boardEdit = null;
+                st.teamPick = false;
+                st.teamQ = '';
             }
             st.inbox = key;
             st.search = '';
@@ -6154,6 +7135,24 @@
                 renderChat();
                 if (st.board === null) {
                     loadBoard();
+                }
+                return;
+            }
+            if (key === 'team') {
+                renderChat();
+                // On a computer, what waits unread (or the newest) opens on the right once the list is there.
+                if (teamData() && !st.room && !narrow()) {
+                    var top = teamList().filter(function (x) {
+                        return x.unread;
+                    })[0] || teamList()[0];
+                    if (top) {
+                        openRoom('c' + top.id, { keepLayer: true });
+                    }
+                } else if (teamData()) {
+                    // The one open is read again only where it is in sight, beside the list.
+                    loadTeam(st.room && st.room.id && !narrow() && !document.hidden ? roomArgs('read') : null).catch(function () {
+                        return null;
+                    });
                 }
                 return;
             }
@@ -6541,6 +7540,65 @@
                     st.board = null;
                     renderListBody();
                     break;
+                case 'eqopen':
+                    // Someone who already has a conversation opens it and the list comes back; someone new keeps «Write to…»
+                    // until the first message goes.
+                    if (/^c/.test(v) && (st.teamPick || st.teamQ)) {
+                        st.teamPick = false;
+                        st.teamQ = '';
+                        renderListHead();
+                    }
+                    openRoom(v);
+                    break;
+                case 'eqpick':
+                    if (st.inbox !== 'team') {
+                        chooseInbox('team');
+                    }
+                    st.teamPick = !st.teamPick;
+                    st.teamQ = '';
+                    renderListHead();
+                    renderListBody();
+                    if (narrow()) {
+                        setLayer('lista', true);
+                    }
+                    if (st.teamPick) {
+                        focusPop('[data-role="eqbuscar"]');
+                    }
+                    break;
+                case 'eqclear':
+                    st.teamQ = '';
+                    renderListHead();
+                    renderListBody();
+                    break;
+                case 'eqagain':
+                    st.team = null;
+                    renderListBody();
+                    break;
+                case 'eqsend':
+                    teamSend();
+                    break;
+                case 'eqretry':
+                    teamRetry(v);
+                    break;
+                case 'eqolder':
+                    teamOlder();
+                    break;
+                case 'eqconv':
+                    openFamily(+v);
+                    break;
+                case 'eqcard':
+                    chooseCard(+v);
+                    break;
+                case 'eqcardoff':
+                    if (st.room) {
+                        delete st.teamCards[st.room.key];
+                        renderRoomComposer();
+                        var edq = el.chat.querySelector('.eq-editor');
+                        if (edq && !touchy()) {
+                            caretToEnd(edq);
+                        }
+                    }
+                    break;
                 case 'optoutok':
                     st.optoutOk[v] = true;
                     if (st.nueva) {
@@ -6682,6 +7740,11 @@
                                 opener.focus();
                             }
                         }
+                    } else if (v === 'eqpasar') {
+                        // Passing a conversation: the search of the conversations takes the keys.
+                        st.passQ = '';
+                        refreshWritePop();
+                        focusPop(st.pop ? '.mrd-pop-eqpasar input' : '');
                     } else {
                         refreshWritePop();
                         var ed0 = el.chat.querySelector('.mrd-editor');
@@ -7015,6 +8078,23 @@
                 findSoon(t.value);
                 return;
             }
+            if (t.classList && t.classList.contains('eq-editor')) {
+                saveTeamDraft();
+                return;
+            }
+            if (t.getAttribute && t.getAttribute('data-role') === 'eqbuscar') {
+                st.teamQ = t.value;
+                var clearq = el.lista.querySelector('.mrd-limpiar');
+                if (clearq) {
+                    clearq.hidden = !st.teamQ;
+                }
+                renderListBody();
+                return;
+            }
+            if (t.getAttribute && t.getAttribute('data-role') === 'eqpasarbuscar') {
+                passSearch(t.value);
+                return;
+            }
             if (t.getAttribute && t.getAttribute('data-role') === 'buscar') {
                 st.search = t.value;
                 // A search looks in every conversation of whom it finds, whenever it was, not only in what is open.
@@ -7110,6 +8190,12 @@
                     findSoon('');
                     return;
                 }
+                if (t.getAttribute && t.getAttribute('data-role') === 'eqbuscar' && st.teamQ) {
+                    st.teamQ = '';
+                    t.value = '';
+                    renderListBody();
+                    return;
+                }
                 if (st.nueva) {
                     closeNew();
                 }
@@ -7128,6 +8214,26 @@
             }
             if (t.classList && t.classList.contains('mrd-hueco') && e.key === 'Enter') {
                 e.preventDefault();
+                return;
+            }
+            // Between the team: Enter sends, as with the families; Shift+Enter, a new line.
+            if (t.classList && t.classList.contains('eq-editor')) {
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !touchy()) {
+                    e.preventDefault();
+                    teamSend();
+                } else if (e.key === 'Enter' && e.shiftKey) {
+                    e.preventDefault();
+                    insertText('\n');
+                }
+                return;
+            }
+            // In the search of a conversation to pass, Enter takes the first one.
+            if (t.getAttribute && t.getAttribute('data-role') === 'eqpasarbuscar' && e.key === 'Enter') {
+                e.preventDefault();
+                var firstCard = el.chat.querySelector('.mrd-pop-eqpasar [data-a="eqcard"]');
+                if (firstCard) {
+                    chooseCard(+firstCard.getAttribute('data-v'));
+                }
                 return;
             }
             if (!(t.classList && t.classList.contains('mrd-editor'))) {
@@ -7178,7 +8284,12 @@
         box.addEventListener('scroll', function (e) {
             var t = e.target;
             if (t.classList && t.classList.contains('mrd-hilo')) {
-                if (t.scrollTop < 60 && st.more && !st.older) {
+                var room = st.inbox === 'team' && !conv(st.open) ? st.room : null;
+                if (room) {
+                    if (t.scrollTop < 60 && room.more && !room.older) {
+                        teamOlder();
+                    }
+                } else if (t.scrollTop < 60 && st.more && !st.older) {
                     loadOlder();
                 }
                 stuck = atBottom(t);
@@ -7252,8 +8363,22 @@
                 if (r.board) {
                     st.boardRev = r.board.rev;
                 }
+                if (r.team) {
+                    st.teamUnread = +r.team.unread || 0;
+                    st.teamRev = r.team.rev;
+                }
                 if (startCfg.aviso) {
                     st.boardOpen = +startCfg.aviso;
+                }
+                // A notice of a message of the team (chat.php?eq=…): «Mensajes», with that conversation open.
+                var wantTeam = READONLY ? 0 : +startCfg.team || 0;
+                if (READONLY && inZone()) {
+                    // Whoever only reads has no messages nor board between the team.
+                    st.inbox = 'mine';
+                } else if (wantTeam || st.inbox === 'team') {
+                    st.lastTray = !inZone() ? st.inbox : 'mine';
+                    st.inbox = 'team';
+                    st.teamHalf = 'team';
                 }
                 loadBoard();
                 loadSpend();
@@ -7280,6 +8405,8 @@
                         renderListBody();
                     }
                     openConv(want);
+                } else if (wantTeam) {
+                    openRoom('c' + wantTeam);
                 }
                 // Without a conversation in the address, the start: what is yours and what waits, before any conversation.
                 schedule(interval());

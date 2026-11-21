@@ -68,7 +68,8 @@ final class provider_test extends provider_testcase {
             'local_oksigeniamarandu_chatbackgrounds', 'local_oksigeniamarandu_hist', 'local_oksigeniamarandu_chattour',
             'local_oksigeniamarandu_chatsound', 'local_oksigeniamarandu_chatdesktop', 'local_oksigeniamarandu_convrem',
             'local_oksigeniamarandu_chatfavs', 'local_oksigeniamarandu_board', 'local_oksigeniamarandu_boardto', consent::OPTOUTS,
-            'local_oksigeniamarandu_bulk'],
+            'local_oksigeniamarandu_bulk', 'local_oksigeniamarandu_teamconv', 'local_oksigeniamarandu_teammsg',
+            'local_oksigeniamarandu_teamread'],
             $names
         );
     }

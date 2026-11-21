@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.53.0 (2026-11-21)
+
+- Messages of the team, in «Within the team» next to the board: between two people, and one conversation for each
+  department, which whoever is in it sees (with a line when somebody comes in or leaves). Never seen by a family: the
+  violet of the team, a plain surface, a band that says who sees it and square faces. A message is a text or the card
+  of a conversation with a family, to pass it on. The bell, the desktop, the app and Telegram tell of it (the notice
+  `team`, switched on wherever that of the conversations is), once until it is read or half an hour passes.
+- An account that passes to another person, or is deleted, takes its conversations between two people with it.
+- The poll of the screen brings the counts of the board, which it computed but did not declare: the board now moves by
+  itself.
+
 ## 0.52.1 (2026-11-21)
 
 - The guides of the staff, on the screen of 0.52: «Attend» (14 pages, with «Within the team» and «Who they are and the

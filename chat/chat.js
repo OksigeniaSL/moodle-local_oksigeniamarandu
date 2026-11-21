@@ -4334,7 +4334,6 @@
             }).filter(function (k) {
                 return marks.indexOf(k) < 0;
             }));
-            var hint = none && f.maybe && f.maybe.length ? s('qfmaybe', f.maybe[0].name) : '';
             var rows = order.map(function (k) {
                 var op = QF.filter(function (x) {
                     return x[0] === k;
@@ -4344,7 +4343,8 @@
                     return '<div class="qf-marcada">' + qfRow(op, true, false, '', k === 'family' && f.familyauto) +
                         (detail ? '<div class="qf-detalle">' + detail + '</div>' : '') + '</div>';
                 }
-                return qfRow(op, false, !none, k === 'family' ? hint : '', false);
+                // What may be the same family is already in its own block, above: no hint here.
+                return qfRow(op, false, !none, '', false);
             }).join('');
             var faces = marks.length > 1 ? '<div class="qf-caras"><span>' + esc(s('qffaces')) + '</span><div class="qf-caras-fila">' + marks.map(function (k) {
                 return '<button type="button" class="qf-cara" aria-pressed="' + (k === face) + '" data-a="qfface" data-v="' + k + '">' + qfFace(f, k) +

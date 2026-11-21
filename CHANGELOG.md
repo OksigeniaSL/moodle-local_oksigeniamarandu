@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.50.1 (2026-11-21)
+
+- «May be the same family» once: its block, not a hint in the row of the family as well (Jujol).
+
 ## 0.50.0 (2026-11-21)
 
 - «Who is it?» with several marks at once (family, staff, supplier, former pupil, other): each with the line it needs

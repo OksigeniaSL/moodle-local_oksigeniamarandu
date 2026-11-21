@@ -728,7 +728,6 @@ $string['chatui:qffaceshelp'] = 'La de lo primero que marcaste. Tócala para cam
 $string['chatui:qffamilyfile'] = 'De la ficha común de familias. Sale sola.';
 $string['chatui:qffromfile'] = 'Sale de la ficha común de familias: no se desmarca aquí.';
 $string['chatui:qfmarked'] = 'Marcado: {$a}.';
-$string['chatui:qfmaybe'] = 'Puede ser de la familia de {$a}';
 $string['chatui:qfnonehelp'] = 'Marca todo lo que sea: una profesora puede ser también madre de un alumno. Lo ve igual el resto del equipo.';
 $string['chatui:qfnotecompany'] = 'De qué empresa';
 $string['chatui:qfnotecompanyph'] = 'Su nombre';

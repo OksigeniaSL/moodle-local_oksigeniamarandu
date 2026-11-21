@@ -728,7 +728,6 @@ $string['chatui:qffaceshelp'] = 'The one of what you marked first. Touch another
 $string['chatui:qffamilyfile'] = 'From the common family records. It comes by itself.';
 $string['chatui:qffromfile'] = 'It comes from the common family records: it is not unmarked here.';
 $string['chatui:qfmarked'] = 'Marked: {$a}.';
-$string['chatui:qfmaybe'] = 'May be of the family of {$a}';
 $string['chatui:qfnonehelp'] = 'Mark all it is: a teacher can also be the mother of a pupil. The rest of the team sees the same.';
 $string['chatui:qfnotecompany'] = 'Which company';
 $string['chatui:qfnotecompanyph'] = 'Its name';

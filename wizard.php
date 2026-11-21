@@ -280,6 +280,8 @@ if ($step === 'account') {
         'phoneerror' => $errors['phone'] ?? '',
         // Only with the test number of Meta: it reaches only the phones added there.
         'testnumber' => test_message::is_test_number((string)get_config($component, 'displayphone')),
+        // What will reach the phone: the sample of Meta on a test number, the general notice of the site on a real one.
+        'bubble' => test_message::preview(),
         'sent' => $sent,
         'sitename' => $config->connectedname ?? '',
     ];

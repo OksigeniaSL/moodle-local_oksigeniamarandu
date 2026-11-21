@@ -274,6 +274,11 @@ final class queue_test extends \advanced_testcase {
         [$name, $lang, $components] = end($sample->sent);
         $this->assertSame(['mrd_local_oksigeniamarandu_notification', 'es'], [$name, $lang]);
         $this->assertSame(get_string('wizard:test:subject', 'local_oksigeniamarandu'), $components[0]['parameters'][1]['text']);
+        // The wizard shows what will go: the general notice on a real number, the sample of Meta on a test one.
+        set_config('displayphone', '+34 922 000 000', 'local_oksigeniamarandu');
+        $this->assertStringContainsString(get_string('wizard:test:subject', 'local_oksigeniamarandu'), test_message::preview());
+        set_config('displayphone', '+1 555 179 2486', 'local_oksigeniamarandu');
+        $this->assertSame('', test_message::preview());
         $this->assertTrue(test_message::is_test_number('+1 555 179 2486'));
         $this->assertFalse(test_message::is_test_number('+34 922 000 000'));
     }

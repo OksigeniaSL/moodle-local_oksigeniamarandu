@@ -157,8 +157,10 @@
             </div>
             <div class="mrd-chat" aria-label="{{#str}} wizard:test:preview, local_oksigeniamarandu {{/str}}">
                 <div class="mrd-who">{{sitename}}</div>
-                <div class="mrd-bubble"><b>Hello World</b><br>Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API.</div>
-                <div class="mrd-who mrd-left">{{#str}} wizard:test:english, local_oksigeniamarandu {{/str}}</div>
+                {{#bubble}}<div class="mrd-bubble">{{.}}</div>
+                <div class="mrd-who mrd-left">{{#str}} wizard:test:general, local_oksigeniamarandu {{/str}}</div>{{/bubble}}
+                {{^bubble}}<div class="mrd-bubble"><b>Hello World</b><br>Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API.</div>
+                <div class="mrd-who mrd-left">{{#str}} wizard:test:english, local_oksigeniamarandu {{/str}}</div>{{/bubble}}
             </div>
         </div>
     </section>

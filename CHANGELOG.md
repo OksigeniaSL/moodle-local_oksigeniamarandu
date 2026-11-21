@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.50.3 (2026-11-21)
+
+- The wizard shows the test message that will really reach the phone: on a real account, the general notice of the
+  site with its line of test, not the sample of Meta in English.
+
 ## 0.50.2 (2026-11-21)
 
 - The PNG copy of a logo drawn in SVG is made: the browser fetched it at an address Moodle does not serve (without its

@@ -58,6 +58,25 @@ class test_message {
     }
 
     /**
+     * What the test message will say on the phone, when it is not the sample of Meta: on a real number, the general
+     * notice of the site once approved, with its line of test.
+     *
+     * @return string The text; empty for the sample of Meta (a test number, or no general notice approved yet).
+     */
+    public static function preview(): string {
+        if (self::is_test_number((string)get_config('local_oksigeniamarandu', 'displayphone'))) {
+            return '';
+        }
+        $notice = notices::get('local_oksigeniamarandu', 'notification');
+        $template = $notice ? templates::approved($notice) : null;
+        if (!$template) {
+            return '';
+        }
+        $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
+        return queue::render($notice, [$site, get_string('wizard:test:subject', 'local_oksigeniamarandu')], $template->lang);
+    }
+
+    /**
      * Whether a number is a test number of Meta: those are of the United States, of the 555 numbers.
      *
      * @param string $number The number, as written.

@@ -28,6 +28,38 @@ namespace local_oksigeniamarandu\local;
 #[\PHPUnit\Framework\Attributes\CoversClass(cards::class)]
 final class cards_test extends \advanced_testcase {
     /**
+     * A logo of the site drawn in SVG: the browser of whoever administers fetches it where Moodle serves it and keeps its
+     * PNG copy, of the same shape; then the cards draw it.
+     */
+    public function test_svg_logo_copy(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">' .
+            '<rect width="300" height="100" fill="#164281"/></svg>';
+        get_file_storage()->create_file_from_string(['contextid' => \context_system::instance()->id, 'component' => 'core_admin',
+            'filearea' => 'logo', 'itemid' => 0, 'filepath' => '/', 'filename' => 'logo.svg'], $svg);
+        set_config('logo', '/logo.svg', 'core_admin');
+        // The browser fetches it where Moodle serves it: with its size and the revision of the theme in the path.
+        $todraw = cards::logos_to_draw();
+        $this->assertSame(['logo'], array_column($todraw, 'which'));
+        $this->assertMatchesRegularExpression('~/core_admin/logo/0x0/-?\d+/logo\.svg$~', $todraw[0]['url']);
+        $this->assertSame(3.0, $todraw[0]['aspect']);
+        $this->assertStringContainsString('data-mrd-logo', cards::logo_markup());
+        // A picture of another shape is not taken; its copy is, and then nothing is left to draw.
+        $png = function (int $w, int $h): string {
+            $image = imagecreatetruecolor($w, $h);
+            ob_start();
+            imagepng($image);
+            return (string)ob_get_clean();
+        };
+        $this->assertFalse(cards::keep_logo('logo', $png(600, 600)));
+        $this->assertTrue(cards::keep_logo('logo', $png(1200, 400)));
+        $this->assertSame([], cards::logos_to_draw());
+        $this->assertSame('', cards::logo_markup());
+        $this->assertSame(1200, imagesx(cards::logo()));
+    }
+
+    /**
      * Every template has its files and its zones.
      */
     public function test_templates(): void {

@@ -109,7 +109,8 @@ class marks {
                     $parts[] = ($notes['company'] ?? '') !== '' ? $notes['company'] : ($notes['offer'] ?? '');
                     break;
                 case 'alumni':
-                    $parts[] = ($notes['year'] ?? '') !== '' ? get_string('chat:marks:year', 'local_oksigeniamarandu', $notes['year']) : '';
+                    $year = $notes['year'] ?? '';
+                    $parts[] = $year !== '' ? get_string('chat:marks:year', 'local_oksigeniamarandu', $year) : '';
                     break;
                 case 'other':
                     $parts[] = $notes['other'] ?? '';

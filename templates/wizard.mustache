@@ -134,7 +134,7 @@
                     <div class="mrd-field mrd-blue">
                         <label for="mrd-phone">{{#str}} wizard:test:phone, local_oksigeniamarandu {{/str}}</label>
                         <input type="tel" id="mrd-phone" name="phone" autocomplete="tel" value="{{phone}}" {{#phoneerror}}class="bad" aria-describedby="mrd-phone-err"{{/phoneerror}}>
-                        <div class="mrd-help">{{#str}} wizard:test:phone_help, local_oksigeniamarandu {{/str}}</div>
+                        <div class="mrd-help">{{#str}} wizard:test:phone_help, local_oksigeniamarandu {{/str}}{{#testnumber}} {{#str}} wizard:test:phone_helptest, local_oksigeniamarandu {{/str}}{{/testnumber}}</div>
                         {{#phoneerror}}<div class="mrd-err" id="mrd-phone-err">{{{.}}}</div>{{/phoneerror}}
                     </div>
                     <div class="mrd-actions">

@@ -123,7 +123,7 @@ if ($action === 'connect' && confirm_sesskey()) {
         $errors['phone'] = get_string('error:phone', $component);
     } else {
         try {
-            test_message::start($to, cloud_api::from_config()->send_template($to, 'hello_world', 'en_US'), $typed['phone']);
+            test_message::start($to, test_message::send(cloud_api::from_config(), $to), $typed['phone']);
             redirect(new moodle_url($baseurl, ['step' => 'test']));
         } catch (api_exception $e) {
             $errors['phone'] = $e->getMessage();
@@ -278,6 +278,8 @@ if ($step === 'account') {
     $context['test'] = [
         'phone' => $typed['phone'] ?? ($state ? $state['typed'] ?? '+' . $state['phone'] : ''),
         'phoneerror' => $errors['phone'] ?? '',
+        // Only with the test number of Meta: it reaches only the phones added there.
+        'testnumber' => test_message::is_test_number((string)get_config($component, 'displayphone')),
         'sent' => $sent,
         'sitename' => $config->connectedname ?? '',
     ];

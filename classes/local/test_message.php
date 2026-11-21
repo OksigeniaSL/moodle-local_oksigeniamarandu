@@ -28,6 +28,46 @@ class test_message {
     private const CONFIG = 'teststate';
 
     /**
+     * Sends the test message: the sample template of Meta, which only the test accounts have; if the account has not got
+     * it, the general notice of the site, once Meta approved it, with the name of the site and a line that says it is a
+     * test.
+     *
+     * @param cloud_api $api The number of the site.
+     * @param string $to Digits with the country code.
+     * @return string The id Meta gives to the message.
+     * @throws api_exception If Meta takes neither.
+     */
+    public static function send(cloud_api $api, string $to): string {
+        try {
+            return $api->send_template($to, 'hello_world', 'en_US');
+        } catch (api_exception $e) {
+            $notice = notices::get('local_oksigeniamarandu', 'notification');
+            $template = $notice && $e->metacode === 132001 ? templates::approved($notice) : null;
+            if (!$template) {
+                throw $e;
+            }
+            $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
+            return $api->send_template($to, $template->name, notices::metalang($template->lang), [
+                ['type' => 'body', 'parameters' => [
+                    ['type' => 'text', 'text' => \core_text::substr($site, 0, 200)],
+                    ['type' => 'text', 'text' => get_string('wizard:test:subject', 'local_oksigeniamarandu')],
+                ]],
+                ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => 'prueba']]],
+            ]);
+        }
+    }
+
+    /**
+     * Whether a number is a test number of Meta: those are of the United States, of the 555 numbers.
+     *
+     * @param string $number The number, as written.
+     * @return bool
+     */
+    public static function is_test_number(string $number): bool {
+        return strpos(preg_replace('/\D/', '', $number), '1555') === 0;
+    }
+
+    /**
      * Starts following a test message that has just been sent.
      *
      * @param string $phone Digits with the country code.

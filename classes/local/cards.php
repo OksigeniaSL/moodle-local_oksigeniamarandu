@@ -1146,13 +1146,18 @@ class cards {
      * @return array Each with which, url and aspect.
      */
     public static function logos_to_draw(): array {
+        global $OUTPUT;
         $list = [];
         foreach (['logo', 'logocompact'] as $which) {
             $file = self::logo_file($which);
             if (!$file || $file->get_mimetype() !== 'image/svg+xml' || self::logo_bytes($which) !== null) {
                 continue;
             }
-            $url = \moodle_url::make_pluginfile_url($file->get_contextid(), 'core_admin', $which, 0, '/', $file->get_filename());
+            // The address Moodle itself serves the logo at: its size (0x0, as it is) and the revision of the theme in the path.
+            $url = $which === 'logo' ? $OUTPUT->get_logo_url(0, 0) : $OUTPUT->get_compact_logo_url(0, 0);
+            if (!$url) {
+                continue;
+            }
             $list[] = ['which' => $which, 'url' => $url->out(false), 'aspect' => round(self::svg_aspect($file), 4)];
         }
         return $list;

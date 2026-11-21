@@ -194,7 +194,7 @@ class chat_contact extends chat_base {
             $notes[$key] = new external_value(PARAM_TEXT, 'A line of its marks', VALUE_DEFAULT, '');
         }
         return new external_single_structure([
-            'kind' => new external_value(PARAM_ALPHA, 'Its face: family, applicant, both, staff, supplier, alumni, other or unknown'),
+            'kind' => new external_value(PARAM_ALPHA, 'Its face: family, applicant, both, staff, supplier, alumni, other, unknown'),
             'marks' => new external_multiple_structure(new external_value(PARAM_ALPHA, 'A mark'), 'Its marks, in their order'),
             'face' => new external_value(PARAM_ALPHA, 'The mark whose face it has, if chosen'),
             'notes' => new external_single_structure($notes),

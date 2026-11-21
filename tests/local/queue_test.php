@@ -229,6 +229,56 @@ final class queue_test extends \advanced_testcase {
     }
 
     /**
+     * The test message of the wizard: the sample template of Meta where the account has it; where not (a real account),
+     * the general notice of the site once approved; and the hint of the test number only with one.
+     */
+    public function test_wizard_test_message(): void {
+        $sample = new class ('1110000000', 'fake-token') extends cloud_api {
+            /** @var array What was sent. */
+            public $sent = [];
+
+            /** @var bool Whether the account has the sample template. */
+            public $hassample = true;
+
+            /**
+             * Keeps a template message, or refuses the sample one as a real account does.
+             *
+             * @param string $to Number.
+             * @param string $template Name.
+             * @param string $language Language.
+             * @param array $components Values.
+             * @return string
+             */
+            public function send_template(string $to, string $template, string $language, array $components = []): string {
+                if ($template === 'hello_world' && !$this->hassample) {
+                    throw new api_exception('error:templatenotfound', null, 132001);
+                }
+                $this->sent[] = [$template, $language, $components];
+                return 'wamid.W' . count($this->sent);
+            }
+        };
+        $this->assertSame('wamid.W1', test_message::send($sample, '34600000001'));
+        $this->assertSame('hello_world', $sample->sent[0][0]);
+        // A real account: without the general notice approved, the refusal of Meta, as it came.
+        $sample->hassample = false;
+        try {
+            test_message::send($sample, '34600000001');
+            $this->fail('No approved template to send');
+        } catch (api_exception $e) {
+            $this->assertSame(132001, $e->metacode);
+        }
+        $notice = notices::get('local_oksigeniamarandu', 'notification');
+        templates::submit($this->fake_api(), '2220000000', $notice, 'es');
+        templates::update_from_meta('mrd_local_oksigeniamarandu_notification', 'es', 'APPROVED');
+        test_message::send($sample, '34600000001');
+        [$name, $lang, $components] = end($sample->sent);
+        $this->assertSame(['mrd_local_oksigeniamarandu_notification', 'es'], [$name, $lang]);
+        $this->assertSame(get_string('wizard:test:subject', 'local_oksigeniamarandu'), $components[0]['parameters'][1]['text']);
+        $this->assertTrue(test_message::is_test_number('+1 555 179 2486'));
+        $this->assertFalse(test_message::is_test_number('+34 922 000 000'));
+    }
+
+    /**
      * Notify reaches the numbers that joined for the item, not the others nor those who left.
      */
     public function test_notify_reaches_who_joined(): void {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.50.2 (2026-11-21)
+
+- The PNG copy of a logo drawn in SVG is made: the browser fetched it at an address Moodle does not serve (without its
+  size and the revision of the theme), and got nothing.
+- The test message of the wizard on a real account: the sample template of Meta only exists in the test accounts; without
+  it, the general notice of the site goes, once approved, saying it is a test. The hint about the five phones of the test
+  number shows only with a test number.
+
 ## 0.50.1 (2026-11-21)
 
 - «May be the same family» once: its block, not a hint in the row of the family as well (Jujol).

@@ -69,7 +69,7 @@ class chat_agenda extends chat_base {
             'contactid' => new external_value(PARAM_INT, 'The contact, in Chatwoot'),
             'name' => new external_value(PARAM_TEXT, 'Its name'),
             'phone' => new external_value(PARAM_RAW, 'Its number, in digits'),
-            'kind' => new external_value(PARAM_ALPHA, 'Its face: family, applicant, both, staff, supplier, alumni, other or unknown'),
+            'kind' => new external_value(PARAM_ALPHA, 'Its face: family, applicant, both, staff, supplier, alumni, other, unknown'),
             'marks' => new external_multiple_structure(new external_value(PARAM_ALPHA, 'A mark'), 'Its marks', VALUE_DEFAULT, []),
             'note' => new external_value(PARAM_TEXT, 'The lines of its marks', VALUE_DEFAULT, ''),
             'line' => new external_value(PARAM_TEXT, 'Who it is, in a line'),

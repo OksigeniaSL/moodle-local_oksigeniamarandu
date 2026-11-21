@@ -4214,3 +4214,87 @@
         overflow: auto;
     }
 }
+
+/* The address book: favourites and the contacts of the centre; the star, also in the file of the contact. */
+#mrd-chat .mrd-agenda-fila {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid var(--linea);
+}
+#mrd-chat .mrd-grupo-t + .mrd-agenda-fila {
+    border-top-color: transparent;
+}
+#mrd-chat .mrd-agenda-c {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 6px 10px 14px;
+    text-align: start;
+}
+#mrd-chat .mrd-agenda-t {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+#mrd-chat .mrd-agenda-c .mrd-conv-hora {
+    flex: none;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+#mrd-chat .mrd-agenda-t small.mrd-agenda-escribir {
+    color: var(--acento-texto);
+    font-weight: 700;
+}
+#mrd-chat .mrd-agenda-t b,
+#mrd-chat .mrd-agenda-t small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#mrd-chat .mrd-agenda-t small {
+    color: var(--tinta-3);
+    font-size: 12.5px;
+}
+#mrd-chat .mrd-agenda-vacio {
+    margin: 0;
+    padding: 4px 16px 12px;
+    color: var(--tinta-3);
+    font-size: 13px;
+}
+#mrd-chat .mrd-estrella {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-inline-end: 8px;
+    border-radius: 999px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-estrella.mrd-on {
+    color: #e0a100;
+}
+#mrd-chat .mrd-estrella.mrd-on .mrd-i {
+    fill: currentcolor;
+}
+#mrd-chat .mrd-ficha-nombre {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+#mrd-chat .mrd-ficha-nombre h3 {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (hover: hover) {
+    #mrd-chat .mrd-agenda-fila:hover {
+        background: var(--hoja-2);
+    }
+    #mrd-chat .mrd-estrella:hover {
+        color: #e0a100;
+    }
+}

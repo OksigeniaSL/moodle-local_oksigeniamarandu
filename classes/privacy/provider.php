@@ -34,6 +34,7 @@ use core_privacy\local\request\writer;
 use local_oksigeniamarandu\external\chat_flag;
 use local_oksigeniamarandu\external\chat_prefs;
 use local_oksigeniamarandu\local\answers;
+use local_oksigeniamarandu\local\chat\agenda;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\reminders;
@@ -136,6 +137,7 @@ class provider implements
             'message' => 'privacy:metadata:chatwoot:message',
         ], 'privacy:metadata:chatwoot');
         $collection->add_user_preference(chat_prefs::PREFERENCE, 'privacy:metadata:preference:chatbackgrounds');
+        $collection->add_user_preference(agenda::PREF, 'privacy:metadata:preference:chatfavs');
         foreach (array_keys(chat_flag::FLAGS) as $name) {
             $collection->add_user_preference('local_oksigeniamarandu_chat' . $name, 'privacy:metadata:preference:chat' . $name);
         }
@@ -267,6 +269,15 @@ class provider implements
                 chat_prefs::PREFERENCE,
                 $value,
                 get_string('privacy:metadata:preference:chatbackgrounds', 'local_oksigeniamarandu')
+            );
+        }
+        $value = get_user_preferences(agenda::PREF, null, $userid);
+        if ($value !== null) {
+            writer::export_user_preference(
+                'local_oksigeniamarandu',
+                agenda::PREF,
+                $value,
+                get_string('privacy:metadata:preference:chatfavs', 'local_oksigeniamarandu')
             );
         }
         foreach (array_keys(chat_flag::FLAGS) as $name) {

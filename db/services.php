@@ -104,6 +104,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_agenda' => [
+        'classname' => \local_oksigeniamarandu\external\chat_agenda::class,
+        'description' => 'The address book of the conversations: the favourites of the person and the contacts of the centre.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_remind' => [
         'classname' => \local_oksigeniamarandu\external\chat_remind::class,
         'description' => 'Asks to have a conversation of the team back on a day, with a line of what for, or takes it away.',

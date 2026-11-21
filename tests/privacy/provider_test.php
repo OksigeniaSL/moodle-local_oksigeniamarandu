@@ -65,7 +65,8 @@ final class provider_test extends provider_testcase {
             'local_oksigeniamarandu_answer', 'local_oksigeniamarandu_post', 'telegram', 'whatsapp', 'forward',
             'local_oksigeniamarandu_conv', 'local_oksigeniamarandu_convseen', 'local_oksigeniamarandu_convmsg', 'chatwoot',
             'local_oksigeniamarandu_chatbackgrounds', 'local_oksigeniamarandu_hist', 'local_oksigeniamarandu_chattour',
-            'local_oksigeniamarandu_chatsound', 'local_oksigeniamarandu_chatdesktop', 'local_oksigeniamarandu_convrem'], $names);
+            'local_oksigeniamarandu_chatsound', 'local_oksigeniamarandu_chatdesktop', 'local_oksigeniamarandu_convrem',
+            'local_oksigeniamarandu_chatfavs'], $names);
     }
 
     /**

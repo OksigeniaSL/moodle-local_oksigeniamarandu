@@ -18,6 +18,7 @@ namespace local_oksigeniamarandu\local;
 
 use core_external\external_api;
 use local_oksigeniamarandu\external\chat_action;
+use local_oksigeniamarandu\external\chat_agenda;
 use local_oksigeniamarandu\external\chat_contact;
 use local_oksigeniamarandu\external\chat_find;
 use local_oksigeniamarandu\external\chat_flag;
@@ -52,6 +53,7 @@ use local_oksigeniamarandu\local\chat\viewer;
  * @covers     \local_oksigeniamarandu\local\chat\notify
  * @covers     \local_oksigeniamarandu\local\chat\starter
  * @covers     \local_oksigeniamarandu\local\chat\reminders
+ * @covers     \local_oksigeniamarandu\local\chat\agenda
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mirror::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(hours::class)]
@@ -63,6 +65,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\notify::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(starter::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\reminders::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\agenda::class)]
 final class chat_test extends \advanced_testcase {
     /** Monday 16 November 2026 at 12:00 in the Canary Islands (UTC). */
     private const MONDAY_NOON = 1794830400;
@@ -797,6 +800,35 @@ final class chat_test extends \advanced_testcase {
 
         $this->expectException(\invalid_parameter_exception::class);
         chat\reminders::set($viewer, $row, '2026-11-16', '', $hours, self::MONDAY_NOON);
+    }
+
+    /**
+     * The address book: the favourites of the person, the last starred first, and the contacts of the centre by what
+     * they are, each with the latest conversation the person sees, or none.
+     */
+    public function test_agenda(): void {
+        global $DB;
+        mirror::sync();
+        $DB->set_field(mirror::TABLE, 'kind', 'supplier', ['cwid' => 2]);
+        $DB->set_field(mirror::TABLE, 'kind', 'staff', ['cwid' => 3]);
+        $ana = $this->person('ana@example.com', 'Ana');
+        $this->setUser($ana);
+        $this->assertSame([], chat\agenda::favourites((int)$ana->id));
+        $book = external_api::clean_returnvalue(chat_agenda::execute_returns(), chat_agenda::execute(101, true));
+        $this->assertSame([101], chat\agenda::favourites((int)$ana->id));
+        $this->assertSame([[101, 'Laura Martín', 1, true]], array_map(function ($contact) {
+            return [$contact['contactid'], $contact['name'], $contact['conversation'], $contact['favourite']];
+        }, $book['favourites']));
+        // The supplier is of a department Ana does not see: it is there, with nothing to open.
+        $this->assertSame([['supplier', [[102, 0]]], ['staff', [[103, 3]]]], array_map(function ($group) {
+            return [$group['kind'], array_map(function ($contact) {
+                return [$contact['contactid'], $contact['conversation']];
+            }, $group['contacts'])];
+        }, $book['groups']));
+        chat_agenda::execute(103, true);
+        $this->assertSame([103, 101], chat\agenda::favourites((int)$ana->id));
+        $book = external_api::clean_returnvalue(chat_agenda::execute_returns(), chat_agenda::execute(101, false));
+        $this->assertSame([103], array_column($book['favourites'], 'contactid'));
     }
 
     /**

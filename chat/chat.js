@@ -17,6 +17,7 @@
         find: 'local_oksigeniamarandu_chat_find',
         resolved: 'local_oksigeniamarandu_chat_resolved',
         remind: 'local_oksigeniamarandu_chat_remind',
+        agenda: 'local_oksigeniamarandu_chat_agenda',
         flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start'
     };
@@ -93,6 +94,7 @@
         abajo: '<path d="M6 9.5l6 6 6-6"/>',
         play: '<path d="M7 4.5v15l12.5-7.5z"/>',
         pausa: '<path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z"/>',
+        estrella: '<path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>',
         gente: '<circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.5c1-3.4 3.4-5.2 6.2-5.2s5.2 1.8 6.2 5.2"/>' +
             '<circle cx="16.8" cy="9.5" r="2.7"/><path d="M16.4 14.4c2.4.2 4.1 1.8 4.8 4.6"/>',
         luna: '<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.4 6.4 0 0 0 10 10z"/>',
@@ -248,6 +250,11 @@
         var READONLY = !!me.readonly;
         // Small choices of the person, kept on the site: the tour seen, the sound of the notices, notices on this computer.
         var FLAGS = cfg.flags || { tour: '', sound: 'on', desktop: '' };
+        // The contacts the person starred: their address book starts with them.
+        var FAVS = {};
+        (cfg.favs || []).forEach(function (id) {
+            FAVS[id] = true;
+        });
         var POLLMS = Math.max(1500, +cfg.pollms || 4000);
 
         function s(key, a) {
@@ -542,7 +549,7 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            rem: { day: '', reason: '' }, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false,
+            rem: { day: '', reason: '' }, agenda: null, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: false,
             hf: { mine: false, team: 0, period: '' }, hits: {}, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
             ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
@@ -1565,7 +1572,8 @@
                 }
             }
             // The history: everything resolved, whenever it was, also what was said on WhatsApp before the chat.
-            h += '<div class="mrd-rail-historia">' + trayButton('history', 'libro', s('history'), [s('historyline')], 0) + '</div>';
+            h += '<div class="mrd-rail-historia">' + trayButton('history', 'libro', s('history'), [s('historyline')], 0) +
+                trayButton('agenda', 'estrella', s('agenda'), [s('agendaline')], 0) + '</div>';
             h += legendHtml();
             var sig = me.signature ? '<small title="' + esc(s('signature', me.signature)) + '">' + ico('lapiz') + '<span>' + esc(me.signature) +
                 '</span></small>' : '';
@@ -1636,6 +1644,9 @@
             if (st.inbox === 'history') {
                 return s('history');
             }
+            if (st.inbox === 'agenda') {
+                return s('agenda');
+            }
             if (st.inbox === 'mine') {
                 return s('mine');
             }
@@ -1650,6 +1661,9 @@
         function inboxSub() {
             if (st.inbox === 'history') {
                 return s('historysub');
+            }
+            if (st.inbox === 'agenda') {
+                return s('agendasub');
             }
             var reply = allConvs().filter(function (c) {
                 return c.section === 'reply' && inInbox(c, st.inbox);
@@ -1840,6 +1854,11 @@
                 body.scrollTop = keep;
                 return;
             }
+            if (st.inbox === 'agenda') {
+                body.innerHTML = agendaHtml();
+                body.scrollTop = keep;
+                return;
+            }
             var reply = all.filter(function (c) {
                 return c.section === 'reply';
             }).sort(byWait);
@@ -2020,6 +2039,112 @@
                     '</div>';
             }
             return h;
+        }
+        /* The address book: the favourites of the person, then the contacts of the centre by what they are (as anyone of
+           the team marks them in their file). Each opens its latest conversation, or «New» with its number. */
+        function loadAgenda(star, on) {
+            if (st.agenda === 'loading' && !star) {
+                return;
+            }
+            if (!st.agenda || typeof st.agenda !== 'object') {
+                st.agenda = 'loading';
+            }
+            tr.call(M.agenda, star ? { star: star, on: on } : {}).then(function (r) {
+                st.agenda = r;
+                FAVS = {};
+                (r.favourites || []).forEach(function (x) {
+                    FAVS[x.contactid] = true;
+                });
+                if (star) {
+                    // A star put on someone with no conversation in the index stays, as the person said.
+                    if (on) {
+                        FAVS[star] = true;
+                    }
+                }
+                if (st.inbox === 'agenda') {
+                    renderListBody();
+                }
+                return r;
+            }).catch(function (e) {
+                if (typeof st.agenda !== 'object') {
+                    st.agenda = 'error';
+                }
+                if (st.inbox === 'agenda') {
+                    renderListBody();
+                }
+                if (star) {
+                    failToast(e);
+                }
+            });
+        }
+        // A contact: its name and, among the favourites, what it is; on the right, when it last spoke, as in the lists.
+        function agendaRow(inGroup) {
+            return function (x) {
+                var ct = { id: x.contactid, name: x.name, phone: x.phone, kind: x.kind || 'unknown', rings: [] };
+                var line = [!inGroup && x.kind ? s(KIND_LABEL[x.kind]) : '', x.conversation ? '' : s('agendawrite')].filter(Boolean).join(' · ');
+                return '<div class="mrd-agenda-fila"><button type="button" class="mrd-agenda-c" data-a="agendaopen" data-v="' + x.contactid + '">' +
+                    avContact(ct) + '<span class="mrd-agenda-t"><b>' + esc(x.name || fmtPhone(x.phone)) + '</b>' +
+                    (line ? '<small' + (x.conversation ? '' : ' class="mrd-agenda-escribir"') + '>' + esc(line) + '</small>' : '') + '</span>' +
+                    (x.lastactivity ? '<span class="mrd-conv-hora">' + esc(listTime(x.lastactivity * 1000)) + '</span>' : '') + '</button>' +
+                    starButton(x.contactid) + '</div>';
+            };
+        }
+        function starButton(id) {
+            if (!id) {
+                return '';
+            }
+            var on = !!FAVS[id];
+            return '<button type="button" class="mrd-estrella' + (on ? ' mrd-on' : '') + '" data-a="fav" data-v="' + id + '" aria-pressed="' + on +
+                '" aria-label="' + esc(s(on ? 'favoff' : 'favon')) + '" title="' + esc(s(on ? 'favoff' : 'favon')) + '">' + ico('estrella') + '</button>';
+        }
+        function agendaHtml() {
+            if (st.agenda === null) {
+                loadAgenda();
+            }
+            if (st.agenda === null || st.agenda === 'loading') {
+                return '<div class="mrd-resueltas-estado">' + esc(s('resolvedloading')) + '</div>';
+            }
+            if (st.agenda === 'error') {
+                return '<div class="mrd-resueltas-estado">' + esc(s('resolvederror')) + ' <button type="button" class="mrd-ver-resueltas" data-a="agendaagain">' +
+                    esc(s('retry')) + '</button></div>';
+            }
+            var a = st.agenda, h = '<div class="mrd-grupo-t">' + ico('estrella') + esc(s('agendafav')) +
+                (a.favourites.length ? ' <span>' + a.favourites.length + '</span>' : '') + '</div>';
+            h += a.favourites.length ? a.favourites.map(agendaRow(false)).join('') : '<p class="mrd-agenda-vacio">' + esc(s('agendafavnone')) + '</p>';
+            a.groups.forEach(function (g) {
+                h += '<div class="mrd-grupo-t">' + esc(s('agendakind' + g.kind)) + ' <span>' + g.contacts.length + '</span></div>' +
+                    g.contacts.map(agendaRow(true)).join('');
+            });
+            if (!a.groups.length) {
+                h += '<p class="mrd-agenda-vacio">' + esc(s('agendanone')) + '</p>';
+            }
+            return h;
+        }
+        function agendaContact(id) {
+            var a = st.agenda && typeof st.agenda === 'object' ? st.agenda : { favourites: [], groups: [] };
+            var all = a.favourites.slice();
+            a.groups.forEach(function (g) {
+                all = all.concat(g.contacts);
+            });
+            return all.filter(function (x) {
+                return x.contactid === id;
+            })[0] || null;
+        }
+        function openAnyConv(id) {
+            if (conv(id)) {
+                openConv(id);
+                return;
+            }
+            // An old one, resolved long ago: the page asks for it.
+            tr.call(M.resolved, { id: id }).then(function (r) {
+                (r.conversations || []).forEach(mergeConv);
+                if (conv(id)) {
+                    openConv(id);
+                } else {
+                    toast(s('toastnotfound'), true);
+                }
+                return r;
+            }).catch(failToast);
         }
         function loadHistory(before) {
             if (st.history === 'loading') {
@@ -3400,7 +3525,8 @@
             var changed = f.changed && f.changed.text && (!f.changed.until || f.changed.until * 1000 > nowMs())
                 ? '<p class="mrd-recien">' + ico('check') + esc(f.changed.text) + '</p>' : '';
             return '<div class="mrd-ficha-cab"><button type="button" class="mrd-volver" data-a="back" data-v="chat">' + ico('izq') + esc(s('backtochat')) +
-                '</button><span class="mrd-origenes">' + o + '</span><h3>' + esc(f.title || (c.contact && c.contact.name) || '') + '</h3>' +
+                '</button><span class="mrd-origenes">' + o + '</span><div class="mrd-ficha-nombre"><h3>' + esc(f.title || (c.contact && c.contact.name) || '') +
+                '</h3>' + (READONLY ? '' : starButton(c.contact && c.contact.id)) + '</div>' +
                 (f.line && kind !== 'family' && kind !== 'both' ? '<p>' + esc(f.line) + '</p>' : '') + phoneRow + changed + '</div>';
         }
         function maybeHtml(f, c) {
@@ -4878,20 +5004,34 @@
                     openConv(+v);
                     break;
                 case 'otherconv':
-                    if (conv(+v)) {
-                        openConv(+v);
-                    } else {
-                        // An old one, resolved long ago: the page asks for it.
-                        tr.call(M.resolved, { id: +v }).then(function (r) {
-                            (r.conversations || []).forEach(mergeConv);
-                            if (conv(+v)) {
-                                openConv(+v);
-                            } else {
-                                toast(s('toastnotfound'), true);
-                            }
-                            return r;
-                        }).catch(failToast);
+                    openAnyConv(+v);
+                    break;
+                case 'agendaopen':
+                    var who = agendaContact(+v);
+                    if (who && who.conversation) {
+                        openAnyConv(who.conversation);
+                    } else if (who && !READONLY) {
+                        // Nothing to open: «New», with its number already looked up.
+                        openNew();
+                        findSoon('+' + who.phone);
+                        renderNew();
                     }
+                    break;
+                case 'agendaagain':
+                    st.agenda = null;
+                    renderListBody();
+                    break;
+                case 'fav':
+                    var was = !!FAVS[+v];
+                    if (was) {
+                        delete FAVS[+v];
+                    } else {
+                        FAVS[+v] = true;
+                    }
+                    t.classList.toggle('mrd-on', !was);
+                    t.setAttribute('aria-pressed', String(!was));
+                    toast(s(was ? 'favremoved' : 'favadded'));
+                    loadAgenda(+v, !was);
                     break;
                 case 'capa':
                     setLayer(v, true);

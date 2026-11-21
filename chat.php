@@ -129,6 +129,7 @@ $config = [
     'start' => ['conversation' => $conversation, 'inbox' => $tray !== '' ? $tray : 'mine'],
     'backgrounds' => chat_prefs::current(),
     'flags' => \local_oksigeniamarandu\external\chat_flag::current(),
+    'favs' => \local_oksigeniamarandu\local\chat\agenda::favourites((int)$USER->id),
     'guides' => $guides,
     'stages' => array_map(function ($stage) {
         return ['label' => $stage['label'], 'color' => $stage['color'], 'dark' => $stage['dark']];

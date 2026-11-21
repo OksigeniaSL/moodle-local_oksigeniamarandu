@@ -45,6 +45,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'colors' => null,
     'stages' => null,
     'team-names' => null,
+    'prices' => null,
     'start-templates' => null,
     'templates-info' => null,
     'sync' => false,
@@ -81,6 +82,8 @@ Options:
                        pattern of the group, show a pattern of the part of the group that is shown.
 --team-names=JSON      The name to show of each department, by its name in Chatwoot, which keeps them in small letters:
                        {\"dirección de eso\": \"Dirección de ESO\"}. Without one, its first letter in capitals.
+--prices=JSON          What a message of each category costs, for the cards of the approved messages, cheapest first:
+                       {\"currency\": \"EUR\", \"utility\": 0.02, \"marketing\": 0.06, \"authentication\": 0.03}.
 --start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
                        separated: they go first when a person starts a conversation.
 --templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title,
@@ -194,6 +197,14 @@ try {
         set_config('chatteamnames', $clean ? json_encode($clean, JSON_UNESCAPED_UNICODE) : '', $component);
         \local_oksigeniamarandu\local\chat\directory::forget();
         mtrace('Departments with a name of their own: ' . count($clean));
+    }
+    if ($options['prices'] !== null) {
+        $prices = json_decode($options['prices'], true);
+        if (!is_array($prices)) {
+            cli_error('--prices is a JSON object');
+        }
+        set_config('chatprices', json_encode($prices), $component);
+        mtrace('Prices: ' . json_encode(\local_oksigeniamarandu\local\chat\templates::prices()));
     }
     if ($options['start-templates'] !== null) {
         $names = array_filter(array_map('trim', explode(',', $options['start-templates'])), 'strlen');

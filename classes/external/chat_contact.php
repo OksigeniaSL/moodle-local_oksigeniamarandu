@@ -21,6 +21,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_oksigeniamarandu\local\chat\family;
+use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\starter;
 
@@ -91,7 +92,7 @@ class chat_contact extends chat_base {
         }
         $result = ['kind' => $kind, 'title' => (string)$row->name, 'phone' => (string)$row->phone, 'line' => '',
             'children' => [], 'services' => [], 'contacts' => [], 'rows' => [], 'source' => '', 'conversations' => $others,
-            'maybe' => []];
+            'maybe' => [], 'optout' => self::optout((string)$row->phone)];
         $family = $kind === 'unknown' ? family::of_phone((string)$row->phone) : null;
         if ($family) {
             $kind = $result['kind'] = 'family';
@@ -121,6 +122,36 @@ class chat_contact extends chat_base {
             ];
         }
         return $result;
+    }
+
+    /**
+     * What this number said no to, and the trail: so that whoever writes to it knows, and since when.
+     *
+     * @param string $phone The number, in digits.
+     * @return array all (since when, or 0), scopes (scope, name, since) and trail (action, source, scope, name, time).
+     */
+    protected static function optout(string $phone): array {
+        global $DB;
+        $none = ['all' => 0, 'scopes' => [], 'trail' => []];
+        $contact = $phone === '' ? null : $DB->get_record(consent::CONTACTS, ['phone' => $phone]);
+        if (!$contact) {
+            return $none;
+        }
+        $name = function (string $scope): string {
+            if ($scope === 'all') {
+                return '';
+            }
+            return get_string_manager()->string_exists('marandu:label', $scope) ? get_string('marandu:label', $scope) : $scope;
+        };
+        $now = consent::optout_now($contact);
+        $scopes = [];
+        foreach ($now['scopes'] as $scope => $since) {
+            $scopes[] = ['scope' => (string)$scope, 'name' => $name((string)$scope), 'since' => $since];
+        }
+        $trail = array_map(function ($step) use ($name) {
+            return $step + ['name' => $name($step['scope'])];
+        }, consent::trail((int)$contact->id, 8));
+        return ['all' => $now['all'], 'scopes' => $scopes, 'trail' => $trail];
     }
 
     /**
@@ -199,6 +230,21 @@ class chat_contact extends chat_base {
                 'name' => new external_value(PARAM_TEXT, 'Its contact'),
                 'reason' => new external_value(PARAM_TEXT, 'Why they may be the same'),
             ])),
+            'optout' => new external_single_structure([
+                'all' => new external_value(PARAM_INT, 'Since when it wants nothing from the centre; 0 if it does'),
+                'scopes' => new external_multiple_structure(new external_single_structure([
+                    'scope' => new external_value(PARAM_COMPONENT, 'The plugin whose messages it does not want'),
+                    'name' => new external_value(PARAM_TEXT, 'Its name'),
+                    'since' => new external_value(PARAM_INT, 'Since when'),
+                ])),
+                'trail' => new external_multiple_structure(new external_single_structure([
+                    'action' => new external_value(PARAM_ALPHA, 'optin or optout'),
+                    'source' => new external_value(PARAM_TEXT, 'Where it was asked'),
+                    'scope' => new external_value(PARAM_RAW, 'all, or a plugin'),
+                    'name' => new external_value(PARAM_TEXT, 'The name of the plugin, if any'),
+                    'time' => new external_value(PARAM_INT, 'When'),
+                ])),
+            ], 'What this number said no to, and the trail', VALUE_DEFAULT, ['all' => 0, 'scopes' => [], 'trail' => []]),
         ]);
     }
 }

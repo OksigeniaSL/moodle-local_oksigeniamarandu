@@ -102,6 +102,49 @@ final class api_test extends \advanced_testcase {
     }
 
     /**
+     * One decision of not wanting messages, wherever it is taken: a plugin says it for its item, with a scope (only its
+     * notices) or for everything; writing again takes it back on that channel; the trail keeps it all, with dates.
+     */
+    public function test_optout_single(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $code = api::invite('local_oksigeniamarandu', 7);
+        consent::optin_from_message('34600000001', $code, 'join');
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => '34600000001']);
+
+        // Only what admissions sends.
+        $this->assertSame(1, api::set_optout('local_oksigeniamarandu', 7, 'local_oksigeniaeguahe', true, 'eguahe:family'));
+        $this->assertSame(0, api::set_optout('local_oksigeniamarandu', 7, 'local_oksigeniaeguahe', true, 'eguahe:family'));
+        $contact = $DB->get_record(consent::CONTACTS, ['id' => $contact->id]);
+        $this->assertTrue(consent::out_of($contact, 'local_oksigeniaeguahe'));
+        $this->assertFalse(consent::out_of($contact, 'local_oksigeniameals'));
+        $state = api::optout_state('local_oksigeniamarandu', 7)[0];
+        $this->assertSame(
+            ['whatsapp', 0, ['local_oksigeniaeguahe']],
+            [$state['channel'], $state['all'], array_keys($state['scopes'])]
+        );
+        $this->assertSame(
+            ['optout', 'eguahe:family', 'local_oksigeniaeguahe'],
+            [$state['trail'][0]['action'], $state['trail'][0]['source'], $state['trail'][0]['scope']]
+        );
+
+        // Writing again takes it back.
+        \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola de nuevo', time(), 'wamid.X', null);
+        $state = api::optout_state('local_oksigeniamarandu', 7)[0];
+        $this->assertSame([], $state['scopes']);
+        $this->assertSame(['optin', 'wrote'], [$state['trail'][0]['action'], $state['trail'][0]['source']]);
+
+        // Nothing of the centre, and back again by writing.
+        api::set_optout('local_oksigeniamarandu', 7, 'all', true, 'chat');
+        $contact = $DB->get_record(consent::CONTACTS, ['id' => $contact->id]);
+        $this->assertTrue(consent::out_of($contact, 'local_oksigeniameals'));
+        $this->assertFalse(api::has_active_contact('local_oksigeniamarandu', 7));
+        $this->assertTrue(consent::lift('34600000001', 'wamid.Y'));
+        $this->assertTrue(api::has_active_contact('local_oksigeniamarandu', 7));
+        $this->assertFalse(consent::lift('34600000001', 'wamid.Z'));
+    }
+
+    /**
      * A plugin with two kinds of item, such as the diners of a canteen and its kitchen: each kind has its own codes and
      * its own numbers, and the notices of one do not reach the other.
      */

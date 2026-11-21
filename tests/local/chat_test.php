@@ -914,6 +914,35 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
+     * What a number said no to shows in its file, with the trail; the team marks it from the chat, and writing again
+     * takes it back. The price of each category is what the centre says, or a rough one.
+     */
+    public function test_optout_in_chat_and_prices(): void {
+        mirror::sync();
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $file = function () {
+            return external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1))['optout'];
+        };
+        $this->assertSame(['all' => 0, 'scopes' => [], 'trail' => []], $file());
+        chat_action::execute(1, 'optout', 0, 'out');
+        $said = $file();
+        $this->assertGreaterThan(0, $said['all']);
+        $step = $said['trail'][0];
+        $this->assertSame(['optout', 'chat:Ana', 'all'], [$step['action'], $step['source'], $step['scope']]);
+        \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola', time(), 'wamid.Z', null);
+        $said = $file();
+        $this->assertSame([0, 'optin', 'wrote'], [$said['all'], $said['trail'][0]['action'], $said['trail'][0]['source']]);
+
+        $this->assertSame(templates::PRICES, templates::prices());
+        $set = ['utility' => 0.0166, 'marketing' => 'x', 'currency' => 'USD'];
+        set_config('chatprices', json_encode($set), 'local_oksigeniamarandu');
+        $this->assertSame(
+            ['currency' => 'USD', 'utility' => 0.0166, 'marketing' => 0.06, 'authentication' => 0.03],
+            templates::prices()
+        );
+    }
+
+    /**
      * From Telegram, whoever linked their chat keeps a conversation, leaves a note replying to its notice and passes it
      * to another department with the button of that department.
      */

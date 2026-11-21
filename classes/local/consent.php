@@ -33,6 +33,9 @@ class consent {
     /** Table of the opt-ins and opt-outs, kept as proof. */
     public const LOG = 'local_oksigeniamarandu_consent';
 
+    /** What a number or a chat said no to, short of everything: the notices of one plugin. */
+    public const OPTOUTS = 'local_oksigeniamarandu_optout';
+
     /** Wrong codes a number may write before it has to wait. */
     private const WRONG_TRIES = 5;
 
@@ -127,13 +130,22 @@ class consent {
             $adultids = family::adults($phone);
         }
         $contact = self::get_or_create($phone, $name);
+        $wasout = $contact->status === 'optedout' || $DB->record_exists(self::OPTOUTS, ['contactid' => $contact->id]);
         self::set_status($contact, 'optin', 'keyword', $detail);
+        $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id]);
         if ($link && !$link->contactid) {
             $link->contactid = $contact->id;
             $link->timeclaimed = time();
             $DB->update_record(self::LINKS, $link);
         }
         family::link((int)$contact->id, $adultids);
+        if ($wasout) {
+            self::tell($contact, false, 'keyword');
+        }
+        // The plugin of the code hears that someone joined for it, and by which channel.
+        if ($link && $link->component !== '' && $link->component !== 'core') {
+            self::callback($link->component, 'marandu_joined', [(int)$link->itemid, (string)$contact->channel, time()]);
+        }
         return 'optin';
     }
 
@@ -185,7 +197,156 @@ class consent {
     public static function optout(string $phone, string $source, string $detail): \stdClass {
         $contact = self::get_or_create($phone);
         self::set_status($contact, 'optout', $source, $detail);
+        self::tell($contact, true, $source);
         return $contact;
+    }
+
+    /**
+     * Whether a contact takes nothing from a plugin: out of everything, or out of what that plugin sends.
+     *
+     * @param \stdClass $contact The contact.
+     * @param string $component The plugin of the notice.
+     * @return bool
+     */
+    public static function out_of(\stdClass $contact, string $component): bool {
+        global $DB;
+        return $contact->status === 'optedout'
+            || $DB->record_exists(self::OPTOUTS, ['contactid' => $contact->id, 'scope' => $component]);
+    }
+
+    /**
+     * Puts or takes away what a contact said no to: everything (all) or the notices of a plugin, with its proof.
+     *
+     * @param \stdClass $contact The contact, updated in place.
+     * @param string $scope all, or a plugin.
+     * @param bool $out No more.
+     * @param string $source Where it was asked: keyword, wrote, chat, or what the plugin says (eguahe:family…).
+     * @param string $except A plugin not to tell, because it asked for it.
+     * @return bool Whether anything changed.
+     */
+    public static function set_optout(\stdClass $contact, string $scope, bool $out, string $source, string $except = ''): bool {
+        global $DB;
+        $source = \core_text::substr($source, 0, 100);
+        if ($scope === 'all') {
+            if ($out === ($contact->status === 'optedout')) {
+                return false;
+            }
+            self::set_status($contact, $out ? 'optout' : 'optin', $source, '');
+        } else {
+            $row = $DB->get_record(self::OPTOUTS, ['contactid' => $contact->id, 'scope' => $scope]);
+            if ($out === (bool)$row) {
+                return false;
+            }
+            if ($out) {
+                $DB->insert_record(self::OPTOUTS, (object)['contactid' => $contact->id,
+                    'scope' => \core_text::substr($scope, 0, 100), 'source' => $source, 'timecreated' => time()]);
+            } else {
+                $DB->delete_records(self::OPTOUTS, ['id' => $row->id]);
+            }
+            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => $out ? 'optout' : 'optin',
+                'source' => $source, 'detail' => 'scope:' . $scope, 'timecreated' => time()]);
+        }
+        self::tell($contact, $out, $source, $except);
+        return true;
+    }
+
+    /**
+     * Whoever writes again of their own takes back what they said no to, on that channel: they are in the list again.
+     *
+     * @param string $address The number or the chat.
+     * @param string $detail The id of the message.
+     * @return bool Whether there was anything to take back.
+     */
+    public static function lift(string $address, string $detail): bool {
+        global $DB;
+        $contact = $DB->get_record(self::CONTACTS, ['phone' => $address]);
+        if (!$contact) {
+            return false;
+        }
+        $scoped = $DB->get_records(self::OPTOUTS, ['contactid' => $contact->id]);
+        if ($contact->status !== 'optedout' && !$scoped) {
+            return false;
+        }
+        if ($contact->status === 'optedout') {
+            self::set_status($contact, 'optin', 'wrote', $detail);
+        }
+        foreach ($scoped as $row) {
+            $DB->delete_records(self::OPTOUTS, ['id' => $row->id]);
+            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'optin', 'source' => 'wrote',
+                'detail' => 'scope:' . $row->scope, 'timecreated' => time()]);
+        }
+        self::tell($contact, false, 'wrote');
+        return true;
+    }
+
+    /**
+     * What a contact said no to now, and since when.
+     *
+     * @param \stdClass $contact The contact.
+     * @return array all (time, or 0) and scopes (by plugin, the time).
+     */
+    public static function optout_now(\stdClass $contact): array {
+        global $DB;
+        $scopes = [];
+        foreach ($DB->get_records(self::OPTOUTS, ['contactid' => $contact->id], 'timecreated ASC') as $row) {
+            $scopes[$row->scope] = (int)$row->timecreated;
+        }
+        return ['all' => $contact->status === 'optedout' ? (int)$contact->optouttime : 0, 'scopes' => $scopes];
+    }
+
+    /**
+     * What a contact asked and when, the newest first: joining, leaving, writing again.
+     *
+     * @param int $contactid The contact.
+     * @param int $max How many.
+     * @return array Each with action (optin or optout), source, scope (all or a plugin) and time.
+     */
+    public static function trail(int $contactid, int $max = 20): array {
+        global $DB;
+        $list = [];
+        foreach ($DB->get_records(self::LOG, ['contactid' => $contactid], 'timecreated DESC, id DESC', '*', 0, $max) as $row) {
+            $scope = strpos((string)$row->detail, 'scope:') === 0 ? substr((string)$row->detail, 6) : 'all';
+            $list[] = ['action' => (string)$row->action, 'source' => (string)$row->source, 'scope' => $scope,
+                'time' => (int)$row->timecreated];
+        }
+        return $list;
+    }
+
+    /**
+     * Tells the plugins a contact is linked to that what it said no to changed.
+     *
+     * @param \stdClass $contact The contact.
+     * @param bool $out No more.
+     * @param string $source Where it was asked.
+     * @param string $except A plugin not to tell.
+     */
+    private static function tell(\stdClass $contact, bool $out, string $source, string $except = ''): void {
+        global $DB;
+        $links = $DB->get_records_select(
+            self::LINKS,
+            "contactid = :contactid AND component <> 'core' AND component <> :except",
+            ['contactid' => $contact->id, 'except' => $except],
+            'id ASC',
+            'id, component, itemid'
+        );
+        foreach ($links as $link) {
+            $args = [(int)$link->itemid, (string)$contact->channel, $out, $source, time()];
+            self::callback($link->component, 'marandu_optout', $args);
+        }
+    }
+
+    /**
+     * Calls a plugin, if it is still installed: a link can outlive the plugin it was made for.
+     *
+     * @param string $component The plugin.
+     * @param string $name The callback, without the prefix of the plugin.
+     * @param array $args Its arguments.
+     */
+    private static function callback(string $component, string $name, array $args): void {
+        if (\core_component::get_component_directory($component) === null) {
+            return;
+        }
+        component_callback($component, $name, $args);
     }
 
     /**

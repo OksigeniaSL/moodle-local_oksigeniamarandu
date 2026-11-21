@@ -340,5 +340,21 @@
         <INDEX NAME="boardid-userid" UNIQUE="true" FIELDS="boardid, userid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_optout" COMMENT="What a number or a chat said no to, short of everything: the notices of one plugin, such as admissions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="scope" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="The plugin whose notices they do not want"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Where it was asked"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contactid" TYPE="foreign" FIELDS="contactid" REFTABLE="local_oksigeniamarandu_contact" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="contactid-scope" UNIQUE="true" FIELDS="contactid, scope"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

@@ -253,8 +253,8 @@ final class conversation_test extends \advanced_testcase {
     }
 
     /**
-     * The opt-in and opt-out words do what they did; a number that has not joined, has opted out or joined only for a
-     * user (no plugin) reaches nobody.
+     * The opt-in and opt-out words do what they did; a number that has not joined or joined only for a user (no plugin)
+     * reaches nobody; one that left and writes again is in the list again, and reaches its plugin.
      */
     public function test_who_counts(): void {
         $user = $this->getDataGenerator()->create_user();
@@ -267,9 +267,11 @@ final class conversation_test extends \advanced_testcase {
         inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S8', 'type' => 'text',
             'text' => ['body' => 'BAJA']]));
         $this->assertSame([], $this->heard);
+        // Whoever left and writes again of their own is in the list again: the plugin hears it.
         inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S9', 'type' => 'text',
             'text' => ['body' => 'Hola']]));
-        $this->assertSame([], $this->heard);
+        $this->assertCount(1, $this->heard);
+        $this->assertSame('+34600000001', $this->heard[0]->get_address());
     }
 
     /**

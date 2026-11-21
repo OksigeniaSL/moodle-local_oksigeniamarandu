@@ -555,7 +555,7 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            rem: { day: '', reason: '' }, agenda: null, board: null, boardOpen: 0, boardNew: null, boardEdit: null, boardRev: -1,
+            rem: { day: '', reason: '' }, agenda: null, optoutOk: {}, board: null, boardOpen: 0, boardNew: null, boardEdit: null, boardRev: -1,
             boardDone: false, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: (function () {
                 try {
                     var v = root.localStorage.getItem('mrd-chat-otros');
@@ -1635,7 +1635,8 @@
                 '<span>' + ico('birrete') + esc(s('kindalumni')) + '</span></div></div>';
         }
         function renderPie(counts) {
-            var inTeam = st.inbox !== 'mine' && st.inbox !== 'unassigned';
+            // The departments tab stays lit for a department, not for the board, the history or the address book.
+            var inTeam = st.inbox !== 'mine' && st.inbox !== 'unassigned' && ['board', 'history', 'agenda'].indexOf(st.inbox) < 0;
             var tab = function (key, icon, label, n) {
                 var on = st.inbox === key && st.capa === 'lista';
                 return '<button type="button" class="' + (on ? 'mrd-on' : '') + '" data-a="inbox" data-v="' + key + '">' + ico(icon) +
@@ -3287,7 +3288,8 @@
         }
         function composerSig(c) {
             var newer = newerOf(c);
-            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, (st.extras.templates || []).length, st.pop,
+            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl,
+                optoutBlocked(c.contact && c.contact.phone, st.fichaFor === c.id && st.ficha ? st.ficha.optout : null) ? 1 : 0, (st.extras.templates || []).length, st.pop,
                 newer ? newer.id : 0].join('|');
         }
         function saveDraft() {
@@ -3491,6 +3493,8 @@
             var lastIn = c.lastincoming ? c.lastincoming * 1000 : 0;
             h = '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
                 '<p>' + esc(lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p></div></div>';
+            var said = st.fichaFor === c.id && st.ficha ? st.ficha.optout : null, held = optoutBlocked(c.contact && c.contact.phone, said);
+            h += optoutBand(c.contact && c.contact.phone, said, false);
             if (tpls.length) {
                 var langs = {};
                 tpls.forEach(function (t) {
@@ -3501,12 +3505,12 @@
                     return i;
                 }).sort(function (a, b) {
                     var ka = !!tpls[a].start === !lastIn ? 0 : 1, kb = !!tpls[b].start === !lastIn ? 0 : 1;
-                    return ka - kb || a - b;
+                    return ka - kb || byPrice(tpls[a], tpls[b]) || a - b;
                 });
                 h += '<div class="mrd-plantillas">' + order.map(function (i) {
                     var t = tpls[i];
-                    return '<button type="button" class="mrd-plantilla" data-a="tpl" data-v="' + i + '"><b>' + ico('mensaje') + esc(tplTitle(t)) +
-                        (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span></button>';
+                    return '<button type="button" class="mrd-plantilla" data-a="tpl" data-v="' + i + '"' + (held ? ' disabled' : '') + '><b>' + ico('mensaje') + esc(tplTitle(t)) +
+                        (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span>' + catPill(t) + '</button>';
                 }).join('') + '</div>';
             } else {
                 h += '<p class="mrd-ayuda">' + esc(s('notemplates')) + '</p>';
@@ -3848,6 +3852,15 @@
                 callButton(f.phone) + '</div>' : '';
             var changed = f.changed && f.changed.text && (!f.changed.until || f.changed.until * 1000 > nowMs())
                 ? '<p class="mrd-recien">' + ico('check') + esc(f.changed.text) + '</p>' : '';
+            var said = f.optout, now = optoutNow(said), trail = optoutTrailHtml(said);
+            var ask = st.optoutAsk === (c && c.id);
+            changed += now ? '<div class="mrd-baja">' + ico('mudo') + '<div><b>' + esc(now.text) + '</b>' + trail + '</div></div>'
+                : (trail ? '<details class="mrd-baja-antes"><summary>' + esc(s('trailtitle')) + '</summary>' + trail + '</details>' : '') +
+                (READONLY || !c || !c.id ? '' : ask ? '<div class="mrd-baja mrd-baja-pregunta">' + ico('mudo') + '<div><b>' +
+                    esc(s('optoutask', dayText(nowMs()))) + '</b><p>' + esc(s('optoutaskhelp')) + '</p><div class="mrd-botones">' +
+                    '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="optoutmark">' + esc(s('optoutdo')) + '</button>' +
+                    '<button type="button" class="mrd-btn mrd-chico" data-a="optoutnoask">' + esc(s('optoutcancel')) + '</button></div></div></div>'
+                    : '<button type="button" class="mrd-enlace mrd-baja-marcar" data-a="optoutask">' + esc(s('optoutmark')) + '</button>');
             return '<div class="mrd-ficha-cab"><button type="button" class="mrd-volver" data-a="back" data-v="chat">' + ico('izq') + esc(s('backtochat')) +
                 '</button><span class="mrd-origenes">' + o + '</span><div class="mrd-ficha-nombre"><h3>' + esc(f.title || (c.contact && c.contact.name) || '') +
                 '</h3>' + (READONLY ? '' : starButton(c.contact && c.contact.id)) + '</div>' +
@@ -4030,6 +4043,10 @@
                 n.ficha = f || null;
                 n.fichaState = f ? 'ok' : 'error';
                 renderFicha();
+                // What the number said no to warns before its messages: the sheet is drawn again with it.
+                if (n.tpl < 0 && optoutNow(f && f.optout)) {
+                    renderNew();
+                }
             }).catch(function () {
                 if (st.nueva !== n || n.pick !== x) {
                     return;
@@ -4984,26 +5001,95 @@
             }).join('') + (folded ? '<button type="button" class="mrd-chip mrd-chip-mas" data-a="newallteams">' + ico('der') + esc(s('newmoreteams')) +
                 '</button>' : '') + chip(0, 'nadie', s('noteam'));
         }
+        /* What a number said no to: in its file, and before writing to it, as a warning that never locks (what goes out
+           on its own does not go to them). Writing again of their own takes it back on that channel. */
+        function optoutNow(o) {
+            if (!o) {
+                return null;
+            }
+            if (o.all) {
+                return { text: s('optoutall', dayText(o.all * 1000)), warn: s('optoutwarn', dayText(o.all * 1000)) };
+            }
+            if (o.scopes && o.scopes.length) {
+                var x = o.scopes[0], a = { name: x.name, when: dayText(x.since * 1000) };
+                return { text: s('optoutscope', a), warn: s('optoutwarnscope', a) };
+            }
+            return null;
+        }
+        function optoutTrailHtml(o) {
+            var steps = (o && o.trail) || [];
+            if (!steps.length) {
+                return '';
+            }
+            return '<ul class="mrd-baja-rastro">' + steps.map(function (t) {
+                var what = t.action === 'optout' ? (t.scope === 'all' ? s('trailoutall') : s('trailoutscope', t.name))
+                    : t.source === 'wrote' ? s('trailwrote') : s('trailin');
+                var by = /^chat:/.test(t.source) ? ' ' + s('trailbychat', t.source.slice(5)) : '';
+                return '<li><span>' + esc(dayText(t.time * 1000)) + '</span> · ' + esc(what + by) + '</li>';
+            }).join('') + '</ul>';
+        }
+        function optoutBlocked(phone, o) {
+            return !!optoutNow(o) && !st.optoutOk[digits(phone)];
+        }
+        function optoutBand(phone, o, cancel) {
+            var w = optoutNow(o);
+            if (!w || st.optoutOk[digits(phone)]) {
+                return '';
+            }
+            return '<div class="mrd-baja-aviso" role="status">' + ico('mudo') + '<div><b>' + esc(w.warn) + '</b><div class="mrd-botones">' +
+                '<button type="button" class="mrd-btn mrd-chico" data-a="optoutok" data-v="' + esc(digits(phone)) + '">' + esc(s('optoutanyway')) + '</button>' +
+                (cancel ? '<button type="button" class="mrd-btn mrd-chico" data-a="newclose">' + esc(s('optoutcancel')) + '</button>' : '') +
+                '</div><small>' + esc(s('optoutwhen')) + '</small></div></div>';
+        }
+        // The category of an approved message, with what it costs, as a pill at the foot of its card.
+        var PRICES = cfg.prices || { currency: 'EUR', utility: 0.02, marketing: 0.06, authentication: 0.03 };
+        var CAT = { UTILITY: ['utility', 'util'], MARKETING: ['marketing', 'mkt'], AUTHENTICATION: ['authentication', 'aut'] };
+        function tplPrice(t) {
+            var c = CAT[String(t.category || '').toUpperCase()];
+            return c && PRICES[c[0]] !== undefined ? PRICES[c[0]] : 99;
+        }
+        function catPill(t) {
+            var c = CAT[String(t.category || '').toUpperCase()];
+            if (!c) {
+                return '';
+            }
+            var money;
+            try {
+                money = new Intl.NumberFormat(LANG, { style: 'currency', currency: PRICES.currency || 'EUR', minimumFractionDigits: 2,
+                    maximumFractionDigits: 3 }).format(PRICES[c[0]]);
+            } catch (e) {
+                money = String(PRICES[c[0]]);
+            }
+            return '<small class="mrd-cat mrd-cat-' + c[1] + '">' + esc(s('cat' + c[0])) + ' · <i class="mrd-cat-unos">' + esc(s('catabout')) + ' </i>' +
+                esc(money) + '</small>';
+        }
+        // The cheapest first; at the same price, utility before the rest.
+        function byPrice(a, b) {
+            return tplPrice(a) - tplPrice(b) || (String(a.category).toUpperCase() === 'UTILITY' ? -1 : 0) -
+                (String(b.category).toUpperCase() === 'UTILITY' ? -1 : 0);
+        }
         function newTplCards() {
             var tpls = st.extras.templates || [], c = newConvLike(), langs = {};
             tpls.forEach(function (t) {
                 langs[t.language] = true;
             });
             var showLang = Object.keys(langs).length > 1;
+            var nv = st.nueva, held = !!(nv && nv.pick && optoutBlocked(nv.pick.phone, nv.ficha && nv.ficha.optout));
             var card = function (t) {
-                return '<button type="button" class="mrd-plantilla" data-a="newtpl" data-v="' + tpls.indexOf(t) + '"><b>' + ico('mensaje') + esc(tplTitle(t)) +
-                    (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span></button>';
+                return '<button type="button" class="mrd-plantilla" data-a="newtpl" data-v="' + (st.extras.templates || []).indexOf(t) + '"' +
+                    (held ? ' disabled' : '') + '><b>' + ico('mensaje') + esc(tplTitle(t)) +
+                    (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span>' + catPill(t) + '</button>';
             };
             var first = tpls.filter(function (t) {
                 return t.start;
-            }), rest = tpls.filter(function (t) {
+            }).sort(byPrice), rest = tpls.filter(function (t) {
                 return !t.start;
-            });
+            }).sort(byPrice);
             if (first.length && rest.length) {
                 return '<h4 class="mrd-nueva-grupo">' + esc(s('newfirstones')) + '</h4><div class="mrd-plantillas">' + first.map(card).join('') + '</div>' +
                     '<h4 class="mrd-nueva-grupo">' + esc(s('newothers')) + '</h4><div class="mrd-plantillas">' + rest.map(card).join('') + '</div>';
             }
-            return '<div class="mrd-plantillas">' + tpls.map(card).join('') + '</div>';
+            return '<div class="mrd-plantillas">' + tpls.slice().sort(byPrice).map(card).join('') + '</div>';
         }
         function renderNew() {
             var n = st.nueva, tpls = st.extras.templates || [];
@@ -5033,7 +5119,7 @@
                         h += previewHtml(newConvLike(), tpls[n.tpl]).replace('data-a="tplback"', 'data-a="newtplback"')
                             .replace('data-a="tplsend"', 'data-a="newsend"').replace(esc(s('sendtemplate')), esc(s('newsend')));
                     } else {
-                        h += '<h3>' + esc(s('newpick')) + '</h3>' + newTplCards();
+                        h += optoutBand(n.pick.phone, n.ficha && n.ficha.optout, true) + '<h3>' + esc(s('newpick')) + '</h3>' + newTplCards();
                     }
                 }
             }
@@ -5464,6 +5550,29 @@
                 case 'boardagain':
                     st.board = null;
                     renderListBody();
+                    break;
+                case 'optoutok':
+                    st.optoutOk[v] = true;
+                    if (st.nueva) {
+                        renderNew();
+                    } else {
+                        renderComposer(true);
+                    }
+                    break;
+                case 'optoutask':
+                case 'optoutnoask':
+                    st.optoutAsk = a === 'optoutask' && c ? c.id : 0;
+                    renderFicha();
+                    break;
+                case 'optoutmark':
+                    st.optoutAsk = 0;
+                    if (c) {
+                        act(c.id, 'optout', 0, 'out', true).then(function () {
+                            toast(s('optoutmarked'));
+                            loadFicha(c.id);
+                            return null;
+                        }).catch(failToast);
+                    }
                     break;
                 case 'agendaagain':
                     st.agenda = null;

@@ -165,6 +165,28 @@ class templates {
         return $result;
     }
 
+    /** What a message of each category costs when the centre does not say: rough figures, to check with Meta. */
+    public const PRICES = ['currency' => 'EUR', 'utility' => 0.02, 'marketing' => 0.06, 'authentication' => 0.03];
+
+    /**
+     * What a message of each category costs, as the centre set it (cli/chat.php --prices), for the cards of the
+     * approved messages.
+     *
+     * @return array currency, utility, marketing and authentication.
+     */
+    public static function prices(): array {
+        $set = json_decode((string)get_config('local_oksigeniamarandu', 'chatprices'), true);
+        $prices = self::PRICES;
+        foreach (is_array($set) ? $set : [] as $key => $value) {
+            if ($key === 'currency' && preg_match('/^[A-Z]{3}$/', (string)$value)) {
+                $prices['currency'] = (string)$value;
+            } else if (array_key_exists($key, $prices) && is_numeric($value) && $value >= 0) {
+                $prices[$key] = (float)$value;
+            }
+        }
+        return $prices;
+    }
+
     /**
      * An approved message with its gaps filled, as Chatwoot takes it to send it by WhatsApp.
      *

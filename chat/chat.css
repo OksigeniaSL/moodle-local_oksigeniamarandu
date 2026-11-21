@@ -5073,3 +5073,159 @@
     top: 50%;
     transform: translateY(-50%);
 }
+
+/* The category of an approved message and its rough price, at the foot of its card (Jujol, 21 Nov 2026): teal for
+   utility, magenta for marketing, slate for authentication; never the amber and red of waiting, the violet of the
+   team or the blue of the accent. The cards go from the cheapest to the dearest. */
+#mrd-chat {
+    --cat-util: #0b6e68;
+    --cat-util-suave: #e2f3f1;
+    --cat-mkt: #9c2368;
+    --cat-mkt-suave: #f9e6f1;
+    --cat-aut: #465363;
+    --cat-aut-suave: #eceff3;
+}
+#mrd-chat.mrd-dark {
+    --cat-util: #6fd4ca;
+    --cat-util-suave: #14302d;
+    --cat-mkt: #f39acb;
+    --cat-mkt-suave: #3b1b2d;
+    --cat-aut: #b9c4d0;
+    --cat-aut-suave: #272c33;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla .mrd-cat {
+    align-self: flex-start;
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: auto;
+    padding: 2px 9px 2px 8px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    font-weight: 700;
+    white-space: nowrap;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla > span {
+    margin-bottom: 8px;
+}
+#mrd-chat .mrd-cat .mrd-cat-unos {
+    font-style: normal;
+}
+#mrd-chat .mrd-cat-util {
+    color: var(--cat-util);
+    background: var(--cat-util-suave);
+}
+#mrd-chat .mrd-cat-mkt {
+    color: var(--cat-mkt);
+    background: var(--cat-mkt-suave);
+}
+#mrd-chat .mrd-cat-aut {
+    color: var(--cat-aut);
+    background: var(--cat-aut-suave);
+}
+
+@media (max-width: 760px) {
+    /* On a phone the card is a row with its title alone: the pill at its end, shorter. */
+    #mrd-chat .mrd-plantillas .mrd-plantilla {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px 10px;
+    }
+    #mrd-chat .mrd-plantillas .mrd-plantilla .mrd-cat {
+        margin-top: 0;
+        align-self: center;
+    }
+    #mrd-chat .mrd-cat .mrd-cat-unos {
+        display: none;
+    }
+    #mrd-chat .mrd-nueva .mrd-plantillas .mrd-plantilla {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #mrd-chat .mrd-nueva .mrd-plantillas .mrd-plantilla .mrd-cat {
+        align-self: flex-start;
+    }
+}
+
+/* What a number said no to: a band in its file with the trail, and a warning before writing to it that never locks. */
+#mrd-chat .mrd-baja,
+#mrd-chat .mrd-baja-aviso {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border-inline-start: 4px solid var(--baja-filo);
+    background: var(--baja-fondo);
+    color: var(--tinta);
+    font-size: 13.5px;
+}
+/* A decision that is respected, not an error: quiet and neutral, never the red of long waits (Jujol). */
+#mrd-chat {
+    --baja-fondo: #f1f2f4;
+    --baja-filo: #6b7280;
+}
+#mrd-chat.mrd-dark {
+    --baja-fondo: #24262a;
+    --baja-filo: #9aa3af;
+}
+#mrd-chat .mrd-baja-aviso small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-baja-pregunta p {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-baja-pregunta .mrd-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+#mrd-chat .mrd-baja .mrd-i,
+#mrd-chat .mrd-baja-aviso .mrd-i {
+    flex: none;
+    margin-top: 1px;
+    color: var(--baja-filo);
+}
+#mrd-chat .mrd-baja-aviso {
+    margin: 0 0 12px;
+}
+#mrd-chat .mrd-baja-aviso .mrd-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+#mrd-chat .mrd-baja-rastro {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    font-size: 12.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-baja-rastro li span {
+    font-weight: 700;
+}
+#mrd-chat .mrd-baja-antes {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-baja-marcar {
+    display: block;
+    margin-top: 10px;
+    font-size: 12.5px;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}

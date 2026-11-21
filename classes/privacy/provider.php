@@ -85,6 +85,12 @@ class provider implements
             'source' => 'privacy:metadata:consent:source',
             'timecreated' => 'privacy:metadata:consent:timecreated',
         ], 'privacy:metadata:consent');
+        $collection->add_database_table(consent::OPTOUTS, [
+            'contactid' => 'privacy:metadata:optout:contactid',
+            'scope' => 'privacy:metadata:optout:scope',
+            'source' => 'privacy:metadata:optout:source',
+            'timecreated' => 'privacy:metadata:optout:timecreated',
+        ], 'privacy:metadata:optout');
         $collection->add_database_table('local_oksigeniamarandu_queue', [
             'contactid' => 'privacy:metadata:queue:contactid',
             'params' => 'privacy:metadata:queue:params',
@@ -386,6 +392,7 @@ class provider implements
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);
+                $DB->delete_records(consent::OPTOUTS, ['contactid' => $link->contactid]);
                 $DB->delete_records(answers::TABLE, ['contactid' => $link->contactid]);
                 $DB->delete_records('local_oksigeniamarandu_queue', ['contactid' => $link->contactid]);
                 $DB->delete_records(consent::CONTACTS, ['id' => $link->contactid]);

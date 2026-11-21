@@ -33,9 +33,9 @@ class actions {
      *
      * @param viewer $viewer Who does it, who can write.
      * @param \stdClass $row The conversation, one the person sees.
-     * @param string $action take, resolve, reopen, team, person or kind.
+     * @param string $action take, resolve, reopen, team, person, kind or optout.
      * @param int $target The department or the person.
-     * @param string $value The kind.
+     * @param string $value The kind; for optout, out (no more messages) or in.
      * @return \stdClass|null The conversation as it is now, or null if the person no longer sees it.
      */
     public static function run(viewer $viewer, \stdClass $row, string $action, int $target = 0, string $value = ''): ?\stdClass {
@@ -88,6 +88,14 @@ class actions {
                         'marandu_kind_at' => time(),
                     ],
                 ]);
+                break;
+            case 'optout':
+                // Said in the conversation: no more messages from the centre, on this number.
+                if ($row->phone === '') {
+                    throw new \invalid_parameter_exception('No number');
+                }
+                $contact = \local_oksigeniamarandu\local\consent::get_or_create((string)$row->phone);
+                \local_oksigeniamarandu\local\consent::set_optout($contact, 'all', $value !== 'in', 'chat:' . $viewer->firstname);
                 break;
             default:
                 throw new \invalid_parameter_exception('Unknown action');

@@ -155,7 +155,7 @@ class queue {
             $key = $row->component . '/' . $row->notice;
             $notice = notices::get($row->component, $row->notice);
             $contact = $DB->get_record(consent::CONTACTS, ['id' => $row->contactid]);
-            $active = $contact && $contact->status === 'active';
+            $active = $contact && $contact->status === 'active' && !consent::out_of($contact, (string)$row->component);
             // Each channel has its own notices switched on.
             $channel = $contact && telegram::is_chat($contact->phone) ? 'telegram' : 'whatsapp';
             if (!$notice || !$active || !in_array($key, $enabled[$channel], true)) {

@@ -217,6 +217,72 @@ class api {
     }
 
     /**
+     * Says that an item of a plugin, such as a family of admissions, does not want messages any more, or wants them
+     * again: on every number and chat that joined for it. With a scope, only the notices of that plugin; with all,
+     * nothing of the centre. The plugin that asks is not told back. One decision, wherever it is taken: the word of
+     * leaving, writing again, the team from the chat and the plugins all change the same.
+     *
+     * @param string $component The plugin of the item, such as local_oksigeniaeguahe.
+     * @param int $itemid The item.
+     * @param string $scope all, or a plugin, such as local_oksigeniaeguahe for what admissions sends.
+     * @param bool $out No more (true) or again (false).
+     * @param string $source Where it was asked, such as eguahe:family.
+     * @param string $area The kind of item, if the plugin has more than one.
+     * @return int How many numbers and chats changed.
+     */
+    public static function set_optout(
+        string $component,
+        int $itemid,
+        string $scope,
+        bool $out,
+        string $source,
+        string $area = ''
+    ): int {
+        $changed = 0;
+        foreach (self::linked_contacts($component, $itemid, $area) as $contact) {
+            $changed += consent::set_optout($contact, $scope === '' ? 'all' : $scope, $out, $source, $component) ? 1 : 0;
+        }
+        return $changed;
+    }
+
+    /**
+     * What an item of a plugin said no to, on each number and chat that joined for it, and the trail.
+     *
+     * @param string $component The plugin of the item.
+     * @param int $itemid The item.
+     * @param string $area The kind of item.
+     * @return array Each with channel, all (since when, or 0), scopes (by plugin, since when) and trail (action, source,
+     *               scope, time; the newest first).
+     */
+    public static function optout_state(string $component, int $itemid, string $area = ''): array {
+        $list = [];
+        foreach (self::linked_contacts($component, $itemid, $area) as $contact) {
+            $list[] = ['channel' => (string)$contact->channel] + consent::optout_now($contact) +
+                ['trail' => consent::trail((int)$contact->id)];
+        }
+        return $list;
+    }
+
+    /**
+     * The numbers and chats that joined for an item, whatever they said since.
+     *
+     * @param string $component The plugin.
+     * @param int $itemid The item.
+     * @param string $area The kind of item.
+     * @return \stdClass[]
+     */
+    private static function linked_contacts(string $component, int $itemid, string $area): array {
+        global $DB;
+        return $DB->get_records_sql(
+            "SELECT DISTINCT c.*
+               FROM {" . consent::LINKS . "} l
+               JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+              WHERE l.component = :component AND l.area = :area AND l.itemid = :itemid",
+            ['component' => $component, 'area' => self::area($area), 'itemid' => $itemid]
+        );
+    }
+
+    /**
      * Whom a channel list is for, and how they are on each channel.
      *
      * @param string $component The plugin of the links.

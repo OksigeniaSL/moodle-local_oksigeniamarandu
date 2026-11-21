@@ -95,6 +95,8 @@ class conversation {
         ?string $name
     ): array {
         global $DB;
+        // Whoever said no and writes again is in the list again, on this channel.
+        consent::lift($address, $messageid);
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]);
         if (!$contact || $contact->status !== 'active') {
             return [false, null];

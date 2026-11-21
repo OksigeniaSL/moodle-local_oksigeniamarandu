@@ -270,7 +270,7 @@ class telegram {
         $text = trim((string)$message['text']);
         if (preg_match('/^\/start(?:@\w+)?(?:\s+([A-Za-z0-9_-]{1,64}))?$/', $text, $parts)) {
             $code = isset($parts[1]) ? strtoupper(str_replace(['-', '_'], '', $parts[1])) : null;
-            return self::reply($address, consent::optin_from_message($address, $code, $detail, $name));
+            return self::reply($address, consent::optin_from_message($address, $code, $detail, $name), $api);
         }
         if (preg_match('/^\/(\w{1,32})(?:@\w+)?(?:\s|$)/u', $text, $parts)) {
             // A command of the menu, in any language of the site; an unknown one gets the help.
@@ -284,9 +284,9 @@ class telegram {
         }
         if ($match['action'] === 'optout') {
             consent::optout($address, 'keyword', $detail);
-            return self::reply($address, 'optout');
+            return self::reply($address, 'optout', $api);
         }
-        return self::reply($address, consent::optin_from_message($address, $match['code'], $detail, $name));
+        return self::reply($address, consent::optin_from_message($address, $match['code'], $detail, $name), $api);
     }
 
     /**
@@ -313,18 +313,31 @@ class telegram {
     }
 
     /**
-     * A reply of consent (joined, left, unknown code), in the language of the chat.
+     * A reply of consent (joined, left, unknown code), in the language of the chat: joining and leaving, with the card of
+     * their confirmation if the site wants them.
      *
      * @param string $address The chat.
      * @param string $reply optin, optout or unknowncode.
-     * @return array The answer, as a method of the Bot API.
+     * @param telegram_api|null $api The bot, to upload the card of a confirmation the first time.
+     * @return array|null The answer, as a method of the Bot API; null if the card already went.
      */
-    private static function reply(string $address, string $reply): array {
+    private static function reply(string $address, string $reply, ?telegram_api $api = null): ?array {
         global $DB, $CFG;
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]) ?: null;
         $lang = $contact && $contact->lang ? $contact->lang : null;
-        $answer = ['method' => 'sendMessage', 'chat_id' => self::chat($address), 'text' => send_reply::text($reply, $lang)];
-        // Joined without a code: if the site has the family records, the number can find the family.
-        return $reply === 'optin' ? telegram_menu::offer($answer, $contact, $lang ?? $CFG->lang) : $answer;
+        $kind = send_reply::confirmation($address, $reply);
+        $text = $kind === null ? send_reply::text($reply, $lang) : null;
+        $message = $kind === null ? null : confirm::build($kind, 'telegram', $lang);
+        $answer = ['method' => 'sendMessage', 'chat_id' => self::chat($address), 'text' => $text ?? $message['text']];
+        if ($reply === 'optin') {
+            // Joined without a code: if the site has the family records, the number can find the family.
+            $answer = telegram_menu::offer($answer, $contact, $lang ?? $CFG->lang);
+        }
+        if ($message === null) {
+            return $answer;
+        }
+        $message['text'] = $answer['text'];
+        $message['markup'] = $answer['reply_markup'] ?? null;
+        return confirm::telegram_answer(self::chat($address), $message, $api);
     }
 }

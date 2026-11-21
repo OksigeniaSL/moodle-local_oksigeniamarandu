@@ -95,7 +95,31 @@ class keywords {
         if (count($words) === 3 && in_array($words[0], self::list('optinkeywords'), true) && strlen($words[1] . $words[2]) === 8) {
             return ['action' => 'optin', 'code' => $words[1] . $words[2]];
         }
+        // A greeting with the code between brackets at its end, as the links write it: «Hola, somos la familia de Leo.
+        // (K7M2Q9XA)».
+        $letter = '[' . self::CODE_ALPHABET . ']';
+        $pattern = '/\(\s*(' . $letter . '{4})[\s-]?(' . $letter . '{4})\s*\)\W*$/u';
+        if (preg_match($pattern, \core_text::strtoupper(trim($text)), $parts)) {
+            return ['action' => 'optin', 'code' => $parts[1] . $parts[2]];
+        }
         return null;
+    }
+
+    /**
+     * The message that joins with a code, as a link writes it for the person: a greeting and the code between brackets.
+     *
+     * @param string $code The code.
+     * @param string $greeting What the person says, in their words, such as «Hola, somos la familia de Leo.»; the
+     *                         greeting of Marandu if empty.
+     * @return string
+     */
+    public static function join_text(string $code, string $greeting = ''): string {
+        $greeting = trim(preg_replace('/\s+/u', ' ', $greeting));
+        if ($greeting === '') {
+            $lang = current_language();
+            $greeting = get_string_manager()->get_string('join:greeting', 'local_oksigeniamarandu', confirm::of($lang), $lang);
+        }
+        return $greeting . ' (' . $code . ')';
     }
 
     /**

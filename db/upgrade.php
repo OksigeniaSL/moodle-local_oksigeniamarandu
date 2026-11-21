@@ -371,6 +371,14 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026120900, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026121000) {
+        // The menu of the bot speaks to the family as the confirmations do: Telegram gets it again.
+        if (\local_oksigeniamarandu\local\telegram_api::is_configured()) {
+            \core\task\manager::queue_adhoc_task(new \local_oksigeniamarandu\task\telegram_refresh());
+        }
+        upgrade_plugin_savepoint(true, 2026121000, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

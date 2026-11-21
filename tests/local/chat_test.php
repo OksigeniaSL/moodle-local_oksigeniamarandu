@@ -918,6 +918,7 @@ final class chat_test extends \advanced_testcase {
      * takes it back. The price of each category is what the centre says, or a rough one.
      */
     public function test_optout_in_chat_and_prices(): void {
+        global $DB;
         mirror::sync();
         $this->setUser($this->person('ana@example.com', 'Ana'));
         $file = function () {
@@ -929,6 +930,13 @@ final class chat_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $said['all']);
         $step = $said['trail'][0];
         $this->assertSame(['optout', 'chat:Ana', 'all'], [$step['action'], $step['source'], $step['scope']]);
+        // Another day, writing again takes it back.
+        $DB->set_field(
+            \local_oksigeniamarandu\local\consent::CONTACTS,
+            'optouttime',
+            time() - 2 * DAYSECS,
+            ['phone' => '34600000001']
+        );
         \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola', time(), 'wamid.Z', null);
         $said = $file();
         $this->assertSame([0, 'optin', 'wrote'], [$said['all'], $said['trail'][0]['action'], $said['trail'][0]['source']]);

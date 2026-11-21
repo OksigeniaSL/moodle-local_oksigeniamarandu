@@ -43,6 +43,12 @@ class consent {
     private const WRONG_PAUSE = 15 * MINSECS;
 
     /**
+     * For how long writing again does not take back a no: the «thanks» that answers the confirmation is not a change of
+     * mind. The opt-in word works at once.
+     */
+    public const LIFT_GRACE = DAYSECS;
+
+    /**
      * The contact of a number, created as pending if it does not exist yet.
      *
      * @param string $phone Digits with the country code.
@@ -150,6 +156,23 @@ class consent {
     }
 
     /**
+     * Whether a contact that has just joined was already in: a second code, or the opt-in word again. Then the welcome
+     * does not go twice.
+     *
+     * @param string $address The number or the chat.
+     * @return bool
+     */
+    public static function rejoined(string $address): bool {
+        global $DB;
+        $contact = $DB->get_record(self::CONTACTS, ['phone' => $address], 'id');
+        if (!$contact) {
+            return false;
+        }
+        $last = array_values($DB->get_records(self::LOG, ['contactid' => $contact->id], 'id DESC', 'id, action', 0, 2));
+        return count($last) === 2 && $last[0]->action === 'optin' && $last[1]->action === 'optin';
+    }
+
+    /**
      * Whether a number has written too many wrong codes lately, and has to wait before trying again. It counts by number,
      * not by address: on WhatsApp everything arrives from the addresses of Meta.
      *
@@ -251,7 +274,8 @@ class consent {
     }
 
     /**
-     * Whoever writes again of their own takes back what they said no to, on that channel: they are in the list again.
+     * Whoever writes again of their own takes back what they said no to, on that channel: they are in the list again. Not
+     * in the day after saying it (LIFT_GRACE), when what they write is most likely an answer to the confirmation.
      *
      * @param string $address The number or the chat.
      * @param string $detail The id of the message.
@@ -263,11 +287,17 @@ class consent {
         if (!$contact) {
             return false;
         }
-        $scoped = $DB->get_records(self::OPTOUTS, ['contactid' => $contact->id]);
-        if ($contact->status !== 'optedout' && !$scoped) {
+        $before = time() - self::LIFT_GRACE;
+        $scoped = $DB->get_records_select(
+            self::OPTOUTS,
+            'contactid = :contactid AND timecreated <= :before',
+            ['contactid' => $contact->id, 'before' => $before]
+        );
+        $out = $contact->status === 'optedout' && (int)$contact->optouttime <= $before;
+        if (!$out && !$scoped) {
             return false;
         }
-        if ($contact->status === 'optedout') {
+        if ($out) {
             self::set_status($contact, 'optin', 'wrote', $detail);
         }
         foreach ($scoped as $row) {

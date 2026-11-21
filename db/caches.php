@@ -41,6 +41,12 @@ $definitions = [
         'mode' => cache_store::MODE_APPLICATION,
         'simplekeys' => true,
     ],
+    // The cards of the confirmations already drawn, by their texts, the colour, the name and the logo; and the id Meta gave to
+    // each one that went up, for 25 of its 30 days.
+    'confirmcards' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+    ],
     // The whole weather warnings already read, for a day, so as not to ask for them again.
     'weather' => [
         'mode' => cache_store::MODE_APPLICATION,

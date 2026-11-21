@@ -357,4 +357,6 @@ JS
 
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/telegram', $context);
+// The PNG copies of the logos drawn in SVG, for the cards: the browser of whoever administers makes them.
+echo \local_oksigeniamarandu\local\cards::logo_markup();
 echo $OUTPUT->footer();

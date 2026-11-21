@@ -181,8 +181,7 @@ class telegram_menu {
         ) {
             return $reply;
         }
-        $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
-        $reply['text'] .= "\n\n" . self::text('share:ask', $lang, $site);
+        $reply['text'] .= "\n\n" . self::text('share:ask', $lang, confirm::of($lang));
         $reply['reply_markup'] = ['keyboard' => [[['text' => self::text('share:button', $lang), 'request_contact' => true]]],
             'resize_keyboard' => true, 'one_time_keyboard' => true];
         return $reply;
@@ -212,7 +211,7 @@ class telegram_menu {
         }
         $adults = family::adults(preg_replace('/\D/', '', (string)($shared['phone_number'] ?? '')));
         if (!$adults) {
-            return $reply + ['text' => self::text('share:none', $lang, $site)];
+            return $reply + ['text' => self::text('share:none', $lang, confirm::of($lang))];
         }
         family::link((int)$contact->id, $adults);
         return $reply + ['text' => self::who($contact, $lang)];

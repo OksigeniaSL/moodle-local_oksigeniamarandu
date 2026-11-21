@@ -97,14 +97,13 @@ $context = [
     'invalid' => !$link || $number === '',
 ];
 if (!$context['invalid']) {
-    $optin = keywords::first('optinkeywords');
     $optout = keywords::first('optoutkeywords');
     $context += [
         'title' => get_string('alta:title', $component, $sitename),
         'for' => $for === '' ? '' : get_string('alta:for', $component, $for),
         'howto' => get_string('alta:howto', $component),
         'leavenote' => get_string('alta:leavenote', $component, $optout),
-        'message' => $optin . ' ' . $code,
+        'message' => keywords::join_text($code),
     ];
     if ($joined) {
         $phone = $contact->phone;

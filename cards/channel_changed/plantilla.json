@@ -1,0 +1,229 @@
+{
+  "id": "channel_changed",
+  "label": {
+    "es": "Cambio de canal",
+    "en": "Channel changed"
+  },
+  "version": 1,
+  "size": [
+    1280,
+    720
+  ],
+  "files": {
+    "background": "fondo.png",
+    "accent": "acento.png"
+  },
+  "fonts": {
+    "regular": "Onest-Regular.ttf",
+    "medium": "Onest-Medium.ttf",
+    "semibold": "Onest-SemiBold.ttf",
+    "bold": "Onest-Bold.ttf",
+    "extrabold": "Onest-ExtraBold.ttf"
+  },
+  "fonts_note": "Onest (SIL OFL 1.1), static cuts with a legacy kern table so GD kerns too.",
+  "metrics": {
+    "ascent": 0.93,
+    "descent": 0.24
+  },
+  "palette": {
+    "paper": "#f4eee3",
+    "ink": "#24211d",
+    "ink_soft": "#5a5650"
+  },
+  "accent": {
+    "source": "Brand colour of the centre; any colour works.",
+    "rules": [
+      {
+        "type": "text_on_accent",
+        "min_contrast": 4.5,
+        "candidates": [
+          "#ffffff",
+          "#24211d"
+        ]
+      }
+    ],
+    "fit": "As in the channel cards: mix with white or black in 1 % steps until every rule passes.",
+    "on_accent": "The candidate with the higher contrast on the fitted accent."
+  },
+  "video": null,
+  "zones": [
+    {
+      "id": "kicker",
+      "type": "text",
+      "x": 116,
+      "y": 62,
+      "w": 556,
+      "h": 48,
+      "font": "semibold",
+      "size": 34,
+      "min_size": 28,
+      "line_height": 1.2,
+      "color": "ink",
+      "align": "left",
+      "valign": "middle",
+      "max_lines": 1,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": false,
+      "enter": {
+        "effect": "fade",
+        "start": 0.15,
+        "duration": 0.5,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.15)/0.50,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}"
+        }
+      },
+      "note": "Short label beside the speech-bubble mark."
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "x": 72,
+      "y": 124,
+      "w": 600,
+      "h": 288,
+      "font": "bold",
+      "size": 84,
+      "min_size": 56,
+      "line_height": 1.06,
+      "color": "ink",
+      "align": "left",
+      "valign": "top",
+      "max_lines": 3,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": true,
+      "enter": {
+        "effect": "slide",
+        "start": 0.3,
+        "duration": 0.7,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.30)/0.70,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}+(26)*pow(1-clip((t-0.30)/0.70,0,1),3)"
+        },
+        "from": [
+          0,
+          26
+        ]
+      }
+    },
+    {
+      "id": "channel",
+      "type": "text",
+      "x": 100,
+      "y": 432,
+      "w": 504,
+      "h": 92,
+      "font": "bold",
+      "size": 44,
+      "min_size": 30,
+      "line_height": 1.2,
+      "color": "on_accent",
+      "align": "left",
+      "valign": "middle",
+      "max_lines": 1,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": false,
+      "enter": {
+        "effect": "fade",
+        "start": 0.75,
+        "duration": 0.5,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.75)/0.50,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}"
+        }
+      },
+      "note": "The channel from now on. Sits on the accent badge (x 72, y 432, 560 x 92)."
+    },
+    {
+      "id": "detail",
+      "type": "text",
+      "x": 72,
+      "y": 546,
+      "w": 600,
+      "h": 94,
+      "font": "medium",
+      "size": 38,
+      "min_size": 30,
+      "line_height": 1.22,
+      "color": "ink_soft",
+      "align": "left",
+      "valign": "top",
+      "max_lines": 2,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": true,
+      "enter": {
+        "effect": "slide",
+        "start": 0.95,
+        "duration": 0.6,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-0.95)/0.60,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}+(16)*pow(1-clip((t-0.95)/0.60,0,1),3)"
+        },
+        "from": [
+          0,
+          16
+        ]
+      }
+    },
+    {
+      "id": "org",
+      "type": "text",
+      "x": 72,
+      "y": 646,
+      "w": 600,
+      "h": 40,
+      "font": "semibold",
+      "size": 28,
+      "min_size": 24,
+      "line_height": 1.2,
+      "color": "ink_soft",
+      "align": "left",
+      "valign": "middle",
+      "max_lines": 1,
+      "shrink": {
+        "step": 2,
+        "then": "ellipsis"
+      },
+      "balance": false,
+      "enter": {
+        "effect": "fade",
+        "start": 1.2,
+        "duration": 0.5,
+        "easing": "out-cubic",
+        "drawtext": {
+          "alpha": "clip((t-1.20)/0.50,0,1)*clip(({D}-t)/0.50,0,1)",
+          "x": "{x}",
+          "y": "{y}"
+        }
+      },
+      "note": "Name of the organisation (the site's short name)."
+    }
+  ],
+  "sample": {
+    "kicker": "Hecho",
+    "title": "Desde ahora, por aquí",
+    "channel": "Por Telegram",
+    "detail": "Les escribiremos por este chat, y ya no por correo.",
+    "org": "Colegio Monte Lirio · datos de ejemplo"
+  }
+}

@@ -37,7 +37,7 @@ use local_oksigeniamarandu\local\telegram_api;
  *
  * Without the records, a plugin gives a code of its own to whom it keeps (a user, or an item such as a reader):
  *     $code = \local_oksigeniamarandu\api::invite('local_example', $item->id);
- *     $url = \local_oksigeniamarandu\api::optin_url($code); // Opens WhatsApp with «ALTA <code>» written.
+ *     $url = \local_oksigeniamarandu\api::optin_url($code); // Opens WhatsApp with a greeting and «(<code>)» written.
  *     \local_oksigeniamarandu\api::notify('local_example', 'reminder', ['Ana', 'lunes 3'], $pageurl, $item->id);
  *
  * What whoever joined with that code writes of their own reaches the plugin with the hook
@@ -98,17 +98,20 @@ class api {
     }
 
     /**
-     * The link that opens WhatsApp with the opt-in word and the code written, ready to send to the number of the site.
+     * The link that opens WhatsApp with the message that joins written, ready to send to the number of the site: a
+     * greeting and the code between brackets. The opt-in word and the code, typed by hand, work too.
      *
      * @param string $code A code from invite().
+     * @param string $greeting What the person says, in their words, such as «Hola, somos la familia de Leo.»; the
+     *                         greeting of Marandu if empty.
      * @return string|null Null if the site has not set its number yet.
      */
-    public static function optin_url(string $code): ?string {
+    public static function optin_url(string $code, string $greeting = ''): ?string {
         $number = preg_replace('/[^0-9]/', '', (string)get_config('local_oksigeniamarandu', 'displayphone'));
         if ($number === '') {
             return null;
         }
-        return 'https://wa.me/' . $number . '?text=' . rawurlencode(keywords::first('optinkeywords') . ' ' . $code);
+        return 'https://wa.me/' . $number . '?text=' . rawurlencode(keywords::join_text($code, $greeting));
     }
 
     /**
@@ -125,18 +128,19 @@ class api {
     }
 
     /**
-     * The link that joins with a code on a channel: WhatsApp with the opt-in word and the code written, or the bot of
+     * The link that joins with a code on a channel: WhatsApp with a greeting and the code written, or the bot of
      * Telegram started with the code.
      *
      * @param string $channel whatsapp or telegram.
      * @param string $code A code from invite(), or of the family records.
+     * @param string $greeting For WhatsApp, what the person says before the code; the greeting of Marandu if empty.
      * @return string|null Null if the site does not have that channel ready.
      */
-    public static function join_url(string $channel, string $code): ?string {
+    public static function join_url(string $channel, string $code, string $greeting = ''): ?string {
         if ($channel === 'telegram') {
             return telegram::join_url($code);
         }
-        return $channel === 'whatsapp' ? self::optin_url($code) : null;
+        return $channel === 'whatsapp' ? self::optin_url($code, $greeting) : null;
     }
 
     /**
@@ -227,6 +231,7 @@ class api {
      * @param string $scope all, or a plugin, such as local_oksigeniaeguahe for what admissions sends.
      * @param bool $out No more (true) or again (false).
      * @param string $source Where it was asked, such as eguahe:family.
+     * @param string $channel Only on this channel (whatsapp or telegram); empty for every one.
      * @param string $area The kind of item, if the plugin has more than one.
      * @return int How many numbers and chats changed.
      */
@@ -236,10 +241,14 @@ class api {
         string $scope,
         bool $out,
         string $source,
+        string $channel = '',
         string $area = ''
     ): int {
         $changed = 0;
         foreach (self::linked_contacts($component, $itemid, $area) as $contact) {
+            if ($channel !== '' && $contact->channel !== $channel) {
+                continue;
+            }
             $changed += consent::set_optout($contact, $scope === '' ? 'all' : $scope, $out, $source, $component) ? 1 : 0;
         }
         return $changed;
@@ -261,6 +270,51 @@ class api {
                 ['trail' => consent::trail((int)$contact->id)];
         }
         return $list;
+    }
+
+    /**
+     * Confirms to a person, in their chats, a change of the channels they are written by, with the card of the
+     * confirmation: by a channel they take, «from now on, here» (or «here too», if they keep the others); by one they
+     * leave, «from now on, by …» or, with no channel left, «the door is open». On WhatsApp only inside the 24 hours after
+     * the person last wrote, which is when Meta lets a free message go. The email is the plugin's own. Joining needs no
+     * call: Marandu welcomes whoever joins, with any code.
+     *
+     * @param string $component The plugin of the item, such as local_oksigeniaeguahe.
+     * @param int $itemid The item.
+     * @param array $now The channels now: whatsapp, telegram and email.
+     * @param array $before The channels before.
+     * @param string $area The kind of item, if the plugin has more than one.
+     * @return int How many confirmations go.
+     */
+    public static function confirm_channel(string $component, int $itemid, array $now, array $before, string $area = ''): int {
+        if (!local\confirm::enabled()) {
+            return 0;
+        }
+        $now = array_values(array_intersect(local\confirm::CHANNELS, $now));
+        $before = array_values(array_intersect(local\confirm::CHANNELS, $before));
+        $count = 0;
+        foreach (self::linked_contacts($component, $itemid, $area) as $contact) {
+            $channel = (string)$contact->channel;
+            if (!in_array($channel, local\confirm::CHATS, true) || $contact->status !== 'active') {
+                continue;
+            }
+            $takes = in_array($channel, $now, true) && !in_array($channel, $before, true);
+            $leaves = !in_array($channel, $now, true) && in_array($channel, $before, true);
+            if ($takes) {
+                $left = array_values(array_diff($before, $now));
+                [$kind, $others] = $left ? ['here', $left] : ['also', array_values(array_diff($now, [$channel]))];
+            } else if ($leaves) {
+                [$kind, $others] = $now ? ['away', $now] : ['out', []];
+            } else {
+                continue;
+            }
+            if ($channel === 'whatsapp' && (int)$contact->lastinbound <= time() - queue::WINDOW) {
+                continue;
+            }
+            \local_oksigeniamarandu\task\send_reply::queue_confirm((string)$contact->phone, $kind, $others);
+            $count++;
+        }
+        return $count;
     }
 
     /**

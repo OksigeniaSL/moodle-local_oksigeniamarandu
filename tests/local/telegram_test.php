@@ -151,9 +151,9 @@ final class telegram_test extends \advanced_testcase {
         $user = $this->getDataGenerator()->create_user();
         $code = api::invite('core', 0, (int)$user->id);
         $answer = telegram::handle($this->message(555, '/start ' . $code));
-        // The reply goes back at once, in the answer to the webhook.
+        // The reply goes back at once, in the answer to the webhook: the welcome (without a bot here, its text alone).
         $this->assertSame(
-            ['sendMessage', '555', send_reply::text('optin')],
+            ['sendMessage', '555', \local_oksigeniamarandu\local\confirm::build('joined', 'telegram')['text']],
             [$answer['method'], $answer['chat_id'], $answer['text']]
         );
 

@@ -34,6 +34,12 @@ class cards {
     /** The types of card, as the folders of the templates. */
     public const TYPES = ['open_day', 'outing', 'this_week', 'no_class', 'book', 'big_number', 'sky', 'weather', 'classwork'];
 
+    /** The cards of the confirmations: someone joins, changes channel (to this one, or to email) or leaves. */
+    public const CONFIRMATIONS = ['joined', 'channel_changed', 'channel_changed_mail', 'opted_out'];
+
+    /** The file area of the PNG copies of the logos of the site drawn in SVG: GD cannot read an SVG. */
+    public const LOGOAREA = 'logopng';
+
     /** The levels of a weather warning, as its card draws them. */
     public const LEVELS = ['moderate', 'severe', 'extreme'];
 
@@ -68,7 +74,7 @@ class cards {
      * @return array
      */
     public static function template(string $type): array {
-        if (!in_array($type, self::TYPES, true)) {
+        if (!in_array($type, self::TYPES, true) && !in_array($type, self::CONFIRMATIONS, true)) {
             throw new \coding_exception('There is no card ' . $type);
         }
         $dir = self::root() . '/cards/' . $type;
@@ -339,6 +345,7 @@ class cards {
         imagecopy($image, $accent, 0, 0, 0, 0, $width, $height);
         $cover = self::draw_images($image, $template, $data, $colours);
         self::draw_lines($image, self::layout($template, $data, $colours, $cover));
+        self::draw_logo($image, $colours);
         ob_start();
         imagejpeg($image, null, 90);
         return (string)ob_get_clean();
@@ -369,6 +376,7 @@ class cards {
         imagefill($layer, 0, 0, imagecolorallocatealpha($layer, 0, 0, 0, 127));
         imagesavealpha($layer, true);
         $cover = self::draw_images($layer, $template, $data, $colours);
+        self::draw_logo($layer, $colours);
         imagepng($layer, $job . '/images.png');
         $lines = self::layout($template, $data, $colours, $cover);
 
@@ -1063,6 +1071,280 @@ class cards {
             $pegx = (int)round($x + $at * $matwidth - imagesx($peg) / 2);
             imagecopy($image, $peg, $pegx, $y + (int)$zone['pegs']['top'], 0, 0, imagesx($peg), imagesy($peg));
         }
+    }
+
+    /**
+     * The logo of the site, as GD reads it: the wide one if it carries the name and is not too long (1.6 to 4.5), else
+     * the compact one, else the wide one whatever it is. An SVG is read from its PNG copy, which the browser of whoever
+     * administers makes when they open the pages of Marandu.
+     *
+     * @return \GdImage|null
+     */
+    public static function logo() {
+        $pick = null;
+        $wide = self::logo_bytes('logo');
+        $compact = self::logo_bytes('logocompact');
+        $aspect = function (?string $bytes): float {
+            $size = $bytes ? @getimagesizefromstring($bytes) : false;
+            return $size && $size[1] > 0 ? $size[0] / $size[1] : 0.0;
+        };
+        if ($wide !== null && $aspect($wide) >= 1.6 && $aspect($wide) <= 4.5) {
+            $pick = $wide;
+        } else {
+            $pick = $compact ?? $wide;
+        }
+        $image = $pick === null ? false : @imagecreatefromstring($pick);
+        return $image ?: null;
+    }
+
+    /**
+     * One of the two logos of the site (core_admin logo or logocompact), in a format GD reads.
+     *
+     * @param string $which logo or logocompact.
+     * @return string|null Its bytes; null if there is none, or if it is an SVG still without its copy.
+     */
+    public static function logo_bytes(string $which): ?string {
+        $file = self::logo_file($which);
+        if (!$file) {
+            return null;
+        }
+        if (in_array($file->get_mimetype(), ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], true)) {
+            return $file->get_content();
+        }
+        if ($file->get_mimetype() !== 'image/svg+xml') {
+            return null;
+        }
+        $copy = get_file_storage()->get_file(
+            \context_system::instance()->id,
+            self::COMPONENT,
+            self::LOGOAREA,
+            $which === 'logo' ? 0 : 1,
+            '/',
+            $file->get_contenthash() . '.png'
+        );
+        return $copy ? $copy->get_content() : null;
+    }
+
+    /**
+     * What the logo of the cards is made of, to know when to draw them again: the files of the site and their copies.
+     *
+     * @return string
+     */
+    public static function logo_key(): string {
+        $parts = [];
+        foreach (['logo', 'logocompact'] as $which) {
+            $file = self::logo_file($which);
+            $parts[] = $file ? $file->get_contenthash() . ($file->get_mimetype() === 'image/svg+xml'
+                ? (self::logo_bytes($which) === null ? '-' : '+') : '') : '';
+        }
+        return implode(':', $parts);
+    }
+
+    /**
+     * The logos of the site drawn in SVG that have no PNG copy yet: what the browser of whoever administers draws.
+     *
+     * @return array Each with which, url and aspect.
+     */
+    public static function logos_to_draw(): array {
+        $list = [];
+        foreach (['logo', 'logocompact'] as $which) {
+            $file = self::logo_file($which);
+            if (!$file || $file->get_mimetype() !== 'image/svg+xml' || self::logo_bytes($which) !== null) {
+                continue;
+            }
+            $url = \moodle_url::make_pluginfile_url($file->get_contextid(), 'core_admin', $which, 0, '/', $file->get_filename());
+            $list[] = ['which' => $which, 'url' => $url->out(false), 'aspect' => round(self::svg_aspect($file), 4)];
+        }
+        return $list;
+    }
+
+    /**
+     * What the browser of whoever administers needs to make the PNG copies of the logos drawn in SVG, for the foot of a
+     * page of Marandu: nothing if there is none to make, or if they cannot keep it.
+     *
+     * @return string HTML.
+     */
+    public static function logo_markup(): string {
+        if (!has_capability('moodle/site:config', \context_system::instance()) || !($logos = self::logos_to_draw())) {
+            return '';
+        }
+        $to = (new \moodle_url('/local/oksigeniamarandu/logopng.php'))->out(false);
+        $html = '';
+        foreach ($logos as $logo) {
+            $html .= \html_writer::span('', '', ['hidden' => 'hidden', 'data-mrd-logo' => '1', 'data-which' => $logo['which'],
+                'data-src' => $logo['url'], 'data-aspect' => $logo['aspect'], 'data-to' => $to]);
+        }
+        $script = new \moodle_url('/local/oksigeniamarandu/js/logo-png.js', ['v' => get_config(self::COMPONENT, 'version')]);
+        return $html . \html_writer::tag('script', '', ['src' => $script->out(false), 'defer' => 'defer']);
+    }
+
+    /**
+     * The proportion of a logo drawn in SVG, from its viewBox, or else its width and height.
+     *
+     * @param \stored_file $file The logo.
+     * @return float Width over height; 1 if it does not say.
+     */
+    private static function svg_aspect(\stored_file $file): float {
+        $svg = $file->get_content();
+        $number = '([\d.]+)';
+        if (
+            preg_match('/viewBox\s*=\s*["\']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+' . $number . '[\s,]+' . $number . '/i', $svg, $m)
+                && (float)$m[2] > 0
+        ) {
+            return (float)$m[1] / (float)$m[2];
+        }
+        if (
+            preg_match('/<svg\b[^>]*\swidth\s*=\s*["\']' . $number . '[^>]*\sheight\s*=\s*["\']' . $number . '/i', $svg, $m)
+                && (float)$m[2] > 0
+        ) {
+            return (float)$m[1] / (float)$m[2];
+        }
+        return 1.0;
+    }
+
+    /**
+     * Keeps the PNG copy of a logo drawn in SVG, made by the browser: only if it is a PNG of a sensible size.
+     *
+     * @param string $which logo or logocompact.
+     * @param string $png The PNG.
+     * @return bool Whether it was kept.
+     */
+    public static function keep_logo(string $which, string $png): bool {
+        $file = self::logo_file($which);
+        $size = @getimagesizefromstring($png);
+        if (
+            !$file || $file->get_mimetype() !== 'image/svg+xml' || !$size || $size[2] !== IMAGETYPE_PNG
+                || $size[0] < 32 || $size[0] > 4000 || $size[1] > 4000
+        ) {
+            return false;
+        }
+        // The copy of this logo, not another picture: the same proportion, give or take a pixel of rounding.
+        if (abs($size[0] / max(1, $size[1]) - self::svg_aspect($file)) > 0.02 * self::svg_aspect($file) + 1 / max(1, $size[1])) {
+            return false;
+        }
+        $fs = get_file_storage();
+        $context = \context_system::instance();
+        $itemid = $which === 'logo' ? 0 : 1;
+        $fs->delete_area_files($context->id, self::COMPONENT, self::LOGOAREA, $itemid);
+        $fs->create_file_from_string(['contextid' => $context->id, 'component' => self::COMPONENT, 'filearea' => self::LOGOAREA,
+            'itemid' => $itemid, 'filepath' => '/', 'filename' => $file->get_contenthash() . '.png'], $png);
+        return true;
+    }
+
+    /**
+     * A logo of the site.
+     *
+     * @param string $which logo or logocompact.
+     * @return \stored_file|null
+     */
+    private static function logo_file(string $which): ?\stored_file {
+        $files = get_file_storage()->get_area_files(\context_system::instance()->id, 'core_admin', $which, 0, 'id', false);
+        return $files ? reset($files) : null;
+    }
+
+    /**
+     * Sticks the logo of the site on a card (Jujol): a label of paper, outlined in ink, with a short hard shadow, over the
+     * bottom-right corner of the scene, its size by its area so that a long logo and a square one weigh the same. On a
+     * logo for dark backgrounds the label goes in the accent. Without a logo, the card stays as it was.
+     *
+     * @param \GdImage $image The card, 1280 by 720.
+     * @param array $colours The colours of the card.
+     */
+    private static function draw_logo($image, array $colours): void {
+        $logo = self::logo();
+        if (!$logo) {
+            return;
+        }
+        imagealphablending($logo, true);
+        $aspect = imagesx($logo) / max(1, imagesy($logo));
+        $height = min(96, sqrt(18000 / $aspect));
+        $width = $height * $aspect;
+        if ($width > 300) {
+            $width = 300;
+            $height = $width / $aspect;
+        }
+        [$width, $height] = [(int)round($width), (int)round($height)];
+        $pad = 16;
+        $plate = [$width + 2 * $pad, $height + 2 * $pad];
+        $fill = self::logo_light($logo) ? $colours['accent'] : [251, 248, 241];
+        $sticker = self::sticker($plate[0], $plate[1], 18, $fill, 3, [36, 33, 29], 6);
+        $x = 1256 - $plate[0];
+        $y = 700 - $plate[1];
+        imagealphablending($image, true);
+        imagecopy($image, $sticker, $x, $y, 0, 0, imagesx($sticker), imagesy($sticker));
+        imagecopyresampled($image, $logo, $x + $pad, $y + $pad, 0, 0, $width, $height, imagesx($logo), imagesy($logo));
+    }
+
+    /**
+     * Whether a logo is drawn for a dark background: mostly light where it is not transparent.
+     *
+     * @param \GdImage $logo The logo.
+     * @return bool
+     */
+    private static function logo_light($logo): bool {
+        $w = imagesx($logo);
+        $h = imagesy($logo);
+        $sum = 0.0;
+        $n = 0;
+        for ($y = 0; $y < $h; $y += max(1, intdiv($h, 60))) {
+            for ($x = 0; $x < $w; $x += max(1, intdiv($w, 60))) {
+                $c = imagecolorat($logo, $x, $y);
+                if ((($c >> 24) & 0x7F) > 90) {
+                    continue;
+                }
+                $sum += self::luminance([($c >> 16) & 0xFF, ($c >> 8) & 0xFF, $c & 0xFF]);
+                $n++;
+            }
+        }
+        return $n > 0 && $sum / $n > 0.75;
+    }
+
+    /**
+     * A rounded label with its outline and a hard shadow, smooth: drawn at three times its size and scaled down.
+     *
+     * @param int $w Width.
+     * @param int $h Height.
+     * @param int $r Radius of the corners.
+     * @param array $fill Its colour.
+     * @param int $stroke The width of the outline.
+     * @param array $ink The colour of the outline and the shadow.
+     * @param int $shadow How far the shadow goes.
+     * @return \GdImage
+     */
+    private static function sticker(int $w, int $h, int $r, array $fill, int $stroke, array $ink, int $shadow) {
+        $s = 3;
+        $bw = ($w + $shadow) * $s;
+        $bh = ($h + $shadow) * $s;
+        $big = imagecreatetruecolor($bw, $bh);
+        imagealphablending($big, false);
+        imagesavealpha($big, true);
+        imagefill($big, 0, 0, imagecolorallocatealpha($big, 0, 0, 0, 127));
+        $round = function (int $x0, int $y0, int $x1, int $y1, int $rr, int $col) use ($big): void {
+            imagefilledrectangle($big, $x0 + $rr, $y0, $x1 - $rr, $y1, $col);
+            imagefilledrectangle($big, $x0, $y0 + $rr, $x1, $y1 - $rr, $col);
+            $corners = [[$x0 + $rr, $y0 + $rr], [$x1 - $rr, $y0 + $rr], [$x0 + $rr, $y1 - $rr], [$x1 - $rr, $y1 - $rr]];
+            foreach ($corners as [$cx, $cy]) {
+                imagefilledellipse($big, $cx, $cy, 2 * $rr, 2 * $rr, $col);
+            }
+        };
+        $shade = imagecolorallocatealpha($big, $ink[0], $ink[1], $ink[2], 100);
+        $round($shadow * $s, $shadow * $s, $bw - 1, $bh - 1, $r * $s, $shade);
+        $round(0, 0, $w * $s - 1, $h * $s - 1, $r * $s, imagecolorallocatealpha($big, $ink[0], $ink[1], $ink[2], 0));
+        $k = $stroke * $s;
+        $round(
+            $k,
+            $k,
+            $w * $s - 1 - $k,
+            $h * $s - 1 - $k,
+            max(1, ($r - $stroke) * $s),
+            imagecolorallocatealpha($big, $fill[0], $fill[1], $fill[2], 0)
+        );
+        $out = imagecreatetruecolor($w + $shadow, $h + $shadow);
+        imagealphablending($out, false);
+        imagesavealpha($out, true);
+        imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
+        imagecopyresampled($out, $big, 0, 0, 0, 0, $w + $shadow, $h + $shadow, $bw, $bh);
+        return $out;
     }
 
     /**

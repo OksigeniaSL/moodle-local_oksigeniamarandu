@@ -50,7 +50,8 @@
       - weather: face, line, nofeed, levels (value, colour, on, lit, label), severity, status, feed, areas;
       - place: face, line, noplace, sky (lines), latitude, longitude, tle, tledefault;
       - links: line, utm, example, utmsource, utmmedium, shortener, hassignature;
-      - cards: line, colour, theme, own, sample, org, orgdefault, animated, ffmpeg, status, previewurl; and previews
+      - cards: line, colour, theme, own, sample, org, orgdefault, orgof, orgofdefault, animated, confirm, ffmpeg, status,
+        previewurl; and previews
         (alt, src), the seven cards, when asked for.
 
     Example context (json):
@@ -350,6 +351,7 @@
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="part" value="cards">
                     <input type="hidden" name="cardanimated" value="{{#animated}}1{{/animated}}{{^animated}}0{{/animated}}">
+                    <input type="hidden" name="confirmcards" value="{{#confirm}}1{{/confirm}}{{^confirm}}0{{/confirm}}">
                     <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
                     <p class="mrd-explica">{{#str}} channel:cards:desc, local_oksigeniamarandu {{/str}}</p>
                     <div class="mrd-tarjeta">
@@ -361,6 +363,8 @@
                                 <label class="mrd-color{{#own}} mrd-color-propio{{/own}}"><input type="color" name="cardcolor" value="{{colour}}" data-solo><span>{{#str}} channel:cards:own, local_oksigeniamarandu {{/str}}</span></label>
                             </div>
                             <button type="submit" class="mrd-llave" name="cardanimated" value="{{#animated}}0{{/animated}}{{^animated}}1{{/animated}}" aria-pressed="{{#animated}}true{{/animated}}{{^animated}}false{{/animated}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} channel:cards:animated, local_oksigeniamarandu {{/str}}</button>
+                            <button type="submit" class="mrd-llave" name="confirmcards" value="{{#confirm}}0{{/confirm}}{{^confirm}}1{{/confirm}}" aria-pressed="{{#confirm}}true{{/confirm}}{{^confirm}}false{{/confirm}}" aria-describedby="mrd-cards-confirm"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} channel:cards:confirm, local_oksigeniamarandu {{/str}}</button>
+                            <p class="mrd-muted" id="mrd-cards-confirm">{{#str}} channel:cards:confirm_help, local_oksigeniamarandu {{/str}}</p>
                             <p class="mrd-estado">{{status}}</p>
                             <a class="mrd-link" href="{{previewurl}}">{{#str}} channel:cards:preview, local_oksigeniamarandu {{/str}}</a>
                         </div>
@@ -369,6 +373,8 @@
                         <div class="mrd-campos">
                             <label class="mrd-campo"><span>{{#str}} channel:cards:org, local_oksigeniamarandu {{/str}}</span>
                                 <input type="text" name="cardorg" value="{{org}}" placeholder="{{orgdefault}}"></label>
+                            <label class="mrd-campo"><span>{{#str}} channel:cards:orgof, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="cardorgof" value="{{orgof}}" placeholder="{{orgofdefault}}"></label>
                             <label class="mrd-campo"><span>{{#str}} channel:cards:ffmpeg, local_oksigeniamarandu {{/str}}</span>
                                 <input type="text" name="ffmpeg" value="{{ffmpeg}}" placeholder="/usr/bin/ffmpeg" autocomplete="off"></label>
                         </div>

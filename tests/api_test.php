@@ -56,17 +56,25 @@ final class api_test extends \advanced_testcase {
     }
 
     /**
-     * The link opens WhatsApp with the first opt-in word and the code, once the site has set its number.
+     * The link opens WhatsApp with a greeting and the code between brackets, once the site has set its number; the
+     * plugin can give the greeting, in the words of the person, and the bot reads the code from it.
      */
     public function test_optin_url(): void {
         $this->resetAfterTest();
         $this->assertNull(api::optin_url('K7M2Q9XA'));
 
         set_config('displayphone', '+34 900 000 000', 'local_oksigeniamarandu');
-        $this->assertSame('https://wa.me/34900000000?text=ALTA%20K7M2Q9XA', api::optin_url('K7M2Q9XA'));
+        $this->assertSame('https://wa.me/34900000000?text=' . rawurlencode(
+            'Hello, we would like to get the notices of PHPUnit test site here. (K7M2Q9XA)'
+        ), api::optin_url('K7M2Q9XA'));
 
-        set_config('optinkeywords', 'Avisos, ALTA', 'local_oksigeniamarandu');
-        $this->assertSame('https://wa.me/34900000000?text=AVISOS%20K7M2Q9XA', api::optin_url('K7M2Q9XA'));
+        $url = api::join_url('whatsapp', 'K7M2Q9XA', 'Hola, somos la familia de Leo.');
+        $this->assertSame('https://wa.me/34900000000?text=' . rawurlencode('Hola, somos la familia de Leo. (K7M2Q9XA)'), $url);
+        parse_str((string)parse_url($url, PHP_URL_QUERY), $query);
+        $this->assertSame(
+            ['action' => 'optin', 'code' => 'K7M2Q9XA'],
+            \local_oksigeniamarandu\local\keywords::match($query['text'])
+        );
     }
 
     /**
@@ -128,7 +136,10 @@ final class api_test extends \advanced_testcase {
             [$state['trail'][0]['action'], $state['trail'][0]['source'], $state['trail'][0]['scope']]
         );
 
-        // Writing again takes it back.
+        // Writing again the same day (the thanks to the confirmation) does not take it back; another day, it does.
+        \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Gracias', time(), 'wamid.W', null);
+        $this->assertSame(['local_oksigeniaeguahe'], array_keys(api::optout_state('local_oksigeniamarandu', 7)[0]['scopes']));
+        $DB->set_field(consent::OPTOUTS, 'timecreated', time() - 2 * DAYSECS, ['contactid' => $contact->id]);
         \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola de nuevo', time(), 'wamid.X', null);
         $state = api::optout_state('local_oksigeniamarandu', 7)[0];
         $this->assertSame([], $state['scopes']);
@@ -139,6 +150,8 @@ final class api_test extends \advanced_testcase {
         $contact = $DB->get_record(consent::CONTACTS, ['id' => $contact->id]);
         $this->assertTrue(consent::out_of($contact, 'local_oksigeniameals'));
         $this->assertFalse(api::has_active_contact('local_oksigeniamarandu', 7));
+        $this->assertFalse(consent::lift('34600000001', 'wamid.V'));
+        $DB->set_field(consent::CONTACTS, 'optouttime', time() - 2 * DAYSECS, ['id' => $contact->id]);
         $this->assertTrue(consent::lift('34600000001', 'wamid.Y'));
         $this->assertTrue(api::has_active_contact('local_oksigeniamarandu', 7));
         $this->assertFalse(consent::lift('34600000001', 'wamid.Z'));

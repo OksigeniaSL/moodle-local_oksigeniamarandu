@@ -95,10 +95,11 @@ class conversation {
         ?string $name
     ): array {
         global $DB;
-        // Whoever said no and writes again is in the list again, on this channel.
+        // Whoever said no and writes again is in the list again, on this channel (from the day after saying it). What they
+        // write reaches their plugins anyway: saying no is to the notices, and whoever writes gets an answer.
         consent::lift($address, $messageid);
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]);
-        if (!$contact || $contact->status !== 'active') {
+        if (!$contact || !in_array($contact->status, ['active', 'optedout'], true)) {
             return [false, null];
         }
         $links = $DB->get_records_select(

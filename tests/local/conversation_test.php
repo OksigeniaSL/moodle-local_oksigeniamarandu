@@ -254,9 +254,10 @@ final class conversation_test extends \advanced_testcase {
 
     /**
      * The opt-in and opt-out words do what they did; a number that has not joined or joined only for a user (no plugin)
-     * reaches nobody; one that left and writes again is in the list again, and reaches its plugin.
+     * reaches nobody; one that left and writes again reaches its plugin, and is in the list again from the day after.
      */
     public function test_who_counts(): void {
+        global $DB;
         $user = $this->getDataGenerator()->create_user();
         consent::optin_from_message('34600000002', api::invite('core', 0, (int)$user->id), 'join');
         $this->join('34600000001');
@@ -267,11 +268,18 @@ final class conversation_test extends \advanced_testcase {
         inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S8', 'type' => 'text',
             'text' => ['body' => 'BAJA']]));
         $this->assertSame([], $this->heard);
-        // Whoever left and writes again of their own is in the list again: the plugin hears it.
+        // Whoever left and writes again of their own reaches the plugin, which can answer; the same day, the no stands.
         inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S9', 'type' => 'text',
-            'text' => ['body' => 'Hola']]));
+            'text' => ['body' => 'Gracias']]));
         $this->assertCount(1, $this->heard);
         $this->assertSame('+34600000001', $this->heard[0]->get_address());
+        $this->assertSame('optedout', $DB->get_field(consent::CONTACTS, 'status', ['phone' => '34600000001']));
+        // Another day, writing again takes the no back.
+        $DB->set_field(consent::CONTACTS, 'optouttime', time() - 2 * DAYSECS, ['phone' => '34600000001']);
+        inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S10', 'type' => 'text',
+            'text' => ['body' => 'Hola otra vez']]));
+        $this->assertCount(2, $this->heard);
+        $this->assertSame('active', $DB->get_field(consent::CONTACTS, 'status', ['phone' => '34600000001']));
     }
 
     /**

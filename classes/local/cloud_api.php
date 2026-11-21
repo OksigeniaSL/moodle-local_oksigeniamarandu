@@ -164,6 +164,49 @@ class cloud_api {
     }
 
     /**
+     * Sends an image with its text below, such as the card of a confirmation. Only inside the 24 hours after the number
+     * last wrote.
+     *
+     * @param string $to Digits with the country code.
+     * @param string $mediaid The id Meta gave to the image when it went up (upload_media()).
+     * @param string $caption The text, up to 1024 characters.
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    public function send_image(string $to, string $mediaid, string $caption): string {
+        return $this->send_message([
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => 'image',
+            'image' => ['id' => $mediaid, 'caption' => \core_text::substr($caption, 0, 1024)],
+        ]);
+    }
+
+    /**
+     * Uploads an image to Meta, for the messages of the number: Meta keeps it 30 days.
+     *
+     * @param string $bytes The image, a JPEG or a PNG of up to 5 MB.
+     * @param string $name Its name, with its extension.
+     * @return string The id Meta gives to it.
+     * @throws api_exception If Meta does not take it.
+     */
+    public function upload_media(string $bytes, string $name): string {
+        $type = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
+        $answer = $this->decode($this->request_file(
+            $this->url($this->phonenumberid . '/media'),
+            ['messaging_product' => 'whatsapp', 'type' => $type],
+            $bytes,
+            $type,
+            $name
+        ));
+        if (empty($answer['id'])) {
+            throw new api_exception('error:unexpected');
+        }
+        return (string)$answer['id'];
+    }
+
+    /**
      * Posts a message and returns its id.
      *
      * @param array $payload The message, in the shape of the API.
@@ -349,6 +392,33 @@ class cloud_api {
             throw new api_exception(self::KNOWN_ERRORS[$code] ?? 'error:meta', $a, $code);
         }
         return $response;
+    }
+
+    /**
+     * One request with a file, as a form, with the token. Kept apart so that the tests can answer for Meta.
+     *
+     * @param string $url Full URL.
+     * @param array $fields The fields of the form, as text.
+     * @param string $bytes The file.
+     * @param string $type Its media type.
+     * @param string $name Its name.
+     * @return string What Meta answered.
+     * @throws api_exception If Meta cannot be reached.
+     */
+    protected function request_file(string $url, array $fields, string $bytes, string $type, string $name): string {
+        global $CFG;
+        // The class of the requests: not every script has it loaded.
+        require_once($CFG->libdir . '/filelib.php');
+        $path = make_request_directory() . '/' . clean_param($name, PARAM_FILE);
+        file_put_contents($path, $bytes);
+        $fields['file'] = new \CURLFile($path, $type, $name);
+        $curl = new \curl();
+        $curl->setHeader(['Authorization: Bearer ' . $this->accesstoken]);
+        $answer = $curl->post($url, $fields, ['CURLOPT_TIMEOUT' => 60]);
+        if ($curl->get_errno()) {
+            throw new api_exception('error:network', s($curl->error));
+        }
+        return (string)$answer;
     }
 
     /**

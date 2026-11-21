@@ -205,6 +205,65 @@ class telegram_api {
     }
 
     /**
+     * Sends a photo with its text below, such as the card of a confirmation. It goes up once for each bot: Telegram gives
+     * it an id for the next ones.
+     *
+     * @param string $chatid The chat.
+     * @param string $bytes The photo, a JPEG or a PNG.
+     * @param string $caption The text, up to 1024 characters.
+     * @param array|null $markup The keyboard of the message, if any.
+     * @return string The id of the message.
+     * @throws api_exception If Telegram refuses it.
+     */
+    public function send_photo(string $chatid, string $bytes, string $caption, ?array $markup = null): string {
+        $cache = \cache::make('local_oksigeniamarandu', 'telegramphotos');
+        $key = $this->photo_key($bytes);
+        $fileid = $cache->get($key);
+        $params = ['chat_id' => $chatid, 'caption' => \core_text::substr($caption, 0, 1024)];
+        if ($markup) {
+            $params['reply_markup'] = $markup;
+        }
+        try {
+            $answer = $fileid ? $this->call('sendPhoto', $params + ['photo' => $fileid])
+                : $this->answer($this->request_file('sendPhoto', self::fields($params), 'photo', $bytes));
+        } catch (api_exception $e) {
+            if ($fileid) {
+                // Perhaps Telegram no longer has it: the next one uploads it again.
+                $cache->delete($key);
+            }
+            throw $e;
+        }
+        $sizes = $answer['photo'] ?? [];
+        $largest = $sizes ? end($sizes) : [];
+        if (!$fileid && !empty($largest['file_id'])) {
+            $cache->set($key, (string)$largest['file_id']);
+        }
+        return (string)($answer['message_id'] ?? '');
+    }
+
+    /**
+     * The id this bot already has for a photo, to send it again without uploading it, such as in the answer to the
+     * webhook; null if it has not sent it yet.
+     *
+     * @param string $bytes The photo.
+     * @return string|null
+     */
+    public function photo_id_of(string $bytes): ?string {
+        $fileid = \cache::make('local_oksigeniamarandu', 'telegramphotos')->get($this->photo_key($bytes));
+        return $fileid ? (string)$fileid : null;
+    }
+
+    /**
+     * The key of a photo of this bot in the cache: the id of a file only works for the bot that uploaded it.
+     *
+     * @param string $bytes The photo.
+     * @return string
+     */
+    private function photo_key(string $bytes): string {
+        return sha1('photo:' . strstr($this->token, ':', true) . ':' . sha1($bytes));
+    }
+
+    /**
      * The menu of the bot, for the phones in a language or for all the rest; only in private chats.
      *
      * @param array $commands Each with command and description.

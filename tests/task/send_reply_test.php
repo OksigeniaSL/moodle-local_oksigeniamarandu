@@ -36,15 +36,19 @@ final class send_reply_test extends \advanced_testcase {
      * @param string $phone Digits with the country code.
      * @param string $reply The reply.
      * @param bool $fail Whether Meta refuses it.
-     * @return array The texts sent, by number.
+     * @param array|null $data Other data for the task, instead of the reply.
+     * @return array The texts sent, by number, with the image if it went with one.
      */
-    private function run_reply(string $phone, string $reply, bool $fail = false): array {
+    private function run_reply(string $phone, string $reply, bool $fail = false, ?array $data = null): array {
         $client = new class ('1110000000', 'fake-token') extends cloud_api {
             /** @var array What was sent. */
             public $sent = [];
 
             /** @var bool Whether Meta refuses. */
             public $fail = false;
+
+            /** @var int Images uploaded. */
+            public $uploads = 0;
 
             /**
              * Keeps the text instead of sending it.
@@ -58,6 +62,34 @@ final class send_reply_test extends \advanced_testcase {
                     throw new api_exception('error:token');
                 }
                 $this->sent[] = [$to, $text];
+                return 'wamid.FAKE';
+            }
+
+            /**
+             * Keeps the image instead of uploading it.
+             *
+             * @param string $bytes The image.
+             * @param string $name Its name.
+             * @return string
+             */
+            public function upload_media(string $bytes, string $name): string {
+                if ($this->fail) {
+                    throw new api_exception('error:token');
+                }
+                $this->uploads++;
+                return 'media.' . strlen($bytes);
+            }
+
+            /**
+             * Keeps the image message instead of sending it.
+             *
+             * @param string $to Number.
+             * @param string $mediaid The image.
+             * @param string $caption Text.
+             * @return string
+             */
+            public function send_image(string $to, string $mediaid, string $caption): string {
+                $this->sent[] = [$to, $caption, $mediaid];
                 return 'wamid.FAKE';
             }
         };
@@ -76,16 +108,17 @@ final class send_reply_test extends \advanced_testcase {
             }
         };
         $task->client = $client;
-        $task->set_custom_data(['phone' => $phone, 'reply' => $reply]);
+        $task->set_custom_data($data ?? ['phone' => $phone, 'reply' => $reply]);
         $task->execute();
         return $client->sent;
     }
 
     /**
-     * The reply names the site and the word to undo it.
+     * The reply names the site and the word to undo it (the short replies, without the confirmations).
      */
     public function test_texts(): void {
         $this->resetAfterTest();
+        set_config('confirmcards', 0, 'local_oksigeniamarandu');
         $sent = $this->run_reply('34600000001', 'optin');
         $this->assertCount(1, $sent);
         $this->assertSame('34600000001', $sent[0][0]);
@@ -103,8 +136,109 @@ final class send_reply_test extends \advanced_testcase {
         $this->resetAfterTest();
         $this->assertSame([], $this->run_reply('34600000001', 'anything'));
 
-        $this->expectOutputRegex('/the reply was not sent/');
+        $this->expectOutputRegex('/was not sent/');
         $this->assertSame([], $this->run_reply('34600000001', 'optin', true));
+    }
+
+    /**
+     * The confirmations: joining goes with its card and the warm text; a second code is not welcomed twice; leaving says
+     * the door is open; a change of channel names the channels. Without GD, the text alone.
+     */
+    public function test_confirmations(): void {
+        $this->resetAfterTest();
+        $code = \local_oksigeniamarandu\api::invite('core', 0, (int)$this->getDataGenerator()->create_user()->id);
+        $this->assertSame('optin', \local_oksigeniamarandu\local\consent::optin_from_message('34600000001', $code, 'join'));
+        $sent = $this->run_reply('34600000001', 'optin');
+        $this->assertCount(1, $sent);
+        $this->assertStringContainsString('How lovely to have you here', $sent[0][1]);
+        $this->assertStringContainsString('BAJA', $sent[0][1]);
+        if (\local_oksigeniamarandu\local\cards::can_draw()) {
+            $this->assertStringStartsWith('media.', $sent[0][2]);
+        }
+
+        // The opt-in word again: already in, the short reply.
+        \local_oksigeniamarandu\local\consent::optin_from_message('34600000001', null, 'again');
+        $sent = $this->run_reply('34600000001', 'optin');
+        $this->assertStringContainsString('To stop them', $sent[0][1]);
+        $this->assertCount(2, $sent[0]);
+
+        $sent = $this->run_reply('34600000001', 'optout');
+        $this->assertStringContainsString('Our door is always open', $sent[0][1]);
+        $this->assertStringContainsString('just write to us', $sent[0][1]);
+
+        $sent = $this->run_reply('34600000001', '', false, ['phone' => '34600000001', 'confirm' => 'away',
+            'others' => ['telegram', 'email']]);
+        $this->assertStringContainsString('by Telegram and email', $sent[0][1]);
+        $message = \local_oksigeniamarandu\local\confirm::build('away', 'whatsapp', null, ['email']);
+        if ($message['card']) {
+            $this->assertSame('channel_changed_mail', $message['card']['type']);
+            $this->assertSame('By email', $message['card']['zones']['channel']);
+            $this->assertNotEmpty(\local_oksigeniamarandu\local\confirm::image($message['card']));
+        }
+        // The message that joins, as a link writes it: a greeting and the code between brackets.
+        $this->assertSame(
+            'Hello, we would like to get the notices of PHPUnit test site here. (K7M2Q9XA)',
+            \local_oksigeniamarandu\local\keywords::join_text('K7M2Q9XA')
+        );
+        $this->assertSame(
+            'Hola, somos la familia de Leo. (K7M2Q9XA)',
+            \local_oksigeniamarandu\local\keywords::join_text('K7M2Q9XA', " Hola, somos\n la familia de Leo. ")
+        );
+
+        // Letters the font has not, such as a name in Arabic: the text alone.
+        set_config('cardorg', 'مدرسة النور', 'local_oksigeniamarandu');
+        $this->assertNull(\local_oksigeniamarandu\local\confirm::build('joined', 'telegram')['card']);
+    }
+
+    /**
+     * A plugin confirms a change of channels: by the one taken, «here»; by the one left, «by …»; WhatsApp only inside the
+     * 24 hours; nothing for a channel that did not change.
+     */
+    public function test_confirm_channel(): void {
+        global $DB;
+        $this->resetAfterTest();
+        foreach (['34600000001', 'tg:555'] as $address) {
+            \local_oksigeniamarandu\local\consent::optin_from_message(
+                $address,
+                \local_oksigeniamarandu\api::invite('local_oksigeniamarandu', 7),
+                'join'
+            );
+        }
+        $tasks = function (): array {
+            $list = [];
+            foreach (\core\task\manager::get_adhoc_tasks(send_reply::class) as $task) {
+                $data = $task->get_custom_data();
+                if (isset($data->confirm)) {
+                    $list[$data->phone] = [$data->confirm, $data->others];
+                }
+            }
+            return $list;
+        };
+        // From WhatsApp to Telegram and email.
+        $count = \local_oksigeniamarandu\api::confirm_channel('local_oksigeniamarandu', 7, ['telegram', 'email'], ['whatsapp']);
+        $this->assertSame(2, $count);
+        $this->assertEquals(['34600000001' => ['away', ['telegram', 'email']], 'tg:555' => ['here', ['whatsapp']]], $tasks());
+
+        // WhatsApp outside the 24 hours: only Telegram.
+        $DB->delete_records('task_adhoc', ['classname' => '\\' . send_reply::class]);
+        $DB->set_field(
+            \local_oksigeniamarandu\local\consent::CONTACTS,
+            'lastinbound',
+            time() - 2 * DAYSECS,
+            ['phone' => '34600000001']
+        );
+        $this->assertSame(1, \local_oksigeniamarandu\api::confirm_channel(
+            'local_oksigeniamarandu',
+            7,
+            [],
+            ['whatsapp', 'telegram']
+        ));
+        $this->assertEquals(['tg:555' => ['out', []]], $tasks());
+
+        // Nothing changed for these channels; or the confirmations are off.
+        $this->assertSame(0, \local_oksigeniamarandu\api::confirm_channel('local_oksigeniamarandu', 7, ['email'], []));
+        set_config('confirmcards', 0, 'local_oksigeniamarandu');
+        $this->assertSame(0, \local_oksigeniamarandu\api::confirm_channel('local_oksigeniamarandu', 7, [], ['telegram']));
     }
 
     /**

@@ -18,14 +18,17 @@ namespace local_oksigeniamarandu\task;
 
 use local_oksigeniamarandu\local\api_exception;
 use local_oksigeniamarandu\local\cloud_api;
+use local_oksigeniamarandu\local\confirm;
+use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\keywords;
 use local_oksigeniamarandu\local\telegram;
 use local_oksigeniamarandu\local\telegram_api;
 
 /**
- * The reply to an opt-in or an opt-out, sent after the webhook has answered Meta.
+ * The reply to an opt-in or an opt-out, sent after the webhook has answered Meta, and the confirmations of a change of
+ * channel: with the card of the confirmation if the site wants them (confirm), or else as plain text.
  *
- * The family has just written, so the reply goes inside the 24-hour window, as plain text and without a template.
+ * The family has just written, so the reply goes inside the 24-hour window, without a template.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -60,6 +63,36 @@ class send_reply extends \core\task\adhoc_task {
     }
 
     /**
+     * Queues a confirmation of the channels of a person, with its card.
+     *
+     * @param string $phone The number or the chat.
+     * @param string $kind One of confirm::KINDS.
+     * @param array $others The other channels, as confirm::build() takes them.
+     */
+    public static function queue_confirm(string $phone, string $kind, array $others = []): void {
+        $task = new static();
+        $task->set_custom_data(['phone' => $phone, 'confirm' => $kind, 'others' => array_values($others)]);
+        \core\task\manager::queue_adhoc_task($task);
+    }
+
+    /**
+     * The confirmation a reply becomes, if the site wants them: joining (not again) and leaving.
+     *
+     * @param string $phone The number or the chat.
+     * @param string $reply One of REPLIES.
+     * @return string|null One of confirm::KINDS, or null for the plain reply.
+     */
+    public static function confirmation(string $phone, string $reply): ?string {
+        if (!confirm::enabled()) {
+            return null;
+        }
+        if ($reply === 'optin') {
+            return consent::rejoined($phone) ? null : 'joined';
+        }
+        return $reply === 'optout' ? 'out' : null;
+    }
+
+    /**
      * The text of a reply, in the language of the contact or of the site.
      *
      * @param string $reply One of REPLIES.
@@ -84,10 +117,28 @@ class send_reply extends \core\task\adhoc_task {
         global $DB;
         $data = $this->get_custom_data();
         $own = isset($data->text) && trim((string)$data->text) !== '';
-        if (empty($data->phone) || (!$own && !in_array($data->reply ?? '', self::REPLIES, true))) {
+        $kind = isset($data->confirm) && in_array($data->confirm, confirm::KINDS, true) ? (string)$data->confirm : null;
+        if (empty($data->phone) || (!$own && $kind === null && !in_array($data->reply ?? '', self::REPLIES, true))) {
             return;
         }
         $lang = $DB->get_field('local_oksigeniamarandu_contact', 'lang', ['phone' => $data->phone]);
+        if (!$own && $kind === null) {
+            $kind = self::confirmation($data->phone, $data->reply);
+        }
+        if ($kind !== null) {
+            $tg = telegram::is_chat($data->phone);
+            $message = confirm::build($kind, $tg ? 'telegram' : 'whatsapp', $lang ?: null, (array)($data->others ?? []));
+            try {
+                if ($tg) {
+                    confirm::telegram($this->telegram(), telegram::chat($data->phone), $message);
+                } else {
+                    confirm::whatsapp($this->api(), $data->phone, $message);
+                }
+            } catch (api_exception $e) {
+                mtrace('Marandu: the confirmation was not sent: ' . $e->getMessage());
+            }
+            return;
+        }
         $text = $own ? (string)$data->text : self::text($data->reply, $lang ?: null);
         try {
             if (telegram::is_chat($data->phone)) {

@@ -118,8 +118,8 @@ if ($action !== '' && confirm_sesskey()) {
                     set_config($name, min((int)$value, $most), $component);
                 }
             }
-            // The switches: the events of the site, the marks of the links and the cards that move.
-            foreach (['calendarsite', 'utm', 'cardanimated'] as $name) {
+            // The switches: the events of the site, the marks of the links, the cards that move and the confirmations with a card.
+            foreach (['calendarsite', 'utm', 'cardanimated', 'confirmcards'] as $name) {
                 if ($posted($name) !== null) {
                     set_config($name, optional_param($name, 0, PARAM_BOOL) ? 1 : 0, $component);
                 }
@@ -133,7 +133,7 @@ if ($action !== '' && confirm_sesskey()) {
                 }
             }
             // What is written: the words of the days without class, the areas and the name of the organization on the cards.
-            foreach (['calendarkeywords', 'weatherareas', 'cardorg'] as $name) {
+            foreach (['calendarkeywords', 'weatherareas', 'cardorg', 'cardorgof'] as $name) {
                 if ($posted($name) !== null) {
                     set_config($name, trim(optional_param($name, '', PARAM_TEXT)), $component);
                 }
@@ -515,7 +515,10 @@ if ($current) {
         'sample' => $thumb('this_week', 640),
         'org' => (string)($config->cardorg ?? ''),
         'orgdefault' => format_string($SITE->fullname),
+        'orgof' => (string)($config->cardorgof ?? ''),
+        'orgofdefault' => get_string('confirm:of', $component, cards::org()),
         'animated' => $animated,
+        'confirm' => ($config->confirmcards ?? '1') !== '0',
         'ffmpeg' => (string)($config->ffmpeg ?? ''),
         'status' => !cards::can_draw() ? get_string('channel:cards:none', $component)
             : (cards::ffmpeg() ? get_string('channel:cards:animatedok', $component, cards::ffmpeg())
@@ -566,4 +569,6 @@ if ($current) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/channel', $context);
+// The PNG copies of the logos drawn in SVG, for the cards: the browser of whoever administers makes them.
+echo \local_oksigeniamarandu\local\cards::logo_markup();
 echo $OUTPUT->footer();

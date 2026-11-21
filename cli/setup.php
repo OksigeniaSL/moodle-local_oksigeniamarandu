@@ -37,6 +37,8 @@ use local_oksigeniamarandu\local\telegram_api;
     'whatsapp-number' => '',
     'notices' => '',
     'channels' => 'telegram',
+    'org-of' => null,
+    'confirm-cards' => null,
     'status' => false,
 ], ['h' => 'help']);
 
@@ -44,7 +46,8 @@ if ($unrecognised) {
     cli_error(get_string('cliunknowoption', 'admin', implode("\n  ", $unrecognised)));
 }
 
-$nothing = $options['telegram-token-file'] === '' && $options['whatsapp-number'] === '' && $options['notices'] === '';
+$nothing = $options['telegram-token-file'] === '' && $options['whatsapp-number'] === '' && $options['notices'] === ''
+    && $options['org-of'] === null && $options['confirm-cards'] === null;
 if ($options['help'] || ($nothing && !$options['status'])) {
     echo "Sets up Oksigenia Marandu on this site.
 
@@ -57,6 +60,10 @@ Options:
                             24 hours of everyone (they were with the other number) and reads the templates again.
 --notices=PLUGINS           Switches on every notice of these plugins (comma separated, or all), for --channels.
 --channels=CHANNELS         telegram, whatsapp or both (comma separated). Default: telegram.
+--org-of=TEXT               The name of the organization inside a sentence of the confirmations, in the language of
+                            the site, such as \"del Colegio Monte Lirio\"; empty for the plain way.
+--confirm-cards=0|1         The confirmations of joining, changing channel and leaving, with their card (1, the
+                            default) or as the short text of before (0).
 --status                    Shows the channels and the notices on.
 -h, --help                  This help.
 
@@ -94,6 +101,14 @@ try {
     if ($options['notices'] !== '') {
         $keys = setup::notices($list($options['notices']), $list($options['channels']));
         mtrace('Notices on for ' . implode(', ', $list($options['channels'])) . ': ' . ($keys ? implode(', ', $keys) : 'none'));
+    }
+    if ($options['org-of'] !== null) {
+        set_config('cardorgof', $options['org-of'] === true ? '' : trim((string)$options['org-of']), 'local_oksigeniamarandu');
+        mtrace('The name inside a sentence: ' . \local_oksigeniamarandu\local\confirm::of($CFG->lang) . '.');
+    }
+    if ($options['confirm-cards'] !== null) {
+        set_config('confirmcards', empty($options['confirm-cards']) ? 0 : 1, 'local_oksigeniamarandu');
+        mtrace('Confirmations with a card: ' . (empty($options['confirm-cards']) ? 'off' : 'on') . '.');
     }
     if ($options['status']) {
         foreach (setup::status() as $line) {

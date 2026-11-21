@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.48.0 (2026-11-21)
+
+- The confirmations, with a card: whoever joins, changes channel or leaves gets, in the chat, a card with the colour,
+  the name and the logo of the organization, and a warm text below it. Without the cards (switched off, a server
+  without GD, a language with letters the font has not), the text goes alone. A second code from the same chat is not
+  welcomed twice.
+- The logo of the site on every card, also on those of the channel; a logo drawn in SVG gets a PNG copy from the
+  browser of whoever administers, the first time they open a page of Marandu.
+- `api::confirm_channel()`, for the plugins that let a person choose their channels, and `api::set_optout()` with
+  only one channel.
+- Writing again takes back a no only from the day after: the thanks that answers the confirmation is not a change of
+  mind. The opt-in word works at once.
+- The name of the organization inside a sentence («del Colegio Monte Lirio»), on the page of the channel and with
+  `cli/setup.php --org-of`; and `--confirm-cards`.
+
 ## 0.40.1 (2026-11-20)
 
 - The review of the card of the family: the legend shows the stages together, by age, and the shapes apart; the foot

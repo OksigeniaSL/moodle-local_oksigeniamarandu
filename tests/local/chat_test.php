@@ -1012,8 +1012,9 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
-     * What a number said no to shows in its file, with the trail; the team marks it from the chat, and writing again
-     * takes it back. The price of each category is what the centre says, or a rough one.
+     * What a number said no to shows in its file, with the trail; the team marks it from the chat, and writing again does
+     * not take it back: it is only asked, once, whether it wants the notices again. The price of each category is what the
+     * centre says, or a rough one.
      */
     public function test_optout_in_chat_and_prices(): void {
         global $DB;
@@ -1028,7 +1029,7 @@ final class chat_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $said['all']);
         $step = $said['trail'][0];
         $this->assertSame(['optout', 'chat:Ana', 'all'], [$step['action'], $step['source'], $step['scope']]);
-        // Another day, writing again takes it back.
+        // Another day, writing again leaves the «no» as it was and asks whether they want the notices back.
         $DB->set_field(
             \local_oksigeniamarandu\local\consent::CONTACTS,
             'optouttime',
@@ -1037,7 +1038,8 @@ final class chat_test extends \advanced_testcase {
         );
         \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola', time(), 'wamid.Z', null);
         $said = $file();
-        $this->assertSame([0, 'optin', 'wrote'], [$said['all'], $said['trail'][0]['action'], $said['trail'][0]['source']]);
+        $this->assertGreaterThan(0, $said['all']);
+        $this->assertSame(['askedback', 'wrote'], [$said['trail'][0]['action'], $said['trail'][0]['source']]);
 
         $this->assertSame(templates::PRICES, templates::prices());
         $set = ['utility' => 0.0166, 'marketing' => 'x', 'currency' => 'USD'];

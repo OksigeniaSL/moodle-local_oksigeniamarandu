@@ -105,8 +105,17 @@ foreach (['attend' => 'atender', 'coordinate' => 'coordinar'] as $kind => $file)
     }
 }
 
+// The way back to the site, from the rail: «Back to the classroom» where the site calls itself a classroom (aula, in its
+// name or its address), «Back to the platform» elsewhere. The setting chathomekind (aula or platform) says it instead.
+$homekind = (string)get_config('local_oksigeniamarandu', 'chathomekind');
+if (!in_array($homekind, ['aula', 'platform'], true)) {
+    $homekind = preg_match('/\baula\b/iu', $SITE->fullname . ' ' . $SITE->shortname . ' ' .
+        (string)parse_url($CFG->wwwroot, PHP_URL_HOST)) ? 'aula' : 'platform';
+}
+
 $config = [
     'wwwroot' => $CFG->wwwroot,
+    'home' => ['url' => (new moodle_url('/my/'))->out(false), 'kind' => $homekind],
     'sesskey' => sesskey(),
     'pollms' => 4000,
     'inapp' => core_useragent::is_moodle_app(),

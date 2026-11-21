@@ -274,11 +274,22 @@ final class conversation_test extends \advanced_testcase {
         $this->assertCount(1, $this->heard);
         $this->assertSame('+34600000001', $this->heard[0]->get_address());
         $this->assertSame('optedout', $DB->get_field(consent::CONTACTS, 'status', ['phone' => '34600000001']));
-        // Another day, writing again takes the no back.
+        // Another day, writing again takes nothing back: the number is asked whether it wants the notices again, and
+        // its «yes» brings them back.
         $DB->set_field(consent::CONTACTS, 'optouttime', time() - 2 * DAYSECS, ['phone' => '34600000001']);
         inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S10', 'type' => 'text',
             'text' => ['body' => 'Hola otra vez']]));
         $this->assertCount(2, $this->heard);
+        $this->assertSame('optedout', $DB->get_field(consent::CONTACTS, 'status', ['phone' => '34600000001']));
+        $asked = array_filter(
+            \core\task\manager::get_adhoc_tasks(\local_oksigeniamarandu\task\send_reply::class),
+            function ($task) {
+                return !empty($task->get_custom_data()->back);
+            }
+        );
+        $this->assertCount(1, $asked);
+        inbound::handle($this->webhook(['from' => '34600000001', 'id' => 'wamid.S11', 'type' => 'interactive',
+            'interactive' => ['type' => 'button_reply', 'button_reply' => ['id' => consent::BACK['yes'], 'title' => 'Sí']]]));
         $this->assertSame('active', $DB->get_field(consent::CONTACTS, 'status', ['phone' => '34600000001']));
     }
 

@@ -1,53 +1,68 @@
-# Avisos de Moodle por WhatsApp (Oksigenia Marandu)
+# Avisos de Moodle por WhatsApp y Telegram (Oksigenia Marandu)
 
 [![Licencia: GPLv3](https://img.shields.io/badge/licencia-GPLv3+-blue.svg)](LICENSE)
 ![Moodle](https://img.shields.io/badge/Moodle-4.5%E2%80%935.3-orange)
-![Estado](https://img.shields.io/badge/estado-pre--alfa-red)
+![Estado](https://img.shields.io/badge/estado-alfa-orange)
 [![Patrocinio](https://img.shields.io/badge/patrocinio-Oksigenia-00d4ff)](https://oksigenia.com/en/open-source#sponsor)
 
-**Oksigenia Marandu** lleva los avisos de Moodle™ y de sus plugins a WhatsApp, desde la cuenta oficial
-de WhatsApp Business del propio sitio: solo a quien ha dado su consentimiento, con tope de gasto y horas de silencio.
+**Oksigenia Marandu** lleva los avisos de Moodle™ y de sus plugins a WhatsApp y Telegram, desde la cuenta oficial de
+WhatsApp Business del propio sitio y su propio bot: solo a quien ha dado su consentimiento, con tope de gasto y horas de
+silencio.
 *Marandu* es «noticia» o «aviso» en guaraní.
 
 [Read in English](README.md)
 
 ## Estado
 
-**Pre-alfa.** El sitio conecta su cuenta de WhatsApp con un asistente, las familias se dan de alta o de baja
-escribiendo una palabra a su número, y los plugins del sitio mandan sus avisos con plantillas aprobadas por Meta,
-dentro de los topes que pone el sitio. Un panel dice de un vistazo si los avisos salen, y una lista guarda los números y
-su consentimiento. Cada versión es pequeña y se prueba antes de publicarla. No es para sitios en
-producción.
+**Alfa.** Los avisos del sitio y de sus plugins por WhatsApp y Telegram, cada persona por los canales que elige; el
+canal de la organización en Telegram; preguntas con botones (autorizaciones, aprobaciones, la aprobación de un acceso);
+envíos masivos con su aprobación y el gasto del mes; y las conversaciones del equipo con las familias y con quien
+escriba, encima de Chatwoot. Cada versión es pequeña y se prueba antes de publicarla.
 
 ## Lo que hace falta
 
-- Una cuenta de WhatsApp Business en la WhatsApp Business Platform (Cloud API), con una app en Meta for Developers. La
-  cuenta y el número son del sitio: el plugin usa las credenciales que pega el sitio y nunca un cliente no oficial.
-- Meta cobra al sitio cada mensaje, según la categoría y el país. El plugin no añade ninguna tarifa.
+- Moodle de la 4.5 a la 5.3 (la 6.0, en pruebas), con el cron cada minuto, y el sitio en una dirección pública con
+  HTTPS: Meta, Telegram y Chatwoot llaman a sus webhooks.
+- PHP con GD y FreeType para las tarjetas; ffmpeg para las animadas (opcional).
+- **WhatsApp:** una cuenta de la WhatsApp Business Platform (Cloud API) con una app en Meta for Developers. La cuenta y
+  el número son del sitio; el plugin nunca usa un cliente no oficial. Meta cobra cada mensaje, según la categoría y el
+  país; el plugin no añade ninguna tarifa. El webhook de la app (o del número, con un override) apunta a
+  `/local/oksigeniamarandu/webhook.php`, con los campos `messages`, `message_template_status_update`,
+  `template_category_update` y, para el historial de un número que pasa desde la app de WhatsApp Business, `history` y
+  `smb_app_state_sync`.
+- **Telegram:** un bot de la organización, hecho con @BotFather.
+- **Las conversaciones del equipo (opcional):** una cuenta de Chatwoot (instalado en un servidor propio) cuya bandeja
+  recibe el mismo WhatsApp. Cada departamento es un equipo de Chatwoot; cada persona del equipo, un agente de Chatwoot
+  con el mismo correo que su cuenta del sitio (una cuenta por correo); el horario del equipo, el de la bandeja. Una app de
+  plataforma de Chatwoot (se crea en su superadministración) deja que cada persona conteste a su nombre.
 
 ## Instalación
 
-1. Copia el plugin en `local/oksigeniamarandu` de tu Moodle (de 4.5 a 5.3).
-2. Entra en *Administración del sitio > Notificaciones* para terminar la instalación.
-3. En *Administración del sitio > Extensiones > Extensiones locales > Oksigenia Marandu*, pega los datos
-   de la cuenta y mándate un mensaje de prueba.
+1. Copia el plugin en `local/oksigeniamarandu` de tu Moodle (`public/local/oksigeniamarandu` desde Moodle 5.1).
+2. Entra en *Administración del sitio > Notificaciones* para acabar la instalación.
+3. Abre *Oksigenia Marandu* (en *Administración del sitio > Extensiones > Extensiones locales*): su asistente conecta
+   WhatsApp y te manda un mensaje de prueba; su página de Telegram conecta el bot.
+4. Da la capacidad `local/oksigeniamarandu:chat` al rol del personal que atiende las conversaciones, y
+   `local/oksigeniamarandu:chatall` a quien las ve todas.
 
-Quien aloja muchos sitios puede poner Telegram desde la línea de órdenes, con el token en un fichero o por la entrada
-estándar, nunca en los argumentos:
+Quien aloja muchos sitios puede hacerlo desde la línea de órdenes, con los secretos en un fichero o por la entrada
+estándar, nunca en los argumentos (desde Moodle 5.1, con `public/` delante de `local/`):
 
 ```
 sudo -u www-data php local/oksigeniamarandu/cli/setup.php --telegram-token-file=- --notices=local_example < token
+sudo -u www-data php local/oksigeniamarandu/cli/chat.php --env=- --webhook --sync --status < chatwoot.env
 ```
 
-`--notices` enciende todos los avisos de esos plugins (o `all`) en `--channels` (`telegram` si no se dice), y
-`--status` dice cómo está el sitio. El resto, con `--help`.
+`setup.php` conecta el bot y enciende los avisos de unos plugins (`--notices`, o `all`) en `--channels`; `chat.php`
+conecta Chatwoot (`CHATWOOT_URL`, `CHATWOOT_ACCOUNT`, `CHATWOOT_TOKEN` de un administrador de la cuenta,
+`CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_INBOX`). `--status` dice cómo está el sitio, y `--help` trae el resto.
 
 ## Desarrollo
 
 Código, comentarios y commits en inglés; los textos, en los paquetes de idioma (`lang/en` y `lang/es`, y lo que leen las familias, también en `lang/pt`,
 `lang/pt_br` y `lang/ar`). Las pruebas
 nunca llaman a la API de Meta: responde por ella una imitación. Se pasan con `moodle-plugin-ci` en GitHub Actions en
-Moodle 4.5 y 5.3 (PostgreSQL), en 5.3 también con MariaDB 11.4, y en `main` para ver lo que viene. Más en
+Moodle 4.5 y 5.3 (PostgreSQL) y en 5.3 con MariaDB 11.4 en cada envío; la 5.2 y `main`, a mano o con una etiqueta. Más en
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licencia

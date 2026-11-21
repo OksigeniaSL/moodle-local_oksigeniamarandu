@@ -1,52 +1,67 @@
-# WhatsApp notifications for Moodle (Oksigenia Marandu)
+# WhatsApp and Telegram notifications for Moodle (Oksigenia Marandu)
 
 [![License: GPLv3](https://img.shields.io/badge/license-GPLv3+-blue.svg)](LICENSE)
 ![Moodle](https://img.shields.io/badge/Moodle-4.5%E2%80%935.3-orange)
-![Status](https://img.shields.io/badge/status-pre--alpha-red)
+![Status](https://img.shields.io/badge/status-alpha-orange)
 [![Sponsor](https://img.shields.io/badge/sponsor-Oksigenia-00d4ff)](https://oksigenia.com/en/open-source#sponsor)
 
-**Oksigenia Marandu** brings the notices of Moodle™ and of its plugins to WhatsApp, sent from the site's
-own official WhatsApp Business account: only to people who opted in, with a spending cap and quiet hours.
+**Oksigenia Marandu** brings the notices of Moodle™ and of its plugins to WhatsApp and Telegram, from the site's own
+official WhatsApp Business account and its own bot: only to people who opted in, with a spending cap and quiet hours.
 *Marandu* means "news" or "notice" in Guarani.
 
 [Leer en español](README.es.md)
 
 ## Status
 
-**Pre-alpha.** The site connects its WhatsApp account with a wizard, people join or leave by writing a word to its
-number, and the plugins of the site send their notices with templates approved by Meta, within the limits the site
-sets. A panel tells at a glance whether the notices go out, and a list keeps the numbers and their consent. Each version is small and tested before it is released. Not for production sites.
+**Alpha.** Notices of the site and of its plugins by WhatsApp and Telegram, each person on the channels they chose; the
+channel of the organisation on Telegram; questions with buttons (permissions, approvals, the approval of a login);
+sends to many with their approval and the spend of the month; and the conversations of the team with families and
+everyone who writes, on top of Chatwoot. Each version is small and tested before it is released.
 
 ## What you need
 
-- A WhatsApp Business account on the WhatsApp Business Platform (Cloud API), with an app in Meta for Developers. The
-  account and the number belong to the site: the plugin uses the credentials the site pastes and never an
-  unofficial client.
-- Meta charges the site for each message, by category and country. The plugin does not add any fee.
+- Moodle 4.5 to 5.3 (6.0 is being tested), with cron every minute, and the site on a public HTTPS address: Meta,
+  Telegram and Chatwoot call its webhooks.
+- PHP with GD and FreeType for the cards; ffmpeg for the animated ones (optional).
+- **WhatsApp:** an account on the WhatsApp Business Platform (Cloud API) with an app in Meta for Developers. The account
+  and the number belong to the site; the plugin never uses an unofficial client. Meta charges each message, by category
+  and country; the plugin adds no fee. The webhook of the app (or of the number, with an override) points to
+  `/local/oksigeniamarandu/webhook.php`, with the fields `messages`, `message_template_status_update`,
+  `template_category_update` and, for the history of a number that moves from the app of WhatsApp Business,
+  `history` and `smb_app_state_sync`.
+- **Telegram:** a bot of the organisation, made with @BotFather.
+- **The conversations of the team (optional):** an account of Chatwoot (self-hosted) whose inbox receives the same
+  WhatsApp. Each department is a team of Chatwoot; each person of the team, an agent of Chatwoot with the same email as
+  their account on the site (one account per email); the hours of the team, those of the inbox. A platform app of
+  Chatwoot (made in its super administration) lets each person answer as themself.
 
 ## Install
 
-1. Copy the plugin to `local/oksigeniamarandu` in your Moodle (4.5 to 5.3).
+1. Copy the plugin to `local/oksigeniamarandu` in your Moodle (`public/local/oksigeniamarandu` from Moodle 5.1).
 2. Visit *Site administration > Notifications* to finish the install.
-3. In *Site administration > Plugins > Local plugins > Oksigenia Marandu*, paste the details of the
-   account and send yourself a test message.
+3. Open *Oksigenia Marandu* (in *Site administration > Plugins > Local plugins*): its wizard connects WhatsApp and
+   sends you a test message; its page of Telegram connects the bot.
+4. Give the capability `local/oksigeniamarandu:chat` to the role of the staff who attend the conversations, and
+   `local/oksigeniamarandu:chatall` to whoever sees them all.
 
-Whoever hosts many sites can set up Telegram from the command line instead, with the token in a file or on the
-standard input, never in the arguments:
+Whoever hosts many sites can do it from the command line, with the secrets in a file or on the standard input, never
+in the arguments (from Moodle 5.1, with `public/` before `local/`):
 
 ```
 sudo -u www-data php local/oksigeniamarandu/cli/setup.php --telegram-token-file=- --notices=local_example < token
+sudo -u www-data php local/oksigeniamarandu/cli/chat.php --env=- --webhook --sync --status < chatwoot.env
 ```
 
-`--notices` switches on every notice of those plugins (or `all`) for `--channels` (`telegram` by default), and
-`--status` shows how the site is. `--help` has the rest.
+`setup.php` connects the bot and switches on the notices of some plugins (`--notices`, or `all`) for `--channels`;
+`chat.php` connects Chatwoot (`CHATWOOT_URL`, `CHATWOOT_ACCOUNT`, `CHATWOOT_TOKEN` of an administrator of the account,
+`CHATWOOT_PLATFORM_TOKEN` and `CHATWOOT_INBOX`). `--status` shows how the site is, and `--help` has the rest.
 
 ## Development
 
 Code, comments and commit messages in English; texts in the language packs (`lang/en` and `lang/es`, and what families read in `lang/pt`, `lang/pt_br` and
 `lang/ar`). The API of Meta is
 never called from the tests: a fake answers for it. The tests run with `moodle-plugin-ci` in GitHub Actions on Moodle
-4.5 and 5.3 (PostgreSQL), on 5.3 with MariaDB 11.4 too, and on `main` to see what is coming. See
+4.5 and 5.3 (PostgreSQL) and on 5.3 with MariaDB 11.4 on every push; 5.2 and `main`, by hand or with a tag. See
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

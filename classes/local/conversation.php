@@ -95,9 +95,12 @@ class conversation {
         ?string $name
     ): array {
         global $DB;
-        // Whoever said no and writes again is in the list again, on this channel (from the day after saying it). What they
-        // write reaches their plugins anyway: saying no is to the notices, and whoever writes gets an answer.
-        consent::lift($address, $messageid);
+        // Whoever said no and writes again is asked, once in a while, whether they want the notices again: writing
+        // takes back nothing by itself. What they write reaches their plugins anyway: saying no is to the notices, and
+        // whoever writes gets an answer.
+        if (consent::offer_back($address)) {
+            \local_oksigeniamarandu\task\send_reply::queue_back($address);
+        }
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]);
         if (!$contact || !in_array($contact->status, ['active', 'optedout'], true)) {
             return [false, null];

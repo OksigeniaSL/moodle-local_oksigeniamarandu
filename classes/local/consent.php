@@ -335,39 +335,55 @@ class consent {
         return true;
     }
 
+    /** What the buttons of «do you want the notices again?» send back. */
+    public const BACK = ['yes' => 'mrdb:y', 'no' => 'mrdb:n'];
+
+    /** Days before whoever said no is asked again whether they want the notices, if they write again. */
+    public const BACK_EVERY = 30;
+
     /**
-     * Whoever writes again of their own takes back what they said no to, on that channel: they are in the list again. Not
-     * in the day after saying it (LIFT_GRACE), when what they write is most likely an answer to the confirmation.
+     * Whether to ask whoever said no to everything, and writes again, if they want the notices again: once in
+     * BACK_EVERY days, never in the day after saying no (what they write then is most likely an answer to the
+     * confirmation). Writing takes back nothing by itself: the number is also the one of the office, and a question
+     * there is no «yes» to the notices.
      *
      * @param string $address The number or the chat.
-     * @param string $detail The id of the message.
-     * @return bool Whether there was anything to take back.
+     * @return bool Whether to ask now; if so, it is noted.
      */
-    public static function lift(string $address, string $detail): bool {
+    public static function offer_back(string $address): bool {
         global $DB;
         $contact = $DB->get_record(self::CONTACTS, ['phone' => $address]);
-        if (!$contact) {
+        if (!$contact || $contact->status !== 'optedout' || (int)$contact->optouttime > time() - self::LIFT_GRACE) {
             return false;
         }
-        $before = time() - self::LIFT_GRACE;
-        $scoped = $DB->get_records_select(
-            self::OPTOUTS,
-            'contactid = :contactid AND timecreated <= :before',
-            ['contactid' => $contact->id, 'before' => $before]
+        $asked = $DB->record_exists_select(
+            self::LOG,
+            "contactid = :contactid AND action = 'askedback' AND timecreated > :since",
+            ['contactid' => $contact->id, 'since' => time() - self::BACK_EVERY * DAYSECS]
         );
-        $out = $contact->status === 'optedout' && (int)$contact->optouttime <= $before;
-        if (!$out && !$scoped) {
+        if ($asked) {
             return false;
         }
-        if ($out) {
-            self::set_status($contact, 'optin', 'wrote', $detail);
+        $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'askedback', 'source' => 'wrote',
+            'detail' => '', 'timecreated' => time()]);
+        return true;
+    }
+
+    /**
+     * Whoever said no to everything says, with the button, that they want the notices again.
+     *
+     * @param string $address The number or the chat.
+     * @param string $detail The id of the message or of the press.
+     * @return bool Whether they were out.
+     */
+    public static function come_back(string $address, string $detail): bool {
+        global $DB;
+        $contact = $DB->get_record(self::CONTACTS, ['phone' => $address]);
+        if (!$contact || $contact->status !== 'optedout') {
+            return false;
         }
-        foreach ($scoped as $row) {
-            $DB->delete_records(self::OPTOUTS, ['id' => $row->id]);
-            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'optin', 'source' => 'wrote',
-                'detail' => 'scope:' . $row->scope, 'timecreated' => time()]);
-        }
-        self::tell($contact, false, 'wrote');
+        self::set_status($contact, 'optin', 'button', $detail);
+        self::tell($contact, false, 'button');
         return true;
     }
 

@@ -389,11 +389,12 @@ class provider implements
     }
 
     /**
-     * Deletes the links of a user and the numbers no other link uses, with their record of consent.
+     * Deletes the links of a user and the numbers no other link uses, with their record of consent; and what the
+     * conversations keep of them. Also when the account passes to another person (api::account_reassigned()).
      *
      * @param int $userid The user.
      */
-    private static function delete_user(int $userid): void {
+    public static function delete_user(int $userid): void {
         global $DB;
         $links = $DB->get_records(consent::LINKS, ['userid' => $userid]);
         $DB->delete_records(consent::LINKS, ['userid' => $userid]);

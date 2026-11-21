@@ -553,5 +553,16 @@ final class telegram_test extends \advanced_testcase {
         $channels = api::item_channels('local_example', 42);
         $this->assertSame([true, 'Telegram'], [$channels['telegram']['joined'], $channels['telegram']['where']]);
         $this->assertFalse(api::item_channels('local_example', 43)['telegram']['joined']);
+
+        // When it joined: the channel is as old as its newest chat, so a chat that joins today makes it new again.
+        global $DB;
+        $this->assertSame(0, api::item_channels('local_example', 43)['telegram']['since']);
+        $this->assertGreaterThanOrEqual(time() - 60, $channels['telegram']['since']);
+        $old = time() - 8 * DAYSECS;
+        $DB->set_field(consent::LINKS, 'timeclaimed', $old, ['component' => 'local_example', 'itemid' => 42]);
+        $this->assertSame($old, api::item_channels('local_example', 42)['telegram']['since']);
+        $code = substr($channels['telegram']['url'], strlen('https://t.me/marandu_example_bot?start='));
+        telegram::handle($this->message(560, '/start ' . $code));
+        $this->assertGreaterThanOrEqual(time() - 60, api::item_channels('local_example', 42)['telegram']['since']);
     }
 }

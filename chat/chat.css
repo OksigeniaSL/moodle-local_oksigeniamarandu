@@ -62,7 +62,7 @@
     --hoja-2: #f6f7f9;
     --tinta: #1c1a19;
     --tinta-2: #4f5766;
-    --tinta-3: #6b7280;
+    --tinta-3: #5d6573;
     --linea: #e3e7ee;
     --linea-2: #cfd6e1;
     --acento-texto: #0d5ea6;
@@ -531,11 +531,10 @@
     color: var(--tinta-3);
 }
 #mrd-chat .mrd-leyenda {
-    margin-top: auto;
     display: flex;
     flex-wrap: wrap;
     gap: 4px 10px;
-    padding: 12px 10px 10px;
+    padding: 6px 10px 10px;
     font-size: 12px;
     color: var(--tinta-3);
 }
@@ -644,12 +643,41 @@
     background: var(--hoja-2);
     color: var(--acento-texto);
 }
+/* The last line of the rail: the way back to the platform, discreet, and who makes the chat. */
 #mrd-chat .mrd-oks {
-    padding: 8px 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 8px 0;
     font-size: 10.5px;
     letter-spacing: 0.04em;
     color: var(--tinta-3);
+}
+#mrd-chat .mrd-oks > span {
     opacity: 0.75;
+}
+#mrd-chat .mrd-volver-sitio {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-height: 28px;
+    margin-inline-start: -4px;
+    padding: 2px 6px 2px 2px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-volver-sitio .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .mrd-volver-sitio:hover,
+#mrd-chat .mrd-volver-sitio:focus-visible {
+    background: var(--acento-suave);
+    color: var(--acento-texto);
 }
 
 /* ---------- Avatars ---------- */
@@ -1368,7 +1396,7 @@
     justify-content: flex-end;
     align-items: center;
     gap: 4px;
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--tinta-3);
     margin-top: 3px;
     font-variant-numeric: tabular-nums;
@@ -2765,9 +2793,26 @@
     #mrd-chat .mrd-rotulo-mini,
     #mrd-chat .mrd-yo-t,
     #mrd-chat .mrd-buenos,
-    #mrd-chat .mrd-leyenda,
-    #mrd-chat .mrd-oks {
+    #mrd-chat .mrd-leyenda-caja,
+    #mrd-chat .mrd-oks > span,
+    #mrd-chat .mrd-volver-sitio span,
+    #mrd-chat .mrd-rail-pie .mrd-rail-b > span {
         display: none;
+    }
+    #mrd-chat .mrd-oks {
+        justify-content: center;
+    }
+    #mrd-chat .mrd-rail-fijo {
+        margin-inline: -8px;
+        padding-inline: 8px;
+    }
+    /* In the rail of icons, «Avisos» and «Ayuda» one over the other, by their icon (their name, on the pointer). */
+    #mrd-chat .mrd-rail-pie {
+        flex-direction: column;
+    }
+    #mrd-chat .mrd-rail-pie .mrd-rail-b {
+        justify-content: center;
+        padding-inline: 0;
     }
     #mrd-chat .mrd-bandeja {
         justify-content: center;
@@ -2856,8 +2901,26 @@
     #mrd-chat .mrd-rotulo,
     #mrd-chat .mrd-yo-t,
     #mrd-chat .mrd-buenos,
-    #mrd-chat .mrd-oks {
+    #mrd-chat .mrd-leyenda-caja,
+    #mrd-chat .mrd-oks > span,
+    #mrd-chat .mrd-volver-sitio span,
+    #mrd-chat .mrd-rail-pie .mrd-rail-b > span {
         display: block;
+    }
+    #mrd-chat .mrd-oks {
+        justify-content: space-between;
+    }
+    #mrd-chat .mrd-rail-pie {
+        flex-direction: row;
+    }
+    #mrd-chat .mrd-rail-pie .mrd-rail-b {
+        justify-content: flex-start;
+        padding-inline: 10px;
+    }
+    #mrd-chat .mrd-rail-fijo {
+        bottom: -16px;
+        margin: auto -12px -16px;
+        padding: 6px 12px calc(8px + env(safe-area-inset-bottom));
     }
     #mrd-chat .mrd-bandeja .mrd-t {
         display: block;
@@ -2925,6 +2988,9 @@
     #mrd-chat[data-capa="chat"] .mrd-pie-movil,
     #mrd-chat[data-capa="ficha"] .mrd-pie-movil {
         display: none;
+    }
+    #mrd-chat.mrd-en-inicio[data-capa="chat"] .mrd-pie-movil {
+        display: flex;
     }
     #mrd-chat .mrd-pie-movil button {
         flex: 1;
@@ -3510,63 +3576,13 @@
     background: var(--larga-fondo);
     color: var(--larga-tinta);
 }
-#mrd-chat .mrd-inicio-aviso {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 18px;
-    border-radius: 14px;
-    border: 1.5px solid var(--espera-fondo);
-    background: var(--espera-suave);
-}
-#mrd-chat .mrd-inicio-aviso.mrd-larga {
-    border-color: var(--larga-fondo);
-    background: var(--larga-suave);
-}
-#mrd-chat .mrd-inicio-aviso > .mrd-cifra {
-    flex: none;
-    min-width: 2.2em;
-    padding: 4px 12px;
-    font-size: 30px;
-    line-height: 1.1;
-}
-#mrd-chat .mrd-inicio-aviso-t {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-    flex: 1 1 auto;
-}
-#mrd-chat .mrd-inicio-aviso-t b {
-    font-size: 17px;
-    color: var(--tinta);
-}
-#mrd-chat .mrd-inicio-aviso-t small {
-    font-size: 14px;
-    color: var(--tinta-2);
-}
-#mrd-chat .mrd-inicio-aviso > .mrd-btn {
-    flex: none;
-}
-#mrd-chat .mrd-inicio-aviso.mrd-ok {
-    border-color: var(--linea);
-    background: var(--hoja);
-    color: var(--tinta-2);
-    padding: 12px 16px;
-    gap: 10px;
-}
-#mrd-chat .mrd-inicio-aviso.mrd-ok .mrd-i {
-    width: 18px;
-    height: 18px;
-    color: var(--verde-texto, var(--acento-texto));
-}
 #mrd-chat .mrd-inicio-n .mrd-cifra {
     font-size: 15px;
 }
-/* The colour is the badge of the figure; only a department over four hours tints its row: when all stands out, nothing does. */
+/* The colour is the badge of the figure and its clock; a department over four hours only takes a grey line at its edge:
+   when all stands out, nothing does. */
 #mrd-chat .mrd-inicio-dep.mrd-con-pend.mrd-larga {
-    background: var(--larga-suave);
-    box-shadow: inset 4px 0 0 var(--larga-fondo);
+    box-shadow: inset 3px 0 0 var(--linea-2);
 }
 #mrd-chat .mrd-inicio-dep.mrd-inicio-dep-cero {
     color: var(--tinta-3);
@@ -3748,53 +3764,7 @@
     }
 }
 
-/* Notices on this computer: the offer under the search, the button above the person and its pop. */
-#mrd-chat .mrd-avisos-oferta {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--linea-2);
-    border-radius: 12px;
-    background: var(--acento-suave);
-}
-#mrd-chat .mrd-avisos-oferta > .mrd-i {
-    flex: none;
-    width: 20px;
-    height: 20px;
-    margin-top: 2px;
-    color: var(--acento-texto);
-}
-#mrd-chat .mrd-avisos-oferta-t {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-#mrd-chat .mrd-avisos-oferta-t b {
-    font-size: 14px;
-}
-#mrd-chat .mrd-avisos-oferta-t small {
-    color: var(--tinta-2);
-    font-size: 12.5px;
-    line-height: 1.35;
-}
-#mrd-chat .mrd-avisos-oferta-t span {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 12px;
-    align-items: center;
-    margin-top: 4px;
-}
-#mrd-chat .mrd-avisos-no {
-    border: 0;
-    background: transparent;
-    color: var(--tinta-2);
-    font-size: 13px;
-    font-weight: 700;
-    padding: 4px 0;
-}
+/* Notices on this computer: the button above the person and its pop. */
 #mrd-chat .mrd-rail-pie {
     padding: 8px 0 0;
 }
@@ -4277,11 +4247,6 @@
 #mrd-chat .mrd-estrella.mrd-on {
     color: var(--acento-texto);
 }
-/* In the list only the favourites show their star; the empty one comes with the pointer or the focus, and stays in
-   the file of the contact. */
-#mrd-chat .mrd-agenda-fila .mrd-estrella:not(.mrd-on):not(:focus-visible) {
-    opacity: 0;
-}
 #mrd-chat .mrd-estrella.mrd-on .mrd-i {
     fill: currentcolor;
 }
@@ -4301,9 +4266,6 @@
     }
     #mrd-chat .mrd-estrella:hover {
         color: var(--acento-texto);
-    }
-    #mrd-chat .mrd-agenda-fila:hover .mrd-estrella {
-        opacity: 1;
     }
 }
 
@@ -5063,15 +5025,6 @@
 }
 #mrd-chat .eq-aviso .eq-aviso-txt {
     white-space: pre-wrap;
-}
-#mrd-chat .mrd-agenda-fila {
-    position: relative;
-}
-#mrd-chat .mrd-agenda-fila .mrd-estrella:not(.mrd-on) {
-    position: absolute;
-    inset-inline-end: 0;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
 /* The category of an approved message and its rough price, at the foot of its card (Jujol, 21 Nov 2026): teal for
@@ -6206,4 +6159,802 @@
 }
 #mrd-chat .qf-caras .mrd-ayuda {
     margin: 0;
+}
+
+/* ===================================================================================================================
+   The review of 21 Nov 2026 (Jujol's pieces for 0.52): yours first on the start, passing on and resolving with a way
+   back, the prices in money, approving with a trace, and the search saying where it looked.
+   =================================================================================================================== */
+
+/* ---------- 1. The start: yours first ---------- */
+/* The rail at 1366×768: its foot always in sight, what is above goes up behind it. */
+#mrd-chat .mrd-rail-fijo {
+    position: sticky;
+    bottom: -10px;
+    z-index: 2;
+    margin: auto -10px -10px;
+    padding: 6px 10px 8px;
+    border-top: 1px solid var(--linea);
+    background: var(--hoja);
+}
+#mrd-chat .mrd-rail-fijo .mrd-yo {
+    border-top: 0;
+    padding-top: 8px;
+}
+#mrd-chat .mrd-leyenda-caja {
+    margin: 4px 0 8px;
+}
+#mrd-chat .mrd-leyenda-caja > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--tinta-2);
+    cursor: pointer;
+    list-style: none;
+}
+#mrd-chat .mrd-leyenda-caja > summary::-webkit-details-marker {
+    display: none;
+}
+#mrd-chat .mrd-leyenda-caja > summary .mrd-i {
+    width: 14px;
+    height: 14px;
+    transform: rotate(-90deg);
+    transition: transform 0.15s;
+}
+#mrd-chat .mrd-leyenda-caja[open] > summary .mrd-i {
+    transform: none;
+}
+#mrd-chat .mrd-leyenda-caja > summary:hover {
+    background: var(--hoja-2);
+}
+#mrd-chat .mrd-muestra-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tinta);
+}
+
+/* The browser's notices, asked once in one line. */
+#mrd-chat .mrd-avisar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    padding: 7px 12px;
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    background: var(--acento-suave);
+    font-size: 14px;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-avisar > .mrd-i {
+    width: 18px;
+    height: 18px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-avisar-t {
+    flex: 1 1 calc(100% - 30px);
+    font-weight: 700;
+}
+#mrd-chat .mrd-avisar button {
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    font-weight: 800;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-avisar-si {
+    margin-inline-start: 20px;
+}
+#mrd-chat .mrd-avisar .mrd-avisar-no {
+    font-weight: 600;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-avisar-punto {
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-avisar button:hover {
+    background: var(--hoja);
+}
+#mrd-chat .mrd-lista-cuerpo > .mrd-avisar {
+    margin: 10px 12px 4px;
+}
+
+/* Yours: the two cards that are work today, a little wider than the third, with a bigger figure. */
+#mrd-chat .mrd-inicio-tarjetas.mrd-lo-tuyo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr);
+}
+#mrd-chat .mrd-lo-tuyo .mrd-inicio-n .mrd-cifra {
+    font-size: 18px;
+}
+
+/* The whole centre: a sentence and the table, in the neutral of the sheet. */
+#mrd-chat .mrd-inicio-centro {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#mrd-chat .mrd-inicio-centro > h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+#mrd-chat .mrd-inicio-centro > h3 .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .mrd-inicio-centro > p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-inicio-centro > p b {
+    color: var(--tinta);
+}
+
+@media (max-width: 1169px) {
+    #mrd-chat .mrd-inicio-tarjetas.mrd-lo-tuyo {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-inicio-tarjetas.mrd-lo-tuyo {
+        gap: 10px;
+    }
+    #mrd-chat .mrd-lo-tuyo .mrd-inicio-t {
+        padding: 12px;
+    }
+    #mrd-chat .mrd-lo-tuyo .mrd-inicio-t .mrd-btn {
+        white-space: normal;
+        text-align: start;
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-avisar {
+        font-size: 13.5px;
+        padding: 8px 10px 6px;
+    }
+    #mrd-chat .mrd-avisar button {
+        min-height: 40px;
+        padding-inline: 10px;
+    }
+    #mrd-chat .mrd-pie-movil {
+        padding-inline: 4px;
+    }
+    #mrd-chat .mrd-pie-movil button {
+        font-size: 12px;
+        line-height: 1.15;
+        text-align: center;
+    }
+}
+
+/* ---------- 2. Passing on and resolving, with a way back ---------- */
+/* The department is a fact; «Pasar a…» is the button, in the blue of action. */
+#mrd-chat .mrd-mando.mrd-dato {
+    background: transparent;
+    cursor: default;
+}
+#mrd-chat .mrd-mando.mrd-dato:hover {
+    border-color: var(--linea-2);
+}
+#mrd-chat .mrd-mando.mrd-pasar-b {
+    border-color: var(--acento-texto);
+    color: var(--acento-texto);
+    font-weight: 800;
+}
+#mrd-chat .mrd-mando.mrd-pasar-b:hover,
+#mrd-chat .mrd-mando.mrd-pasar-b[aria-expanded="true"] {
+    background: var(--acento-suave);
+}
+#mrd-chat .mrd-pop-menu.mrd-pop-pasar {
+    width: 320px;
+}
+#mrd-chat .mrd-pop-fila.mrd-aqui {
+    cursor: default;
+}
+#mrd-chat .mrd-aqui-t {
+    margin-inline-start: auto;
+    align-self: center;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--hoja);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--tinta-2);
+    white-space: nowrap;
+}
+/* The second step: whom it goes to, and a line for them. */
+#mrd-chat .mrd-pasar-paso {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+}
+#mrd-chat .mrd-pasar-paso h5 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-pasar-volver {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--hoja-2);
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-pasar-volver .mrd-i {
+    width: 16px;
+    height: 16px;
+}
+#mrd-chat .mrd-pasar-l {
+    display: block;
+    margin: 4px 4px 6px;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-pasar-l small {
+    margin-inline-start: 4px;
+    font-weight: 600;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-pasar-nota {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--linea-2);
+    border-radius: 10px;
+    background: var(--hoja-2);
+    color: var(--tinta);
+    font-size: 14px;
+    line-height: 1.4;
+    resize: vertical;
+}
+#mrd-chat .mrd-pasar-nota:focus {
+    border-color: var(--acento-texto);
+    box-shadow: 0 0 0 3px var(--acento-anillo);
+}
+#mrd-chat .mrd-pasar-ayuda {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin: 6px 4px 0;
+    font-size: 12.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-pasar-ayuda .mrd-i {
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-pasar-pie {
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px 0 2px;
+}
+/* After: «Deshacer» on the line of what was done, and on the toast while it shows. */
+#mrd-chat .mrd-sistema.mrd-con-deshacer {
+    flex-wrap: wrap;
+    justify-content: center;
+}
+#mrd-chat .mrd-deshacer {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 800;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-deshacer .mrd-i {
+    width: 14px;
+    height: 14px;
+    color: currentcolor;
+}
+#mrd-chat .mrd-deshacer:hover {
+    background: var(--acento-suave);
+}
+#mrd-chat .mrd-toast.mrd-con-boton {
+    pointer-events: auto;
+}
+#mrd-chat .mrd-toast-deshacer {
+    flex: none;
+    margin-inline-start: 4px;
+    padding: 4px 0 4px 12px;
+    border-inline-start: 1px solid rgba(255, 255, 255, 0.28);
+    font-weight: 800;
+    color: #a9d4ff;
+}
+#mrd-chat.mrd-dark .mrd-toast-deshacer {
+    color: #0d5ea6;
+    border-inline-start-color: rgba(0, 0, 0, 0.2);
+}
+#mrd-chat .mrd-btn.mrd-resolver.mrd-hecho {
+    background: var(--verde-suave);
+    border-color: transparent;
+}
+/* The word under the bell and the tick, only on a phone. */
+#mrd-chat .mrd-rotulo-movil {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-cab-der .mrd-recordar,
+    #mrd-chat .mrd-cab-der .mrd-resolver {
+        flex-direction: column;
+        gap: 1px;
+        min-width: 58px;
+        padding: 4px 6px;
+    }
+    #mrd-chat .mrd-cab-der .mrd-rotulo-movil {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+    #mrd-chat .mrd-pop-menu.mrd-pop-pasar {
+        /* stylelint-disable-next-line csstree/validator */
+        width: min(340px, calc(100vw - 24px));
+    }
+    #mrd-chat .mrd-mando.mrd-dato,
+    #mrd-chat .mrd-mando.mrd-pasar-b {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-deshacer {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-toast-deshacer {
+        min-height: 40px;
+    }
+}
+
+/* ---------- 3. The prices in money ---------- */
+#mrd-chat .mrd-cat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px 2px 8px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    font-weight: 700;
+    white-space: nowrap;
+}
+#mrd-chat .mrd-paga {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-paga .mrd-i {
+    width: 15px;
+    height: 15px;
+    margin-top: 2px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-paga strong {
+    color: var(--tinta);
+}
+/* The free message: a line under the cards, the dearest. */
+#mrd-chat .mrd-libre {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 8px 0 0;
+    padding: 6px 2px;
+    font-size: 13.5px;
+    color: var(--tinta-2);
+    text-align: start;
+}
+#mrd-chat .mrd-libre .mrd-i {
+    width: 16px;
+    height: 16px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-libre b {
+    color: var(--acento-texto);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+#mrd-chat .mrd-libre:disabled {
+    opacity: 0.55;
+}
+/* A gap and the stop after it stay on the same line. */
+#mrd-chat .mrd-hueco-y {
+    white-space: nowrap;
+}
+#mrd-chat .mrd-previa-pie .mrd-cuesta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-inline-start: auto;
+    color: var(--tinta-2);
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-libre {
+        min-height: 44px;
+    }
+    /* Each gap is a target of 40 px: the lines of the preview open to make room. */
+    #mrd-chat .mrd-previa .mrd-msg p {
+        line-height: 2.5;
+    }
+    #mrd-chat .mrd-hueco {
+        padding-block: 8px;
+    }
+    #mrd-chat .mrd-previa-t button {
+        min-height: 40px;
+        padding-inline: 6px;
+    }
+}
+
+/* ---------- 4. Approving, with a trace ---------- */
+/* The card and the month, side by side; under the card when there is no room. */
+#mrd-chat .gs-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(220px, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+#mrd-chat .gs-fila.gs-sin-lado {
+    grid-template-columns: minmax(0, 1fr);
+}
+#mrd-chat .gs-pendientes {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+#mrd-chat .gs-nada {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 700;
+    color: var(--tinta-2);
+}
+#mrd-chat .gs-nada .mrd-i {
+    width: 18px;
+    height: 18px;
+    color: var(--verde-texto);
+}
+/* Next to the month the card is narrower: one channel per row, with what it costs and who gets it. */
+#mrd-chat .gs-fila .gs-canales {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+}
+#mrd-chat .gs-fila .gs-canal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+#mrd-chat .gs-fila .gs-canal b {
+    margin-inline-end: auto;
+}
+#mrd-chat .gs-fila .gs-canal small {
+    flex: 1 1 100%;
+    color: var(--tinta-2);
+}
+#mrd-chat .gs-solo-tg {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-inline-start: auto;
+    text-align: end;
+}
+#mrd-chat .gs-solo-tg small {
+    font-size: 12px;
+    color: var(--tinta-2);
+}
+#mrd-chat .gs-acciones .gs-solo-tg .mrd-enlace {
+    margin-inline-start: 0;
+}
+/* The month, short. */
+#mrd-chat .gs-corto {
+    gap: 8px;
+}
+#mrd-chat .gs-corto-t {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+}
+#mrd-chat .gs-corto-t .mrd-i {
+    width: 14px;
+    height: 14px;
+}
+#mrd-chat .gs-corto .gs-total {
+    font-size: 26px;
+}
+#mrd-chat .gs-corto-barra {
+    position: relative;
+}
+#mrd-chat .gs-corto-barra .gs-barra {
+    height: 12px;
+}
+/* What this send would add: the same magenta, striped, because it is not spent yet. */
+#mrd-chat .gs-b-este {
+    display: inline-block;
+    background: repeating-linear-gradient(135deg, var(--cat-mkt) 0 4px, transparent 4px 7px);
+    box-shadow: inset 0 0 0 1px var(--cat-mkt);
+}
+#mrd-chat .gs-barra .gs-b-este {
+    border-radius: 0 999px 999px 0;
+}
+#mrd-chat .gs-corto-80 {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    margin-inline-start: -1px;
+    border-radius: 1px;
+    background: var(--tinta-2);
+}
+#mrd-chat .gs-corto-l {
+    margin: 0;
+    padding-inline-start: 22px;
+    text-indent: -22px;
+    font-size: 13px;
+    color: var(--tinta-2);
+}
+#mrd-chat .gs-corto-l > i {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    margin-inline-end: 8px;
+    border-radius: 3px;
+    text-indent: 0;
+}
+#mrd-chat .gs-corto-l > i.gs-b-mkt {
+    background: var(--cat-mkt);
+}
+#mrd-chat .gs-corto-l b {
+    color: var(--tinta);
+}
+#mrd-chat .gs-corto-l80 > i {
+    width: 2px;
+    height: 12px;
+    margin: 0 14px 0 6px;
+    border-radius: 1px;
+    background: var(--tinta-2);
+    vertical-align: -1px;
+}
+#mrd-chat .gs-corto .mrd-enlace {
+    justify-self: start;
+    min-height: 32px;
+}
+/* Rejecting says why, and to whom. */
+#mrd-chat .gs-rechazo {
+    gap: 8px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--hoja-2);
+}
+#mrd-chat .gs-rechazo small {
+    margin-top: -4px;
+    font-size: 13px;
+    color: var(--tinta-2);
+}
+#mrd-chat .gs-motivos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#mrd-chat .gs-motivos .mrd-chip.mrd-on {
+    border-color: var(--acento-texto);
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+}
+#mrd-chat .gs-rechazo textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--linea-2);
+    border-radius: 10px;
+    background: var(--hoja);
+    color: var(--tinta);
+    font-size: 14px;
+    resize: vertical;
+}
+#mrd-chat .gs-rechazo textarea:focus {
+    border-color: var(--acento-texto);
+    box-shadow: 0 0 0 3px var(--acento-anillo);
+}
+#mrd-chat .gs-rechazar-b {
+    border-color: var(--tinta-2);
+}
+/* After: what was decided here stays on top of what was decided, marked. */
+#mrd-chat .gs-hecho > .gs-recien {
+    margin: 0 -6px;
+    padding: 8px 6px;
+    border-radius: 8px;
+    background: var(--acento-suave);
+}
+#mrd-chat .gs-hecho > .gs-recien + div {
+    border-top-color: transparent;
+}
+#mrd-chat .gs-saliendo {
+    font-weight: 700;
+    color: var(--verde-texto);
+}
+
+@media (max-width: 1100px) {
+    #mrd-chat .gs-fila {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .gs-fila .gs-canal {
+        display: flex;
+    }
+    #mrd-chat .gs-solo-tg {
+        align-items: flex-start;
+        margin-inline-start: 0;
+        text-align: start;
+    }
+    #mrd-chat .gs-acciones .gs-solo-tg .mrd-enlace,
+    #mrd-chat .gs-corto .mrd-enlace,
+    #mrd-chat .gs-acciones .mrd-btn {
+        min-height: 40px;
+    }
+    /* Inside the quote the link keeps its line: its 40 px of touch go round it, not into the line. */
+    #mrd-chat .gs-cita .mrd-enlace {
+        min-height: 0;
+        padding-block: 11px;
+        margin-block: -11px;
+    }
+    #mrd-chat .gs-hecho > div {
+        grid-template-columns: 20px minmax(0, 1fr);
+    }
+    #mrd-chat .gs-hecho small {
+        grid-column: 2;
+    }
+}
+
+/* ---------- 5. The search says where it looked; the 24 hours folded when one only reads ---------- */
+#mrd-chat .mrd-buscado {
+    padding: 10px 14px 6px;
+}
+#mrd-chat .mrd-buscado > b {
+    display: block;
+    font-size: 15px;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-buscado > p {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-buscado > p .mrd-i {
+    width: 13px;
+    height: 13px;
+    margin-top: 2px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-buscado > p.mrd-buscado-prueba {
+    display: block;
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-24-plegada {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 4px 4px 2px;
+    font-size: 13.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-24-plegada > .mrd-i {
+    width: 18px;
+    height: 18px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-24-plegada > span {
+    flex: 1 1 260px;
+}
+#mrd-chat .mrd-24-plegada b {
+    color: var(--tinta);
+}
+#mrd-chat .mrd-24-plegada .mrd-btn .mrd-i {
+    width: 14px;
+    height: 14px;
+}
+#mrd-chat .mrd-24-nota {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    font-weight: 700;
+    color: var(--ambar-texto);
+}
+#mrd-chat .mrd-24-nota .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+
+/* ---------- The history: who and which department in one row ---------- */
+#mrd-chat .mrd-hist-dos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+}
+
+/* ---------- Touch targets of 40 px on a phone (U14) ---------- */
+@media (max-width: 760px) {
+    #mrd-chat .mrd-rem-dia {
+        height: 40px;
+    }
+    #mrd-chat .mrd-enlace,
+    #mrd-chat .mrd-24-nota,
+    #mrd-chat .mrd-leyenda-caja > summary,
+    #mrd-chat .mrd-volver-sitio {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-hist-filtros .mrd-chip {
+        min-height: 40px;
+        padding-inline: 12px;
+    }
+    #mrd-chat .mrd-estrella {
+        width: 40px;
+        height: 40px;
+    }
+    #mrd-chat .mrd-rail-b {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-avisar button {
+        min-width: 40px;
+    }
+}
+
+/* On a phone the department, who has it and «Pasar a…» share one row: a little tighter, and with a long name the two
+   facts give way with «…» before «Pasar a…» does. */
+@media (max-width: 480px) {
+    #mrd-chat .mrd-chat-cab .mrd-mandos {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+    #mrd-chat .mrd-chat-cab .mrd-mando {
+        flex: 0 1 auto;
+        min-width: 0;
+        gap: 4px;
+        padding-inline: 7px 8px;
+        font-size: 13px;
+    }
+    #mrd-chat .mrd-chat-cab .mrd-mando.mrd-quien {
+        padding-inline-start: 3px;
+    }
+    #mrd-chat .mrd-chat-cab .mrd-mando .mrd-i,
+    #mrd-chat .mrd-chat-cab .mrd-mando .mrd-av {
+        flex: none;
+    }
+    #mrd-chat .mrd-chat-cab .mrd-mando.mrd-pasar-b {
+        flex: none;
+    }
 }

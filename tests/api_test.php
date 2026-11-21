@@ -136,25 +136,27 @@ final class api_test extends \advanced_testcase {
             [$state['trail'][0]['action'], $state['trail'][0]['source'], $state['trail'][0]['scope']]
         );
 
-        // Writing again the same day (the thanks to the confirmation) does not take it back; another day, it does.
+        // Writing again never takes it back by itself, that day or another: the number is also the one of the office.
         \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Gracias', time(), 'wamid.W', null);
         $this->assertSame(['local_oksigeniaeguahe'], array_keys(api::optout_state('local_oksigeniamarandu', 7)[0]['scopes']));
         $DB->set_field(consent::OPTOUTS, 'timecreated', time() - 2 * DAYSECS, ['contactid' => $contact->id]);
         \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola de nuevo', time(), 'wamid.X', null);
-        $state = api::optout_state('local_oksigeniamarandu', 7)[0];
-        $this->assertSame([], $state['scopes']);
-        $this->assertSame(['optin', 'wrote'], [$state['trail'][0]['action'], $state['trail'][0]['source']]);
+        $this->assertSame(['local_oksigeniaeguahe'], array_keys(api::optout_state('local_oksigeniamarandu', 7)[0]['scopes']));
 
-        // Nothing of the centre, and back again by writing.
+        // Nothing of the centre: whoever writes again is asked, once in a while and not the same day, whether they want
+        // the notices again; the «yes» of the button brings them back.
         api::set_optout('local_oksigeniamarandu', 7, 'all', true, 'chat');
         $contact = $DB->get_record(consent::CONTACTS, ['id' => $contact->id]);
         $this->assertTrue(consent::out_of($contact, 'local_oksigeniameals'));
         $this->assertFalse(api::has_active_contact('local_oksigeniamarandu', 7));
-        $this->assertFalse(consent::lift('34600000001', 'wamid.V'));
+        $this->assertFalse(consent::offer_back('34600000001'));
         $DB->set_field(consent::CONTACTS, 'optouttime', time() - 2 * DAYSECS, ['id' => $contact->id]);
-        $this->assertTrue(consent::lift('34600000001', 'wamid.Y'));
+        $this->assertTrue(consent::offer_back('34600000001'));
+        $this->assertFalse(consent::offer_back('34600000001'));
+        $this->assertFalse(api::has_active_contact('local_oksigeniamarandu', 7));
+        $this->assertTrue(consent::come_back('34600000001', 'wamid.Y'));
         $this->assertTrue(api::has_active_contact('local_oksigeniamarandu', 7));
-        $this->assertFalse(consent::lift('34600000001', 'wamid.Z'));
+        $this->assertFalse(consent::come_back('34600000001', 'wamid.Z'));
     }
 
     /**

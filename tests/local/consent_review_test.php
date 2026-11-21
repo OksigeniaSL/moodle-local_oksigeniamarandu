@@ -153,6 +153,24 @@ final class consent_review_test extends \advanced_testcase {
     }
 
     /**
+     * An account that passes to another person keeps nothing of the old one: their chats, preferences and their place
+     * among those who approve.
+     */
+    public function test_account_reassigned(): void {
+        global $DB;
+        $user = $this->getDataGenerator()->create_user();
+        $other = $this->getDataGenerator()->create_user();
+        consent::optin_from_message('tg:620', api::invite('message_oksigeniamarandu', 0, (int)$user->id), 'join');
+        set_user_preference(\local_oksigeniamarandu\local\chat\agenda::PREF, '12,13', $user);
+        set_config('spendpeople', $user->id . ',' . $other->id, 'local_oksigeniamarandu');
+        api::account_reassigned((int)$user->id);
+        $this->assertFalse($DB->record_exists(consent::LINKS, ['userid' => $user->id]));
+        // By its id: the user object keeps the preferences it loaded.
+        $this->assertNull(get_user_preferences(\local_oksigeniamarandu\local\chat\agenda::PREF, null, (int)$user->id));
+        $this->assertSame((string)$other->id, get_config('local_oksigeniamarandu', 'spendpeople'));
+    }
+
+    /**
      * A question closed while the queue is sending stays closed: a late answer does not count, and its button says so.
      */
     public function test_closed_while_sending(): void {

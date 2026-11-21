@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.52.0 (2026-11-21)
+
+The conversations, from a review with the people who use them:
+- The start puts yours first: what you have to answer, what waits for your approval, the board for you, and only then the
+  whole centre, in a sentence and a table. The legend of colours folds away and remembers it.
+- Passing on goes in two steps, with an optional note; passing on and resolving can be undone for five minutes, from the
+  line in the conversation or from the notice, unless somebody else takes it or writes in it.
+- The approved messages say what each one costs in cents, in the colour of its category, and name the gaps still to fill.
+- Approving a send to many shows the spending of the month with what it adds, each channel with its count, and why it
+  waits; rejecting asks why, with three reasons of one touch. What was decided stays on top, with who decided.
+- Searching says where it searched, and the results go in open and resolved; the 24 hours fold away when one only reads.
+- «I'll take it», «Back to the classroom» (or «to the platform»; `chathomekind` says which), the history back to past
+  months, «Take up again» with the date of the last message already in its gap, the focus of the menus and Escape, and
+  touches of 40 px on narrow phones. The board notice of Telegram says «I've seen it», as the screen.
+
+Notices and the server:
+- Writing no longer takes back an opt-out: the number of the notices is also the one of the office. Whoever said no to
+  everything and writes again is asked, once a month at most, «do you want the notices again?», with two buttons; the
+  «yes» brings them back with their welcome.
+- A number the centre checked for adults of several households shows all of them, saying that it is of several families.
+- `api::conversation_url()`: the open conversation of the team with an item of a plugin, to answer there.
+- `api::account_reassigned()`: an account that passes to another person inherits nothing of Marandu from the old one.
+- `api::item_channels()` says since when each channel joined (`since`), as old as its newest chat.
+- The monthly cap counts each template by its category; Meta's 131050 (the person stopped the marketing of the business)
+  is their «no» to the marketing templates, which are no longer tried.
+- «Conversations» in the main navigation of whoever attends them, and in the panel.
+- The pages of Marandu on browsers without color-mix() (the classroom boards with Chrome 93): plain colours instead of
+  transparent backgrounds and borders in the colour of the text.
+
 ## 0.51.1 (2026-11-21)
 
 Security and privacy, from a review of 0.35 to 0.51:

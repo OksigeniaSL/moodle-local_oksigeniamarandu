@@ -248,7 +248,9 @@ class api {
      * @param string $component The plugin, such as local_oksigeniameals.
      * @param int $itemid Its item.
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
-     * @return array By channel, with name, joined, where and url.
+     * @return array By channel, with name, joined, where, url and since: when the newest number or chat on that channel
+     *     joined for the item (0 if none). A channel is as old as its newest chat: a check such as «joined a week ago»
+     *     on since holds for every chat a message would reach.
      */
     public static function item_channels(string $component, int $itemid, string $area = ''): array {
         return self::channel_list($component, $itemid, null, self::area($area));
@@ -453,10 +455,12 @@ class api {
             $where = 'l.userid = :userid AND ';
             $params['userid'] = $userid;
         }
-        $joined = $DB->get_records_sql("SELECT c.id, c.channel, c.phone
+        $joined = $DB->get_records_sql("SELECT c.id, c.channel, c.phone,
+                                               MAX(COALESCE(l.timeclaimed, l.timecreated)) AS since
                                           FROM {" . consent::LINKS . "} l
                                           JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
-                                         WHERE {$where}c.status = :active", $params);
+                                         WHERE {$where}c.status = :active
+                                      GROUP BY c.id, c.channel, c.phone", $params);
         $list = [];
         $code = null;
         foreach (self::channels() as $channel => $info) {
@@ -475,6 +479,9 @@ class api {
                 'where' => $contact ? (local\telegram::is_chat($contact->phone) ? 'Telegram'
                     : local\panel::mask($contact->phone)) : '',
                 'url' => self::join_url($channel, $code),
+                'since' => $contacts ? max(array_map(function ($one) {
+                    return (int)$one->since;
+                }, $contacts)) : 0,
             ];
         }
         return $list;
@@ -1079,6 +1086,72 @@ class api {
         $count = $DB->count_records_select(consent::LINKS, $where, $params);
         $DB->delete_records_select(consent::LINKS, $where, $params);
         return $count;
+    }
+
+    /**
+     * An account of the site that passes to another person (in many centres, the account of whoever leaves goes to who
+     * comes): the new person does not inherit anything of Marandu from the old one. The numbers and chats joined to the
+     * account stop getting its notices, and what the conversations kept of that person goes: what they read, their
+     * reminders and favourites, their board, their place among those who approve the sends. The person of the account of
+     * Chatwoot follows the email of the account: if the email does not change, give the new person their own agent.
+     *
+     * @param int $userid The account.
+     */
+    public static function account_reassigned(int $userid): void {
+        if ($userid <= 0) {
+            return;
+        }
+        \local_oksigeniamarandu\privacy\provider::delete_user($userid);
+        foreach ([\local_oksigeniamarandu\external\chat_prefs::PREFERENCE, local\chat\agenda::PREF] as $name) {
+            unset_user_preference($name, $userid);
+        }
+        foreach (array_keys(\local_oksigeniamarandu\external\chat_flag::FLAGS) as $flag) {
+            unset_user_preference('local_oksigeniamarandu_chat' . $flag, $userid);
+        }
+        $people = array_values(array_diff(array_map('intval', explode(
+            ',',
+            (string)get_config('local_oksigeniamarandu', 'spendpeople')
+        )), [$userid, 0]));
+        if ((string)get_config('local_oksigeniamarandu', 'spendpeople') !== '') {
+            set_config('spendpeople', implode(',', $people), 'local_oksigeniamarandu');
+        }
+    }
+
+    /**
+     * The open conversation of the team with an item of a plugin, such as a household of admissions, to take the team
+     * there instead of answering twice: the newest one, not resolved, of the numbers that joined for it. The page of the
+     * conversation checks, as always, who may see it.
+     *
+     * @param string $component The plugin of the item.
+     * @param int $itemid The item.
+     * @param string $area The kind of item, if the plugin has more than one.
+     * @return \moodle_url|null Null if the conversations are not connected or there is none open.
+     */
+    public static function conversation_url(string $component, int $itemid, string $area = ''): ?\moodle_url {
+        global $DB;
+        if (!local\chat\chatwoot::is_configured()) {
+            return null;
+        }
+        $phones = [];
+        foreach (self::linked_contacts($component, $itemid, $area) as $contact) {
+            if (!telegram::is_chat((string)$contact->phone)) {
+                $phones[] = (string)$contact->phone;
+            }
+        }
+        if (!$phones) {
+            return null;
+        }
+        [$in, $params] = $DB->get_in_or_equal($phones, SQL_PARAMS_NAMED, 'ph');
+        $rows = $DB->get_records_select(
+            local\chat\mirror::TABLE,
+            "phone $in AND status <> 'resolved'",
+            $params,
+            'lastactivity DESC',
+            'id, cwid',
+            0,
+            1
+        );
+        return $rows ? new \moodle_url('/local/oksigeniamarandu/chat.php', ['c' => (int)reset($rows)->cwid]) : null;
     }
 
     /**

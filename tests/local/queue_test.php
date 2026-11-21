@@ -726,6 +726,29 @@ final class queue_test extends \advanced_testcase {
     }
 
     /**
+     * When Meta says the person wants no marketing from the centre, that notice is dropped and the next marketing
+     * templates are not tried again; the others go on.
+     */
+    public function test_no_marketing(): void {
+        global $DB;
+        $this->approve();
+        $DB->set_field(templates::TABLE, 'category', 'MARKETING', []);
+        $contact = $this->family('34600000001');
+        $this->notify();
+        $counts = queue::process($this->answering_api([131050]), self::WEDNESDAY);
+        $this->assertSame(1, $counts['skipped']);
+        $this->assertTrue($DB->record_exists(consent::OPTOUTS, ['contactid' => $contact->id, 'scope' => queue::MARKETING]));
+        $this->notify();
+        $api = $this->answering_api([]);
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY + MINSECS)['skipped']);
+        $this->assertSame([], $api->sent);
+        // A utility template still goes.
+        $DB->set_field(templates::TABLE, 'category', 'UTILITY', []);
+        $this->notify();
+        $this->assertSame(1, queue::process($api, self::WEDNESDAY + 2 * MINSECS)['sent']);
+    }
+
+    /**
      * When Meta says the 24 hours have passed, the free text becomes the template.
      */
     public function test_window_closed_goes_with_the_template(): void {

@@ -222,7 +222,8 @@ class telegram {
      */
     public static function handle(array $update, ?telegram_api $api = null): ?array {
         if (isset($update['callback_query'])) {
-            return answers::from_telegram($update['callback_query'], $api)
+            return self::back($update['callback_query'], $api)
+                ?? answers::from_telegram($update['callback_query'], $api)
                 ?? chat\telegram_actions::callback($update['callback_query'], $api)
                 ?? channel::from_telegram($update['callback_query'], $api)
                 ?? telegram_menu::callback($update['callback_query'], $api);
@@ -287,6 +288,38 @@ class telegram {
             return self::reply($address, 'optout', $api);
         }
         return self::reply($address, consent::optin_from_message($address, $match['code'], $detail, $name), $api);
+    }
+
+    /**
+     * The buttons of «do you want the notices again?»: yes brings them back, with its welcome; no leaves the message
+     * saying so, without its buttons.
+     *
+     * @param array $query The callback_query.
+     * @param telegram_api|null $api The bot, to stop the button waiting and send the welcome card.
+     * @return array|null The answer, as a method of the Bot API; null if it is not one of these buttons.
+     */
+    private static function back(array $query, ?telegram_api $api): ?array {
+        $data = (string)($query['data'] ?? '');
+        $chat = $query['message']['chat'] ?? [];
+        if (!in_array($data, consent::BACK, true) || ($chat['type'] ?? '') !== 'private') {
+            return null;
+        }
+        $address = self::address((string)$chat['id']);
+        if ($api && isset($query['id'])) {
+            try {
+                $api->answer_callback((string)$query['id']);
+            } catch (api_exception $e) {
+                debugging('Marandu: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+        }
+        if ($data === consent::BACK['yes']) {
+            consent::come_back($address, 'tgq.' . ($query['id'] ?? ''));
+            return self::reply($address, 'optin', $api);
+        }
+        global $DB;
+        $lang = $DB->get_field(consent::CONTACTS, 'lang', ['phone' => $address]) ?: null;
+        return ['method' => 'editMessageText', 'chat_id' => (string)$chat['id'],
+            'message_id' => (int)($query['message']['message_id'] ?? 0), 'text' => send_reply::text('stillout', $lang)];
     }
 
     /**

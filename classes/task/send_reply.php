@@ -36,7 +36,7 @@ use local_oksigeniamarandu\local\telegram_api;
  */
 class send_reply extends \core\task\adhoc_task {
     /** The replies there are, as the end of their language strings. */
-    public const REPLIES = ['optin', 'optout', 'unknowncode'];
+    public const REPLIES = ['optin', 'optout', 'unknowncode', 'stillout'];
 
     /**
      * Queues a reply.
@@ -60,6 +60,33 @@ class send_reply extends \core\task\adhoc_task {
         $task = new static();
         $task->set_custom_data(['phone' => $phone, 'text' => \core_text::substr($text, 0, 4096)]);
         \core\task\manager::queue_adhoc_task($task);
+    }
+
+    /**
+     * Queues the question «do you want the notices again?», with its two buttons, to whoever said no and wrote again.
+     *
+     * @param string $phone The number or the chat.
+     */
+    public static function queue_back(string $phone): void {
+        $task = new static();
+        $task->set_custom_data(['phone' => $phone, 'back' => 1]);
+        \core\task\manager::queue_adhoc_task($task);
+    }
+
+    /**
+     * The question «do you want the notices again?» and its two buttons, in the language of the person.
+     *
+     * @param string|null $lang The language; the site's if empty.
+     * @return array text, and buttons (yes and no, each with id and title).
+     */
+    public static function back_question(?string $lang): array {
+        global $CFG;
+        $lang = $lang ?: $CFG->lang;
+        $strings = get_string_manager();
+        return ['text' => $strings->get_string('back:ask', 'local_oksigeniamarandu', null, $lang), 'buttons' => [
+            ['id' => consent::BACK['yes'], 'title' => $strings->get_string('back:yes', 'local_oksigeniamarandu', null, $lang)],
+            ['id' => consent::BACK['no'], 'title' => $strings->get_string('back:no', 'local_oksigeniamarandu', null, $lang)],
+        ]];
     }
 
     /**
@@ -116,6 +143,22 @@ class send_reply extends \core\task\adhoc_task {
     public function execute() {
         global $DB;
         $data = $this->get_custom_data();
+        if (!empty($data->back) && !empty($data->phone)) {
+            $lang = $DB->get_field('local_oksigeniamarandu_contact', 'lang', ['phone' => $data->phone]);
+            $question = self::back_question($lang ?: null);
+            try {
+                if (telegram::is_chat($data->phone)) {
+                    $this->telegram()->send_question(telegram::chat($data->phone), $question['text'], array_map(function ($button) {
+                        return ['data' => $button['id'], 'text' => $button['title']];
+                    }, $question['buttons']));
+                } else {
+                    $this->api()->send_buttons($data->phone, $question['text'], $question['buttons']);
+                }
+            } catch (api_exception $e) {
+                mtrace('Marandu: the question to come back was not sent: ' . $e->getMessage());
+            }
+            return;
+        }
         $own = isset($data->text) && trim((string)$data->text) !== '';
         $kind = isset($data->confirm) && in_array($data->confirm, confirm::KINDS, true) ? (string)$data->confirm : null;
         if (empty($data->phone) || (!$own && $kind === null && !in_array($data->reply ?? '', self::REPLIES, true))) {

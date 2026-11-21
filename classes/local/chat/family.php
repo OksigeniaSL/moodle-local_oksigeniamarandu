@@ -150,18 +150,52 @@ class family {
             return (int)!empty($b->phoneverified) <=> (int)!empty($a->phoneverified);
         });
         $adult = $adults[0];
-        $household = $api::household((int)$adult->familyid, true);
-        if (!$household) {
+        // A number that the centre checked for adults of several households is of all of them: they are all shown,
+        // saying so, never one of them as if it were the only one.
+        $ids = [(int)$adult->familyid];
+        if (!empty($adult->phoneverified)) {
+            foreach ($adults as $other) {
+                if (!empty($other->phoneverified) && !in_array((int)$other->familyid, $ids, true)) {
+                    $ids[] = (int)$other->familyid;
+                }
+            }
+        }
+        $found = [];
+        foreach ($ids as $id) {
+            $household = $api::household($id, true);
+            if ($household) {
+                $found[] = self::describe((array)$household);
+            }
+        }
+        if (!$found) {
             return null;
         }
-        $family = self::describe((array)$household);
-        $surname = $family['children'][0]['lastname'] ?? trim((string)($adult->lastname ?? ''));
+        $titles = [];
+        foreach ($found as $family) {
+            $surname = $family['children'][0]['lastname'] ?? trim((string)($adult->lastname ?? ''));
+            if ($surname !== '' && !in_array($surname, $titles, true)) {
+                $titles[] = $surname;
+            }
+        }
+        if (count($found) === 1) {
+            return [
+                'title' => $titles ? get_string('chat:family:title', 'local_oksigeniamarandu', $titles[0]) : '',
+                'line' => $found[0]['line'],
+                'verified' => !empty($adult->phoneverified),
+                'children' => $found[0]['children'],
+                'adults' => $found[0]['adults'],
+                'households' => 1,
+            ];
+        }
+        $lines = array_filter(array_column($found, 'line'), 'strlen');
         return [
-            'title' => $surname !== '' ? get_string('chat:family:title', 'local_oksigeniamarandu', $surname) : '',
-            'line' => $family['line'],
-            'verified' => !empty($adult->phoneverified),
-            'children' => $family['children'],
-            'adults' => $family['adults'],
+            'title' => $titles ? get_string('chat:family:titles', 'local_oksigeniamarandu', self::join($titles)) : '',
+            'line' => get_string('chat:family:shared', 'local_oksigeniamarandu', count($found)) .
+                ($lines ? ' ' . implode(' · ', $lines) : ''),
+            'verified' => true,
+            'children' => array_merge(...array_column($found, 'children')),
+            'adults' => array_merge(...array_column($found, 'adults')),
+            'households' => count($found),
         ];
     }
 

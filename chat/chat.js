@@ -144,7 +144,10 @@
         ojo: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
         punto: '<circle cx="12" cy="12" r="3"/>',
         video: '<rect x="3.5" y="6" width="12.5" height="12" rx="2.5"/><path d="M16 10.5l4.5-2.5v8l-4.5-2.5"/>',
-        ubicacion: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>'
+        ubicacion: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
+        menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+        deshacer: '<path d="M9 7l-4 4 4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/>',
+        pasar: '<path d="M4 12h13"/><path d="M13 7l5 5-5 5"/><path d="M20 5v14"/>'
     };
 
     /* Icons of the departments: Chatwoot teams have only a name, so a few common words choose a picture. */
@@ -583,7 +586,11 @@
             })(), otrosNow: false,
             hf: { mine: false, team: 0, period: '' }, hits: {}, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
-            ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0
+            ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0,
+            // Passing on, second step: the department chosen and a line for it. What was just passed on or resolved, to
+            // undo it. The conversations whose approved messages were unfolded to write. Where the search looked. The
+            // sends decided on this page, on top of what was decided.
+            pass: null, undo: null, unfold: {}, searchFor: '', searchScope: '', gsJust: {}
         };
         var seq = 0;
 
@@ -1202,14 +1209,15 @@
             }
             return Notification.permission === 'granted' && FLAGS.desktop !== 'no' ? 'on' : 'off';
         }
+        // Asked once, in one line: on a computer at the head of the list, always in sight; on a phone, on the start.
         function offerDesktop() {
-            return canDesktop() && !narrow() && Notification.permission === 'default' && FLAGS.desktop === '';
+            return canDesktop() && Notification.permission === 'default' && FLAGS.desktop === '';
         }
         function askDesktop() {
             var done = function (p) {
                 setFlag('desktop', p === 'granted' ? 'yes' : 'no');
-                renderListHead();
                 renderListBody();
+                renderHome();
                 if (p === 'granted') {
                     toast(s('desktopready'));
                 } else if (p === 'denied') {
@@ -1302,14 +1310,12 @@
                 }
             });
         }
+        // The same words on every screen: «¿Te avisamos cuando te escriban? Sí · Ahora no».
         function offerHtml() {
-            if (!offerDesktop()) {
-                return '';
-            }
-            return '<div class="mrd-avisos-oferta">' + ico('campana') + '<div class="mrd-avisos-oferta-t"><b>' + esc(s('desktopoffer')) +
-                '</b><small>' + esc(s('desktopofferhelp')) + '</small><span><button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="desktopon">' +
-                esc(s('desktopon')) + '</button><button type="button" class="mrd-avisos-no" data-a="desktopno">' + esc(s('desktopnotnow')) +
-                '</button></span></div></div>';
+            return '<div class="mrd-avisar">' + ico('campana') + '<span class="mrd-avisar-t">' + esc(s('desktopoffer')) + '</span>' +
+                '<button type="button" class="mrd-avisar-si" data-a="desktopon">' + esc(s('desktopyes')) + '</button>' +
+                '<span class="mrd-avisar-punto" aria-hidden="true">·</span>' +
+                '<button type="button" class="mrd-avisar-no" data-a="desktopno">' + esc(s('desktopnotnow')) + '</button></div>';
         }
         function popNotices() {
             var d = desktopState();
@@ -1342,7 +1348,7 @@
             ],
             conv: [
                 ['.mrd-nadie-aviso [data-a="take"], .mrd-mando[data-v="dueno"]', 'tourwho'],
-                ['.mrd-mando[data-v="dep"]', 'tourdep'],
+                ['.mrd-pasar-b', 'tourdep'],
                 ['.mrd-pestana.mrd-nota-p', 'tournote'],
                 ['.mrd-plazo', 'tour24'],
                 ['.mrd-resolver', 'tourresolve']
@@ -1435,14 +1441,21 @@
                         esc(s(g.kind === 'coordinate' ? 'guidecoordinate' : 'guideattend')) + '</b><small>' + esc(s('guidepdf')) + '</small></span></a>';
                 }).join('') + '</div>';
         }
-        function toast(text, error) {
-            el.toast.innerHTML = ico(error ? 'alerta' : 'check') + '<span>' + esc(text) + '</span>';
+        // A toast; with «undo», it says what was done and lets it be undone while it shows (the line in the thread stays).
+        function toast(text, error, undo) {
+            el.toast.innerHTML = ico(error ? 'alerta' : 'check') + '<span>' + esc(text) + '</span>' +
+                (undo ? '<button type="button" class="mrd-toast-deshacer" data-a="undo">' + esc(s('undo')) + '</button>' : '');
             el.toast.classList.toggle('mrd-error', !!error);
+            el.toast.classList.toggle('mrd-con-boton', !!undo);
             el.toast.classList.add('mrd-ver');
             clearTimeout(toastT);
             toastT = setTimeout(function () {
-                el.toast.classList.remove('mrd-ver');
-            }, error ? 4200 : 2800);
+                el.toast.classList.remove('mrd-ver', 'mrd-con-boton');
+            }, error ? 4200 : undo ? 8000 : 2800);
+        }
+        function hideToast() {
+            clearTimeout(toastT);
+            el.toast.classList.remove('mrd-ver', 'mrd-con-boton');
         }
         function failToast(e) {
             toast(s('toasterror', (e && e.message) || (e && e.errorcode) || ''), true);
@@ -1624,16 +1637,21 @@
             h += legendHtml();
             var sig = me.signature ? '<small title="' + esc(s('signature', me.signature)) + '">' + ico('lapiz') + '<span>' + esc(me.signature) +
                 '</span></small>' : '';
-            h += '<div class="mrd-rail-pie">' + (!READONLY && !cfg.inapp ? '<button type="button" class="mrd-rail-b" data-a="pop" data-v="avisos" aria-expanded="' +
-                (st.pop === 'avisos') + '">' + ico(FLAGS.sound === 'off' ? 'mudo' : 'campana') + '<span>' + esc(s('noticestitle')) + '</span></button>' : '') +
-                '<button type="button" class="mrd-rail-b" data-a="pop" data-v="ayuda" aria-expanded="' + (st.pop === 'ayuda') + '">' + ico('ayuda') +
+            // The foot stays in sight at the bottom of the rail, whatever its height: the notices, the help, the person and
+            // the way back to the platform.
+            // In the rail of icons their words hide: the title names them.
+            h += '<div class="mrd-rail-fijo"><div class="mrd-rail-pie">' + (!READONLY && !cfg.inapp ? '<button type="button" class="mrd-rail-b" data-a="pop" data-v="avisos" title="' +
+                esc(s('noticestitle')) + '" aria-expanded="' + (st.pop === 'avisos') + '">' + ico(FLAGS.sound === 'off' ? 'mudo' : 'campana') + '<span>' +
+                esc(s('noticestitle')) + '</span></button>' : '') +
+                '<button type="button" class="mrd-rail-b" data-a="pop" data-v="ayuda" title="' + esc(s('helptitle')) + '" aria-expanded="' + (st.pop === 'ayuda') + '">' +
+                ico('ayuda') +
                 '<span>' + esc(s('helptitle')) + '</span></button>' + (st.pop === 'avisos' ? popNotices() : '') + (st.pop === 'ayuda' ? popHelp() : '') + '</div>';
             h += '<div class="mrd-yo">' + avAgent({ name: me.name, firstname: me.firstname, me: true }, 'mrd-m') +
                 '<div class="mrd-yo-t"><b>' + esc(me.name || '') + '</b>' + (READONLY ? '<small><span>' + esc(s('readonlyshort')) + '</span></small>'
                 : sig) + '</div>' +
                 '<button type="button" class="mrd-yo-mas" data-a="pop" data-v="perfil" aria-label="' + esc(s('backgroundsbutton')) +
                 '" aria-expanded="' + (st.pop === 'perfil') + '">' + ico('fondo') + '</button>' + (st.pop === 'perfil' ? popProfile() : '') + '</div>';
-            h += '<div class="mrd-oks">' + esc(s('poweredby')) + '</div>';
+            h += '<div class="mrd-oks">' + backHtml() + '<span>' + esc(s('poweredby')) + '</span></div></div>';
             var keep = el.rail.scrollTop;
             el.rail.innerHTML = h;
             el.rail.scrollTop = keep;
@@ -1646,28 +1664,61 @@
             }
             renderPie(counts);
         }
+        // What each colour and shape marks, folded in one line that leaves room for the trays; it stays as the person left it.
         function legendHtml() {
             var stages = (cfg.stages || []).map(function (x) {
                 var col = dataColour(x.color, x.dark);
                 return '<span><i class="mrd-pe" style="--e: ' + col.css + '"></i>' + esc(x.label) + '</span>';
             }).join('');
-            return '<div class="mrd-leyenda" aria-label="' + esc(s('legend')) + '"><div class="mrd-leyenda-etapas">' + stages +
+            var open = false;
+            try {
+                open = root.localStorage.getItem('mrd-chat-leyenda') === 'abierta';
+            } catch (e) {
+                open = false;
+            }
+            return '<details class="mrd-leyenda-caja"' + (open ? ' open' : '') + '><summary>' + ico('abajo') + esc(s('legendfold')) + '</summary>' +
+                '<div class="mrd-leyenda" aria-label="' + esc(s('legend')) + '"><div class="mrd-leyenda-etapas">' + stages +
                 (stages ? '' : '<span><i class="mrd-muestra-anillo"></i>' + esc(s('legendring')) + '</span>') + '</div>' +
                 '<div class="mrd-leyenda-formas"><span><i class="mrd-muestra-anillo mrd-discontinuo"></i>' + esc(s('legenddashed')) + '</span>' +
                 '<span>' + ico('gafete') + esc(s('kindstaff')) + '</span><span>' + ico('caja') + esc(s('kindsupplier')) + '</span>' +
-                '<span>' + ico('birrete') + esc(s('kindalumni')) + '</span></div></div>';
+                '<span>' + ico('birrete') + esc(s('kindalumni')) + '</span><span><i class="mrd-muestra-punto"></i>' + esc(s('unread')) + '</span></div></div></details>';
+        }
+        /* Back to the platform: the start of the site (the person's dashboard), discreet at the foot of the rail. The server
+           says where and how the centre calls it («Volver al aula»); without it, the dashboard and «Volver a la plataforma».
+           Not inside the app, which has its own way back. */
+        function backHtml() {
+            if (cfg.inapp) {
+                return '';
+            }
+            var home = cfg.home || {};
+            var url = home.url || (cfg.wwwroot ? cfg.wwwroot + '/my/' : '');
+            if (!url) {
+                return '';
+            }
+            var label = home.kind === 'aula' ? s('backtoaula') : s('backtoplatform');
+            return '<a class="mrd-volver-sitio" href="' + esc(url) + '" title="' + esc(label) + '">' + ico('izq') + '<span>' + esc(label) + '</span></a>';
+        }
+        // The phone's bar, also on the start: «Inicio», «Mías», «Sin asignar», «Menú» (the departments, the history, the
+        // address book, the notices and the help) and the team.
+        function atHome() {
+            return st.capa === 'chat' && !st.open && !st.nueva && st.inbox !== 'board';
         }
         function renderPie(counts) {
-            // The departments tab stays lit for a department, not for the board, the history or the address book.
-            var inTeam = st.inbox !== 'mine' && st.inbox !== 'unassigned' && ['board', 'history', 'agenda'].indexOf(st.inbox) < 0;
+            // «Menú» stays lit for a department, the history or the address book; not for the board.
+            var inMenu = st.inbox !== 'mine' && st.inbox !== 'unassigned' && st.inbox !== 'board';
+            var home = atHome();
+            box.classList.toggle('mrd-en-inicio', home);
             var tab = function (key, icon, label, n) {
                 var on = st.inbox === key && st.capa === 'lista';
-                return '<button type="button" class="' + (on ? 'mrd-on' : '') + '" data-a="inbox" data-v="' + key + '">' + ico(icon) +
-                    esc(label) + (n ? '<span class="mrd-n">' + n + '</span>' : '') + '</button>';
+                return '<button type="button" class="' + (on ? 'mrd-on' : '') + '" data-a="inbox" data-v="' + key + '"' + (on ? ' aria-current="true"' : '') + '>' +
+                    ico(icon) + esc(label) + (n ? '<span class="mrd-n">' + n + '</span>' : '') + '</button>';
             };
-            el.pie.innerHTML = tab('mine', 'yo', s('mine'), counts.mine) + tab('unassigned', 'nadie', s('unassigned'), counts.unassigned) +
-                '<button type="button" class="' + (st.capa === 'bandejas' || (inTeam && st.capa === 'lista') ? 'mrd-on' : '') +
-                '" data-a="capa" data-v="bandejas">' + ico('edificio') + esc(s('tabteams')) + '</button>' +
+            var menuOn = st.capa === 'bandejas' || (inMenu && st.capa === 'lista');
+            el.pie.innerHTML = '<button type="button" class="' + (home ? 'mrd-on' : '') + '" data-a="home"' + (home ? ' aria-current="true"' : '') + '>' +
+                ico('casa') + esc(s('tabhome')) + '</button>' +
+                tab('mine', 'yo', s('mine'), counts.mine) + tab('unassigned', 'nadie', s('unassigned'), counts.unassigned) +
+                '<button type="button" class="' + (menuOn ? 'mrd-on' : '') + '" data-a="capa" data-v="bandejas"' + (menuOn ? ' aria-current="true"' : '') + '>' +
+                ico('menu') + esc(s('tabmenu')) + '</button>' +
                 (READONLY ? '' : '<button type="button" class="eq-pie' + (st.inbox === 'board' && st.capa === 'lista' ? ' mrd-on' : '') +
                     '" data-a="inbox" data-v="board">' + ico('eq-tablon') + esc(s('tabteam')) +
                     (boardToSee().length ? '<span class="mrd-n">' + boardToSee().length + '</span>' : '') + '</button>');
@@ -1763,7 +1814,7 @@
                 !!st.nueva + '">' + ico('lapiz') + '<span>' + esc(s('newconv')) + '</span></button>') + '</div><p></p><label class="mrd-buscar">' + ico('buscar') +
                 '<input type="search" data-role="buscar" autocomplete="off" placeholder="' + esc(s('search')) + '" aria-label="' +
                 esc(s('search')) + '" value="' + esc(st.search) + '"><button type="button" class="mrd-limpiar" data-a="clearsearch" aria-label="' +
-                esc(s('searchclear')) + '"' + (st.search ? '' : ' hidden') + '>' + ico('cerrar') + '</button></label>' + offerHtml() + '</div>' +
+                esc(s('searchclear')) + '"' + (st.search ? '' : ' hidden') + '>' + ico('cerrar') + '</button></label></div>' +
                 '<div class="mrd-lista-cuerpo"></div>';
             updateListTitle();
         }
@@ -1901,12 +1952,7 @@
                 return q ? searchMatch(c, q) || !!st.hits[c.id] : inInbox(c, st.inbox);
             });
             if (q) {
-                all.sort(byActivity);
-                h = all.length ? '<div class="mrd-grupo-t">' + esc(s('searchresults')) + ' <span>' + all.length + '</span></div>' +
-                    all.map(function (c) {
-                        return convItem(c, { withTeam: true, found: true });
-                    }).join('') : '<div class="mrd-vacio">' + esc(s('searchnone', q)) + '</div>';
-                body.innerHTML = h;
+                body.innerHTML = searchHtml(all.sort(byActivity), q);
                 return;
             }
             if (st.inbox === 'history') {
@@ -1929,6 +1975,10 @@
                 h += boardToSee().map(function (b) {
                     return boardCard(b, { movil: true });
                 }).join('');
+            }
+            // On a computer, the notices of the browser are asked for at the head of the list, which is always in sight.
+            if (!narrow() && offerDesktop()) {
+                h += offerHtml();
             }
             var reply = all.filter(function (c) {
                 return c.section === 'reply';
@@ -1978,6 +2028,26 @@
             h += resolvedHtml(done, item(false));
             body.innerHTML = h;
             body.scrollTop = keep;
+        }
+        /* A search says what it found and where it looked (all that the person sees, open and resolved, in names, pupils,
+           phones and what was said; or only what is on the page, while the server has not answered), and groups what it
+           found by where it is. Nothing found says so, and what to try. */
+        function searchHtml(all, q) {
+            var scope = q.trim().length < 2 ? 'searchwhereshort' : st.searchFor !== q.trim() || st.searchScope === 'loading' ? 'searchwhereloading'
+                : st.searchScope === 'server' ? 'searchwhere' : 'searchwherepage';
+            var h = '<div class="mrd-buscado" role="status"><b>' + esc(s(all.length ? 'searchfound' : 'searchnothing', { n: all.length, q: q })) + '</b>' +
+                '<p>' + ico('buscar') + esc(s(scope)) + '</p>' + (all.length ? '' : '<p class="mrd-buscado-prueba">' + esc(s('searchtry')) + '</p>') + '</div>';
+            var open = all.filter(function (c) {
+                return c.section !== 'resolved';
+            }), done = all.filter(function (c) {
+                return c.section === 'resolved';
+            });
+            var group = function (key, list) {
+                return list.length ? '<div class="mrd-grupo-t">' + esc(s(key)) + ' <span>' + list.length + '</span></div>' + list.map(function (c) {
+                    return convItem(c, { withTeam: true, found: true });
+                }).join('') : '';
+            };
+            return h + group('searchopen', open) + group('searchdone', done);
         }
         /* What was resolved: the page keeps what was resolved today; «See the resolved ones» brings the last days too,
            by day, so that what someone resolved yesterday is a tap away and not only a search. */
@@ -2041,41 +2111,75 @@
                 case 'month':
                     return { from: keyTime(p.y * 10000 + p.mo * 100 + 1), before: 0 };
                 default:
+                    // An earlier month, «m:YYYYMM»: from its first day to the first of the next.
+                    var m = /^m:(\d{4})(\d{2})$/.exec(st.hf.period || '');
+                    if (m) {
+                        var y = +m[1], mo = +m[2], ny = mo === 12 ? y + 1 : y, nmo = mo === 12 ? 1 : mo + 1;
+                        return { from: keyTime(y * 10000 + mo * 100 + 1), before: keyTime(ny * 10000 + nmo * 100 + 1) };
+                    }
                     return { from: 0, before: 0 };
             }
+        }
+        // The months before this one, back to a year: «octubre», «septiembre»… with the year when it is another.
+        function historyMonths() {
+            var p = zp(nowMs()), y = p.y, mo = p.mo, list = [];
+            for (var i = 0; i < 11; i++) {
+                mo--;
+                if (!mo) {
+                    mo = 12;
+                    y--;
+                }
+                var ms = keyTime(y * 10000 + mo * 100 + 15) * 1000;
+                var raw = y === p.y ? new Intl.DateTimeFormat(LANG, { month: 'long', timeZone: TZ }).format(new Date(ms)) : fMonth.format(new Date(ms));
+                list.push(['m:' + y + (mo < 10 ? '0' : '') + mo, cap(raw), raw]);
+            }
+            return list;
         }
         function historyMatch(c) {
             var r = historyRange(), at = c.lastactivity || 0;
             return (!st.hf.mine || (c.assignee && c.assignee.me)) && (!st.hf.team || c.teamid === st.hf.team) &&
                 (!r.from || at >= r.from) && (!r.before || at < r.before);
         }
+        /* The filters: who and which department in one row, and when, with the months before this one behind «Antes»
+           (October, September…), so that the history reaches back as far as it goes. */
         function historyFiltersHtml() {
             var chip = function (a, v, label, on) {
                 return '<button type="button" class="mrd-chip' + (on ? ' mrd-on' : '') + '" data-a="' + a + '" data-v="' + v + '" aria-pressed="' + on + '">' +
                     esc(label) + '</button>';
             };
             var periods = [['', 'periodall'], ['week', 'periodweek'], ['lastweek', 'lastweek'], ['month', 'periodmonth']];
+            var months = historyMonths(), chosen = months.filter(function (x) {
+                return x[0] === st.hf.period;
+            })[0];
             var deps = teams().filter(function (t) {
                 return me.seesall || t.mine;
             });
-            var row = function (label, inner) {
-                return '<div class="mrd-hist-fila"><span class="mrd-hist-rot">' + esc(s(label)) + '</span><div>' + inner + '</div></div>';
+            var row = function (label, inner, cls) {
+                return '<div class="mrd-hist-fila' + (cls ? ' ' + cls : '') + '"><span class="mrd-hist-rot">' + esc(s(label)) + '</span><div>' + inner + '</div></div>';
             };
-            return '<div class="mrd-hist-filtros">' + row('histwho', chip('histmine', '0', s('histall'), !st.hf.mine) +
-                chip('histmine', '1', s('histmine'), st.hf.mine)) + row('histwhen', periods.map(function (x) {
+            var fold = function (key, open, on, label, inner) {
+                return '<details class="mrd-hist-dep"' + (open ? ' open' : '') + '><summary data-a="' + key + '" class="mrd-chip' + (on ? ' mrd-on' : '') +
+                    '" aria-expanded="' + !!open + '">' + esc(label) + ico('abajo', 'mrd-flecha') + '</summary><div>' + inner + '</div></details>';
+            };
+            return '<div class="mrd-hist-filtros"><div class="mrd-hist-dos">' + row('histwho', chip('histmine', '0', s('histall'), !st.hf.mine) +
+                chip('histmine', '1', s('histmine'), st.hf.mine)) + (deps.length > 1 ? row('histteamrot', fold('histdep', st.hfDep, !!st.hf.team,
+                st.hf.team ? teamName(st.hf.team) : s('histallteams'), chip('histteam', '0', s('histallteams'), !st.hf.team) + deps.map(function (t) {
+                    return chip('histteam', String(t.id), t.name, st.hf.team === t.id);
+                }).join(''))) : '') + '</div>' + row('histwhen', periods.map(function (x) {
                     return chip('histperiod', x[0], s(x[1]), st.hf.period === x[0]);
-                }).join('')) + (deps.length > 1 ? row('histteamrot', '<details class="mrd-hist-dep"' + (st.hfDep ? ' open' : '') +
-                    '><summary data-a="histdep" class="mrd-chip' + (st.hf.team ? ' mrd-on' : '') + '" aria-expanded="' + !!st.hfDep + '">' +
-                    esc(st.hf.team ? teamName(st.hf.team) : s('histallteams')) + ico('abajo', 'mrd-flecha') + '</summary><div>' +
-                    chip('histteam', '0', s('histallteams'), !st.hf.team) + deps.map(function (t) {
-                        return chip('histteam', String(t.id), t.name, st.hf.team === t.id);
-                    }).join('') + '</div></details>') : '') + '</div>';
+                }).join('') + fold('histmonths', st.hfMonths, !!chosen, chosen ? chosen[1] : s('periodbefore'), months.map(function (x) {
+                    return chip('histperiod', x[0], x[1], st.hf.period === x[0]);
+                }).join(''))) + '</div>';
         }
         // What the filters leave out, said as it is: «Nada de lo que llevaste tú la semana pasada en Secretaría.»
         function historyNoneText() {
             var parts = [s(st.hf.mine ? 'histnonemine' : 'histnoneall')];
             if (st.hf.period) {
-                parts.push(s({ week: 'histinweek', lastweek: 'histinlastweek', month: 'histinmonth' }[st.hf.period]));
+                var key = { week: 'histinweek', lastweek: 'histinlastweek', month: 'histinmonth' }[st.hf.period];
+                var month = historyMonths().filter(function (x) {
+                    return x[0] === st.hf.period;
+                })[0];
+                parts.push(key ? s(key) : s('histinmonthname', month ? month[2] : ''));
             }
             if (st.hf.team) {
                 parts.push(s('histinteam', teamName(st.hf.team)));
@@ -2568,6 +2672,7 @@
                 el.chat.innerHTML = st.ready ? '<div class="mrd-hilo mrd-inicio-hilo">' + homeHtml() + '</div>'
                     : '<div class="mrd-hilo"><div class="mrd-hilo-nada">' + esc(s('loading')) + '</div></div>';
                 st.composerSig = '';
+                renderPie(inboxCounts());
                 return;
             }
             el.chat.innerHTML = '<div class="mrd-chat-cab"></div><div class="mrd-hilo" tabindex="-1"></div><div class="mrd-escribir"></div>';
@@ -2636,6 +2741,24 @@
             return avAgent(p ? { agentid: p.agentid, name: p.name } : { name: name || '' }, 'mrd-s');
         }
         var GS_CAT = { utility: 'util', marketing: 'mkt', authentication: 'aut' };
+        // Sends approved after Meta was last read: already decided, not yet in Meta's figures.
+        function gsCommitted() {
+            var d = gsData(), m = d.month, sum = 0, today = true;
+            d.decided.forEach(function (b) {
+                if (b.status === 'queued' && b.only !== 'telegram' && b.cost > 0 && b.decided > (m.time || 0)) {
+                    sum += b.cost;
+                    today = today && dayKey(b.decided * 1000) === dayKey(nowMs());
+                }
+            });
+            return { sum: sum, today: today };
+        }
+        function gsByMe(b) {
+            return b.deciderid ? +b.deciderid === +me.userid : !!(b.decidedby && me.name && b.decidedby === me.name);
+        }
+        function gsAsker(b) {
+            var p = gsPerson(b.askerid);
+            return (p && p.firstname) || String(b.askedby || '').split(' ')[0];
+        }
         function gsWhy(b) {
             var d = gsData(), m = d.month;
             if (b.why === 'budget') {
@@ -2643,17 +2766,17 @@
                 return m.cost >= m.budget ? s('gswhybudget', m.name) :
                     s('gswhyover', { month: m.name, total: gsMoney(m.cost + b.cost, m.currency), budget: gsMoney(m.budget, m.currency) });
             }
-            var t = s('gswhythreshold', gsMoney(d.threshold, b.currency));
-            if (m.budget > 0) {
-                t += ' ' + s('gswhyafter', { month: m.name, total: gsMoney(m.cost + b.cost, m.currency), budget: gsMoney(m.budget, m.currency) });
-            }
-            return t;
+            // The whole sum: what has gone this month, and where this send leaves it.
+            var spent = m.cost + gsCommitted().sum, a = { spent: gsMoney(spent, m.currency), total: gsMoney(spent + b.cost, m.currency),
+                budget: gsMoney(m.budget, m.currency) };
+            return s('gswhythreshold', gsMoney(d.threshold, b.currency)) + ' ' + s(m.budget > 0 ? 'gswhyspent' : 'gswhyspentnobudget', a);
         }
         function gsSend(b) {
             var d = gsData(), open = st.gsOpen === b.id, rejecting = st.gsReject && st.gsReject.id === b.id;
             var quote = b.preview || '';
             var short = quote.length > 120 && !open ? quote.slice(0, 117).replace(/\s+\S*$/, '') + '…' : quote;
-            var cat = GS_CAT[b.category] || 'mkt';
+            var cat = GS_CAT[b.category] || 'mkt', asker = gsAsker(b);
+            // Who receives it and who does not, one channel per row: what it costs and what each one costs.
             var h = '<div class="gs-hoja gs-envio">' +
                 '<p class="gs-quien">' + gsFace(b.askerid, b.askedby) + '<span>' + esc(s('gsasked')) + ' <b>' + esc(b.askedby) + '</b>' +
                 (b.plugin ? ' · ' + esc(b.plugin) : '') + ' · ' + esc(gsAgo(b.asked * 1000)) + '</span></p>' +
@@ -2661,48 +2784,131 @@
                 (quote ? '<p class="gs-cita">«' + esc(short) + '»' + (quote.length > 120 ? ' <button type="button" class="mrd-enlace" data-a="gsver" data-v="' +
                     b.id + '">' + esc(s(open ? 'gsless' : 'gsseemsg')) + '</button>' : '') + '</p>' : '') +
                 '<div class="gs-canales">' +
-                '<div class="gs-canal"><b>' + ico('gs-wa') + esc(s('gsbywa', b.whatsapp)) + '</b><span class="gs-cat gs-cat-' + cat + '">' +
-                esc(s('cat' + ({ util: 'utility', mkt: 'marketing', aut: 'authentication' })[cat])) + ' · ' + esc(gsMoney(b.cost, b.currency)) + '</span></div>' +
+                (b.whatsapp || !b.telegram ? '<div class="gs-canal"><b>' + ico('gs-wa') + esc(s('gsbywa', b.whatsapp)) + '</b><span class="gs-cat gs-cat-' + cat + '">' +
+                    esc(gsMoney(b.cost, b.currency)) + '</span>' + (b.whatsapp ? '<small>' + esc(s('gseach', { price: priceWords(b.cost / b.whatsapp, b.currency),
+                    kind: s('gseach' + cat) })) + '</small>' : '') + '</div>' : '') +
                 (b.telegram ? '<div class="gs-canal"><b>' + ico('gs-tg') + esc(s('gsbytg', b.telegram)) + '</b><span class="gs-cat gs-cat-gratis">' +
                     esc(s('gsfree')) + '</span></div>' : '') +
                 (b.skipped ? '<div class="gs-canal gs-fuera"><b>' + ico('gs-sin') + esc(s('gsskipped', b.skipped)) + '</b><small>' +
-                    esc(s('gsskippedhelp')) + '</small></div>' : '') +
+                    esc(s('gsskippedwho', b.skipped)) + '</small></div>' : '') +
                 '</div>' +
                 '<p class="gs-porque">' + ico('gs-euro') + '<span>' + esc(gsWhy(b)) + '</span></p>';
             if (!d.canapprove) {
                 return h + '</div>';
             }
             if (rejecting) {
-                return h + '<div class="gs-rechazo"><label><span>' + esc(s('gsrejectwhy')) + '</span><input type="text" class="gs-motivo" maxlength="200" value="' +
-                    esc(st.gsReject.reason || '') + '" placeholder="' + esc(s('gsrejectph')) + '"></label>' +
-                    '<div class="gs-acciones"><button type="button" class="mrd-btn mrd-primario" data-a="gsrejectok" data-v="' + b.id + '">' + ico('gs-x') +
-                    esc(s('gsreject')) + '</button><button type="button" class="mrd-btn" data-a="gsrejectno">' + esc(s('gscancel')) + '</button></div></div></div>';
+                // Why, in one touch or in words: whoever asked reads it and can change it and ask again.
+                var r = st.gsReject;
+                return h + '<div class="gs-rechazo"><b>' + esc(s('gsrejectwhy')) + '</b><small>' + esc(s('gsrejecttell', asker)) + '</small>' +
+                    '<div class="gs-motivos">' + [1, 2, 3].map(function (i) {
+                        var on = r.motive === s('gsmotive' + i);
+                        return '<button type="button" class="mrd-chip' + (on ? ' mrd-on' : '') + '" data-a="gsmotivo" data-v="' + i + '" aria-pressed="' + on + '">' +
+                            esc(s('gsmotive' + i)) + '</button>';
+                    }).join('') + '</div>' +
+                    '<textarea class="gs-motivo" rows="2" maxlength="200" aria-label="' + esc(s('gsrejectwhy')) + '" placeholder="' + esc(s('gsrejectph')) + '">' +
+                    esc(r.reason || '') + '</textarea>' +
+                    '<div class="gs-acciones"><button type="button" class="mrd-btn gs-rechazar-b" data-a="gsrejectok" data-v="' + b.id + '">' + ico('gs-x') +
+                    esc(s('gsrejectandtell', asker)) + '</button><button type="button" class="mrd-enlace" data-a="gsrejectno">' + esc(s('gsrejectback')) +
+                    '</button></div></div></div>';
             }
             return h + '<div class="gs-acciones"><button type="button" class="mrd-btn mrd-primario" data-a="gsapprove" data-v="' + b.id + '">' + ico('check') +
                 esc(s('gsapproveok')) + '</button><button type="button" class="mrd-btn" data-a="gsreject" data-v="' + b.id + '">' + ico('gs-x') +
-                esc(s('gsreject')) + '</button>' + (b.telegram && b.whatsapp ? '<button type="button" class="mrd-enlace" data-a="gstelegram" data-v="' + b.id + '">' +
-                esc(s('gsonlytg')) + '</button>' : '') + '</div></div>';
+                esc(s('gsrejectdots')) + '</button>' + (b.telegram && b.whatsapp ? '<span class="gs-solo-tg"><button type="button" class="mrd-enlace" data-a="gstelegram" data-v="' +
+                b.id + '">' + esc(s('gsonlytgfree', b.telegram)) + '</button><small>' + esc(s('gsonlytgmiss', b.whatsapp)) + '</small></span>' : '') + '</div></div>';
         }
-        function gsDecided(b) {
-            var yes = b.status === 'queued';
-            var who = yes ? s(b.only === 'telegram' ? 'gsapprovedtg' : 'gsapproved', b.decidedbyfirst) :
-                (b.status === 'rejected' ? s('gsrejected', b.decidedbyfirst) : s('gscancelled'));
-            var what = yes ? (b.only === 'telegram' ? s('gsbytg', b.telegram) : s('gsbywa', b.whatsapp) + ' · ' + gsMoney(b.cost, b.currency)) :
-                (b.reason ? '«' + b.reason + '»' : '');
-            return '<div><span class="' + (yes ? 'gs-si' : 'gs-no') + '">' + ico(yes ? 'check' : 'gs-x') + '</span><span><b>' + esc(who) + '</b> · ' +
-                esc(b.label) + (what ? ' · ' + esc(what) : '') + '</span><small>' + esc(listTime(b.decided * 1000)) + '</small></div>';
+        // A decision, with its money; the ones taken on this page go first, marked, with how the send goes.
+        function gsDecided(b, recent) {
+            var yes = b.status === 'queued', mine = gsByMe(b), first = b.decidedbyfirst;
+            var who = yes ? s(b.only === 'telegram' ? (mine ? 'gsapprovedtgyou' : 'gsapprovedtg') : (mine ? 'gsapprovedyou' : 'gsapproved'), first) :
+                (b.status === 'rejected' ? s(mine ? 'gsrejectedyou' : 'gsrejected', first) : s('gscancelled'));
+            var parts = [esc(b.label)];
+            if (yes) {
+                parts.push(esc(b.only === 'telegram' ? s('gsbytg', b.telegram) : s('gsbywa', b.whatsapp)));
+                if (b.only !== 'telegram') {
+                    parts.push('<b>' + esc(gsMoney(b.cost, b.currency)) + '</b>');
+                }
+                var total = b.only === 'telegram' ? b.telegram : b.whatsapp + b.telegram;
+                if (recent && total) {
+                    parts.push('<span class="gs-saliendo">' + esc(b.sent < total ? s('gssending', { sent: b.sent, total: total }) : s('gssentall', total)) + '</span>');
+                }
+            } else if (b.reason) {
+                parts.push('«' + esc(b.reason) + '»');
+            }
+            if (recent && b.status === 'rejected') {
+                parts.push(esc(s('gstold', gsAsker(b))));
+            }
+            var at = b.decided * 1000;
+            return '<div' + (recent ? ' class="gs-recien"' : '') + '><span class="' + (yes ? 'gs-si' : 'gs-no') + '">' + ico(yes ? 'check' : 'gs-x') +
+                '</span><span><b>' + esc(who) + '</b> · ' + parts.join(' · ') + '</span><small>' +
+                esc(dayKey(at) === dayKey(nowMs()) ? s('gstoday', fmtTime(at)) : listTime(at)) + '</small></div>';
+        }
+        /* The month, short, next to what is being approved: what has gone, what this send would add (striped, as it is not
+           spent yet), the 80 % line, and the way to the whole month below. */
+        function gsShortHtml(b) {
+            var d = gsData(), m = d.month, cur = m.currency, com = gsCommitted(), cat = {};
+            m.categories.forEach(function (c) {
+                cat[c.key] = c;
+            });
+            var spent = m.cost + com.sum, adds = b && b.only !== 'telegram' ? b.cost : 0, budget = m.budget;
+            var h = '<div class="gs-hoja gs-corto" aria-label="' + esc(s('gsmonth', m.name)) + '"><p class="gs-corto-t">' + ico('gs-euro') +
+                esc(s('gsmonth', m.name)) + '</p><div class="gs-cifras"><span class="gs-total">' + esc(gsMoney(spent, cur)) + '</span>' +
+                (budget ? '<span class="gs-de">' + esc(s('gsofshort', { budget: gsMoney(budget, cur), share: Math.floor(100 * spent / budget) })) + '</span>' : '') + '</div>';
+            if (budget) {
+                var scale = Math.max(budget, spent + adds), pc = function (x) {
+                    return (100 * x / scale) + '%';
+                };
+                h += '<div class="gs-corto-barra"><div class="gs-barra" role="img" aria-label="' + esc(s('gsbarshare', Math.floor(100 * spent / budget))) + '">' +
+                    ['utility', 'marketing', 'authentication'].map(function (k) {
+                        return '<i class="gs-b-' + GS_CAT[k] + '" style="width:' + pc((cat[k] || {}).cost || 0) + '"></i>';
+                    }).join('') + (com.sum ? '<i class="gs-b-mkt" style="width:' + pc(com.sum) + '"></i>' : '') +
+                    (adds ? '<i class="gs-b-este" style="width:' + pc(adds) + '"></i>' : '') + '</div><span class="gs-corto-80" style="left:' +
+                    pc(0.8 * budget) + '"></span></div>';
+            }
+            if (adds) {
+                h += '<p class="gs-corto-l"><i class="gs-b-este"></i>' + esc(s('gswiththis')) + ' <b>' + esc(gsMoney(spent + adds, cur)) + '</b>' +
+                    (budget ? esc(s('gsshareof', Math.floor(100 * (spent + adds) / budget))) : '') + '</p>';
+            } else if (com.sum) {
+                h += '<p class="gs-corto-l"><i class="gs-b-mkt"></i>' + esc(s(com.today ? 'gswithtoday' : 'gswithdecided')) + ' <b>' +
+                    esc(gsMoney(com.sum, cur)) + '</b></p>';
+            }
+            if (budget) {
+                h += '<p class="gs-corto-l gs-corto-l80"><i></i>' + esc(s('gsat80', gsMoney(0.8 * budget, cur))) + '</p>';
+            }
+            return h + '<button type="button" class="mrd-enlace" data-a="gsfull">' + esc(s('gsseemonth')) + '</button></div>';
         }
         function gsApprovals() {
             var d = gsData();
-            if (!d || !d.pending.length) {
+            if (!d) {
+                return '';
+            }
+            // What was decided today stays, also once nothing is left: the section does not vanish under the person.
+            var today = keyTime(dayKey(nowMs()));
+            var recent = d.decided.filter(function (b) {
+                return st.gsJust[b.id];
+            }).sort(function (a, b) {
+                return b.decided - a.decided;
+            });
+            var rest = d.decided.filter(function (b) {
+                return !st.gsJust[b.id];
+            });
+            if (!d.pending.length && !recent.length && !d.decided.some(function (b) {
+                return b.decided >= today;
+            })) {
                 return '';
             }
             var names = d.approvers.map(function (p) {
                 return p.firstname;
             });
-            return '<section class="gs-bloque"><h3>' + ico('gs-firma') + esc(s('gsapprovetitle')) + (names.length ? '<small>' +
-                esc(s('gsseenby', gsNames(names, 'gsand'))) + '</small>' : '') + '</h3>' + d.pending.map(gsSend).join('') +
-                (d.decided.length ? '<div class="gs-hoja gs-hecho">' + d.decided.map(gsDecided).join('') + '</div>' : '') + '</section>';
+            var side = d.canapprove || d.canchoose ? gsShortHtml(d.pending[0] || null) : '';
+            return '<section class="gs-bloque"><h3>' + ico('gs-firma') + esc(s(d.pending.length ? 'gsapprovetitle' : 'gsapprovalstitle')) +
+                (names.length ? '<small>' + esc(s('gsseenby', gsNames(names, 'gsand'))) + '</small>' : '') + '</h3>' +
+                '<div class="gs-fila' + (side ? '' : ' gs-sin-lado') + '"><div class="gs-pendientes">' + (d.pending.length ? d.pending.map(gsSend).join('')
+                : '<div class="gs-hoja gs-nada">' + ico('check') + '<span>' + esc(s('gsnothingleft')) + '</span></div>') + '</div>' + side + '</div>' +
+                (d.decided.length ? '<div class="gs-hoja gs-hecho">' + recent.map(function (b) {
+                    return gsDecided(b, true);
+                }).join('') + rest.map(function (b) {
+                    return gsDecided(b, false);
+                }).join('') + '</div>' : '') + '</section>';
         }
         function gsDays(m) {
             var max = 0, by = {}, cols = [], axis = [];
@@ -2771,7 +2977,7 @@
                 cat[c.key] = c;
             });
             var spent = m.cost, scale = m.budget ? Math.max(m.budget, spent) : (spent || 1);
-            var h = '<section class="gs-bloque"><h3>' + ico('gs-euro') + esc(s('gsmonth', m.name)) + '<small>' +
+            var h = '<section class="gs-bloque" id="mrd-gs-mes" tabindex="-1"><h3>' + ico('gs-euro') + esc(s('gsmonth', m.name)) + '<small>' +
                 esc(m.time ? s('gsfrommeta') : s('gsnotyet')) + '</small></h3><div class="gs-hoja">';
             h += '<div class="gs-cifras"><span class="gs-total">' + esc(gsMoney(spent, cur)) + '</span><span class="gs-de">' +
                 esc(m.budget ? s('gsofbudget', { budget: gsMoney(m.budget, cur), share: m.share }) :
@@ -2782,7 +2988,7 @@
                         return '<i class="gs-b-' + GS_CAT[k] + '" style="width:' + (100 * ((cat[k] || {}).cost || 0) / scale) + '%"></i>';
                     }).join('') + '</div>';
                 if (m.budget) {
-                    h += '<div class="gs-marcas" aria-hidden="true"><span style="left:' + (80 * m.budget / scale) + '%">80 %</span>' +
+                    h += '<div class="gs-marcas" aria-hidden="true"><span style="left:' + (80 * m.budget / scale) + '%">' + esc(s('gsmark80', gsMoney(0.8 * m.budget, cur))) + '</span>' +
                         (spent > m.budget ? '<span class="gs-cien" style="left:' + (100 * m.budget / scale) + '%">' + esc(gsMoney(m.budget, cur)) + '</span>' : '') +
                         '</div>';
                 }
@@ -2801,8 +3007,8 @@
                 return k !== 'authentication' || (cat[k] && cat[k].count);
             }).map(function (k) {
                 var c = cat[k] || { count: 0, cost: 0 }, free = k === 'service';
-                return '<div><i style="background:var(--cat-' + (free ? 'srv' : GS_CAT[k]) + ')"></i><span>' + esc(s('cat' + k)) + ' <small>· ' + esc(s('gscat' + k)) +
-                    '</small></span><span class="gs-n">' + esc(free ? String(c.count) : s('gsmessages', c.count)) + '</span><span class="gs-e">' +
+                return '<div><i style="background:var(--cat-' + (free ? 'srv' : GS_CAT[k]) + ')"></i><span>' + esc(s('cat' + k)) +
+                    (free ? ' <small>· ' + esc(s('gsfreelow')) + '</small>' : '') + '</span><span class="gs-n">' + esc(free ? String(c.count) : s('gsmessages', c.count)) + '</span><span class="gs-e">' +
                     esc(free ? s('gsfree') : gsMoney(c.cost, cur)) + '</span></div>';
             }).join('') + '</div>';
             h += '<p class="gs-nota">' + esc(s('gsnote')) + '</p>';
@@ -2828,8 +3034,9 @@
             return now;
         }
 
-        /* With no conversation open, the room on the right says where things are: what is yours, what nobody has in
-           your departments, and, for whoever sees everything, how each department is doing. Then how the trays work. */
+        /* With no conversation open, the room on the right says where things are, yours first: «Mías», «Sin asignar» and
+           «Nueva»; then what asks something of the person (what to approve, the board); then, for whoever sees everything,
+           the whole centre in a sentence and a table, without alarm; then the month of WhatsApp and how the trays work. */
         function homeHtml() {
             var open = allConvs().filter(function (c) {
                 return c.section !== 'resolved';
@@ -2841,32 +3048,11 @@
                 return inInbox(c, 'unassigned') && c.section === 'reply';
             }).sort(byWait);
             var h = '<div class="mrd-inicio"><h2>' + esc(s('homehello', firstName(me) || me.name || '')) + '</h2>';
-            // On top, and in colour, what waits: for whoever sees everything, all of the centre.
-            var waiting = (me.seesall ? open.filter(function (c) {
-                return c.section === 'reply';
-            }) : mine.concat(free.filter(function (c) {
-                return mine.indexOf(c) < 0;
-            }))).sort(byWait);
-            if (waiting.length) {
-                var top = waiting[0], long = waitMs(top) >= 4 * 3600000;
-                h += '<div class="mrd-inicio-aviso' + (long ? ' mrd-larga' : '') + '"><span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' +
-                    waiting.length + '</span><div class="mrd-inicio-aviso-t"><b>' +
-                    esc(s(me.seesall ? (waiting.length === 1 ? 'homepend1all' : 'homependall') : (waiting.length === 1 ? 'homepend1mine' : 'homependmine'),
-                        waiting.length)) + '</b><small>' + esc(s('homelongestwho', { name: (top.contact && top.contact.name) || fmtPhone(top.contact && top.contact.phone),
-                        team: top.teamid ? teamName(top.teamid) : s('noteam'), wait: waitText(top) })) + '</small></div>' +
-                    '<button type="button" class="mrd-btn mrd-primario" data-a="conv" data-v="' + top.id + '">' + esc(s('homeopen')) + '</button></div>';
-            } else {
-                h += '<div class="mrd-inicio-aviso mrd-ok">' + ico('check') + '<b>' + esc(s('alldone')) + '</b></div>';
+            // On a phone the start is where the notices of the browser are asked for, once.
+            if (narrow() && offerDesktop()) {
+                h += offerHtml();
             }
-            var spendUp = gsQuiet();
-            h += gsApprovals() + (spendUp ? gsMonth() : '');
-            var mineToSee = READONLY ? [] : boardToSee();
-            if (mineToSee.length) {
-                h += '<section class="eq-inicio"><h3>' + ico('eq-tablon') + esc(s('boardforyou')) + '</h3>' + mineToSee.map(function (b) {
-                    return boardCard(b, { inicio: true });
-                }).join('') + '</section>';
-            }
-            h += '<div class="mrd-inicio-tarjetas">';
+            h += '<div class="mrd-inicio-tarjetas mrd-lo-tuyo">';
             var card = function (key, icon, title, list, button) {
                 var first = list[0], long = first && waitMs(first) >= 4 * 3600000;
                 return '<div class="mrd-inicio-t"><div class="mrd-inicio-t1">' + ico(icon) + '<b>' + esc(title) + '</b></div>' +
@@ -2885,8 +3071,16 @@
                     '<button type="button" class="mrd-btn mrd-chico" data-a="new">' + esc(s('newconvtitle')) + '</button></div>';
             }
             h += '</div>';
+            var spendUp = gsQuiet();
+            h += gsApprovals() + (spendUp ? gsMonth() : '');
+            var mineToSee = READONLY ? [] : boardToSee();
+            if (mineToSee.length) {
+                h += '<section class="eq-inicio"><h3>' + ico('eq-tablon') + esc(s('boardforyou')) + '</h3>' + mineToSee.map(function (b) {
+                    return boardCard(b, { inicio: true });
+                }).join('') + '</section>';
+            }
             if (me.seesall) {
-                h += homeTeamsHtml(open);
+                h += homeCentreHtml(open);
             }
             if (!spendUp) {
                 h += gsMonth();
@@ -2922,6 +3116,30 @@
                 return '<a class="mrd-btn mrd-chico" href="' + esc(g.url) + '" target="_blank" rel="noopener">' + ico('libro') +
                     esc(s(g.kind === 'coordinate' ? 'guidecoordinate' : 'guideattend')) + '</a>';
             }).join('');
+        }
+        /* The whole centre, for whoever sees everything: a sentence in the grey of the text with its parts (how many, how
+           many in the person's departments and in the others, the one that waits longest) and the table below. No alarm:
+           the long waits show on their figures and clocks. */
+        function homeCentreHtml(open) {
+            var reply = open.filter(function (c) {
+                return c.section === 'reply';
+            }).sort(byWait);
+            var p;
+            if (!reply.length) {
+                p = esc(s('homecentrenone'));
+            } else {
+                var mineIds = myTeamIds(), anyMine = Object.keys(mineIds).length > 0, inMine = reply.filter(function (c) {
+                    return !!mineIds[c.teamid];
+                }).length, other = reply.length - inMine;
+                p = '<b>' + esc(s('toreply', reply.length)) + '</b>' + esc(anyMine && inMine && other
+                    ? s('homecentresplit', { mine: inMine, other: other }) : anyMine && !other ? s('homecentreallmine') : '.');
+                var top = reply[0], who = (top.contact && top.contact.name) || fmtPhone(top.contact && top.contact.phone);
+                var where = top.teamid ? teamName(top.teamid) : s('noteam');
+                p += ' ' + esc(waitMs(top) < 600 * 60000 ? s('homecentrelongest', { name: who, team: where, wait: waitText(top) })
+                    : s('homecentrelongestsince', { name: who, team: where, wait: waitText(top) }));
+            }
+            return '<section class="mrd-inicio-centro"><h3>' + ico('edificio') + esc(s('homecentre')) + '</h3><p>' + p + '</p>' +
+                homeTeamsHtml(open) + '</section>';
         }
         function homeTeamsHtml(open) {
             var by = {};
@@ -2961,9 +3179,9 @@
                 }
                 return waitMs(b.list[0]) - waitMs(a.list[0]);
             });
-            var h = '<div class="mrd-inicio-deps"><h3>' + esc(s('hometeams')) + '</h3>';
+            var h = '<div class="mrd-inicio-deps">';
             if (!rows.length) {
-                return h + '<p class="mrd-inicio-n">' + esc(s('hometeamsnone')) + '</p></div>';
+                return '';
             }
             h += '<div class="mrd-inicio-dep mrd-inicio-dep-cab" aria-hidden="true"><span>' + esc(s('hometeamcol')) + '</span><span>' +
                 esc(s('hometoreplycol')) + '</span><span>' + esc(s('homelongestcol')) + '</span><span>' + esc(s('homewhocol')) + '</span><span></span></div>';
@@ -3021,34 +3239,42 @@
                 : avAgent(null, 'mrd-s') + '<span>' + esc(s('unassigned')) + '</span>';
             var dis = READONLY ? ' disabled' : '';
             var resolved = c.section === 'resolved';
-            var why = head.querySelector('.mrd-rem-motivo'), typing = why && document.activeElement === why, caret = typing ? why.selectionStart : 0;
-            // On a phone only the bell shows: filled when it has a day, and the day in its name.
+            // Whoever is writing (why to be reminded, or a line for the department it goes to) keeps the box and the caret.
+            var typed = head.querySelector('.mrd-rem-motivo, .mrd-pasar-nota'), typing = typed && document.activeElement === typed;
+            var caret = typing ? typed.selectionStart : 0, typedCls = typing ? typed.className : '';
+            // On a phone the bell and the tick say what they do, in a word under them.
             var remLabel = c.remind ? s('remindback', remShort(c.remind.at * 1000)) : s('remindbtn');
             var remBtn = READONLY ? '' : '<div class="mrd-rem-caja"><button type="button" class="mrd-btn mrd-recordar' + (c.remind ? ' mrd-on' : '') +
                 '" data-a="pop" data-v="recordar" aria-expanded="' + (st.pop === 'recordar') + '" aria-label="' + esc(remLabel) + '" title="' +
-                esc(c.remind ? remLabel : s('remtitle')) + '">' + ico('campana') + '<span class="mrd-t">' + esc(remLabel) + '</span></button>' +
-                (st.pop === 'recordar' ? popRemind(c) : '') + '</div>';
+                esc(c.remind ? remLabel : s('remtitle')) + '">' + ico('campana') + '<span class="mrd-t">' + esc(remLabel) + '</span><span class="mrd-rotulo-movil">' +
+                esc(s('remindshort')) + '</span></button>' + (st.pop === 'recordar' ? popRemind(c) : '') + '</div>';
+            // The department reads as a fact; passing it on is its own button, next to who has it.
             head.innerHTML = '<button type="button" class="mrd-volver" data-a="back" data-v="lista" aria-label="' + esc(s('back')) + '">' + ico('izq') + '</button>' +
                 '<h2>' + esc(ct.name || fmtPhone(ct.phone)) + '<span class="mrd-rel">' + relHtml(ct) + '</span></h2>' +
-                '<div class="mrd-mandos"><button type="button" class="mrd-mando" data-a="pop" data-v="dep"' + dis + ' aria-expanded="' + (st.pop === 'dep') + '">' +
-                ico(teamIcon(t)) + '<span>' + esc(t ? t.name : s('noteam')) + '</span>' + (READONLY ? '' : ico('abajo', 'mrd-flecha')) + '</button>' +
+                '<div class="mrd-mandos"><span class="mrd-mando mrd-dato" title="' + esc(s('depnow', t ? t.name : s('noteam'))) + '">' +
+                ico(teamIcon(t)) + '<span>' + esc(t ? t.name : s('noteam')) + '</span></span>' +
                 '<button type="button" class="mrd-mando mrd-quien" data-a="pop" data-v="dueno"' + dis + ' aria-expanded="' + (st.pop === 'dueno') + '">' +
-                owner + (READONLY ? '' : ico('abajo', 'mrd-flecha')) + '</button>' + (st.pop === 'dep' ? popTeams(c) : st.pop === 'dueno' ? popPeople(c) : '') + '</div>' +
+                owner + (READONLY ? '' : ico('abajo', 'mrd-flecha')) + '</button>' +
+                (READONLY ? '' : '<button type="button" class="mrd-mando mrd-pasar-b" data-a="pop" data-v="dep" aria-expanded="' + (st.pop === 'dep') + '">' +
+                    ico('pasar') + '<span>' + esc(s('passbtn')) + '</span></button>') +
+                (st.pop === 'dep' ? popTeams(c) : st.pop === 'dueno' ? popPeople(c) : '') + '</div>' +
                 '<div class="mrd-cab-der"><button type="button" class="mrd-btn mrd-ver-ficha" data-a="ficha">' + ico('ficha') + esc(s('file')) + '</button>' +
                 remBtn + (READONLY ? '' : resolved
                     ? '<button type="button" class="mrd-btn mrd-hecho mrd-resolver" data-a="reopen" title="' + esc(s('reopen')) + '">' + ico('check') +
-                    '<span class="mrd-t">' + esc(s('resolved')) + '</span></button>'
+                    '<span class="mrd-t">' + esc(s('resolved')) + '</span><span class="mrd-rotulo-movil">' + esc(s('resolved')) + '</span></button>'
                     : '<button type="button" class="mrd-btn mrd-resolver" data-a="resolve">' + ico('check') + '<span class="mrd-t">' + esc(s('resolve')) +
-                    '</span></button>') + '</div>';
-            var why2 = head.querySelector('.mrd-rem-motivo');
-            if (typing && why2) {
-                why2.focus();
-                why2.setSelectionRange(caret, caret);
+                    '</span><span class="mrd-rotulo-movil">' + esc(s('resolveshort')) + '</span></button>') + '</div>';
+            var again = typing ? head.querySelector('.' + typedCls.split(' ')[0]) : null;
+            if (again) {
+                again.focus();
+                again.setSelectionRange(caret, caret);
             }
+            // A menu opens under its button, inside the screen.
             var pm = head.querySelector('.mrd-pop-menu');
-            if (pm && st.pop === 'dueno') {
-                var b = head.querySelector('.mrd-mando.mrd-quien');
-                pm.style.setProperty('--x', b.offsetLeft + 'px');
+            if (pm) {
+                var b = head.querySelector(st.pop === 'dueno' ? '.mrd-mando.mrd-quien' : '.mrd-pasar-b'), mandos = head.querySelector('.mrd-mandos');
+                var w = pm.offsetWidth || 320;
+                pm.style.setProperty('--x', Math.max(0, Math.min(b.offsetLeft, mandos.clientWidth - w)) + 'px');
             }
         }
         /* «Remind me»: a day (the next ones the team works, or any in the sheet of five weeks) and a line of what for;
@@ -3099,19 +3325,35 @@
                 (same ? '' : '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="remsave"' + (at ? '' : ' disabled') + '>' +
                 esc(okText) + '</button>') + '</div>';
         }
+        /* Passing on, in two steps in the same menu: the department, then a line for it if one wants (it goes as an
+           internal note) and the button that says what it does. Without a line it is passed on all the same. */
         function popTeams(c) {
             var all = (st.extras.teams && st.extras.teams.length ? st.extras.teams : teams());
+            var to = st.pass && st.pass.conv === c.id ? team(st.pass.team) : null;
+            if (to) {
+                return '<div class="mrd-pop mrd-pop-menu mrd-pop-pasar" role="dialog" aria-label="' + esc(s('passto', to.name)) + '">' +
+                    '<div class="mrd-pasar-paso"><button type="button" class="mrd-pasar-volver" data-a="passback" aria-label="' + esc(s('passbackto')) + '">' +
+                    ico('izq') + '</button><h5>' + esc(s('passto', to.name)) + '</h5></div>' +
+                    '<label class="mrd-pasar-l" for="mrd-pasar-nota">' + esc(s('passsay', to.name)) + ' <small>' + esc(s('passoptional')) + '</small></label>' +
+                    '<textarea id="mrd-pasar-nota" class="mrd-pasar-nota" rows="3" maxlength="1000" placeholder="' + esc(s('passph')) + '">' +
+                    esc(st.pass.note || '') + '</textarea>' +
+                    '<p class="mrd-pasar-ayuda">' + ico('nota') + '<span>' + esc(s('passhelp')) + '</span></p>' +
+                    '<div class="mrd-pasar-pie"><button type="button" class="mrd-btn mrd-primario" data-a="passgo" data-v="' + to.id + '">' + ico('pasar') +
+                    esc(s('passto', to.name)) + '</button></div></div>';
+            }
             var row = function (t) {
-                var ppl = peopleIn(t.id).map(firstName);
-                return '<button type="button" class="mrd-pop-fila' + (t.id === c.teamid ? ' mrd-on' : '') + '" data-a="team" data-v="' + t.id + '">' +
-                    ico(teamIcon(t)) + '<span><b>' + esc(t.name) + '</b><small>' + esc(ppl.length ? ppl.join(', ') : s('teamnobody')) + '</small></span></button>';
+                var here = t.id === c.teamid, ppl = peopleIn(t.id).map(firstName);
+                return '<button type="button" class="mrd-pop-fila' + (here ? ' mrd-on mrd-aqui' : '') + '" data-a="team" data-v="' + t.id + '"' +
+                    (here ? ' aria-current="true"' : '') + '>' + ico(teamIcon(t)) + '<span><b>' + esc(t.name) + '</b><small>' +
+                    esc(ppl.length ? ppl.join(', ') : s('teamnobody')) + '</small></span>' + (here ? '<em class="mrd-aqui-t">' + esc(s('passhere')) + '</em>' : '') +
+                    '</button>';
             };
             var menu = all.filter(function (t) {
                 return !t.internal;
             }), inside = all.filter(function (t) {
                 return t.internal;
             });
-            return '<div class="mrd-pop mrd-pop-menu" role="dialog" aria-label="' + esc(s('passtitle')) + '"><h5>' + esc(s('passtitle')) + '</h5>' +
+            return '<div class="mrd-pop mrd-pop-menu mrd-pop-pasar" role="dialog" aria-label="' + esc(s('passtitle')) + '"><h5>' + esc(s('passtitle')) + '</h5>' +
                 '<div class="mrd-pop-lista">' + menu.map(row).join('') + (inside.length ? '<div class="mrd-rotulo-mini">' + esc(s('internalshort')) + '</div>' +
                 inside.map(row).join('') : '') + '</div></div>';
         }
@@ -3409,6 +3651,7 @@
             hilo.innerHTML = st.msgs.length ? threadHtml() : '<div class="mrd-hilo-nada">' + esc(s('nothread')) + '</div>';
             renderBefore();
             placeReadBy();
+            placeUndo();
             fillDurations();
             if (stick) {
                 stickToBottom(hilo);
@@ -3446,6 +3689,7 @@
             });
             if (!fresh.length || !hilo) {
                 placeReadBy();
+                placeUndo();
                 return;
             }
             var stick = atBottom(hilo);
@@ -3468,6 +3712,7 @@
             });
             hilo.insertAdjacentHTML('beforeend', h);
             placeReadBy();
+            placeUndo();
             fillDurations();
             if (stick) {
                 stickToBottom(hilo);
@@ -3573,7 +3818,7 @@
         }
         function composerSig(c) {
             var newer = newerOf(c);
-            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl,
+            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, st.unfold[c.id] ? 1 : 0, onlyReading(c) ? 1 : 0,
                 optoutBlocked(c.contact && c.contact.phone, st.fichaFor === c.id && st.ficha ? st.ficha.optout : null) ? 1 : 0, (st.extras.templates || []).length, st.pop,
                 newer ? newer.id : 0].join('|');
         }
@@ -3776,8 +4021,18 @@
                 return;
             }
             var lastIn = c.lastincoming ? c.lastincoming * 1000 : 0;
+            // Only to read (resolved, or our message the last one): the 24 hours in one line, unfolded only to write.
+            if (lastIn && !st.unfold[c.id] && onlyReading(c)) {
+                box2.innerHTML = '<div class="mrd-24-plegada">' + ico('reloj') + '<span><b>' + esc(s('foldedover')) + '</b> ' +
+                    esc(s('foldedtail')) + '</span><button type="button" class="mrd-btn mrd-chico" data-a="unfold" aria-expanded="false">' + esc(s('foldedwrite')) +
+                    ico('abajo') + '</button><button type="button" class="mrd-24-nota" data-a="mode" data-v="note">' + ico('nota') + esc(s('tabnote')) +
+                    '</button></div>';
+                return;
+            }
             h = '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
-                '<p>' + esc(lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p></div></div>';
+                '<p>' + esc(lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p>' +
+                (tpls.length ? '<p class="mrd-paga">' + ico('gs-euro') + '<span>' + esc(s('payline')) + ' <strong>' + esc(s('paylinewho')) + '</strong>' +
+                    esc(s('paylinetail')) + '</span></p>' : '') + '</div></div>';
             var said = st.fichaFor === c.id && st.ficha ? st.ficha.optout : null, held = optoutBlocked(c.contact && c.contact.phone, said);
             h += optoutBand(c.contact && c.contact.phone, said, false);
             if (tpls.length) {
@@ -3786,23 +4041,67 @@
                     langs[t.language] = true;
                 });
                 var showLang = Object.keys(langs).length > 1;
+                // The free message is another kind of thing, and the dearest: a line under the cards, not one more card.
+                var free = tpls.map(function (t, i) {
+                    return i;
+                }).filter(function (i) {
+                    return isFreeTpl(tpls[i]);
+                });
                 var order = tpls.map(function (t, i) {
                     return i;
+                }).filter(function (i) {
+                    return free.indexOf(i) < 0;
                 }).sort(function (a, b) {
                     var ka = !!tpls[a].start === !lastIn ? 0 : 1, kb = !!tpls[b].start === !lastIn ? 0 : 1;
                     return ka - kb || byPrice(tpls[a], tpls[b]) || a - b;
                 });
-                h += '<div class="mrd-plantillas">' + order.map(function (i) {
+                h += (order.length ? '<div class="mrd-plantillas">' + order.map(function (i) {
                     var t = tpls[i];
                     return '<button type="button" class="mrd-plantilla" data-a="tpl" data-v="' + i + '"' + (held ? ' disabled' : '') + '><b>' + ico('mensaje') + esc(tplTitle(t)) +
                         (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span>' + catPill(t) + '</button>';
-                }).join('') + '</div>';
+                }).join('') + '</div>' : '') + free.map(function (i) {
+                    var t = tpls[i];
+                    return '<button type="button" class="mrd-libre" data-a="tpl" data-v="' + i + '"' + (held ? ' disabled' : '') + '>' + ico('lapiz') + '<span>' +
+                        esc(order.length ? s('freenone') : '') + ' <b>' + esc(s('freewrite')) + (showLang ? ' · ' + esc(t.language) : '') + '</b></span>' +
+                        catPill(t) + '</button>';
+                }).join('');
             } else {
                 h += '<p class="mrd-ayuda">' + esc(s('notemplates')) + '</p>';
             }
             h += '<div class="mrd-retomar-pie">' + esc(s('teamnolimit')) + ' <button type="button" data-a="mode" data-v="note">' + ico('nota') +
                 esc(s('writenotebtn')) + '</button></div>';
             box2.innerHTML = h;
+        }
+        /* Whether the conversation is open only to be read: resolved, or with our message as the last one. When the family
+           wrote last and it is not resolved, it waits for an answer and the approved messages show unfolded. */
+        function onlyReading(c) {
+            if (c.section === 'resolved') {
+                return true;
+            }
+            for (var i = st.msgs.length - 1; i >= 0; i--) {
+                var m = st.msgs[i];
+                if (m.kind === 'incoming') {
+                    return false;
+                }
+                if (m.kind === 'outgoing' || m.kind === 'bot') {
+                    return true;
+                }
+            }
+            return false;
+        }
+        /* The free message: the whole text written by whoever sends it, around one gap. The server may say so; otherwise,
+           a message with one gap, no buttons and little text of its own. */
+        function isFreeTpl(t) {
+            if (t.free !== undefined) {
+                return !!t.free;
+            }
+            var keys = {};
+            (t.params || []).forEach(function (p) {
+                keys[p.key] = true;
+            });
+            var rest = String(t.body || '').replace(/\{\{\s*[\w.]+\s*\}\}/g, '').replace(/\s+/g, ' ').trim();
+            var only = Object.keys(keys)[0];
+            return Object.keys(keys).length === 1 && !/name|nombre|nom\b/i.test(only) && !greets(t, only) && !(t.buttons || []).length && rest.length < 90;
         }
         function sharedPrefix() {
             var names = (st.extras.templates || []).map(function (t) {
@@ -3832,18 +4131,56 @@
             var re = new RegExp('\\b(?:hola|buenas|buenos d[ií]as|hello|hi|hey|ol[aá]|bonjour|salut|ciao|bon dia|kaixo)[\\s,!¡]+\\{\\{\\s*' + key + '\\s*\\}\\}', 'i');
             return re.test(String((t && t.body) || ''));
         }
-        // What goes in a gap: as the organisation says it, or the name after a greeting, or «write here».
+        /* What goes in a gap, never «write here»: as the organisation says it; the name after a greeting; its key in words
+           («dia» is «el día»); «el hueco 2» for a number; the key itself, as written. */
+        var GAP_WORDS = {
+            dia: 'day', day: 'day', fecha: 'date', date: 'date', hora: 'time', time: 'time', hour: 'time', documento: 'document',
+            document: 'document', asunto: 'subject', subject: 'subject', tema: 'subject', topic: 'subject', lugar: 'place', place: 'place',
+            curso: 'course', course: 'course', clase: 'course', importe: 'amount', amount: 'amount', motivo: 'reason', reason: 'reason',
+            alumno: 'student', student: 'student', mensaje: 'message', message: 'message', texto: 'message', text: 'message'
+        };
         function gapLabel(p, t) {
             if (p.label) {
                 return p.label;
             }
-            return /name|nombre|nom\b/i.test(p.key || '') || greets(t, p.key) ? s('gapnamename') : s('gapnamefree');
+            var key = String(p.key || '');
+            if (/name|nombre|nom\b/i.test(key) || greets(t, key)) {
+                return s('gapnamename');
+            }
+            var word = GAP_WORDS[folded(key).replace(/[^a-z]/g, '')];
+            if (word) {
+                return s('gapw' + word);
+            }
+            return /^\d+$/.test(key) ? s('gapnumber', key) : key.replace(/[_.]+/g, ' ');
         }
+        /* What a gap brings already filled, and can be changed: the name after a greeting, and the day of the family's
+           last message where the gap is that day (as the server marks it, or as its name or the words before it say). */
         function tplValue(p, c, t) {
             if (/name|nombre|nom\b/i.test(p.key || '') || greets(t, p.key)) {
                 return firstName(c && c.contact) || '';
             }
+            if (c && c.lastincoming && lastDayGap(p, t)) {
+                return lastDayText(c.lastincoming * 1000, p.example);
+            }
             return '';
+        }
+        function lastDayGap(p, t) {
+            if (p.fill) {
+                return p.fill === 'lastincoming';
+            }
+            var said = folded([p.label, p.key].join(' '));
+            if (/(su|ultimo|last|their) (mensaje|message|consulta)|mensaje del|message of|written on|escrib/.test(said)) {
+                return true;
+            }
+            var key = String(p.key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var before = new RegExp('(mensaje|consulta|escrito|message|enquiry|query)\\s+(del?|de el|of|on|from)\\s*\\{\\{\\s*' + key + '\\s*\\}\\}', 'i');
+            return before.test(folded(t.body || ''));
+        }
+        // The day as the example writes it: with the weekday if it has one («lunes 16 de noviembre»), or without.
+        function lastDayText(ms, example) {
+            var d = new Date(ms), ex = folded(example || '');
+            var weekday = /lunes|martes|miercoles|jueves|viernes|sabado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(ex);
+            return weekday || !ex ? fWeekday.format(d) + ' ' + fDayMonth.format(d) : fDayMonth.format(d);
         }
         function tplPlain(t, c) {
             var params = {};
@@ -3864,6 +4201,9 @@
                 var label = gapLabel(p, t);
                 return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" data-nombre="' + esc(label) +
                     '" data-ejemplo="' + esc(p.example || label) + '" aria-label="' + esc(s('gap', label)) + '">' + esc(tplValue(p, c, t)) + '</span>';
+            }).replace(/(<span class="mrd-hueco"[^>]*>[^<]*<\/span>)([.,;:!?…)»]+)/g, function (m, gap, mark) {
+                // A gap and the stop after it go together: the line never starts with the stop.
+                return '<span class="mrd-hueco-y">' + gap + mark + '</span>';
             });
             var btns = (t.buttons || []).map(function (b) {
                 return '<span>' + esc(b && b.text !== undefined ? b.text : b) + '</span>';
@@ -3882,7 +4222,8 @@
                 (btns ? '<div class="mrd-botones-wa">' + btns + '</div>' : '') + '</div>' +
                 '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty.length + '">' +
                 ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty.length ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
-                esc(gapsText(empty)) + '</small></div></div>';
+                esc(gapsText(empty)) + '</small>' + (catPill(t) ? '<small class="mrd-cuesta">' + catPill(t) + '<span>' + esc(s('paidby')) + '</span></small>' : '') +
+                '</div></div>';
         }
 
         /* -------- Canned answers («/») and mentions («@») -------- */
@@ -4923,6 +5264,9 @@
             }).catch(function (e) {
                 if (!quiet) {
                     failToast(e);
+                    if (e && typeof e === 'object') {
+                        e.shown = true;
+                    }
                 }
                 throw e;
             });
@@ -4971,6 +5315,146 @@
                 }
                 return res;
             });
+        }
+
+        /* -------- Passing on and resolving, with a way back --------
+           What was just done can be undone while nobody else has touched it: from the line in the thread (which stays)
+           or the toast (which goes). Passing on is undone by passing it back, to whoever had it; resolving, by reopening. */
+        function sendNote(c, text) {
+            var m = { id: 'tmp' + (++seq), kind: 'note', text: text, wire: text, at: Math.floor(nowMs() / 1000),
+                author: { name: me.name, firstname: me.firstname, me: true }, signature: '', status: 'pending', pending: true, attachments: [],
+                template: '', conv: c.id };
+            st.msgs.push(m);
+            addMessagesLocal(m);
+            return tr.call(M.send, { conversation: c.id, text: text, private: true }).then(function (r) {
+                var msg = r && (r.message || (r.id ? r : null));
+                if (st.open === c.id && msg) {
+                    replaceMsg(m.id, msg);
+                }
+                return r;
+            }).catch(function (e) {
+                var i = indexOfMsg(m.id), node = hiloEl() && hiloEl().querySelector('[data-id="' + cssEsc(m.id) + '"]');
+                if (i >= 0) {
+                    st.msgs.splice(i, 1);
+                }
+                if (node) {
+                    node.remove();
+                }
+                throw e;
+            });
+        }
+        // The line first, while the conversation is still in sight (passed on, it may leave it), then the department.
+        function passOn(btn, c, to, note) {
+            var id = c.id, from = c.teamid, who = c.assignee ? c.assignee.agentid : 0, text = String(note || '').trim();
+            busy(btn, true);
+            var first = text ? sendNote(c, s('passnote', { team: teamName(to), text: text })) : Promise.resolve(null);
+            return first.then(function () {
+                st.pop = null;
+                st.pass = null;
+                return act(id, 'team', to).then(function (res) {
+                    // Passed to a department this person does not see, it is no longer theirs to pass back.
+                    var gone = !!(res && res.gone);
+                    st.undo = gone ? null : { conv: id, kind: 'team', from: from, to: to, who: who, at: nowMs() };
+                    toast(gone ? s('toastgone', teamName(to)) : s('toastpassed', teamName(to)), false, !gone);
+                    if (conv(id)) {
+                        renderHead();
+                        renderComposer(true);
+                        placeUndo();
+                    }
+                    return res;
+                });
+            }).catch(function (e) {
+                busy(btn, false);
+                if (e && !e.shown) {
+                    failToast(e);
+                }
+                return null;
+            });
+        }
+        // Valid for five minutes, while the conversation is as it was left: nobody of the department has kept it or
+        // written in it, and it was not opened again.
+        function undoValid() {
+            var u = st.undo;
+            if (!u || nowMs() - u.at > 5 * 60000) {
+                return false;
+            }
+            var c = conv(u.conv);
+            if (!c) {
+                return false;
+            }
+            var touched = u.conv === st.open && st.msgs.some(function (m) {
+                return (m.at || 0) * 1000 > u.at && (m.kind === 'outgoing' || m.kind === 'note') && !(m.author && m.author.me);
+            });
+            if (touched) {
+                return false;
+            }
+            return u.kind === 'team' ? c.teamid === u.to && !c.assignee : c.section === 'resolved';
+        }
+        function undo() {
+            var u = st.undo;
+            hideToast();
+            if (!undoValid()) {
+                st.undo = null;
+                placeUndo();
+                toast(s('undolate'), true);
+                return;
+            }
+            st.undo = null;
+            placeUndo();
+            var steps = u.kind === 'team' ? act(u.conv, 'team', u.from).then(function () {
+                return u.who ? act(u.conv, 'person', u.who) : null;
+            }) : act(u.conv, 'reopen', 0);
+            steps.then(function () {
+                toast(u.kind === 'team' ? s('undonepass', teamName(u.from)) : s('toastreopened'));
+                if (conv(u.conv) && st.open !== u.conv) {
+                    openConv(u.conv);
+                } else if (conv(st.open)) {
+                    renderHead();
+                    renderComposer(true);
+                }
+                return null;
+            }).catch(function () {
+                // act() said what went wrong.
+                return null;
+            });
+        }
+        // «Deshacer» on the line of what was done: the server's own line once it has come, ours until then.
+        function placeUndo() {
+            var hilo = hiloEl();
+            if (!hilo) {
+                return;
+            }
+            Array.prototype.forEach.call(hilo.querySelectorAll('.mrd-deshacer, .mrd-sistema-local'), function (n) {
+                n.remove();
+            });
+            Array.prototype.forEach.call(hilo.querySelectorAll('.mrd-con-deshacer'), function (n) {
+                n.classList.remove('mrd-con-deshacer');
+            });
+            var u = st.undo;
+            if (!u || u.conv !== st.open || !undoValid()) {
+                return;
+            }
+            var btn = '<button type="button" class="mrd-deshacer" data-a="undo">' + ico('deshacer') + esc(s('undo')) + '</button>';
+            var line = null;
+            st.msgs.forEach(function (m) {
+                if (m.kind === 'activity' && (m.at || 0) * 1000 >= u.at - 5000) {
+                    line = m;
+                }
+            });
+            var node = line && hilo.querySelector('.mrd-sistema[data-id="' + cssEsc(line.id) + '"]');
+            if (node) {
+                node.classList.add('mrd-con-deshacer');
+                node.insertAdjacentHTML('beforeend', btn);
+                // What was resolved says so with its tick, as the line drawn here before the server's came.
+                var use = u.kind === 'team' ? null : node.querySelector('svg use');
+                if (use) {
+                    use.setAttribute('href', '#mrd-i-check');
+                }
+                return;
+            }
+            hilo.insertAdjacentHTML('beforeend', '<div class="mrd-sistema mrd-sistema-local mrd-con-deshacer">' + ico(u.kind === 'team' ? 'flecha' : 'check') +
+                '<span>' + esc(u.kind === 'team' ? s('passedline', { who: me.firstname || firstName(me), from: teamName(u.from), to: teamName(u.to) })
+                : s('resolvedline', me.firstname || firstName(me))) + ' · ' + esc(fmtTime(u.at)) + '</span>' + btn + '</div>');
         }
 
         /* -------- Sending -------- */
@@ -5048,6 +5532,7 @@
             var h = (!days.length || +days[days.length - 1].getAttribute('data-day') !== k)
                 ? '<span class="mrd-dia" data-day="' + k + '">' + esc(dayLabel(m.at * 1000)) + '</span>' : '';
             hilo.insertAdjacentHTML('beforeend', h + msgHtml(m));
+            placeUndo();
             stickToBottom(hilo);
             hidePill();
         }
@@ -5131,7 +5616,7 @@
         }
         // What is still missing, by its name: «Missing: what for».
         function gapsText(missing) {
-            return missing.length ? s('gapsmissing', missing.join(', ')) : s('yellowhelp');
+            return missing.length ? s('gapsmissing', joinList(missing)) : s('yellowhelp');
         }
         // After each key in a gap: what is left, next to the button that sends.
         function updateGaps() {
@@ -5421,20 +5906,28 @@
             var c = CAT[String(t.category || '').toUpperCase()];
             return c && PRICES[c[0]] !== undefined ? PRICES[c[0]] : 99;
         }
+        /* What one message costs, said as money and not as Meta's category: «Unos 2 céntimos». In another currency, the
+           figure with its symbol. The colour of the category stays, the same as in the month's spend. */
+        function priceWords(x, cur) {
+            cur = cur || PRICES.currency || 'EUR';
+            if (cur === 'EUR') {
+                var n = Math.round(x * 100);
+                return n < 1 ? s('priceunder1') : n === 1 ? s('pricecent1') : s('pricecents', n);
+            }
+            var money;
+            try {
+                money = new Intl.NumberFormat(LANG, { style: 'currency', currency: cur, minimumFractionDigits: 2, maximumFractionDigits: 3 }).format(x);
+            } catch (e) {
+                money = String(x) + ' ' + cur;
+            }
+            return s('priceabout', money);
+        }
         function catPill(t) {
             var c = CAT[String(t.category || '').toUpperCase()];
             if (!c) {
                 return '';
             }
-            var money;
-            try {
-                money = new Intl.NumberFormat(LANG, { style: 'currency', currency: PRICES.currency || 'EUR', minimumFractionDigits: 2,
-                    maximumFractionDigits: 3 }).format(PRICES[c[0]]);
-            } catch (e) {
-                money = String(PRICES[c[0]]);
-            }
-            return '<small class="mrd-cat mrd-cat-' + c[1] + '">' + esc(s('cat' + c[0])) + ' · <i class="mrd-cat-unos">' + esc(s('catabout')) + ' </i>' +
-                esc(money) + '</small>';
+            return '<small class="mrd-cat mrd-cat-' + c[1] + '" title="' + esc(s('pricewhy' + c[1])) + '">' + esc(priceWords(PRICES[c[0]])) + '</small>';
         }
         // The cheapest first; at the same price, utility before the rest.
         function byPrice(a, b) {
@@ -5594,6 +6087,7 @@
             }
             var was = st.pop;
             st.pop = null;
+            st.pass = null;
             if (was === 'perfil' || was === 'avisos' || was === 'ayuda') {
                 renderRail();
             } else if (was === 'dep' || was === 'dueno' || was === 'recordar') {
@@ -5601,7 +6095,22 @@
             } else {
                 refreshWritePop();
             }
+            // Drawn again, the menu's button is a new one: the focus goes back to it, not to the page.
+            var a = document.activeElement;
+            if (!a || a === document.body || !box.contains(a)) {
+                var opener = box.querySelector(was === 'perfil' ? '.mrd-yo-mas' : '[data-a="pop"][data-v="' + was + '"]');
+                if (opener) {
+                    opener.focus({ preventScroll: true });
+                }
+            }
             return true;
+        }
+        // Into an open menu, to its first choice (or a box to write in).
+        function focusPop(sel) {
+            var x = sel ? box.querySelector(sel) : null;
+            if (x && !touchy()) {
+                x.focus({ preventScroll: true });
+            }
         }
         // The address keeps the tray and the conversation (b and c), so a reload stays where it was.
         function syncUrl() {
@@ -5665,6 +6174,13 @@
         box.addEventListener('toggle', function (e) {
             if (e.target.classList && e.target.classList.contains('mrd-inicio-como')) {
                 keepHow(e.target.open);
+            }
+            if (e.target.classList && e.target.classList.contains('mrd-leyenda-caja')) {
+                try {
+                    root.localStorage.setItem('mrd-chat-leyenda', e.target.open ? 'abierta' : 'plegada');
+                } catch (e3) {
+                    // Without storage it folds again with each visit.
+                }
             }
         }, true);
         box.addEventListener('click', function (e) {
@@ -5789,8 +6305,8 @@
                     break;
                 case 'desktopno':
                     setFlag('desktop', 'no');
-                    renderListHead();
                     renderListBody();
+                    renderHome();
                     renderRail();
                     break;
                 case 'sound':
@@ -5845,6 +6361,8 @@
                 case 'gsapprove':
                 case 'gstelegram':
                     t.disabled = true;
+                    // What is decided here stays on top of what was decided, marked, with how the send goes.
+                    st.gsJust[+v] = true;
                     loadSpend({ action: a === 'gstelegram' ? 'telegram' : 'approve', id: +v }).then(function (r) {
                         if (r) {
                             toast(s(a === 'gstelegram' ? 'gsdonetg' : 'gsdone'));
@@ -5852,11 +6370,22 @@
                     });
                     break;
                 case 'gsreject':
-                    st.gsReject = { id: +v, reason: '' };
+                    st.gsReject = { id: +v, reason: '', motive: '' };
                     renderHome();
-                    var why = el.chat.querySelector('.gs-motivo');
-                    if (why) {
-                        why.focus();
+                    var firstMotive = el.chat.querySelector('.gs-motivos .mrd-chip');
+                    if (firstMotive) {
+                        firstMotive.focus();
+                    }
+                    break;
+                case 'gsmotivo':
+                    if (st.gsReject) {
+                        var motive = s('gsmotive' + v);
+                        st.gsReject.motive = st.gsReject.motive === motive ? '' : motive;
+                        renderHome();
+                        var pressed = el.chat.querySelector('.gs-motivos [data-v="' + v + '"]');
+                        if (pressed) {
+                            pressed.focus();
+                        }
                     }
                     break;
                 case 'gsrejectno':
@@ -5865,13 +6394,22 @@
                     break;
                 case 'gsrejectok':
                     t.disabled = true;
-                    var reason = (st.gsReject && st.gsReject.reason) || '';
+                    // What was written says more than the touch; one of the two, as whoever asked will read it.
+                    var reason = st.gsReject ? (st.gsReject.reason || '').trim() || st.gsReject.motive || '' : '';
                     st.gsReject = null;
-                    loadSpend({ action: 'reject', id: +v, reason: reason.trim() }).then(function (r) {
+                    st.gsJust[+v] = true;
+                    loadSpend({ action: 'reject', id: +v, reason: reason }).then(function (r) {
                         if (r) {
                             toast(s('gsrejecteddone'));
                         }
                     });
+                    break;
+                case 'gsfull':
+                    var whole = el.chat.querySelector('#mrd-gs-mes');
+                    if (whole) {
+                        whole.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                        whole.focus({ preventScroll: true });
+                    }
                     break;
                 case 'gspaso':
                     var parts = String(v).split(':'), next = gsStepValue(parts[0], +parts[1]);
@@ -6070,6 +6608,7 @@
                         st.hf.mine = v === '1';
                     } else if (a === 'histperiod') {
                         st.hf.period = v;
+                        st.hfMonths = false;
                     } else {
                         st.hf.team = +v;
                         st.hfDep = false;
@@ -6097,9 +6636,14 @@
                     renderListBody();
                     break;
                 case 'histdep':
-                    // Its own state: the list is drawn again with each poll and the departments stay open.
+                case 'histmonths':
+                    // Its own state: the list is drawn again with each poll and what is unfolded stays so.
                     e.preventDefault();
-                    st.hfDep = !st.hfDep;
+                    if (a === 'histdep') {
+                        st.hfDep = !st.hfDep;
+                    } else {
+                        st.hfMonths = !st.hfMonths;
+                    }
                     renderListBody();
                     break;
                 case 'clearsearch':
@@ -6114,13 +6658,30 @@
                     st.pop = st.pop === v ? null : v;
                     st.popIndex = 0;
                     st.popFilter = '';
+                    st.pass = null;
                     if (v === 'perfil' || v === 'avisos' || v === 'ayuda') {
                         renderRail();
+                        if (st.pop) {
+                            focusPop('.mrd-rail .mrd-pop button, .mrd-rail .mrd-pop a');
+                        } else {
+                            var railOpener = el.rail.querySelector(v === 'perfil' ? '.mrd-yo-mas' : '[data-a="pop"][data-v="' + v + '"]');
+                            if (railOpener) {
+                                railOpener.focus();
+                            }
+                        }
                     } else if (v === 'dep' || v === 'dueno' || v === 'recordar') {
                         if (v === 'recordar' && st.pop && c) {
                             st.rem = { day: c.remind ? keyIso(dayKey(c.remind.at * 1000)) : '', reason: c.remind ? c.remind.reason : '' };
                         }
                         renderHead();
+                        // The focus goes into the menu, to its first choice; closed, back to its button.
+                        focusPop(st.pop ? (v === 'recordar' ? '.mrd-rem-rapidos .mrd-chip, .mrd-pop button' : '.mrd-pop-fila') : '');
+                        if (!st.pop) {
+                            var opener = el.chat.querySelector('[data-a="pop"][data-v="' + v + '"]');
+                            if (opener) {
+                                opener.focus();
+                            }
+                        }
                     } else {
                         refreshWritePop();
                         var ed0 = el.chat.querySelector('.mrd-editor');
@@ -6141,10 +6702,26 @@
                     break;
                 case 'team':
                     if (c && +v !== c.teamid) {
-                        runAction(t, 'team', +v, '', s('toastpassed', teamName(+v)));
+                        // Second step: a line for the department, if one wants, and the button that says what it does.
+                        st.pass = { conv: c.id, team: +v, note: '' };
+                        renderHead();
+                        focusPop('.mrd-pasar-nota');
                     } else {
                         closePops();
                     }
+                    break;
+                case 'passback':
+                    st.pass = null;
+                    renderHead();
+                    focusPop('.mrd-pop-fila');
+                    break;
+                case 'passgo':
+                    if (c) {
+                        passOn(t, c, +v, st.pass ? st.pass.note : '');
+                    }
+                    break;
+                case 'undo':
+                    undo();
                     break;
                 case 'person':
                     if (!c) {
@@ -6158,10 +6735,26 @@
                     runAction(t, 'take', 0, '', s('toastmine'));
                     break;
                 case 'resolve':
-                    runAction(t, 'resolve', 0, '', s('toastresolved'));
+                    var resolving = c.id;
+                    runAction(t, 'resolve', 0, '', null).then(function (res) {
+                        if (res && !res.gone && conv(resolving)) {
+                            // Resolved at the first touch, and a way back while nobody has written again.
+                            st.undo = { conv: resolving, kind: 'resolve', at: nowMs() };
+                            toast(s('toastresolved'), false, true);
+                            placeUndo();
+                        }
+                        return res;
+                    });
                     break;
                 case 'reopen':
-                    runAction(t, 'reopen', 0, '', s('toastreopened'));
+                    if (st.undo && st.undo.conv === c.id) {
+                        st.undo = null;
+                        hideToast();
+                    }
+                    runAction(t, 'reopen', 0, '', s('toastreopened')).then(function (res) {
+                        placeUndo();
+                        return res;
+                    });
                     break;
                 case 'ficha':
                     if (narrow()) {
@@ -6214,6 +6807,13 @@
                 case 'tplback':
                     st.tpl = -1;
                     renderComposer(true);
+                    break;
+                case 'unfold':
+                    if (c) {
+                        st.unfold[c.id] = true;
+                        renderComposer(true);
+                        focusPop('.mrd-escribir .mrd-plantilla, .mrd-escribir .mrd-libre');
+                    }
                     break;
                 case 'tplsend':
                     sendTemplate(t);
@@ -6394,6 +6994,10 @@
                 st.gsReject.reason = t.value;
                 return;
             }
+            if (t.classList && t.classList.contains('mrd-pasar-nota') && st.pass) {
+                st.pass.note = t.value;
+                return;
+            }
             if (t.classList && t.classList.contains('mrd-rem-motivo')) {
                 st.rem.reason = t.value;
                 // With a reminder already there, a new line is a change to save.
@@ -6417,6 +7021,8 @@
                 clearTimeout(searchT);
                 var asked = st.search.trim();
                 if (asked.length >= 2) {
+                    st.searchFor = asked;
+                    st.searchScope = 'loading';
                     searchT = setTimeout(function () {
                         tr.call(M.resolved, { query: asked }).then(function (r) {
                             (r.conversations || []).forEach(mergeConv);
@@ -6425,11 +7031,16 @@
                                 st.hits[hit.conversation] = hit;
                             });
                             if (st.search.trim() === asked) {
+                                st.searchScope = 'server';
                                 renderListBody();
                             }
                             return r;
                         }).catch(function () {
-                            // What is on the page is still searched.
+                            // What is on the page is still searched, and the head says so.
+                            if (st.search.trim() === asked) {
+                                st.searchScope = 'page';
+                                renderListBody();
+                            }
                         });
                     }, 350);
                 }
@@ -6463,6 +7074,14 @@
         });
         box.addEventListener('keydown', function (e) {
             var t = e.target;
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && t.classList && t.classList.contains('mrd-pasar-nota')) {
+                e.preventDefault();
+                var go = el.chat.querySelector('[data-a="passgo"]');
+                if (go && !go.disabled) {
+                    go.click();
+                }
+                return;
+            }
             if (e.key === 'Enter' && t.classList && t.classList.contains('mrd-rem-motivo')) {
                 e.preventDefault();
                 var ok = el.chat.querySelector('.mrd-rem-ok');
@@ -6545,6 +7164,17 @@
                 insertText('\n');
             }
         });
+        // Escape closes a menu also when it was opened with the pointer and the focus stayed on the page.
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || box.contains(e.target)) {
+                return;
+            }
+            if (!el.visor.hidden) {
+                closeViewer();
+            } else if (closePops()) {
+                e.preventDefault();
+            }
+        });
         box.addEventListener('scroll', function (e) {
             var t = e.target;
             if (t.classList && t.classList.contains('mrd-hilo')) {
@@ -6574,6 +7204,7 @@
             var c = conv(st.open);
             if (c) {
                 renderComposer();
+                placeUndo();
             } else {
                 renderHome();
             }

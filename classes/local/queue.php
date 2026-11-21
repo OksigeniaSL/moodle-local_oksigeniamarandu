@@ -54,6 +54,12 @@ class queue {
     /** The 24 hours after the family last wrote have passed: the notice has to go with its template. */
     private const WINDOW_CLOSED = 131047;
 
+    /** Meta's code when the person stopped the marketing messages of the business (por verificar in its documentation). */
+    private const NO_MARKETING = 131050;
+
+    /** The scope of the «no» to the marketing templates, beside the «no» to a plugin. */
+    public const MARKETING = 'marketing';
+
     /** Errors of a template that is no longer approved, and the status it gets. */
     private const TEMPLATE = [132001 => 'pending', 132015 => 'paused', 132016 => 'disabled'];
 
@@ -236,7 +242,18 @@ class queue {
                 $counts['waiting']++;
                 continue;
             }
-            if (!$free && $cap > 0 && $spent + $cost > $cap + 0.00001) {
+            if (
+                $template && strtolower((string)$template->category) === 'marketing'
+                    && $DB->record_exists(consent::OPTOUTS, ['contactid' => $contact->id, 'scope' => self::MARKETING])
+            ) {
+                // They told WhatsApp they want no marketing from the centre: not by WhatsApp.
+                self::finish($row, $now, 'skipped', null, null, 'nomarketing');
+                $counts['skipped']++;
+                continue;
+            }
+            // What this template costs, by its category (a marketing one costs about three times a utility one).
+            $rowcost = $template ? (float)(chat\templates::prices()[strtolower((string)$template->category)] ?? $cost) : 0.0;
+            if (!$free && $cap > 0 && $spent + $rowcost > $cap + 0.00001) {
                 self::warn_cap($now);
                 self::later($row, $now, HOURSECS);
                 $counts['waiting']++;
@@ -274,7 +291,7 @@ class queue {
                         ]],
                     ]);
                     self::finish($row, $now, 'sent', 'template', $wamid);
-                    $spent += $cost;
+                    $spent += $rowcost;
                 }
                 $counts['sent']++;
                 self::unblock('whatsapp', $wasblocked);
@@ -323,6 +340,11 @@ class queue {
         } else if ($what === 'window') {
             $DB->set_field(self::TABLE, 'kind', 'template', ['id' => $row->id]);
             $counts['waiting']++;
+        } else if ($what === 'nomarketing') {
+            // The person told WhatsApp they want no marketing from the centre: their «no» to those templates.
+            consent::set_optout($contact, self::MARKETING, true, 'meta:' . self::NO_MARKETING);
+            self::finish($row, $now, 'skipped', $kind, null, 'nomarketing', $e->metacode);
+            $counts['skipped']++;
         } else if ($what === 'template' && $template) {
             templates::set_status($template, self::TEMPLATE[$e->metacode]);
             $counts['waiting']++;
@@ -400,7 +422,7 @@ class queue {
      * What an error of Meta or of Telegram means for the queue.
      *
      * @param api_exception $e The error.
-     * @return string transient, account, window, template, blocked or final.
+     * @return string transient, account, window, template, blocked, nomarketing or final.
      */
     public static function failure(api_exception $e): string {
         $code = $e->metacode;
@@ -427,6 +449,9 @@ class queue {
         }
         if ($code === self::WINDOW_CLOSED) {
             return 'window';
+        }
+        if ($code === self::NO_MARKETING) {
+            return 'nomarketing';
         }
         if (isset(self::TEMPLATE[$code])) {
             return 'template';

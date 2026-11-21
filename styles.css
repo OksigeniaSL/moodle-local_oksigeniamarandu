@@ -3326,11 +3326,15 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
 }
 
 .local-oksigeniamarandu-dash .mrd-btn.primary:focus-visible {
+    background: #0c599d;
+    /* stylelint-disable-next-line declaration-block-no-duplicate-properties */
     background: color-mix(in srgb, var(--mrd-accent) 84%, #000);
 }
 
 @media (hover: hover) {
     .local-oksigeniamarandu-dash .mrd-btn.primary:hover {
+        background: #0c599d;
+        /* stylelint-disable-next-line declaration-block-no-duplicate-properties */
         background: color-mix(in srgb, var(--mrd-accent) 84%, #000);
     }
 }
@@ -4281,6 +4285,8 @@ body.oks-a11y-pause .local-oksigeniamarandu-tg *::after {
     position: absolute;
     inset: -1.2em -1px 0;
     border-radius: 0.3em;
+    background: rgba(29, 33, 37, 0.07);
+    /* stylelint-disable-next-line declaration-block-no-duplicate-properties */
     background: color-mix(in srgb, var(--mrd-ink) 7%, transparent);
     z-index: -1;
 }
@@ -6753,4 +6759,60 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     stroke: currentColor;
     stroke-width: 2.4;
     stroke-linecap: round;
+}
+
+/* ---------- Browsers without color-mix() (Chrome before 111, Firefox before 113: the classroom boards) ----------
+   A variable whose value they cannot read is empty when used: tinted backgrounds came out transparent and every border
+   took the colour of the text. Here, the same mixes as plain colours over a light page, and over a dark one. */
+/* stylelint-disable-next-line csstree/validator */
+@supports not (color: color-mix(in srgb, red, red)) {
+    [class*="local-oksigeniamarandu"] {
+        --mrd-line-strong: rgba(29, 33, 37, 0.25);
+        --mrd-edge: rgba(29, 33, 37, 0.45);
+        --mrd-blue-dark: #0c599d;
+        --mrd-accent-tint: rgba(15, 108, 191, 0.1);
+        --mrd-accent-fill: rgba(15, 108, 191, 0.24);
+        --mrd-accent-line: rgba(15, 108, 191, 0.36);
+        --mrd-ok-tint: rgba(53, 122, 50, 0.1);
+        --mrd-ok-fill: rgba(53, 122, 50, 0.24);
+        --mrd-ok-line: rgba(53, 122, 50, 0.36);
+        --mrd-warn-tint: rgba(240, 173, 78, 0.16);
+        --mrd-warn-fill: rgba(240, 173, 78, 0.38);
+        --mrd-warn-line: rgba(240, 173, 78, 0.5);
+        --mrd-bad-tint: rgba(202, 49, 32, 0.1);
+        --mrd-bad-fill: rgba(202, 49, 32, 0.24);
+        --mrd-bad-line: rgba(202, 49, 32, 0.36);
+        --mrd-wa-mid: rgba(19, 160, 111, 0.55);
+        --mrd-wa-track: rgba(19, 160, 111, 0.09);
+        --mrd-tg-track: rgba(42, 120, 214, 0.14);
+        --mrd-tg-soft: rgba(42, 120, 214, 0.16);
+        --mrd-tg-line: rgba(42, 120, 214, 0.55);
+        --mrd-rv-soft: rgba(178, 111, 8, 0.18);
+        --mrd-rv-line: rgba(178, 111, 8, 0.6);
+        --mrd-glow: rgba(15, 108, 191, 0.3);
+    }
+    .local-oksigeniamarandu-dash .mrd-meter.near {
+        --m: #c98a2e;
+    }
+    [data-bs-theme="dark"] [class*="local-oksigeniamarandu"] {
+        --mrd-line-strong: rgba(222, 226, 230, 0.25);
+        --mrd-edge: rgba(222, 226, 230, 0.45);
+        --mrd-accent-tint: rgba(15, 108, 191, 0.16);
+        --mrd-accent-fill: rgba(15, 108, 191, 0.34);
+        --mrd-accent-line: rgba(15, 108, 191, 0.48);
+        --mrd-ok-tint: rgba(53, 122, 50, 0.16);
+        --mrd-ok-fill: rgba(53, 122, 50, 0.34);
+        --mrd-ok-line: rgba(53, 122, 50, 0.48);
+        --mrd-warn-tint: rgba(240, 173, 78, 0.26);
+        --mrd-warn-fill: rgba(240, 173, 78, 0.54);
+        --mrd-warn-line: rgba(240, 173, 78, 0.67);
+        --mrd-bad-tint: rgba(202, 49, 32, 0.16);
+        --mrd-bad-fill: rgba(202, 49, 32, 0.34);
+        --mrd-bad-line: rgba(202, 49, 32, 0.48);
+        --mrd-wa-mid: rgba(25, 158, 112, 0.68);
+        --mrd-wa-track: rgba(25, 158, 112, 0.22);
+        --mrd-tg-track: rgba(57, 135, 229, 0.22);
+        --mrd-tg-soft: rgba(74, 146, 234, 0.24);
+        --mrd-rv-soft: rgba(224, 163, 58, 0.22);
+    }
 }

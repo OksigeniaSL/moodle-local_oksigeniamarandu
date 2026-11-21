@@ -154,6 +154,17 @@ class inbound {
         if (answers::from_whatsapp($message, $phone)) {
             return true;
         }
+        $pressed = (string)($message['interactive']['button_reply']['id'] ?? '');
+        if (in_array($pressed, consent::BACK, true)) {
+            // The answer to «do you want the notices again?»: yes brings them back, with its welcome; no, a short word.
+            if ($pressed === consent::BACK['yes']) {
+                consent::come_back($phone, $wamid);
+                send_reply::queue($phone, 'optin');
+            } else {
+                send_reply::queue($phone, 'stillout');
+            }
+            return true;
+        }
 
         $type = $message['type'] ?? '';
         if ($type === 'text') {

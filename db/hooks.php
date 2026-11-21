@@ -30,3 +30,10 @@ $callbacks = [
         'callback' => [\local_oksigeniamarandu\local\chat\telegram_actions::class, 'answered'],
     ],
 ];
+// The entry to «Conversations» in the main navigation, where the version of Moodle has the hook.
+if (class_exists(\core\hook\navigation\primary_extend::class)) {
+    $callbacks[] = [
+        'hook' => \core\hook\navigation\primary_extend::class,
+        'callback' => [\local_oksigeniamarandu\local\chat\entry::class, 'primary'],
+    ];
+}

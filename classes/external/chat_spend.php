@@ -175,6 +175,7 @@ class chat_spend extends chat_base {
             'asked' => new external_value(PARAM_INT, 'When'),
             'decidedby' => new external_value(PARAM_TEXT, 'Who decided'),
             'decidedbyfirst' => new external_value(PARAM_TEXT, 'Their first name'),
+            'deciderid' => new external_value(PARAM_INT, 'Their user, or 0'),
             'decided' => new external_value(PARAM_INT, 'When'),
             'reason' => new external_value(PARAM_TEXT, 'Why it was rejected'),
             'only' => new external_value(PARAM_ALPHA, 'Approved only by this channel, or empty'),

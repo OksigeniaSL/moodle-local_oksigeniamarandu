@@ -320,6 +320,7 @@ class bulk {
             'asked' => (int)$bulk->timecreated,
             'decidedby' => $by ? fullname($by) : '',
             'decidedbyfirst' => $by ? (string)$by->firstname : '',
+            'deciderid' => $by ? (int)$by->id : 0,
             'decided' => (int)$bulk->timedecided,
             'reason' => (string)$bulk->reason,
             'only' => (string)$bulk->onlyby,

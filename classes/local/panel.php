@@ -155,6 +155,10 @@ class panel {
         if ($channels['whatsapp']['ready']) {
             $links[] = $link('wizard.php?step=texts', get_string('panel:texts', $component), 'textos');
         }
+        if (chat\chatwoot::is_configured()) {
+            // The conversations of the team, when they are connected.
+            $links[] = $link('chat.php', get_string('chat:title', $component), 'numeros');
+        }
         return $links;
     }
 

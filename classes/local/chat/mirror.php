@@ -173,6 +173,7 @@ class mirror {
      * @param array $conversation The conversation, as the API of Chatwoot gives it.
      * @param bool $force Whether to look at it even if Chatwoot says it did not change.
      * @param bool $messages Whether to ask for its messages too.
+     * @param bool $fresh Written again from what Chatwoot says, without keeping what the row had, and without notices.
      * @return bool Whether its row changed.
      */
     public static function store(array $conversation, bool $force = false, bool $messages = true, bool $fresh = false): bool {
@@ -260,6 +261,7 @@ class mirror {
      *
      * @param array $messages The messages, in order, as Chatwoot gives them.
      * @param \stdClass|null $old The row it had, if any.
+     * @param bool $fresh Without keeping the 24 hours the row had: only what these messages say.
      * @return array lastmsgid, waitsince, lastincoming, preview, previewkind and previewat.
      */
     public static function from_messages(array $messages, ?\stdClass $old = null, bool $fresh = false): array {

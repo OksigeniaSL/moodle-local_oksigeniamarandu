@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.52.1 (2026-11-21)
+
+- The guides of the staff, on the screen of 0.52: «Attend» (14 pages, with «Within the team» and «Who they are and the
+  address book») and «Coordinate» (8, with the spending and the approvals).
+- The notifications of Marandu carry its icon, so that the app shows it instead of a generic pencil.
+- The search hint fits the box, and the count of a send going out says it is of both channels.
+
 ## 0.52.0 (2026-11-21)
 
 The conversations, from a review with the people who use them:

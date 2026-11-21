@@ -564,6 +564,7 @@ class bulk {
             $message->fullmessagehtml = '';
             $message->smallmessage = $subject;
             $message->notification = 1;
+            $message->customdata = \local_oksigeniamarandu\local\message_icon::customdata();
             $message->contexturl = $url->out(false);
             $message->contexturlname = get_string('chat:title', self::COMPONENT);
             message_send($message);
@@ -607,6 +608,7 @@ class bulk {
         $message->fullmessagehtml = '';
         $message->smallmessage = $subject;
         $message->notification = 1;
+        $message->customdata = \local_oksigeniamarandu\local\message_icon::customdata();
         message_send($message);
     }
 

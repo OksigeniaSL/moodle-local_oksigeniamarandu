@@ -200,6 +200,7 @@ class consent {
         $message->fullmessagehtml = '';
         $message->smallmessage = $text;
         $message->notification = 1;
+        $message->customdata = \local_oksigeniamarandu\local\message_icon::customdata();
         $message->contexturl = (new \moodle_url('/message/notificationpreferences.php'))->out(false);
         $message->contexturlname = get_string('newchat:where', 'local_oksigeniamarandu');
         try {

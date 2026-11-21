@@ -102,7 +102,14 @@ abstract class chat_base extends external_api {
                 'id' => new external_value(PARAM_INT, 'The contact in Chatwoot'),
                 'name' => new external_value(PARAM_TEXT, 'Its name'),
                 'phone' => new external_value(PARAM_RAW, 'Its number, only digits'),
-                'kind' => new external_value(PARAM_ALPHA, 'family, applicant, both, staff, supplier, alumni or unknown'),
+                'kind' => new external_value(PARAM_ALPHA, 'Its face: family, applicant, both, staff, supplier, alumni, other or unknown'),
+                'marks' => new external_multiple_structure(
+                    new external_value(PARAM_ALPHA, 'A mark: family, staff, supplier, alumni or other'),
+                    'What the team marked it as, in its order, and family if the records have it',
+                    VALUE_DEFAULT,
+                    []
+                ),
+                'note' => new external_value(PARAM_TEXT, 'The lines of its marks', VALUE_DEFAULT, ''),
                 'line' => new external_value(PARAM_TEXT, 'Who it is, in a line'),
                 'rings' => new external_multiple_structure(new external_single_structure([
                     'color' => new external_value(PARAM_RAW, 'The colour'),

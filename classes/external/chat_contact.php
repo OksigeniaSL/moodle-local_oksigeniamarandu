@@ -21,6 +21,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_oksigeniamarandu\local\chat\family;
+use local_oksigeniamarandu\local\chat\marks;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\starter;
@@ -72,7 +73,14 @@ class chat_contact extends chat_base {
             }
             $row = (object)['cwid' => 0, 'contactid' => 0, 'kind' => '', 'name' => $params['name'], 'phone' => $number];
         }
-        $kind = $row->kind !== '' ? (string)$row->kind : 'unknown';
+        // Who it is: the marks of the team, and a family if the records have the number, whatever else it is.
+        $marks = marks::parse((string)$row->kind);
+        $family = $row->phone !== '' ? family::of_phone((string)$row->phone) : null;
+        $auto = $family && !in_array('family', $marks, true);
+        if ($auto) {
+            $marks[] = 'family';
+        }
+        $kind = marks::face($marks, (string)($row->kindface ?? ''), (bool)$family);
         $others = [];
         if ($row->contactid || $row->cwid === 0) {
             [$where, $wparams] = $viewer->where();
@@ -90,12 +98,11 @@ class chat_contact extends chat_base {
                     'at' => (int)$other->lastactivity];
             }
         }
-        $result = ['kind' => $kind, 'title' => (string)$row->name, 'phone' => (string)$row->phone, 'line' => '',
-            'children' => [], 'services' => [], 'contacts' => [], 'rows' => [], 'source' => '', 'conversations' => $others,
-            'maybe' => [], 'optout' => self::optout((string)$row->phone)];
-        $family = $kind === 'unknown' ? family::of_phone((string)$row->phone) : null;
+        $result = ['kind' => $kind, 'marks' => $marks, 'face' => (string)($row->kindface ?? ''), 'notes' => marks::notes_of($row),
+            'familyauto' => $auto, 'familyfile' => (bool)$family, 'title' => (string)$row->name, 'phone' => (string)$row->phone,
+            'line' => '', 'children' => [], 'services' => [], 'contacts' => [], 'rows' => [], 'source' => '',
+            'conversations' => $others, 'maybe' => [], 'optout' => self::optout((string)$row->phone)];
         if ($family) {
-            $kind = $result['kind'] = 'family';
             $result['title'] = $family['title'] !== '' ? $family['title'] : (string)$row->name;
             $result['line'] = $family['line'];
             foreach ($family['children'] as $child) {
@@ -113,7 +120,8 @@ class chat_contact extends chat_base {
                 'local_oksigeniamarandu'
             );
         }
-        if (self::admissions($viewer->userid) && in_array($kind, ['unknown', 'applicant', 'both'])) {
+        // Admissions, for a number without a family file that is not marked as something else only.
+        if (self::admissions($viewer->userid) && !$family && (!$marks || in_array('family', $marks, true))) {
             $result['panel'] = [
                 'url' => (new \moodle_url('/local/oksigeniaeguahe/chat.php'))->out(false),
                 'name' => (string)$row->name,
@@ -181,8 +189,17 @@ class chat_contact extends chat_base {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
+        $notes = [];
+        foreach (array_keys(marks::NOTES) as $key) {
+            $notes[$key] = new external_value(PARAM_TEXT, 'A line of its marks', VALUE_DEFAULT, '');
+        }
         return new external_single_structure([
-            'kind' => new external_value(PARAM_ALPHA, 'family, applicant, both, staff, supplier, alumni or unknown'),
+            'kind' => new external_value(PARAM_ALPHA, 'Its face: family, applicant, both, staff, supplier, alumni, other or unknown'),
+            'marks' => new external_multiple_structure(new external_value(PARAM_ALPHA, 'A mark'), 'Its marks, in their order'),
+            'face' => new external_value(PARAM_ALPHA, 'The mark whose face it has, if chosen'),
+            'notes' => new external_single_structure($notes),
+            'familyauto' => new external_value(PARAM_BOOL, 'Whether family comes from the records, without marking it'),
+            'familyfile' => new external_value(PARAM_BOOL, 'Whether the family records have the number'),
             'title' => new external_value(PARAM_TEXT, 'Who it is'),
             'phone' => new external_value(PARAM_RAW, 'Their number, only digits'),
             'line' => new external_value(PARAM_TEXT, 'Who it is, in a line'),

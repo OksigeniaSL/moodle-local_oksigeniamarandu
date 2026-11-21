@@ -30,7 +30,7 @@ class agenda {
     public const PREF = 'local_oksigeniamarandu_chatfavs';
 
     /** The kinds of contact the centre keeps in its address book, in their order. */
-    public const KINDS = ['supplier', 'staff', 'alumni'];
+    public const KINDS = ['supplier', 'staff', 'alumni', 'other'];
 
     /** How many favourites a person keeps, at most. */
     public const MAX = 200;
@@ -74,8 +74,9 @@ class agenda {
         global $DB;
         $now = time();
         $favs = self::favourites($viewer->userid);
-        [$inkinds, $params] = $DB->get_in_or_equal(self::KINDS, SQL_PARAMS_NAMED, 'kind');
-        $where = "c.kind $inkinds";
+        // Whatever the team marked, also with family: a contact goes in the group of each of its marks.
+        $params = [];
+        $where = "c.kind <> ''";
         if ($favs) {
             [$infavs, $favparams] = $DB->get_in_or_equal($favs, SQL_PARAMS_NAMED, 'fav');
             $where = "($where OR c.contactid $infavs)";
@@ -93,12 +94,13 @@ class agenda {
                 // The same face and line as in the trays, from its newest conversation.
                 $shown = $viewer->export($row, [], $now)['contact'];
                 $contacts[$id] = ['contactid' => $id, 'name' => (string)$row->name, 'phone' => (string)$row->phone,
-                    'kind' => (string)$shown['kind'], 'line' => (string)$shown['line'], 'rings' => $shown['rings'],
+                    'kind' => (string)$shown['kind'], 'marks' => $shown['marks'], 'note' => (string)$shown['note'],
+                    'line' => (string)$shown['line'], 'rings' => $shown['rings'],
                     'conversation' => 0, 'lastactivity' => (int)$row->lastactivity, 'favourite' => in_array($id, $favs, true)];
             }
             // What it is, from its newest conversation that says it; the newest conversation the person can open.
-            if (!isset($marked[$id]) && in_array($row->kind, self::KINDS, true)) {
-                $marked[$id] = (string)$row->kind;
+            if (!isset($marked[$id]) && array_intersect(marks::parse((string)$row->kind), self::KINDS)) {
+                $marked[$id] = marks::parse((string)$row->kind);
             }
             if (!$contacts[$id]['conversation'] && $viewer->sees($row)) {
                 $contacts[$id]['conversation'] = (int)$row->cwid;
@@ -116,7 +118,7 @@ class agenda {
         $groups = [];
         foreach (self::KINDS as $kind) {
             $list = array_values(array_filter($contacts, function ($contact) use ($kind, $marked) {
-                return ($marked[$contact['contactid']] ?? '') === $kind;
+                return in_array($kind, $marked[$contact['contactid']] ?? [], true);
             }));
             usort($list, $byname);
             if ($list) {

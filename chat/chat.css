@@ -5827,3 +5827,383 @@
 #mrd-chat .gs-elegir .mrd-btn[aria-disabled="true"] {
     cursor: default;
 }
+
+/* «¿Quién es?» in the sheet of a number without one (Jujol, 21 Nov 2026), over the real chat.css. Everything new is
+   .qf-*. The question goes first and is the decision; what follows depends on the answer. */
+
+/* The five answers, as rows to tap: an icon in the shape that answer will have in the lists (a circle for a family, a
+   square for everyone else), the word and what it means */
+#mrd-chat .qf-opciones {
+    display: grid;
+    gap: 6px;
+}
+#mrd-chat .qf-op {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 18px;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--linea-2);
+    border-radius: 12px;
+    background: var(--hoja);
+    color: var(--tinta);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+#mrd-chat .qf-op:hover {
+    border-color: var(--acento-boton);
+    background: var(--acento-suave);
+}
+#mrd-chat .qf-op b {
+    display: block;
+    font-weight: 800;
+    font-size: 14.5px;
+    line-height: 1.25;
+}
+#mrd-chat .qf-op small {
+    display: block;
+    color: var(--tinta-3);
+    font-size: 12.5px;
+    line-height: 1.3;
+}
+#mrd-chat .qf-op .qf-pista {
+    color: var(--acento-texto);
+    font-weight: 700;
+    margin-top: 2px;
+}
+#mrd-chat .qf-forma {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    background: var(--hoja-2);
+    color: var(--tinta-2);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+}
+#mrd-chat .qf-forma.qf-circulo {
+    border-radius: 50%;
+}
+#mrd-chat .qf-forma .mrd-i {
+    width: 18px;
+    height: 18px;
+}
+#mrd-chat .qf-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--linea-2);
+}
+#mrd-chat .qf-op[aria-pressed="true"] {
+    border-color: var(--acento-boton);
+    background: var(--acento-suave);
+    box-shadow: 0 0 0 1px var(--acento-boton) inset;
+}
+#mrd-chat .qf-op[aria-pressed="true"] .qf-radio {
+    border: 5px solid var(--acento-boton);
+    background: var(--hoja);
+}
+#mrd-chat .qf-op[aria-pressed="true"] .qf-forma {
+    background: var(--acento-boton);
+    border-color: var(--acento-boton);
+    color: var(--acento-tinta);
+}
+/* Once answered, the other four fold into one line of chips */
+#mrd-chat .qf-cambiar {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+#mrd-chat .qf-cambiar > span {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--tinta-3);
+    margin-inline-end: 2px;
+}
+#mrd-chat .qf-cambiar .mrd-chip {
+    padding: 3px 10px;
+    font-size: 13px;
+}
+
+/* A line that is written where it will be read: no box, a dashed rule, and it keeps itself */
+#mrd-chat .qf-linea {
+    display: grid;
+    gap: 4px;
+    margin-top: 12px;
+}
+#mrd-chat .qf-linea label {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--tinta-2);
+}
+#mrd-chat .qf-escribe {
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--tinta);
+    padding: 3px 0 5px;
+    border-bottom: 1.5px dashed var(--linea-2);
+    outline: 0;
+    min-height: 1.4em;
+}
+#mrd-chat .qf-escribe.qf-activo {
+    border-bottom: 2px solid var(--acento-boton);
+}
+#mrd-chat .qf-escribe:empty::before {
+    content: attr(data-vacio);
+    color: var(--tinta-3);
+}
+#mrd-chat .qf-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--acento-boton);
+    vertical-align: -3px;
+    margin-inline-start: 1px;
+}
+#mrd-chat .qf-guardado {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--verde-texto);
+}
+#mrd-chat .qf-guardado .mrd-i {
+    width: 14px;
+    height: 14px;
+}
+#mrd-chat .qf-nota {
+    font-size: 12.5px;
+    color: var(--tinta-3);
+}
+
+/* Eguahe's block, big only when it is a family */
+#mrd-chat .qf-eguahe {
+    margin: 0;
+    padding: 12px 20px 14px;
+    border-bottom: 1px solid var(--linea);
+    display: grid;
+    gap: 6px;
+}
+#mrd-chat .qf-eguahe-de {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--tinta-3);
+    letter-spacing: 0.02em;
+}
+#mrd-chat .qf-eguahe-de .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .qf-eguahe h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--tinta);
+}
+#mrd-chat .qf-eguahe p {
+    font-size: 14px;
+    color: var(--tinta-2);
+}
+#mrd-chat .qf-eguahe p.mrd-ayuda {
+    font-size: 12.5px;
+    color: var(--tinta-3);
+    margin: -2px 0 0;
+}
+#mrd-chat .qf-eguahe .mrd-btn {
+    justify-self: start;
+}
+#mrd-chat .qf-o {
+    font-size: 13.5px;
+}
+/* Folded, when the answer is not a family: one quiet line, never a push to create one */
+#mrd-chat .qf-plegado {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    padding: 12px 20px;
+    border: 0;
+    border-bottom: 1px solid var(--linea);
+    background: none;
+    font: inherit;
+    font-size: 13.5px;
+    color: var(--tinta-2);
+    text-align: start;
+    cursor: pointer;
+}
+#mrd-chat .qf-plegado b {
+    color: var(--acento-texto);
+    font-weight: 700;
+}
+#mrd-chat .qf-plegado .mrd-i {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
+/* The double role: what the common file says, without choosing */
+#mrd-chat .qf-tambien {
+    background: var(--hoja-2);
+}
+#mrd-chat .qf-de-donde {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+}
+#mrd-chat .qf-de-donde .mrd-i {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    margin-top: 2px;
+}
+#mrd-chat .qf-dos {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+#mrd-chat .qf-dos .mrd-origen + .mrd-origen::before {
+    content: '·';
+    margin-inline-end: 4px;
+}
+
+/* ---------- Several at once (Enrique, 21 Nov 2026: «puede haber varias combinaciones») ----------
+   Each row is a box to tick; what a ticked one needs opens under it; the face in the lists is chosen among the ticked */
+#mrd-chat .qf-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--linea-2);
+    display: grid;
+    place-items: center;
+    background: var(--hoja);
+}
+#mrd-chat .qf-check .mrd-i {
+    width: 14px;
+    height: 14px;
+    stroke-width: 3;
+    color: var(--acento-tinta);
+    opacity: 0;
+}
+#mrd-chat .qf-op[aria-checked="true"] {
+    border-color: var(--acento-boton);
+    background: var(--acento-suave);
+}
+#mrd-chat .qf-op[aria-checked="true"] .qf-check {
+    background: var(--acento-boton);
+    border-color: var(--acento-boton);
+}
+#mrd-chat .qf-op[aria-checked="true"] .qf-check .mrd-i {
+    opacity: 1;
+}
+#mrd-chat .qf-op[aria-checked="true"] .qf-forma {
+    background: var(--acento-boton);
+    border-color: var(--acento-boton);
+    color: var(--acento-tinta);
+}
+/* Once one is ticked, the others shrink to a line, still there to tick */
+#mrd-chat .qf-op.qf-compacto {
+    padding: 5px 10px;
+    grid-template-columns: 26px minmax(0, 1fr) 20px;
+}
+#mrd-chat .qf-op.qf-compacto .qf-forma {
+    width: 26px;
+    height: 26px;
+}
+#mrd-chat .qf-op.qf-compacto .qf-forma .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .qf-op.qf-compacto small {
+    display: none;
+}
+#mrd-chat .qf-op.qf-compacto b {
+    font-size: 13.5px;
+    font-weight: 700;
+}
+/* A ticked row and what it needs, as one piece */
+#mrd-chat .qf-marcada {
+    border: 1px solid var(--acento-boton);
+    border-radius: 12px;
+    overflow: hidden;
+}
+#mrd-chat .qf-marcada > .qf-op {
+    border: 0;
+    border-radius: 0;
+}
+#mrd-chat .qf-detalle {
+    padding: 2px 12px 12px;
+    border-top: 1px dashed var(--linea);
+    background: var(--hoja);
+    display: grid;
+    gap: 2px;
+}
+#mrd-chat .qf-detalle .qf-linea {
+    margin-top: 6px;
+}
+#mrd-chat .qf-detalle .mrd-hijo {
+    margin-top: 8px;
+}
+#mrd-chat .qf-detalle .qf-de-donde {
+    margin-top: 6px;
+}
+#mrd-chat .qf-detalle .mrd-misma {
+    margin: 8px 0 0;
+}
+/* Admissions inside the family row, big only when the family has no file yet */
+#mrd-chat .qf-detalle .qf-eguahe {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    background: var(--hoja-2);
+}
+/* The face in the lists: the ticked ones side by side, as they would look; the first ticked, chosen until changed */
+#mrd-chat .qf-caras {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+}
+#mrd-chat .qf-caras > span {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--tinta-2);
+}
+#mrd-chat .qf-caras-fila {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+#mrd-chat .qf-cara {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    width: 84px;
+    padding: 8px 4px 6px;
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+    background: var(--hoja);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--tinta-2);
+    cursor: pointer;
+}
+#mrd-chat .qf-cara[aria-pressed="true"] {
+    border-color: var(--acento-boton);
+    box-shadow: 0 0 0 2px var(--acento-anillo);
+    color: var(--acento-texto);
+}
+#mrd-chat .qf-caras .mrd-ayuda {
+    margin: 0;
+}

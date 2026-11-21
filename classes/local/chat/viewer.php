@@ -201,11 +201,16 @@ class viewer {
             $by = \core_user::get_user((int)$row->passedby);
             $passed = ['by' => $by ? (string)$by->firstname : '', 'at' => (int)$row->passedat, 'toteam' => !$tome];
         }
-        $kind = $row->kind !== '' ? (string)$row->kind : 'unknown';
+        // Who it is: the marks of the team, and a family if the records have the number, whatever else it is.
+        $marks = marks::parse((string)$row->kind);
         $line = '';
         $rings = [];
-        if ($kind === 'unknown' && ($family = family::of_phone((string)$row->phone))) {
-            $kind = 'family';
+        $family = $row->phone !== '' ? family::of_phone((string)$row->phone) : null;
+        if ($family && !in_array('family', $marks, true)) {
+            $marks[] = 'family';
+        }
+        $kind = marks::face($marks, (string)($row->kindface ?? ''), (bool)$family);
+        if ($family) {
             $line = $family['line'];
             foreach ($family['children'] as $child) {
                 if ($child['stage'] && $child['stage']['color'] !== '') {
@@ -225,7 +230,7 @@ class viewer {
             'teamid' => (int)$row->teamid,
             'assignee' => $assignee,
             'contact' => ['id' => (int)$row->contactid, 'name' => (string)$row->name, 'phone' => (string)$row->phone,
-                'kind' => $kind, 'line' => $line, 'rings' => $rings],
+                'kind' => $kind, 'marks' => $marks, 'note' => (string)($row->kindnote ?? ''), 'line' => $line, 'rings' => $rings],
             'preview' => ['text' => (string)$row->preview, 'kind' => (string)$row->previewkind,
                 'incoming' => $row->previewkind === 'incoming', 'private' => $row->previewkind === 'note',
                 'at' => (int)$row->previewat],

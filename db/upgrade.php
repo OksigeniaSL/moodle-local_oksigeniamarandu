@@ -389,6 +389,24 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026121100, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026121200) {
+        // Several marks of who a contact is, with the one whose face it has and the lines of each.
+        $table = new xmldb_table('local_oksigeniamarandu_conv');
+        $field = new xmldb_field('kind', XMLDB_TYPE_CHAR, '60', null, XMLDB_NOTNULL, null, null, 'name');
+        $dbman->change_field_precision($table, $field);
+        foreach ([['kindface', '20', 'kind'], ['kindnote', '255', 'kindface']] as [$name, $length, $after]) {
+            $field = new xmldb_field($name, XMLDB_TYPE_CHAR, $length, null, null, null, null, $after);
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        $field = new xmldb_field('kindnotes', XMLDB_TYPE_TEXT, null, null, null, null, null, 'kindnote');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026121200, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

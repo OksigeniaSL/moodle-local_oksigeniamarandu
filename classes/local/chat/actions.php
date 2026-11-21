@@ -89,6 +89,21 @@ class actions {
                     ],
                 ]);
                 break;
+            case 'whois':
+                // Who the contact is: its marks, the one whose face it has, or the line of one of them.
+                if (!$row->contactid) {
+                    throw new \invalid_parameter_exception('No contact');
+                }
+                $change = \core_text::strlen($value) <= 2000 ? json_decode($value, true) : null;
+                if (!is_array($change)) {
+                    throw new \invalid_parameter_exception('Not a change');
+                }
+                $answer = directory::client()->call('PUT', '/contacts/' . $row->contactid, [
+                    'custom_attributes' => marks::attributes($change, fullname(\core_user::get_user($viewer->userid))),
+                ]);
+                $contact = $answer['payload'] ?? $answer;
+                mirror::contact_marks((int)$row->contactid, (array)($contact['custom_attributes'] ?? []));
+                break;
             case 'optout':
                 // Said in the conversation: no more messages from the centre, on this number.
                 if ($row->phone === '') {

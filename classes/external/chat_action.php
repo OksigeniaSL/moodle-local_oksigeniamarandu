@@ -40,9 +40,14 @@ class chat_action extends chat_base {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'conversation' => new external_value(PARAM_INT, 'The conversation'),
-            'action' => new external_value(PARAM_ALPHA, 'take, resolve, reopen, read, team, person or kind'),
+            'action' => new external_value(PARAM_ALPHA, 'take, resolve, reopen, read, team, person, kind, whois or optout'),
             'target' => new external_value(PARAM_INT, 'The department or the person', VALUE_DEFAULT, 0),
-            'value' => new external_value(PARAM_ALPHA, 'The kind of contact', VALUE_DEFAULT, ''),
+            'value' => new external_value(
+                PARAM_RAW,
+                'The kind of contact; for whois, the change as JSON; for optout, out or in',
+                VALUE_DEFAULT,
+                ''
+            ),
         ]);
     }
 

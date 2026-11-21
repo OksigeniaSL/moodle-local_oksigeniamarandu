@@ -188,7 +188,7 @@ class mirror {
             return false;
         }
         $contact = $conversation['meta']['sender'] ?? [];
-        $row = (object)[
+        $row = (object)([
             'cwid' => $id,
             'inboxid' => (int)($conversation['inbox_id'] ?? 0),
             'teamid' => (int)($conversation['meta']['team']['id'] ?? 0),
@@ -199,10 +199,10 @@ class mirror {
             'contactid' => (int)($contact['id'] ?? 0),
             'phone' => substr(preg_replace('/[^0-9]/', '', (string)($contact['phone_number'] ?? '')), 0, 32),
             'name' => \core_text::substr(trim((string)($contact['name'] ?? '')), 0, 255),
-            'kind' => substr((string)($contact['custom_attributes']['marandu_kind'] ?? ''), 0, 20),
+        ] + marks::for_index((array)($contact['custom_attributes'] ?? [])) + [
             'lastactivity' => (int)($conversation['last_activity_at'] ?? $conversation['timestamp'] ?? 0),
             'cwupdated' => substr($updated, 0, 20),
-        ];
+        ]);
         $list = $messages || !$old ? self::latest_messages($id) : [];
         if ($list === null) {
             // Without its messages, what the conversation itself says.
@@ -358,6 +358,34 @@ class mirror {
     }
 
     /**
+     * Who a contact is, as its custom attributes say, in every conversation of it the index has.
+     *
+     * @param int $contactid The contact of Chatwoot.
+     * @param array $attributes Its custom attributes.
+     * @return int How many conversations changed.
+     */
+    public static function contact_marks(int $contactid, array $attributes): int {
+        global $DB;
+        if (!$contactid) {
+            return 0;
+        }
+        $said = marks::for_index($attributes);
+        $changed = 0;
+        $fields = 'id, kind, kindface, kindnote, kindnotes';
+        foreach ($DB->get_records(self::TABLE, ['contactid' => $contactid], '', $fields) as $row) {
+            if (
+                $row->kind === $said['kind'] && (string)$row->kindface === $said['kindface']
+                    && (string)$row->kindnote === $said['kindnote'] && (string)$row->kindnotes === $said['kindnotes']
+            ) {
+                continue;
+            }
+            $DB->update_record(self::TABLE, (object)(['id' => $row->id, 'timemodified' => time()] + $said));
+            $changed++;
+        }
+        return $changed;
+    }
+
+    /**
      * What a webhook of Chatwoot says: the conversation it speaks of is asked for again.
      *
      * @param array $payload The body.
@@ -367,6 +395,11 @@ class mirror {
         $event = (string)($payload['event'] ?? '');
         $account = (int)($payload['account']['id'] ?? 0);
         if ($account && $account !== (int)get_config('local_oksigeniamarandu', 'chatwootaccount')) {
+            return 0;
+        }
+        if ($event === 'contact_updated') {
+            // Who the contact is, as the team marked it, maybe from Chatwoot itself: every conversation of it.
+            self::contact_marks((int)($payload['id'] ?? 0), (array)($payload['custom_attributes'] ?? []));
             return 0;
         }
         $id = strpos($event, 'message_') === 0 ? (int)($payload['conversation']['id'] ?? 0)

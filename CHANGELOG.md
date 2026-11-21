@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.50.0 (2026-11-21)
+
+- «Who is it?» with several marks at once (family, staff, supplier, former pupil, other): each with the line it needs
+  (what they do, what they offer and their company, their year, what they are for the centre), written where it is
+  read and kept by itself; the face in the lists, the first marked or the one chosen; the family of the records comes
+  by itself. The lists, the header of the file and the address book show every mark (Jujol's mock-up).
+- A change of a contact made in Chatwoot itself reaches the conversations of it, by its webhook.
+
 ## 0.49.1 (2026-11-21)
 
 - Choosing who sees the spend and approves keeps each touch by itself, says who sees it now, and never leaves it to

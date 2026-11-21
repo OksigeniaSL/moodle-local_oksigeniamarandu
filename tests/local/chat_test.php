@@ -152,6 +152,22 @@ final class chat_test extends \advanced_testcase {
                 if ($path === '/conversations' && $method === 'GET') {
                     return ['data' => ['payload' => array_values($this->conversations)]];
                 }
+                if (preg_match('~^/contacts/(\d+)$~', $path, $m) && $method === 'PUT') {
+                    // Chatwoot merges the custom attributes it is given with those it has.
+                    $contact = [];
+                    foreach ($this->conversations as $cid => $one) {
+                        if ((int)$one['meta']['sender']['id'] === (int)$m[1]) {
+                            $sender = &$this->conversations[$cid]['meta']['sender'];
+                            $sender['custom_attributes'] = array_merge(
+                                $sender['custom_attributes'] ?? [],
+                                $data['custom_attributes']
+                            );
+                            $contact = $sender;
+                            unset($sender);
+                        }
+                    }
+                    return ['payload' => $contact];
+                }
                 $people = array_merge(array_column(array_column($this->conversations, 'meta'), 'sender'), $this->contacts);
                 if ($path === '/contacts/search') {
                     $found = [];
@@ -807,6 +823,51 @@ final class chat_test extends \advanced_testcase {
 
         $this->expectException(\invalid_parameter_exception::class);
         chat\reminders::set($viewer, $row, '2026-11-16', '', $hours, self::MONDAY_NOON);
+    }
+
+    /**
+     * Who a number is, as the team marks it: several marks at once, the face among them, a line for each; the lists and
+     * the address book show them, and a change made in Chatwoot comes by its webhook.
+     */
+    public function test_whois_marks(): void {
+        global $DB;
+        mirror::sync();
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $file = function () {
+            return external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1));
+        };
+        $this->assertSame([[], 'unknown'], [$file()['marks'], $file()['kind']]);
+        chat_action::execute(1, 'whois', 0, json_encode(['marks' => ['staff', 'alumni', 'nonsense', 'staff']]));
+        chat_action::execute(1, 'whois', 0, json_encode(['note' => 'staff', 'text' => "  Profesora de\nInglés "]));
+        chat_action::execute(1, 'whois', 0, json_encode(['note' => 'year', 'text' => '2004']));
+        $said = $file();
+        $this->assertSame(
+            [['staff', 'alumni'], 'staff', 'Profesora de Inglés', '2004'],
+            [$said['marks'], $said['kind'], $said['notes']['staff'], $said['notes']['year']]
+        );
+        $row = $DB->get_record(mirror::TABLE, ['cwid' => 1]);
+        $this->assertSame(['staff,alumni', 'Profesora de Inglés · class of 2004'], [$row->kind, $row->kindnote]);
+        // The face: the one chosen among the marks.
+        chat_action::execute(1, 'whois', 0, json_encode(['face' => 'alumni']));
+        $this->assertSame('alumni', $file()['kind']);
+        $shown = external_api::clean_returnvalue(chat_poll::execute_returns(), chat_poll::execute(0));
+        $one = array_values(array_filter($shown['conversations'], function ($c) {
+            return $c['id'] === 1;
+        }))[0]['contact'];
+        $this->assertSame(
+            ['alumni', ['staff', 'alumni'], 'Profesora de Inglés · class of 2004'],
+            [$one['kind'], $one['marks'], $one['note']]
+        );
+        // The address book: in the group of each mark.
+        $book = external_api::clean_returnvalue(chat_agenda::execute_returns(), chat_agenda::execute());
+        $this->assertSame(['staff', 'alumni'], array_column($book['groups'], 'kind'));
+        // A change made in Chatwoot itself, by its webhook; and a mark that is not one is refused.
+        mirror::webhook(['event' => 'contact_updated', 'id' => 101, 'custom_attributes' => ['marandu_kind' => 'supplier',
+            'marandu_note_company' => 'Panadería Suárez']]);
+        $this->assertSame(['supplier', 'Panadería Suárez'], [$DB->get_field(mirror::TABLE, 'kind', ['cwid' => 1]),
+            $DB->get_field(mirror::TABLE, 'kindnote', ['cwid' => 1])]);
+        $this->expectException(\invalid_parameter_exception::class);
+        chat_action::execute(1, 'whois', 0, json_encode(['face' => 'nonsense']));
     }
 
     /**

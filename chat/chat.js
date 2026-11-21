@@ -563,6 +563,8 @@
             // What WhatsApp costs and the sends that wait (chat_spend); a send whose text is open; one being rejected; the
             // people being chosen.
             spend: null,
+            // The line of «Who is it?» just kept, to say so for a moment.
+            qfSaved: '',
             gsOpen: 0,
             gsReject: null,
             gsPick: null,
@@ -921,6 +923,9 @@
                 return '<span class="mrd-av mrd-con-bicho' + cls + '" aria-hidden="true">' + bicho(seed) +
                     '<span class="mrd-insignia">' + ico('birrete') + '</span></span>';
             }
+            if (k === 'other') {
+                return '<span class="mrd-av mrd-cuadrado mrd-con-bicho' + cls + '" aria-hidden="true">' + bicho(seed, false) + '</span>';
+            }
             var rings = (contact.rings || []).filter(function (r) {
                 return r && r.color;
             });
@@ -992,14 +997,17 @@
                     }
                 }
             });
-            var key = KIND_LABEL[contact.kind];
-            if (key) {
-                var label = s(key);
-                if (line.toLowerCase().indexOf(label.toLowerCase()) === 0) {
-                    h = '<b class="mrd-tipo-t">' + esc(line.slice(0, label.length)) + '</b>' + h.slice(esc(line.slice(0, label.length)).length);
-                } else {
-                    h = '<b class="mrd-tipo-t">' + esc(label) + '</b>' + (line ? ' · ' + h : '');
-                }
+            // What the team marked, in bold, when it is more than a family; then the lines of the marks; then the family.
+            var marks = contact.marks || [];
+            if (marks.some(function (m) {
+                return m !== 'family';
+            })) {
+                var words = marks.map(function (m) {
+                    return s('mark' + m);
+                }).join(' · ');
+                h = '<b class="mrd-tipo-t">' + esc(words) + '</b>' + (contact.note ? ' · ' + esc(contact.note) : '') + (h ? ' · ' + h : '');
+            } else if (KIND_LABEL[contact.kind]) {
+                h = '<b class="mrd-tipo-t">' + esc(s(KIND_LABEL[contact.kind])) + '</b>' + (h ? ' · ' + h : '');
             }
             if (!h) {
                 h = esc(fmtPhone(contact.phone));
@@ -4118,14 +4126,22 @@
             supplier: ['caja', 'kindsupplier'], alumni: ['birrete', 'kindalumni'], unknown: ['nadie', 'kindunknown']
         };
         function fichaHead(f, c) {
-            var kind = f.kind || 'unknown', o;
+            var kind = f.kind || 'unknown', o, marks = f.marks || [];
             if (kind === 'both') {
                 o = origin('casa', s('kindfamily')) + origin('puerta', s('kindboth'));
+            } else if (marks.length && !(marks.length === 1 && marks[0] === 'family' && f.familyfile)) {
+                // Every mark, with its icon: «Personal · Antiguo alumno · Familia».
+                o = marks.map(function (m) {
+                    var op = QF.filter(function (x) {
+                        return x[0] === m;
+                    })[0];
+                    return origin(op ? op[1] : 'yo', s('mark' + m));
+                }).join('');
             } else {
                 var k = KIND_FILE[kind] || KIND_FILE.unknown;
                 o = origin(k[0], s(k[1]));
             }
-            var phoneRow = (kind !== 'family' && kind !== 'both' && f.phone) ? '<div class="mrd-tel-fila"><span>' + esc(fmtPhone(f.phone)) + '</span>' +
+            var phoneRow = (!f.familyfile && kind !== 'both' && f.phone) ? '<div class="mrd-tel-fila"><span>' + esc(fmtPhone(f.phone)) + '</span>' +
                 callButton(f.phone) + '</div>' : '';
             var changed = f.changed && f.changed.text && (!f.changed.until || f.changed.until * 1000 > nowMs())
                 ? '<p class="mrd-recien">' + ico('check') + esc(f.changed.text) + '</p>' : '';
@@ -4141,7 +4157,8 @@
             return '<div class="mrd-ficha-cab"><button type="button" class="mrd-volver" data-a="back" data-v="chat">' + ico('izq') + esc(s('backtochat')) +
                 '</button><span class="mrd-origenes">' + o + '</span><div class="mrd-ficha-nombre"><h3>' + esc(f.title || (c.contact && c.contact.name) || '') +
                 '</h3>' + (READONLY ? '' : starButton(c.contact && c.contact.id)) + '</div>' +
-                (f.line && kind !== 'family' && kind !== 'both' ? '<p>' + esc(f.line) + '</p>' : '') + phoneRow + changed + '</div>';
+                (qfNoteLine(f) ? '<p>' + esc(qfNoteLine(f)) + '</p>' : '') +
+                (f.line && !f.familyfile && kind !== 'both' ? '<p>' + esc(f.line) + '</p>' : '') + phoneRow + changed + '</div>';
         }
         function maybeHtml(f, c) {
             if (st.joined) {
@@ -4244,24 +4261,98 @@
                     esc(x.preview || '') + '</b>' + (o && o.assignee ? '<small>' + esc(s('takenby', firstName(o.assignee))) + '</small>' : '') + '</button>';
             }).join('') + '</div>';
         }
-        function markHtml(f) {
-            if (READONLY) {
+        /* «Who is it?»: several marks at once, as labels (a teacher can also be the mother of a pupil), each with what it
+           needs written under it, and the face it has in the lists among the marked ones (Jujol's mock-up). The family
+           of the records comes by itself and is not unmarked here. */
+        var QF = [['family', 'casa', true], ['staff', 'gafete', false], ['supplier', 'caja', false], ['alumni', 'birrete', true],
+            ['other', 'lapiz', false]];
+        var QF_NOTES = { staff: ['staff'], supplier: ['offer', 'company'], alumni: ['year'], other: ['other'] };
+        function qfMine(f) {
+            return (f.marks || []).filter(function (m) {
+                return !(m === 'family' && f.familyauto);
+            });
+        }
+        function qfRow(op, on, compact, hint, locked) {
+            return '<button type="button" class="qf-op' + (compact ? ' qf-compacto' : '') + '" role="checkbox" aria-checked="' + (on ? 'true' : 'false') +
+                '" data-a="qfmark" data-v="' + op[0] + '"' + (locked ? ' aria-disabled="true" title="' + esc(s('qffromfile')) + '"' : '') + '>' +
+                '<span class="qf-forma' + (op[2] ? ' qf-circulo' : '') + '">' + ico(op[1]) + '</span>' +
+                '<span><b>' + esc(s('mark' + op[0])) + '</b><small>' + esc(s('mark' + op[0] + 'help')) + '</small>' +
+                (hint ? '<small class="qf-pista">' + esc(hint) + '</small>' : '') + '</span>' +
+                '<span class="qf-check" aria-hidden="true">' + ico('check') + '</span></button>';
+        }
+        function qfLine(f, key) {
+            var text = (f.notes || {})[key] || '', saved = st.qfSaved === key;
+            return '<div class="qf-linea"><label>' + esc(s('qfnote' + key)) + '</label><div class="qf-escribe" contenteditable="true" role="textbox" ' +
+                'aria-label="' + esc(s('qfnote' + key)) + '" data-note="' + key + '" data-vacio="' + esc(s('qfnote' + key + 'ph')) + '">' + esc(text) + '</div>' +
+                (saved ? '<span class="qf-guardado">' + ico('check') + esc(s('qfsaved')) + '</span>' : '') + '</div>';
+        }
+        function qfDetail(f, mark) {
+            if (mark === 'family') {
+                if (f.familyfile) {
+                    return '<p class="qf-de-donde">' + ico('ficha') + '<span>' + esc(s('qffamilyfile')) + '</span></p>';
+                }
+                return maybeHtml(f, conv(st.open)) + (f.panel && f.panel.url ? '<div class="mrd-panel"><iframe src="' + esc(f.panel.url) + '" title="' +
+                    esc(s('panel')) + '"></iframe></div>' : '');
+            }
+            return (QF_NOTES[mark] || []).map(function (key) {
+                return qfLine(f, key);
+            }).join('');
+        }
+        // The lines of the marks, as the lists show them: «profesora de Inglés · promoción de 2004».
+        function qfNoteLine(f) {
+            var n = f.notes || {};
+            return (f.marks || []).map(function (m) {
+                if (m === 'staff') {
+                    return n.staff || '';
+                }
+                if (m === 'supplier') {
+                    return n.company || n.offer || '';
+                }
+                if (m === 'alumni') {
+                    return n.year ? s('qfyear', n.year) : '';
+                }
+                return m === 'other' ? n.other || '' : '';
+            }).filter(Boolean).join(' · ');
+        }
+        function qfRings(f) {
+            return (f.children || []).filter(function (ch) {
+                return ch.stage && ch.stage.color;
+            }).map(function (ch) {
+                return { color: ch.stage.color, dark: ch.stage.dark, dashed: false };
+            });
+        }
+        function qfFace(f, mark) {
+            return avContact({ kind: mark, phone: f.phone, name: f.title, rings: mark === 'family' ? qfRings(f) : [] }, 'mrd-s');
+        }
+        function whoisHtml(f, c) {
+            if (READONLY || !c || !c.id || !(c.contact && c.contact.id)) {
                 return '';
             }
-            var k = f.kind || 'unknown';
-            if (k === 'unknown') {
-                return '<div class="mrd-seccion"><h4>' + esc(s('whoisq')) + '</h4><div class="mrd-chips">' + ['staff', 'supplier', 'alumni'].map(function (x) {
-                    return '<button type="button" class="mrd-chip" data-a="kind" data-v="' + x + '">' + esc(s(KIND_LABEL[x])) + '</button>';
-                }).join('') + '</div><p class="mrd-ayuda">' + esc(s('unknownhelp')) + '</p></div>';
-            }
-            if (KIND_LABEL[k]) {
-                return '<div class="mrd-seccion"><h4>' + esc(s('markas')) + '</h4><div class="mrd-chips">' + ['staff', 'supplier', 'alumni'].filter(function (x) {
-                    return x !== k;
-                }).map(function (x) {
-                    return '<button type="button" class="mrd-chip" data-a="kind" data-v="' + x + '">' + esc(s(KIND_LABEL[x])) + '</button>';
-                }).join('') + '<button type="button" class="mrd-chip" data-a="kind" data-v="none">' + esc(s('marknone')) + '</button></div></div>';
-            }
-            return '';
+            var marks = f.marks || [], none = !marks.length, face = f.face && marks.indexOf(f.face) >= 0 ? f.face : marks[0];
+            var order = marks.concat(QF.map(function (op) {
+                return op[0];
+            }).filter(function (k) {
+                return marks.indexOf(k) < 0;
+            }));
+            var hint = none && f.maybe && f.maybe.length ? s('qfmaybe', f.maybe[0].name) : '';
+            var rows = order.map(function (k) {
+                var op = QF.filter(function (x) {
+                    return x[0] === k;
+                })[0];
+                if (marks.indexOf(k) >= 0) {
+                    var detail = qfDetail(f, k);
+                    return '<div class="qf-marcada">' + qfRow(op, true, false, '', k === 'family' && f.familyauto) +
+                        (detail ? '<div class="qf-detalle">' + detail + '</div>' : '') + '</div>';
+                }
+                return qfRow(op, false, !none, k === 'family' ? hint : '', false);
+            }).join('');
+            var faces = marks.length > 1 ? '<div class="qf-caras"><span>' + esc(s('qffaces')) + '</span><div class="qf-caras-fila">' + marks.map(function (k) {
+                return '<button type="button" class="qf-cara" aria-pressed="' + (k === face) + '" data-a="qfface" data-v="' + k + '">' + qfFace(f, k) +
+                    esc(s('mark' + k)) + '</button>';
+            }).join('') + '</div><p class="mrd-ayuda">' + esc(s('qffaceshelp')) + '</p></div>' : '';
+            return '<div class="mrd-seccion"><h4>' + esc(s('whoisq')) + (none ? '' : ' <small>' + esc(s('qfseveral')) + '</small>') + '</h4>' +
+                '<div class="qf-opciones" role="group" aria-label="' + esc(s('whoisq')) + '">' + rows + '</div>' + faces +
+                (none ? '<p class="mrd-ayuda">' + esc(s('qfnonehelp')) + '</p>' : '') + '</div>';
         }
         function restoreFicha() {
             box.classList.toggle('mrd-sin-ficha', !conv(st.open) || st.fichaState === 'error');
@@ -4337,6 +4428,11 @@
                 renderNewFicha();
                 return;
             }
+            // Whoever is writing a line of «Who is it?» keeps it as it is until they leave it.
+            var writing = document.activeElement;
+            if (writing && writing.classList && writing.classList.contains('qf-escribe') && el.ficha.contains(writing)) {
+                return;
+            }
             var c = conv(st.open);
             panelFrame = null;
             panelData = null;
@@ -4356,19 +4452,19 @@
                 return;
             }
             var f = st.ficha, k = f.kind || 'unknown', h = fichaHead(f, c);
-            h += maybeHtml(f, c);
-            if (k === 'family' || k === 'both') {
+            // Marked as family without a file: what may be the same family and admissions go inside its row.
+            var inRow = (f.marks || []).indexOf('family') >= 0 && !f.familyfile;
+            h += inRow ? '' : maybeHtml(f, c);
+            if (f.familyfile || k === 'both') {
                 h += contactsHtml(f, !c.lastincoming) + childrenHtml(f) + rowsHtml(f.services, s('services')) + rowsHtml(f.rows, '');
             } else if (k === 'applicant') {
                 h += childrenHtml(f) + rowsHtml(f.rows, '');
-            } else if (KIND_LABEL[k]) {
-                h += rowsHtml(f.rows, s('whois'));
             } else {
                 h += rowsHtml(f.rows, '');
             }
             // «Who is it?» first: the card of another plugin below it, as one more card.
-            h += markHtml(f);
-            if (f.panel && f.panel.url) {
+            h += whoisHtml(f, c);
+            if (f.panel && f.panel.url && !inRow) {
                 h += '<div class="mrd-seccion mrd-panel"><iframe src="' + esc(f.panel.url) + '" title="' + esc(s('panel')) + '"></iframe></div>';
             }
             h += otherConvsHtml(f);
@@ -4378,7 +4474,7 @@
             var keep = el.ficha.scrollTop;
             el.ficha.innerHTML = h;
             el.ficha.scrollTop = keep;
-            if (f.panel && f.panel.url) {
+            if (f.panel && f.panel.url && el.ficha.querySelector('.mrd-panel iframe')) {
                 panelFrame = el.ficha.querySelector('.mrd-panel iframe');
                 panelData = f.panel;
                 panelFrame.addEventListener('load', function () {
@@ -6136,6 +6232,33 @@
                     }
                     hidePill();
                     break;
+                case 'qfmark':
+                    if (!c || !st.ficha || t.getAttribute('aria-disabled') === 'true') {
+                        if (t.getAttribute('aria-disabled') === 'true') {
+                            toast(s('qffromfile'));
+                        }
+                        break;
+                    }
+                    var mine = qfMine(st.ficha), was = mine.indexOf(v) >= 0;
+                    var next = was ? mine.filter(function (m) {
+                        return m !== v;
+                    }) : mine.concat([v]);
+                    busy(t, true);
+                    act(c.id, 'whois', 0, JSON.stringify({ marks: next })).then(function () {
+                        toast(s(was ? 'qfunmarked' : 'qfmarked', s('mark' + v)));
+                        loadFicha(c.id);
+                    }).catch(function () {
+                        busy(t, false);
+                    });
+                    break;
+                case 'qfface':
+                    if (!c) {
+                        break;
+                    }
+                    act(c.id, 'whois', 0, JSON.stringify({ face: v })).then(function () {
+                        loadFicha(c.id);
+                    });
+                    break;
                 case 'kind':
                     if (!c) {
                         break;
@@ -6216,6 +6339,34 @@
         el.visor.addEventListener('click', function (e) {
             if (e.target === el.visor) {
                 closeViewer();
+            }
+        });
+        // A line of «Who is it?» keeps itself when its writer leaves it, if it changed.
+        box.addEventListener('focusout', function (e) {
+            var t = e.target, c = conv(st.open);
+            if (!t.classList || !t.classList.contains('qf-escribe') || !c || !st.ficha) {
+                return;
+            }
+            var key = t.getAttribute('data-note'), text = t.innerText.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+            if (text === ((st.ficha.notes || {})[key] || '')) {
+                return;
+            }
+            act(c.id, 'whois', 0, JSON.stringify({ note: key, text: text }), true).then(function () {
+                st.qfSaved = key;
+                loadFicha(c.id);
+                setTimeout(function () {
+                    if (st.qfSaved === key) {
+                        st.qfSaved = '';
+                        renderFicha();
+                    }
+                }, 2500);
+            });
+        });
+        box.addEventListener('keydown', function (e) {
+            // In a line, Enter ends it, as the line is one.
+            if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('qf-escribe')) {
+                e.preventDefault();
+                e.target.blur();
             }
         });
         box.addEventListener('input', function (e) {

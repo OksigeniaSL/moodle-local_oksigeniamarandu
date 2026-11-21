@@ -216,7 +216,10 @@
         <FIELD NAME="contactid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="phone" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" COMMENT="Only digits, with the country code"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="kind" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="What a person marked the contact as, or empty"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="60" NOTNULL="true" SEQUENCE="false" COMMENT="What the team marked the contact as, comma separated, or empty"/>
+        <FIELD NAME="kindface" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="The mark whose face it has in the lists"/>
+        <FIELD NAME="kindnote" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="The lines of its marks, for the lists"/>
+        <FIELD NAME="kindnotes" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Each line of its marks, as JSON, for its file"/>
         <FIELD NAME="waitsince" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The first message of the contact after the last answer of a person, or 0"/>
         <FIELD NAME="lastincoming" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The last message of the contact: one can write freely for a day after it"/>
         <FIELD NAME="lastactivity" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

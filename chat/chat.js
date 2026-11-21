@@ -2077,14 +2077,15 @@
                 }
             });
         }
-        // A contact: its name and, among the favourites, what it is; on the right, when it last spoke, as in the lists.
-        function agendaRow(inGroup) {
+        // A contact with the same face and line as in the trays; on the right, when it last spoke, as in the lists.
+        function agendaRow() {
             return function (x) {
-                var ct = { id: x.contactid, name: x.name, phone: x.phone, kind: x.kind || 'unknown', rings: [] };
-                var line = [!inGroup && x.kind ? s(KIND_LABEL[x.kind]) : '', x.conversation ? '' : s('agendawrite')].filter(Boolean).join(' · ');
+                var ct = { id: x.contactid, name: x.name, phone: x.phone, kind: x.kind || 'unknown', line: x.line || '', rings: x.rings || [] };
+                var rel = relHtml(ct);
                 return '<div class="mrd-agenda-fila"><button type="button" class="mrd-agenda-c" data-a="agendaopen" data-v="' + x.contactid + '">' +
                     avContact(ct) + '<span class="mrd-agenda-t"><b>' + esc(x.name || fmtPhone(x.phone)) + '</b>' +
-                    (line ? '<small' + (x.conversation ? '' : ' class="mrd-agenda-escribir"') + '>' + esc(line) + '</small>' : '') + '</span>' +
+                    (rel ? '<span class="mrd-conv-rel">' + rel + '</span>' : '') +
+                    (x.conversation ? '' : '<small class="mrd-agenda-escribir">' + esc(s('agendawrite')) + '</small>') + '</span>' +
                     (x.lastactivity ? '<span class="mrd-conv-hora">' + esc(listTime(x.lastactivity * 1000)) + '</span>' : '') + '</button>' +
                     starButton(x.contactid) + '</div>';
             };

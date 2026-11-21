@@ -4275,7 +4275,12 @@
     color: var(--tinta-3);
 }
 #mrd-chat .mrd-estrella.mrd-on {
-    color: #e0a100;
+    color: var(--acento-texto);
+}
+/* In the list only the favourites show their star; the empty one comes with the pointer or the focus, and stays in
+   the file of the contact. */
+#mrd-chat .mrd-agenda-fila .mrd-estrella:not(.mrd-on):not(:focus-visible) {
+    opacity: 0;
 }
 #mrd-chat .mrd-estrella.mrd-on .mrd-i {
     fill: currentcolor;
@@ -4295,6 +4300,9 @@
         background: var(--hoja-2);
     }
     #mrd-chat .mrd-estrella:hover {
-        color: #e0a100;
+        color: var(--acento-texto);
+    }
+    #mrd-chat .mrd-agenda-fila:hover .mrd-estrella {
+        opacity: 1;
     }
 }

@@ -984,6 +984,7 @@ $string['limits:lead_tg'] = 'So that no notice arrives at eleven at night. They 
 $string['limits:money'] = 'The money of a month';
 $string['limits:money:caption'] = 'If it reaches {$a} €, Marandu stops sending and tells by email.';
 $string['limits:money:mail'] = 'Who is told, by email';
+$string['limits:money:mailhelp'] = 'One or more addresses, separated by commas.';
 $string['limits:money:nocap'] = 'With 0, no limit.';
 $string['limits:money:unit'] = '€ a month, at most';
 $string['limits:perday'] = 'How many a day';

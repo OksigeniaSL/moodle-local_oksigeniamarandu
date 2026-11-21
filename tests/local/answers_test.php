@@ -201,8 +201,21 @@ final class answers_test extends \advanced_testcase {
     }
 
     /**
-     * Outside the 24 hours, the template with the answers before the link; tapping one comes back with the id of the
-     * message and its label. Only the number it went to counts, once for each answer, and what the plugin says goes back.
+     * A question that cannot wait, such as whether a login is theirs: urgent, and worth asking only for minutes.
+     */
+    public function test_urgent_question(): void {
+        global $DB;
+        $this->join('34600000001');
+        api::ask('local_oksigeniamarandu', 'question', ['Lucas', 'login'], 'login:1', 7, null, null, 5 * MINSECS, '', true);
+        $row = $DB->get_record(queue::TABLE, ['ref' => 'login:1']);
+        $this->assertSame(1, (int)$row->urgent);
+        $this->assertLessThanOrEqual(time() + 5 * MINSECS, (int)$row->timeexpires);
+    }
+
+    /**
+     * On WhatsApp, outside the 24 hours, the question goes with its template, whose quick replies are the answers; the
+     * answer comes back as a button of the template, with the id of the message and its label. Only the number it went
+     * to counts, once for each answer, and what the plugin says goes back.
      */
     public function test_whatsapp_template(): void {
         global $DB;

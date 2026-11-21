@@ -984,6 +984,7 @@ $string['limits:lead_tg'] = 'Para que nunca llegue un aviso a las once de la noc
 $string['limits:money'] = 'El gasto del mes';
 $string['limits:money:caption'] = 'Si se llega a {$a} €, Marandu para los envíos y avisa por correo.';
 $string['limits:money:mail'] = 'A quién se avisa, por correo';
+$string['limits:money:mailhelp'] = 'Uno o varios correos, separados por comas.';
 $string['limits:money:nocap'] = 'Con 0, sin tope.';
 $string['limits:money:unit'] = '€ al mes, como mucho';
 $string['limits:perday'] = 'Cuántos al día';

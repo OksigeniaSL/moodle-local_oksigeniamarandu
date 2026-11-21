@@ -526,7 +526,8 @@ final class queue_test extends \advanced_testcase {
     public function test_limit_of_the_month(): void {
         set_config('capmonth', 0.03, 'local_oksigeniamarandu');
         set_config('costpermessage', 0.02, 'local_oksigeniamarandu');
-        set_config('capemail', 'secretaria@example.com', 'local_oksigeniamarandu');
+        // One or more, separated by commas: each hears it.
+        set_config('capemail', 'secretaria@example.com, direccion@example.com', 'local_oksigeniamarandu');
         $this->approve();
         $this->family('34600000001');
         $this->family('34600000002', 43);
@@ -539,8 +540,14 @@ final class queue_test extends \advanced_testcase {
 
         $this->assertSame([1, 1], [$counts['sent'], $counts['waiting']]);
         $this->assertSame(0.02, queue::spent(self::WEDNESDAY));
-        $this->assertCount(1, $sink->get_messages());
-        $this->assertSame('secretaria@example.com', $sink->get_messages()[0]->to);
+        $this->assertSame(['secretaria@example.com', 'direccion@example.com'], array_column($sink->get_messages(), 'to'));
+        // On the page, a list with one that is not an address is refused, and a good one kept as written.
+        $_POST = ['capemail' => 'secretaria@example.com, no-es-un-correo', 'sesskey' => sesskey()];
+        $this->assertArrayHasKey('capemail', limits::save(true));
+        $_POST = ['capemail' => ' secretaria@example.com ,direccion@example.com', 'sesskey' => sesskey()];
+        $this->assertSame([], limits::save(true));
+        $this->assertSame('secretaria@example.com, direccion@example.com', get_config('local_oksigeniamarandu', 'capemail'));
+        $_POST = [];
     }
 
     /**

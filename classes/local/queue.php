@@ -419,16 +419,13 @@ class queue {
             json_encode(['code' => $e->metacode, 'message' => $message, 'time' => $now]),
             'local_oksigeniamarandu'
         );
-        $email = (string)get_config('local_oksigeniamarandu', 'capemail');
+        $emails = limits::emails();
         $day = userdate($now, '%Y-%m-%d', \core_date::get_server_timezone());
         $warned = $channel === 'telegram' ? 'telegramwarned' : 'blockwarned';
-        if ($email === '' || !validate_email($email) || get_config('local_oksigeniamarandu', $warned) === $day) {
+        if (!$emails || get_config('local_oksigeniamarandu', $warned) === $day) {
             return;
         }
         set_config($warned, $day, 'local_oksigeniamarandu');
-        $to = \core_user::get_noreply_user();
-        $to->email = $email;
-        $to->emailstop = 0;
         $a = (object)[
             'site' => format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]),
             'problem' => $message,
@@ -436,12 +433,17 @@ class queue {
                 : (new \moodle_url('/local/oksigeniamarandu/wizard.php', ['step' => 'account']))->out(false),
         ];
         $prefix = $channel === 'telegram' ? 'blockmail:telegram' : 'blockmail:';
-        email_to_user(
-            $to,
-            \core_user::get_noreply_user(),
-            get_string($prefix . 'subject', 'local_oksigeniamarandu', $a),
-            get_string($prefix . 'body', 'local_oksigeniamarandu', $a)
-        );
+        foreach ($emails as $email) {
+            $to = \core_user::get_noreply_user();
+            $to->email = $email;
+            $to->emailstop = 0;
+            email_to_user(
+                $to,
+                \core_user::get_noreply_user(),
+                get_string($prefix . 'subject', 'local_oksigeniamarandu', $a),
+                get_string($prefix . 'body', 'local_oksigeniamarandu', $a)
+            );
+        }
     }
 
     /**
@@ -640,21 +642,23 @@ class queue {
      */
     private static function warn_cap(int $now): void {
         $month = userdate($now, '%Y-%m', \core_date::get_server_timezone());
-        $email = (string)get_config('local_oksigeniamarandu', 'capemail');
-        if ($email === '' || get_config('local_oksigeniamarandu', 'capwarned') === $month || !validate_email($email)) {
+        $emails = limits::emails();
+        if (!$emails || get_config('local_oksigeniamarandu', 'capwarned') === $month) {
             return;
         }
         set_config('capwarned', $month, 'local_oksigeniamarandu');
-        $to = \core_user::get_noreply_user();
-        $to->email = $email;
-        $to->emailstop = 0;
         $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
         $a = (object)['site' => $site, 'cap' => format_float((float)get_config('local_oksigeniamarandu', 'capmonth'), 2)];
-        email_to_user(
-            $to,
-            \core_user::get_noreply_user(),
-            get_string('capmail:subject', 'local_oksigeniamarandu', $a),
-            get_string('capmail:body', 'local_oksigeniamarandu', $a)
-        );
+        foreach ($emails as $email) {
+            $to = \core_user::get_noreply_user();
+            $to->email = $email;
+            $to->emailstop = 0;
+            email_to_user(
+                $to,
+                \core_user::get_noreply_user(),
+                get_string('capmail:subject', 'local_oksigeniamarandu', $a),
+                get_string('capmail:body', 'local_oksigeniamarandu', $a)
+            );
+        }
     }
 }

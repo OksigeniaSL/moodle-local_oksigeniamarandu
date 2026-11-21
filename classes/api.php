@@ -576,6 +576,8 @@ class api {
      * @param int $validfor Seconds after which it is no longer worth sending, such as until the deadline of the answer.
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items. The answer
      *                     comes back with it.
+     * @param bool $urgent Whether it goes at once, in the quiet hours and over the notices a day too, such as asking a person
+     *                     whether a login is theirs.
      * @return int How many numbers and chats it was queued for.
      * @throws \coding_exception If the notice is not a question or the reference is not valid.
      */
@@ -588,7 +590,8 @@ class api {
         ?int $userid = null,
         ?\moodle_url $url = null,
         int $validfor = 2 * DAYSECS,
-        string $area = ''
+        string $area = '',
+        bool $urgent = false
     ): int {
         [$declared, $params] = self::prepare($component, $notice, $params);
         $area = self::area($area);
@@ -605,7 +608,7 @@ class api {
                 $declared,
                 $params,
                 $url ? $url->out(false) : null,
-                false,
+                $urgent,
                 $validfor,
                 null,
                 [],

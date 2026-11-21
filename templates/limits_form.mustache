@@ -104,7 +104,8 @@
         </div>
         <div class="mrd-dorso">
             <label class="mrd-campo"><span>{{#str}} limits:money:mail, local_oksigeniamarandu {{/str}}</span>
-                <input type="email" name="capemail" value="{{capemail}}" autocomplete="email"{{#capemailerror}} aria-invalid="true" aria-describedby="mrd-capemail-err"{{/capemailerror}}></label>
+                <input type="email" multiple name="capemail" value="{{capemail}}" autocomplete="email" aria-describedby="mrd-capemail-help{{#capemailerror}} mrd-capemail-err{{/capemailerror}}"{{#capemailerror}} aria-invalid="true"{{/capemailerror}}></label>
+            <p class="mrd-pie" id="mrd-capemail-help">{{#str}} limits:money:mailhelp, local_oksigeniamarandu {{/str}}</p>
             {{#capemailerror}}<p class="mrd-err" id="mrd-capemail-err">{{.}}</p>{{/capemailerror}}
             <button type="submit" class="mrd-btn mrd-primary mrd-guardar" formaction="{{action}}">{{#str}} save {{/str}}</button>
         </div>

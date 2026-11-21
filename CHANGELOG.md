@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.50.4 (2026-11-21)
+
+- Who hears when the month reaches its spending limit or a channel stops: one or more addresses, separated by commas.
+- `api::ask(..., $urgent)`: a question that cannot wait, such as whether a login is theirs, goes at once, in the quiet
+  hours and over the notices a day too.
+
 ## 0.50.3 (2026-11-21)
 
 - The wizard shows the test message that will really reach the phone: on a real account, the general notice of the

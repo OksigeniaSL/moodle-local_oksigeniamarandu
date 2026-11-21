@@ -50,6 +50,16 @@ class limits {
     public const PARTS = ['quiet', 'perday', 'urgent', 'money'];
 
     /**
+     * The addresses that hear when the month reaches its spending limit or a channel stops: one or more, comma separated.
+     *
+     * @return string[]
+     */
+    public static function emails(): array {
+        $value = (string)get_config('local_oksigeniamarandu', 'capemail');
+        return array_values(array_filter(array_map('trim', explode(',', $value)), fn($one) => $one !== '' && validate_email($one)));
+    }
+
+    /**
      * Saves what a card of the page sent, and only that: what does not come stays as it was. A day or a switch carries
      * what it has now as a hidden field and, after it, a button with the same name and the value it changes to; PHP keeps
      * the last one.
@@ -64,8 +74,13 @@ class limits {
         };
         if ($money) {
             $email = $posted('capemail');
-            if ($email !== null && $email !== '' && !validate_email($email)) {
-                return ['capemail' => get_string('wizard:limits:bademail', $component)];
+            if ($email !== null) {
+                // One or more, separated by commas: each must be an address.
+                $parts = array_values(array_filter(array_map('trim', explode(',', $email)), 'strlen'));
+                if (array_filter($parts, fn($one) => !validate_email($one))) {
+                    return ['capemail' => get_string('wizard:limits:bademail', $component)];
+                }
+                $email = implode(', ', $parts);
             }
             if ($posted('capmonth') !== null) {
                 set_config('capmonth', max(0, unformat_float($posted('capmonth'), true) ?: 0), $component);

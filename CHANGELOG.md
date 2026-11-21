@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.48.1 (2026-11-21)
+
+- The label of the card of leaving, shorter so that it keeps its size: «Para volver, escríbannos» (Jujol).
+
 ## 0.48.0 (2026-11-21)
 
 - The confirmations, with a card: whoever joins, changes channel or leaves gets, in the chat, a card with the colour,

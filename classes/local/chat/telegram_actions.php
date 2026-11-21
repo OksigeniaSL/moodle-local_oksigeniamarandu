@@ -50,6 +50,10 @@ class telegram_actions {
             self::board_seen($hook);
             return;
         }
+        if ($hook->get_component() === 'local_oksigeniamarandu' && $hook->get_notice() === 'bulk') {
+            self::bulk_decided($hook);
+            return;
+        }
         if ($hook->get_component() !== 'local_oksigeniamarandu' || $hook->get_notice() !== 'chat') {
             return;
         }
@@ -103,6 +107,34 @@ class telegram_actions {
             return;
         }
         $hook->set_reply(self::str(board::seen($userid, $id) ? 'boardseen' : 'boardalready', ''));
+    }
+
+    /**
+     * «Approve» or «Reject» pressed on Telegram on a send that waits.
+     *
+     * @param answer_received $hook The answer.
+     */
+    private static function bulk_decided(answer_received $hook): void {
+        $ref = $hook->get_ref();
+        $id = strpos($ref, \local_oksigeniamarandu\local\bulk::REF) === 0
+            ? (int)substr($ref, strlen(\local_oksigeniamarandu\local\bulk::REF)) : 0;
+        $userid = self::user_of_chat($hook->get_address());
+        if (!$id || !$userid || !\local_oksigeniamarandu\local\spend::is_person($userid)) {
+            $hook->set_reply(self::str('notyours', ''));
+            return;
+        }
+        $approve = $hook->get_option() === 'approve';
+        try {
+            if (!\local_oksigeniamarandu\local\bulk::decide($id, $approve, $userid)) {
+                $state = \local_oksigeniamarandu\local\bulk::state($id);
+                $hook->set_reply(get_string('bulk:telegram:already', 'local_oksigeniamarandu', $state['decidedby']));
+                return;
+            }
+        } catch (\moodle_exception $e) {
+            $hook->set_reply(self::str('notyours', ''));
+            return;
+        }
+        $hook->set_reply(get_string($approve ? 'bulk:telegram:approved' : 'bulk:telegram:rejected', 'local_oksigeniamarandu'));
     }
 
     /**

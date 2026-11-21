@@ -39,6 +39,7 @@ use local_oksigeniamarandu\local\telegram_api;
     'channels' => 'telegram',
     'org-of' => null,
     'confirm-cards' => null,
+    'spend-people' => null,
     'status' => false,
 ], ['h' => 'help']);
 
@@ -47,7 +48,7 @@ if ($unrecognised) {
 }
 
 $nothing = $options['telegram-token-file'] === '' && $options['whatsapp-number'] === '' && $options['notices'] === ''
-    && $options['org-of'] === null && $options['confirm-cards'] === null;
+    && $options['org-of'] === null && $options['confirm-cards'] === null && $options['spend-people'] === null;
 if ($options['help'] || ($nothing && !$options['status'])) {
     echo "Sets up Oksigenia Marandu on this site.
 
@@ -64,6 +65,8 @@ Options:
                             the site, such as \"del Colegio Monte Lirio\"; empty for the plain way.
 --confirm-cards=0|1         The confirmations of joining, changing channel and leaving, with their card (1, the
                             default) or as the short text of before (0).
+--spend-people=USERS        Who sees what WhatsApp costs and approves the sends to many: user ids, usernames or emails,
+                            comma separated; empty for whoever has local/oksigeniamarandu:bulkapprove.
 --status                    Shows the channels and the notices on.
 -h, --help                  This help.
 
@@ -109,6 +112,23 @@ try {
     if ($options['confirm-cards'] !== null) {
         set_config('confirmcards', empty($options['confirm-cards']) ? 0 : 1, 'local_oksigeniamarandu');
         mtrace('Confirmations with a card: ' . (empty($options['confirm-cards']) ? 'off' : 'on') . '.');
+    }
+    if ($options['spend-people'] !== null) {
+        $ids = [];
+        foreach ($list($options['spend-people'] === true ? '' : (string)$options['spend-people']) as $who) {
+            $user = ctype_digit($who) ? $DB->get_record('user', ['id' => (int)$who, 'deleted' => 0])
+                : ($DB->get_record('user', ['username' => core_text::strtolower($who), 'deleted' => 0])
+                ?: $DB->get_record('user', ['email' => $who, 'deleted' => 0], '*', IGNORE_MULTIPLE));
+            if (!$user) {
+                cli_error('There is no user ' . $who);
+            }
+            $ids[] = (int)$user->id;
+        }
+        \local_oksigeniamarandu\local\spend::set_people($ids);
+        mtrace('Who sees what WhatsApp costs and approves: ' . (implode(', ', array_map(
+            'fullname',
+            \local_oksigeniamarandu\local\spend::people()
+        )) ?: 'nobody') . '.');
     }
     if ($options['status']) {
         foreach (setup::status() as $line) {

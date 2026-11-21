@@ -19,6 +19,7 @@
         remind: 'local_oksigeniamarandu_chat_remind',
         agenda: 'local_oksigeniamarandu_chat_agenda',
         board: 'local_oksigeniamarandu_chat_board',
+        spend: 'local_oksigeniamarandu_chat_spend',
         flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start'
     };
@@ -128,6 +129,14 @@
             '<path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
         lapiz: '<path d="M4 20h4L19.2 8.8a2.3 2.3 0 0 0-3.3-3.3L4.5 16.7z"/><path d="M14 7.5l3 3"/>',
         alerta: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17v.01"/>',
+        'gs-wa': '<path d="M4.5 19.5l1.2-3.6A7.8 7.8 0 1 1 8.8 19z"/><path d="M9 9.2c.2 2.6 2.2 4.6 4.8 4.8l.9-1.2 1.6.8-.4 1.5c-3.6.4-7.4-3.4-7-7l1.5-.4.8 1.6z"/>',
+        'gs-tg': '<path d="M20.5 4.5L3.5 11l5.5 2 2 6 3-4 4.5 3.5z"/><path d="M9 13l8-6"/>',
+        'gs-sin': '<circle cx="12" cy="12" r="8.5"/><path d="M6.5 17.5l11-11"/>',
+        'gs-euro': '<path d="M17.5 6.5a6.5 6.5 0 1 0 0 11"/><path d="M5 10.5h8M5 13.5h8"/>',
+        'gs-firma': '<path d="M4 19.5h16"/><path d="M6 15.5l8.5-8.5 2.5 2.5L8.5 18H6z"/>',
+        'gs-x': '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+        'gs-menos': '<path d="M6 12h12"/>',
+        'gs-mas': '<path d="M6 12h12M12 6v12"/>',
         ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.8-1.1 1.5v.4M12 16.6v.01"/>',
         campana: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
         sonido: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
@@ -551,6 +560,12 @@
            State
            --------------------------------------------------------------------------------------------------------------- */
         var st = {
+            // What WhatsApp costs and the sends that wait (chat_spend); a send whose text is open; one being rejected; the
+            // people being chosen.
+            spend: null,
+            gsOpen: 0,
+            gsReject: null,
+            gsPick: null,
             cursor: 0, convs: {}, inboxes: null, extras: { canned: [], templates: [], people: [], teams: [] }, files: {},
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
@@ -2553,6 +2568,254 @@
             st.composerSig = '';
             renderComposer();
         }
+        /* ---------------------------------------------------------------------------------------------------------------
+           What WhatsApp costs this month and the sends to many that wait for approval (Jujol's mock-up): only for the
+           people the site chose, and for whoever administers, who chooses them. From chat_spend, every five minutes.
+           --------------------------------------------------------------------------------------------------------------- */
+        function loadSpend(args) {
+            if (READONLY || !(me.spend || me.canchoose)) {
+                return Promise.resolve(null);
+            }
+            return tr.call(M.spend, args || {}).then(function (r) {
+                st.spend = r;
+                renderHome();
+                return r;
+            }).catch(function (e) {
+                toast((e && e.message) || s('gserror'), true);
+            });
+        }
+        function gsData() {
+            return st.spend && typeof st.spend === 'object' ? st.spend : null;
+        }
+        // Nothing to approve and nothing spent: the month goes up, short, under the alert.
+        function gsQuiet() {
+            var d = gsData();
+            return !!d && !d.pending.length && !d.month.cost;
+        }
+        function gsMoney(x, cur) {
+            try {
+                return new Intl.NumberFormat(LANG, { style: 'currency', currency: cur || 'EUR', minimumFractionDigits: 2,
+                    maximumFractionDigits: 2 }).format(x);
+            } catch (e) {
+                return Number(x).toFixed(2) + ' ' + (cur || '');
+            }
+        }
+        function gsAgo(ms) {
+            var min = Math.round((nowMs() - ms) / 60000);
+            if (min < 1) {
+                return s('gsnow');
+            }
+            if (min < 60) {
+                return s(min === 1 ? 'gsago1' : 'gsago', min);
+            }
+            return whenPhrase(ms);
+        }
+        function gsNames(list, joiner) {
+            var names = list.slice();
+            if (names.length < 2) {
+                return names.join('');
+            }
+            var last = names.pop();
+            return s(joiner, { list: names.join(', '), last: last });
+        }
+        function gsPerson(userid) {
+            return (st.extras.people || []).filter(function (p) {
+                return userid && p.userid === userid;
+            })[0] || null;
+        }
+        function gsFace(userid, name) {
+            var p = gsPerson(userid);
+            return avAgent(p ? { agentid: p.agentid, name: p.name } : { name: name || '' }, 'mrd-s');
+        }
+        var GS_CAT = { utility: 'util', marketing: 'mkt', authentication: 'aut' };
+        function gsWhy(b) {
+            var d = gsData(), m = d.month;
+            if (b.why === 'budget') {
+                return s('gswhybudget', m.name);
+            }
+            var t = s('gswhythreshold', gsMoney(d.threshold, b.currency));
+            if (m.budget > 0) {
+                t += ' ' + s('gswhyafter', { month: m.name, total: gsMoney(m.cost + b.cost, m.currency), budget: gsMoney(m.budget, m.currency) });
+            }
+            return t;
+        }
+        function gsSend(b) {
+            var d = gsData(), open = st.gsOpen === b.id, rejecting = st.gsReject && st.gsReject.id === b.id;
+            var quote = b.preview || '';
+            var short = quote.length > 120 && !open ? quote.slice(0, 117).replace(/\s+\S*$/, '') + '…' : quote;
+            var cat = GS_CAT[b.category] || 'mkt';
+            var h = '<div class="gs-hoja gs-envio">' +
+                '<p class="gs-quien">' + gsFace(b.askerid, b.askedby) + '<span>' + esc(s('gsasked')) + ' <b>' + esc(b.askedby) + '</b>' +
+                (b.plugin ? ' · ' + esc(b.plugin) : '') + ' · ' + esc(gsAgo(b.asked * 1000)) + '</span></p>' +
+                '<h4>' + esc(b.label) + '</h4>' +
+                (quote ? '<p class="gs-cita">«' + esc(short) + '»' + (quote.length > 120 ? ' <button type="button" class="mrd-enlace" data-a="gsver" data-v="' +
+                    b.id + '">' + esc(s(open ? 'gsless' : 'gsseemsg')) + '</button>' : '') + '</p>' : '') +
+                '<div class="gs-canales">' +
+                '<div class="gs-canal"><b>' + ico('gs-wa') + esc(s('gsbywa', b.whatsapp)) + '</b><span class="gs-cat gs-cat-' + cat + '">' +
+                esc(s('cat' + ({ util: 'utility', mkt: 'marketing', aut: 'authentication' })[cat])) + ' · ' + esc(gsMoney(b.cost, b.currency)) + '</span></div>' +
+                (b.telegram ? '<div class="gs-canal"><b>' + ico('gs-tg') + esc(s('gsbytg', b.telegram)) + '</b><span class="gs-cat gs-cat-gratis">' +
+                    esc(s('gsfree')) + '</span></div>' : '') +
+                (b.skipped ? '<div class="gs-canal gs-fuera"><b>' + ico('gs-sin') + esc(s('gsskipped', b.skipped)) + '</b><small>' +
+                    esc(s('gsskippedhelp')) + '</small></div>' : '') +
+                '</div>' +
+                '<p class="gs-porque">' + ico('gs-euro') + '<span>' + esc(gsWhy(b)) + '</span></p>';
+            if (!d.canapprove) {
+                return h + '</div>';
+            }
+            if (rejecting) {
+                return h + '<div class="gs-rechazo"><label><span>' + esc(s('gsrejectwhy')) + '</span><input type="text" class="gs-motivo" maxlength="200" value="' +
+                    esc(st.gsReject.reason || '') + '" placeholder="' + esc(s('gsrejectph')) + '"></label>' +
+                    '<div class="gs-acciones"><button type="button" class="mrd-btn mrd-primario" data-a="gsrejectok" data-v="' + b.id + '">' + ico('gs-x') +
+                    esc(s('gsreject')) + '</button><button type="button" class="mrd-btn" data-a="gsrejectno">' + esc(s('gscancel')) + '</button></div></div></div>';
+            }
+            return h + '<div class="gs-acciones"><button type="button" class="mrd-btn mrd-primario" data-a="gsapprove" data-v="' + b.id + '">' + ico('check') +
+                esc(s('gsapproveok')) + '</button><button type="button" class="mrd-btn" data-a="gsreject" data-v="' + b.id + '">' + ico('gs-x') +
+                esc(s('gsreject')) + '</button>' + (b.telegram && b.whatsapp ? '<button type="button" class="mrd-enlace" data-a="gstelegram" data-v="' + b.id + '">' +
+                esc(s('gsonlytg')) + '</button>' : '') + '</div></div>';
+        }
+        function gsDecided(b) {
+            var yes = b.status === 'queued';
+            var who = yes ? s(b.only === 'telegram' ? 'gsapprovedtg' : 'gsapproved', b.decidedbyfirst) :
+                (b.status === 'rejected' ? s('gsrejected', b.decidedbyfirst) : s('gscancelled'));
+            var what = yes ? (b.only === 'telegram' ? s('gsbytg', b.telegram) : s('gsbywa', b.whatsapp) + ' · ' + gsMoney(b.cost, b.currency)) :
+                (b.reason ? '«' + b.reason + '»' : '');
+            return '<div><span class="' + (yes ? 'gs-si' : 'gs-no') + '">' + ico(yes ? 'check' : 'gs-x') + '</span><span><b>' + esc(who) + '</b> · ' +
+                esc(b.label) + (what ? ' · ' + esc(what) : '') + '</span><small>' + esc(listTime(b.decided * 1000)) + '</small></div>';
+        }
+        function gsApprovals() {
+            var d = gsData();
+            if (!d || !d.pending.length) {
+                return '';
+            }
+            var names = d.approvers.map(function (p) {
+                return p.firstname;
+            });
+            return '<section class="gs-bloque"><h3>' + ico('gs-firma') + esc(s('gsapprovetitle')) + (names.length ? '<small>' +
+                esc(s('gsseenby', gsNames(names, 'gsand'))) + '</small>' : '') + '</h3>' + d.pending.map(gsSend).join('') +
+                (d.decided.length ? '<div class="gs-hoja gs-hecho">' + d.decided.map(gsDecided).join('') + '</div>' : '') + '</section>';
+        }
+        function gsDays(m) {
+            var max = 0, by = {}, cols = [], axis = [];
+            m.bydays.forEach(function (x) {
+                by[x.day] = x;
+                max = Math.max(max, x.utility + x.marketing + x.authentication);
+            });
+            for (var d = 1; d <= m.days; d++) {
+                if (d > m.today) {
+                    cols.push('<span class="gs-dia gs-futuro"></span>');
+                } else {
+                    var x = by[d] || { utility: 0, marketing: 0, authentication: 0 }, t = x.utility + x.marketing + x.authentication;
+                    var hgt = max ? Math.max(2, Math.round(56 * t / max)) : 2;
+                    cols.push('<span class="gs-dia' + (d === m.today ? ' gs-hoy' : '') + '" style="height:' + hgt + 'px" title="' +
+                        esc(s('gsday', { day: d, money: gsMoney(t, m.currency) })) + '">' + (t ? '<i style="flex:' + x.utility + ';background:var(--cat-util)"></i>' +
+                        '<i style="flex:' + x.marketing + ';background:var(--cat-mkt)"></i><i style="flex:' + x.authentication +
+                        ';background:var(--cat-aut)"></i>' : '') + '</span>');
+                }
+                axis.push('<span>' + ([1, 7, 14, 21, 28].indexOf(d) >= 0 ? d : '') + '</span>');
+            }
+            return '<div class="gs-dias" aria-label="' + esc(s('gsbyday')) + '">' + cols.join('') + '</div><div class="gs-ejes" aria-hidden="true">' +
+                axis.join('') + '</div>';
+        }
+        var GS_STEPS = {
+            threshold: [0, 1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 300, 500],
+            budget: [0, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000]
+        };
+        function gsStep(kind, value, help) {
+            var d = gsData(), cur = d.month.currency, shown = kind === 'budget' && !value ? s('gsnobudget') : gsMoney(value, cur);
+            var dis = d.canapprove ? '' : ' disabled';
+            return '<div class="gs-ajuste"' + (kind === 'budget' ? ' id="mrd-gs-presupuesto"' : '') + '><b>' + esc(s(kind === 'budget' ? 'gsbudget' : 'gsthreshold')) +
+                '</b><div class="gs-paso"><button type="button" data-a="gspaso" data-v="' + kind + ':-1" aria-label="' + esc(s('gsless1')) + '"' + dis + '>' +
+                ico('gs-menos') + '</button><output>' + esc(shown) + '</output><button type="button" data-a="gspaso" data-v="' + kind + ':1" aria-label="' +
+                esc(s('gsmore1')) + '"' + dis + '>' + ico('gs-mas') + '</button></div><small>' + esc(help) + '</small></div>';
+        }
+        function gsPeople() {
+            var d = gsData();
+            if (st.gsPick) {
+                var pick = st.gsPick;
+                var people = (st.extras.people || []).filter(function (p) {
+                    return p.userid;
+                });
+                return '<div class="gs-quienes gs-eligiendo"><div><b>' + esc(s('gswho')) + '</b><small>' + esc(s('gswhopick')) + '</small></div>' +
+                    '<div class="gs-elegir">' + people.map(function (p) {
+                        var on = pick.indexOf(p.userid) >= 0;
+                        return '<button type="button" class="mrd-btn mrd-chico' + (on ? ' mrd-on' : '') + '" aria-pressed="' + on + '" data-a="gspick" data-v="' +
+                            p.userid + '">' + avAgent({ agentid: p.agentid, name: p.name }, 'mrd-s') + esc(p.name) + '</button>';
+                    }).join('') + '</div><div class="gs-acciones"><button type="button" class="mrd-btn mrd-primario mrd-chico" data-a="gspeopleok">' +
+                    esc(s('gssave')) + '</button><button type="button" class="mrd-btn mrd-chico" data-a="gspeopleno">' + esc(s('gscancel')) + '</button></div></div>';
+            }
+            return '<div class="gs-quienes"><div><b>' + esc(s('gswho')) + '</b><small>' + esc(s('gswhohelp')) + '</small></div>' +
+                '<span class="gs-caras">' + d.approvers.map(function (p) {
+                    return gsFace(p.userid, p.name) + '<span>' + esc(p.firstname) + '</span>';
+                }).join('') + '</span>' + (d.canchoose ? '<button type="button" class="mrd-btn mrd-chico" data-a="gspeople">' + esc(s('gschange')) + '</button>' : '') +
+                '</div>';
+        }
+        function gsMonth() {
+            var d = gsData();
+            if (!d || !d.canapprove && !d.canchoose) {
+                return '';
+            }
+            var m = d.month, cur = m.currency, cat = {};
+            m.categories.forEach(function (c) {
+                cat[c.key] = c;
+            });
+            var spent = m.cost, scale = m.budget ? Math.max(m.budget, spent) : (spent || 1);
+            var h = '<section class="gs-bloque"><h3>' + ico('gs-euro') + esc(s('gsmonth', m.name)) + '<small>' +
+                esc(m.time ? s('gsfrommeta') : s('gsnotyet')) + '</small></h3><div class="gs-hoja">';
+            h += '<div class="gs-cifras"><span class="gs-total">' + esc(gsMoney(spent, cur)) + '</span><span class="gs-de">' +
+                esc(m.budget ? s('gsofbudget', { budget: gsMoney(m.budget, cur), share: m.share }) :
+                (spent ? s('gsnobudgetline') : s('gsservicefree', (cat.service || {}).count || 0))) + '</span></div>';
+            if (spent || m.budget) {
+                h += '<div class="gs-barra" role="img" aria-label="' + esc(m.budget ? s('gsbarshare', m.share) : s('gsbarspent')) + '">' +
+                    ['utility', 'marketing', 'authentication'].map(function (k) {
+                        return '<i class="gs-b-' + GS_CAT[k] + '" style="width:' + (100 * ((cat[k] || {}).cost || 0) / scale) + '%"></i>';
+                    }).join('') + '</div>';
+                if (m.budget) {
+                    h += '<div class="gs-marcas" aria-hidden="true"><span style="left:' + (80 * m.budget / scale) + '%">80 %</span>' +
+                        (spent > m.budget ? '<span class="gs-cien" style="left:' + (100 * m.budget / scale) + '%">' + esc(gsMoney(m.budget, cur)) + '</span>' : '') +
+                        '</div>';
+                }
+            }
+            if (m.budget && m.share >= 100) {
+                h += '<p class="gs-aviso">' + ico('candado') + '<span><b>' + esc(s('gsoverb', m.name)) + '</b> ' + esc(s('gsover', m.name)) + '</span>' +
+                    (d.canapprove ? '<button type="button" class="mrd-btn mrd-chico" data-a="gsraise">' + esc(s('gsraise')) + '</button>' : '') + '</p>';
+            } else if (m.budget && m.share >= 80) {
+                h += '<p class="gs-aviso">' + ico('alerta') + '<span><b>' + esc(s('gsnearb', { share: m.share, month: m.name })) + '</b> ' + esc(s('gsnear')) +
+                    '</span></p>';
+            }
+            if (spent) {
+                h += gsDays(m);
+            }
+            h += '<div class="gs-cats">' + ['utility', 'marketing', 'service', 'authentication'].filter(function (k) {
+                return k !== 'authentication' || (cat[k] && cat[k].count);
+            }).map(function (k) {
+                var c = cat[k] || { count: 0, cost: 0 }, free = k === 'service';
+                return '<div><i style="background:var(--cat-' + (free ? 'srv' : GS_CAT[k]) + ')"></i><span>' + esc(s('cat' + k)) + ' <small>· ' + esc(s('gscat' + k)) +
+                    '</small></span><span class="gs-n">' + esc(free ? String(c.count) : s('gsmessages', c.count)) + '</span><span class="gs-e">' +
+                    esc(free ? s('gsfree') : gsMoney(c.cost, cur)) + '</span></div>';
+            }).join('') + '</div>';
+            h += '<p class="gs-nota">' + esc(s('gsnote')) + '</p>';
+            h += '<div class="gs-ajustes">' + gsStep('threshold', d.threshold, s('gsthresholdhelp')) +
+                gsStep('budget', m.budget, m.budget ? s('gsbudgethelp') : s('gsbudgetnone')) + '</div>';
+            return h + gsPeople() + '</div></section>';
+        }
+        function gsStepValue(kind, dir) {
+            var d = gsData(), now = kind === 'budget' ? d.month.budget : d.threshold, steps = GS_STEPS[kind], i;
+            if (dir > 0) {
+                for (i = 0; i < steps.length; i++) {
+                    if (steps[i] > now + 0.001) {
+                        return steps[i];
+                    }
+                }
+                return now;
+            }
+            for (i = steps.length - 1; i >= 0; i--) {
+                if (steps[i] < now - 0.001) {
+                    return steps[i];
+                }
+            }
+            return now;
+        }
+
         /* With no conversation open, the room on the right says where things are: what is yours, what nobody has in
            your departments, and, for whoever sees everything, how each department is doing. Then how the trays work. */
         function homeHtml() {
@@ -2583,6 +2846,8 @@
             } else {
                 h += '<div class="mrd-inicio-aviso mrd-ok">' + ico('check') + '<b>' + esc(s('alldone')) + '</b></div>';
             }
+            var spendUp = gsQuiet();
+            h += gsApprovals() + (spendUp ? gsMonth() : '');
             var mineToSee = READONLY ? [] : boardToSee();
             if (mineToSee.length) {
                 h += '<section class="eq-inicio"><h3>' + ico('eq-tablon') + esc(s('boardforyou')) + '</h3>' + mineToSee.map(function (b) {
@@ -2610,6 +2875,9 @@
             h += '</div>';
             if (me.seesall) {
                 h += homeTeamsHtml(open);
+            }
+            if (!spendUp) {
+                h += gsMonth();
             }
             h += '<details class="mrd-inicio-como"' + (howFolded() ? '' : ' open') + '><summary><h3>' + esc(s('homehow')) + '</h3>' + ico('abajo') +
                 '</summary><ul>' +
@@ -2717,6 +2985,11 @@
         }
         function renderHome() {
             if (!st.ready || st.nueva || conv(st.open) || st.inbox === 'board') {
+                return;
+            }
+            // Whoever is writing why they reject a send keeps the box as it is.
+            var typing = document.activeElement;
+            if (st.gsReject && typing && typing.classList && typing.classList.contains('gs-motivo')) {
                 return;
             }
             var box = el.chat.querySelector('.mrd-inicio');
@@ -5465,6 +5738,83 @@
                     renderBoardPane();
                     setLayer('chat', true);
                     break;
+                case 'gsver':
+                    st.gsOpen = st.gsOpen === +v ? 0 : +v;
+                    renderHome();
+                    break;
+                case 'gsapprove':
+                case 'gstelegram':
+                    t.disabled = true;
+                    loadSpend({ action: a === 'gstelegram' ? 'telegram' : 'approve', id: +v }).then(function (r) {
+                        if (r) {
+                            toast(s(a === 'gstelegram' ? 'gsdonetg' : 'gsdone'));
+                        }
+                    });
+                    break;
+                case 'gsreject':
+                    st.gsReject = { id: +v, reason: '' };
+                    renderHome();
+                    var why = el.chat.querySelector('.gs-motivo');
+                    if (why) {
+                        why.focus();
+                    }
+                    break;
+                case 'gsrejectno':
+                    st.gsReject = null;
+                    renderHome();
+                    break;
+                case 'gsrejectok':
+                    t.disabled = true;
+                    var reason = (st.gsReject && st.gsReject.reason) || '';
+                    st.gsReject = null;
+                    loadSpend({ action: 'reject', id: +v, reason: reason.trim() }).then(function (r) {
+                        if (r) {
+                            toast(s('gsrejecteddone'));
+                        }
+                    });
+                    break;
+                case 'gspaso':
+                    var parts = String(v).split(':'), next = gsStepValue(parts[0], +parts[1]);
+                    loadSpend({ action: parts[0], value: next });
+                    break;
+                case 'gsraise':
+                    var box2 = el.chat.querySelector('#mrd-gs-presupuesto');
+                    if (box2) {
+                        box2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        var plus = box2.querySelector('[data-v="budget:1"]');
+                        if (plus) {
+                            plus.focus();
+                        }
+                    }
+                    break;
+                case 'gspeople':
+                    st.gsPick = gsData().approvers.map(function (p) {
+                        return p.userid;
+                    });
+                    renderHome();
+                    break;
+                case 'gspick':
+                    var uid = +v, at = st.gsPick.indexOf(uid);
+                    if (at >= 0) {
+                        st.gsPick.splice(at, 1);
+                    } else {
+                        st.gsPick.push(uid);
+                    }
+                    renderHome();
+                    break;
+                case 'gspeopleno':
+                    st.gsPick = null;
+                    renderHome();
+                    break;
+                case 'gspeopleok':
+                    var chosen = st.gsPick || [];
+                    st.gsPick = null;
+                    loadSpend({ action: 'people', people: chosen }).then(function (r) {
+                        if (r) {
+                            toast(s('gspeoplesaved'));
+                        }
+                    });
+                    break;
                 case 'boardseen':
                     e.stopPropagation();
                     loadBoard({ action: 'seen', id: +v }, function () {
@@ -5880,6 +6230,10 @@
                 }
                 return;
             }
+            if (t.classList && t.classList.contains('gs-motivo') && st.gsReject) {
+                st.gsReject.reason = t.value;
+                return;
+            }
             if (t.classList && t.classList.contains('mrd-rem-motivo')) {
                 st.rem.reason = t.value;
                 // With a reminder already there, a new line is a change to save.
@@ -6111,6 +6465,12 @@
                     st.boardOpen = +startCfg.aviso;
                 }
                 loadBoard();
+                loadSpend();
+                setInterval(function () {
+                    if (!document.hidden) {
+                        loadSpend();
+                    }
+                }, 300000);
                 st.ready = true;
                 renderAll();
                 updateTitle();

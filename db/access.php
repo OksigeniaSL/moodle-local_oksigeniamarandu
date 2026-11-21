@@ -61,4 +61,11 @@ $capabilities = [
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => ['manager' => CAP_ALLOW],
     ],
+    // Approve the sends to many that cost more than the threshold of the site, or go over the budget of the month.
+    'local/oksigeniamarandu:bulkapprove' => [
+        'riskbitmask' => RISK_SPAM,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => ['manager' => CAP_ALLOW],
+    ],
 ];

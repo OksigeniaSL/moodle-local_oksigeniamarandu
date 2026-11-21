@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.49.0 (2026-11-21)
+
+- The sends to many: a plugin asks what one would cost (`api::bulk_quote()`) and asks for it (`api::bulk_request()`);
+  it goes now by the usual queue or, if it costs more than the threshold of the site or the month has no budget left,
+  waits for approval, which comes from the bell or from Telegram (approve, reject with its why, or send only by
+  Telegram, free). `api::bulk_state()`, `api::bulk_cancel()` and the callback `marandu_bulk_decided`. Only to whoever
+  joined and did not say no.
+- What WhatsApp costs this month, read every hour from Meta (`pricing_analytics`): on the home of the chat, by
+  category and day by day, against the budget of the month, with a word at 80 % and 100 %; the threshold and the
+  budget with − and +.
+- Only the people the site chooses see the spend and approve (from the home, by whoever administers the platform);
+  until it chooses, whoever has `local/oksigeniamarandu:bulkapprove`.
+- `api::notify(..., $only)`, to send by one channel only.
+- On a phone, each department of the home in its own lines.
+
 ## 0.48.1 (2026-11-21)
 
 - The label of the card of leaving, shorter so that it keeps its size: «Para volver, escríbannos» (Jujol).

@@ -339,6 +339,28 @@ class cloud_api {
     }
 
     /**
+     * What the messages of an account cost, day by day and by category, as Meta counts them, and its currency.
+     *
+     * @param string $wabaid The WhatsApp Business account.
+     * @param int $start From, a Unix time.
+     * @param int $end To, a Unix time.
+     * @return array currency and points (each with start, end, pricing_category, pricing_type, volume and cost).
+     * @throws api_exception If Meta does not give them.
+     */
+    public function pricing(string $wabaid, int $start, int $end): array {
+        $fields = 'currency,pricing_analytics.start(' . $start . ').end(' . $end . ').granularity(DAILY)'
+            . '.dimensions(["PRICING_CATEGORY","PRICING_TYPE"])';
+        $answer = $this->decode($this->request($this->url(rawurlencode($wabaid) . '?fields=' . rawurlencode($fields))));
+        $points = [];
+        foreach ($answer['pricing_analytics']['data'] ?? [] as $block) {
+            foreach ($block['data_points'] ?? [] as $point) {
+                $points[] = $point;
+            }
+        }
+        return ['currency' => (string)($answer['currency'] ?? ''), 'points' => $points];
+    }
+
+    /**
      * Posts to the Graph API and turns its errors into exceptions.
      *
      * @param string $path Path after the version, such as <phone number id>/messages.

@@ -56,6 +56,14 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'options' => ['seen'],
             'uncapped' => true,
         ],
+        // A send to many that waits for approval, to whoever may approve it: «Approve» and «Reject» from Telegram itself.
+        'bulk' => [
+            'examples' => ['Mary: Invitación a la jornada de puertas abiertas, 142 por WhatsApp, 8,52 EUR'],
+            'perweek' => 0,
+            'channels' => ['telegram'],
+            'options' => ['approve', 'reject'],
+            'uncapped' => true,
+        ],
     ];
 }
 

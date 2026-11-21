@@ -119,6 +119,9 @@ $config = [
         'seesall' => $viewer->seesall,
         'picture' => \local_oksigeniamarandu\external\chat_extras::picture($USER),
         'readonly' => $viewer->readonly,
+        // What WhatsApp costs and the sends to many that wait: the people the site chose; whoever administers chooses them.
+        'spend' => \local_oksigeniamarandu\local\spend::is_person((int)$USER->id),
+        'canchoose' => has_capability('moodle/site:config', $context),
     ],
     'brand' => [
         'name' => $sitename,

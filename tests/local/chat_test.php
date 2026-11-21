@@ -26,6 +26,7 @@ use local_oksigeniamarandu\external\chat_flag;
 use local_oksigeniamarandu\external\chat_poll;
 use local_oksigeniamarandu\external\chat_resolved;
 use local_oksigeniamarandu\external\chat_send;
+use local_oksigeniamarandu\external\chat_spend;
 use local_oksigeniamarandu\external\chat_start;
 use local_oksigeniamarandu\local\chat\chatwoot;
 use local_oksigeniamarandu\local\chat\closed;
@@ -835,6 +836,42 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame([103, 101], chat\agenda::favourites((int)$ana->id));
         $book = external_api::clean_returnvalue(chat_agenda::execute_returns(), chat_agenda::execute(101, false));
         $this->assertSame([103], array_column($book['favourites'], 'contactid'));
+    }
+
+    /**
+     * The spend of WhatsApp and the sends to many on the home: only the people the site chose see it, they set the
+     * threshold and the budget, and whoever administers chooses them.
+     */
+    public function test_spend_on_the_home(): void {
+        $ana = $this->person('ana@example.com', 'Ana');
+        $luis = $this->person('luis@example.com', 'Luis');
+        $read = function (array $args = []) {
+            return external_api::clean_returnvalue(chat_spend::execute_returns(), chat_spend::execute(...$args));
+        };
+        // Only the people the site chose see it.
+        \local_oksigeniamarandu\local\spend::set_people([$ana->id]);
+        $this->setUser($luis);
+        try {
+            $read();
+            $this->fail('Luis was not chosen');
+        } catch (\required_capability_exception $e) {
+            $this->assertSame('nopermissions', $e->errorcode);
+        }
+        $this->setUser($ana);
+        $got = $read();
+        $this->assertSame([true, false, ['Ana'], 10.0, 0.0], [$got['canapprove'], $got['canchoose'],
+            array_column($got['approvers'], 'firstname'), $got['threshold'], $got['month']['budget']]);
+        // The threshold and the budget, with − and +; and choosing the people is for whoever administers.
+        $got = $read(['threshold', 0, 5.0]);
+        $this->assertSame(5.0, $got['threshold']);
+        $got = $read(['budget', 0, 20.0]);
+        $this->assertSame(20.0, $got['month']['budget']);
+        try {
+            $read(['people', 0, 0, '', [(int)$luis->id]]);
+            $this->fail('Ana does not administer the site');
+        } catch (\required_capability_exception $e) {
+            $this->assertSame('nopermissions', $e->errorcode);
+        }
     }
 
     /**

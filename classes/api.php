@@ -318,6 +318,71 @@ class api {
     }
 
     /**
+     * What a send to many would be before it goes, such as inviting every family of admissions: how many messages cost
+     * (WhatsApp outside the 24 hours), how many are free (WhatsApp inside them, Telegram), how many items nobody can get
+     * (not joined, or said no to your plugin), what it costs and whether it will wait for approval. Only whoever joined
+     * gets it.
+     *
+     * @param string $component Your plugin.
+     * @param string $notice The notice it sends, declared by your plugin.
+     * @param int[] $itemids The items.
+     * @param string $area The kind of item, if your plugin has more than one.
+     * @return array whatsapp, whatsappfree, telegram, skipped, cost, currency, category, approval (bool) and approvers
+     *               (names).
+     */
+    public static function bulk_quote(string $component, string $notice, array $itemids, string $area = ''): array {
+        return local\bulk::quote($component, $notice, $itemids, self::area($area));
+    }
+
+    /**
+     * Asks for a send to many: it goes now, by the usual queue and its quiet hours, unless it costs more than the
+     * threshold of the site or the month has no budget left; then it waits for whoever may approve it, who hears it in
+     * the bell and on Telegram. Your plugin hears the decision with the callback marandu_bulk_decided($id, $status,
+     * $userid) in its lib.php, or asks with bulk_state().
+     *
+     * @param string $component Your plugin.
+     * @param string $notice The notice it sends, declared by your plugin.
+     * @param array $items Each with itemid, params (the values of the notice), url (a moodle_url of this site, or null)
+     *                     and lang, as notify() takes them.
+     * @param int $userid Who asks for it.
+     * @param string $label What it is, for whoever approves it, such as «Invitation to the open day of 12 March».
+     * @param string $area The kind of item, if your plugin has more than one.
+     * @return array id and status: queued (it goes now) or pending (it waits for approval).
+     */
+    public static function bulk_request(
+        string $component,
+        string $notice,
+        array $items,
+        int $userid,
+        string $label,
+        string $area = ''
+    ): array {
+        return local\bulk::request($component, $notice, $items, $userid, $label, self::area($area));
+    }
+
+    /**
+     * How a send to many is.
+     *
+     * @param int $id The send.
+     * @return array status (pending, queued, rejected or cancelled), decidedby (a name), timedecided, sent (numbers and
+     *               chats it was queued for), whatsapp, telegram, skipped, cost and currency.
+     */
+    public static function bulk_state(int $id): array {
+        return local\bulk::state($id);
+    }
+
+    /**
+     * Takes back a send to many that still waits for approval.
+     *
+     * @param int $id The send.
+     * @param int $userid Who takes it back.
+     * @return bool Whether it was taken back: false if it was already decided.
+     */
+    public static function bulk_cancel(int $id, int $userid): bool {
+        return local\bulk::cancel($id, $userid);
+    }
+
+    /**
      * The numbers and chats that joined for an item, whatever they said since.
      *
      * @param string $component The plugin.
@@ -445,6 +510,7 @@ class api {
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @param string $lang The language to write it in, such as that of the family, if the site has its language pack (see
      *                     language()); a person who chose a language on Telegram gets theirs. Empty for theirs or the site's.
+     * @param string $only Only by this channel (whatsapp or telegram); empty for every one the notice goes by.
      * @return int How many numbers it was queued for.
      */
     public static function notify(
@@ -458,11 +524,22 @@ class api {
         int $validfor = 2 * DAYSECS,
         array $rich = [],
         string $area = '',
-        string $lang = ''
+        string $lang = '',
+        string $only = ''
     ): int {
+        global $DB;
         [$declared, $params] = self::prepare($component, $notice, $params);
         $area = self::area($area);
         $contactids = self::joined($component, $itemid, $userid, $area);
+        if ($only !== '' && $contactids) {
+            [$insql, $inparams] = $DB->get_in_or_equal(array_map('intval', $contactids), SQL_PARAMS_NAMED, 'c');
+            $contactids = $DB->get_fieldset_select(
+                consent::CONTACTS,
+                'id',
+                "id $insql AND channel = :only",
+                $inparams + ['only' => $only]
+            );
+        }
         return self::queue_for($contactids, $declared, $params, $url, $urgent, $validfor, $rich, $lang, $itemid, $area);
     }
 

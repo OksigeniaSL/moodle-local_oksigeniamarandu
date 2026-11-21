@@ -356,5 +356,49 @@
         <INDEX NAME="contactid-scope" UNIQUE="true" FIELDS="contactid, scope"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_bulk" COMMENT="A send to many at once asked by a plugin, with what it costs and its approval">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="The plugin that asked for it"/>
+        <FIELD NAME="area" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="The kind of item"/>
+        <FIELD NAME="notice" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="The notice it sends"/>
+        <FIELD NAME="label" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="What it is, for whoever approves it"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Who asked for it"/>
+        <FIELD NAME="whatsapp" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Messages that cost"/>
+        <FIELD NAME="telegram" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="skipped" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Items nobody of which can get it"/>
+        <FIELD NAME="cost" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="2"/>
+        <FIELD NAME="currency" TYPE="char" LENGTH="3" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="category" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="pending, queued, rejected or cancelled"/>
+        <FIELD NAME="decidedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Why it was rejected"/>
+        <FIELD NAME="onlyby" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Approved only by this channel"/>
+        <FIELD NAME="sent" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Numbers and chats it was queued for"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timedecided" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_bulkitem" COMMENT="What a send to many carries for each item">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="bulkid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="params" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The values of the notice, as JSON"/>
+        <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="bulkid" TYPE="foreign" FIELDS="bulkid" REFTABLE="local_oksigeniamarandu_bulk" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
   </TABLES>
 </XMLDB>

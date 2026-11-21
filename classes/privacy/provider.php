@@ -35,6 +35,7 @@ use local_oksigeniamarandu\external\chat_flag;
 use local_oksigeniamarandu\external\chat_prefs;
 use local_oksigeniamarandu\local\answers;
 use local_oksigeniamarandu\local\chat\agenda;
+use local_oksigeniamarandu\local\bulk;
 use local_oksigeniamarandu\local\chat\board;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
@@ -130,6 +131,12 @@ class provider implements
             'userid' => 'privacy:metadata:boardto:userid',
             'timeseen' => 'privacy:metadata:boardto:timeseen',
         ], 'privacy:metadata:boardto');
+        $collection->add_database_table(bulk::TABLE, [
+            'userid' => 'privacy:metadata:bulk:userid',
+            'decidedby' => 'privacy:metadata:bulk:decidedby',
+            'label' => 'privacy:metadata:bulk:label',
+            'timecreated' => 'privacy:metadata:bulk:timecreated',
+        ], 'privacy:metadata:bulk');
         $collection->add_database_table(reminders::TABLE, [
             'userid' => 'privacy:metadata:convrem:userid',
             'cwid' => 'privacy:metadata:convrem:cwid',
@@ -176,6 +183,8 @@ class provider implements
             || $DB->record_exists(reminders::TABLE, ['userid' => $userid])
             || $DB->record_exists(board::TABLE, ['authorid' => $userid])
             || $DB->record_exists(board::TO, ['userid' => $userid])
+            || $DB->record_exists(bulk::TABLE, ['userid' => $userid])
+            || $DB->record_exists(bulk::TABLE, ['decidedby' => $userid])
             || $DB->record_exists(message::TABLE, ['userid' => $userid])
             || $DB->record_exists(mirror::TABLE, ['passedby' => $userid])
         ) {
@@ -199,6 +208,8 @@ class provider implements
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . reminders::TABLE . '}', []);
         $userlist->add_from_sql('authorid', 'SELECT authorid FROM {' . board::TABLE . '}', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . board::TO . '}', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . bulk::TABLE . '}', []);
+        $userlist->add_from_sql('decidedby', 'SELECT decidedby FROM {' . bulk::TABLE . '} WHERE decidedby > 0', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . message::TABLE . '}', []);
         $userlist->add_from_sql('passedby', 'SELECT passedby FROM {' . mirror::TABLE . '} WHERE passedby > 0', []);
     }
@@ -273,6 +284,10 @@ class provider implements
             'reminders' => array_values(array_map(function ($one) {
                 return ['conversation' => (int)$one->cwid, 'day' => transform::datetime($one->remindat), 'reason' => $one->reason];
             }, $DB->get_records(reminders::TABLE, ['userid' => $userid], 'id'))),
+            'sends' => array_values(array_map(function ($one) use ($userid) {
+                return ['label' => $one->label, 'status' => $one->status, 'asked' => (int)$one->userid === (int)$userid,
+                    'time' => transform::datetime($one->timecreated)];
+            }, $DB->get_records_select(bulk::TABLE, 'userid = ? OR decidedby = ?', [$userid, $userid], 'id'))),
         ];
         if ($numbers || $reviewed || array_filter($conversations)) {
             writer::with_context($context)->export_data(
@@ -338,6 +353,8 @@ class provider implements
         $DB->delete_records(reminders::TABLE);
         $DB->delete_records(board::TO);
         $DB->delete_records(board::TABLE);
+        $DB->delete_records(bulk::ITEMS);
+        $DB->delete_records(bulk::TABLE);
         $DB->delete_records(message::TABLE);
         $DB->set_field_select(mirror::TABLE, 'passedby', 0, 'passedby > 0');
     }
@@ -387,6 +404,9 @@ class provider implements
         }
         $DB->delete_records(board::TABLE, ['authorid' => $userid]);
         $DB->delete_records(board::TO, ['userid' => $userid]);
+        // The sends to many stay, for the account of what was spent, without who asked for them or approved them.
+        $DB->set_field(bulk::TABLE, 'userid', 0, ['userid' => $userid]);
+        $DB->set_field(bulk::TABLE, 'decidedby', 0, ['decidedby' => $userid]);
         $DB->delete_records(message::TABLE, ['userid' => $userid]);
         $DB->set_field(mirror::TABLE, 'passedby', 0, ['passedby' => $userid]);
         foreach ($links as $link) {

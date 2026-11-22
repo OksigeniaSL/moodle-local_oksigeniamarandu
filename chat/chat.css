@@ -4269,7 +4269,7 @@
     }
 }
 
-/* «Entre el equipo» in Marandu's chat (Jujol, 21 Nov 2026): the team's own messages (person to person, and one per
+/* «Entre el equipo» in Marandu's chat: the team's own messages (person to person, and one per
    department) and the board (avisos each person marks «Visto»). Over the real chat.css; everything new is .eq-*.
    The team's colour is violet: never the blue of the families, the yellow of the notes or the amber and red of
    waiting. What is between the team sits on a violet surface with no paper pattern, so it can never be taken for a
@@ -5146,7 +5146,7 @@
     }
 }
 
-/* The category of an approved message and its rough price, at the foot of its card (Jujol, 21 Nov 2026): teal for
+/* The category of an approved message and its rough price, at the foot of its card: teal for
    utility, magenta for marketing, slate for authentication; never the amber and red of waiting, the violet of the
    team or the blue of the accent. The cards go from the cheapest to the dearest. */
 #mrd-chat {
@@ -5236,7 +5236,7 @@
     color: var(--tinta);
     font-size: 13.5px;
 }
-/* A decision that is respected, not an error: quiet and neutral, never the red of long waits (Jujol). */
+/* A decision that is respected, not an error: quiet and neutral, never the red of long waits. */
 #mrd-chat {
     --baja-fondo: #f1f2f4;
     --baja-filo: #6b7280;
@@ -5302,8 +5302,8 @@
     cursor: not-allowed;
 }
 
-/* The spend on WhatsApp and the approval of mass sendings, on the home panel of whoever sees everything (Jujol, 21 Nov
-   2026). Over the real chat.css; everything new is .gs-*. The categories keep their colours of the approved messages
+/* The spend on WhatsApp and the approval of mass sendings, on the home panel of whoever sees everything.
+   Over the real chat.css; everything new is .gs-*. The categories keep their colours of the approved messages
    (teal, magenta, slate); the budget never borrows the amber and red of waiting: it says it in words, with a line. */
 #mrd-chat {
     --cat-util: #0b6e68;
@@ -5900,7 +5900,7 @@
     cursor: default;
 }
 
-/* «¿Quién es?» in the sheet of a number without one (Jujol, 21 Nov 2026), over the real chat.css. Everything new is
+/* «¿Quién es?» in the sheet of a number without one, over the real chat.css. Everything new is
    .qf-*. The question goes first and is the decision; what follows depends on the answer. */
 
 /* The five answers, as rows to tap: an icon in the shape that answer will have in the lists (a circle for a family, a
@@ -6281,7 +6281,7 @@
 }
 
 /* ===================================================================================================================
-   The review of 21 Nov 2026 (Jujol's pieces for 0.52): yours first on the start, passing on and resolving with a way
+   The review of 21 Nov 2026 (the pieces for 0.52): yours first on the start, passing on and resolving with a way
    back, the prices in money, approving with a trace, and the search saying where it looked.
    =================================================================================================================== */
 

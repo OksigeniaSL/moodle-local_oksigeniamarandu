@@ -46,13 +46,13 @@ $capabilities = [
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => ['manager' => CAP_ALLOW],
     ],
-    // Use the conversations of the team. The door that matters is being a person of the account of Chatwoot with the
-    // same email: whoever is not one gets nothing.
+    // Use the conversations of the team. Nobody has it by default: the organisation gives it with a role of the site to
+    // the people of the account of Chatwoot (cli/chat.php --access-role), and whoever is not one gets nothing either.
     'local/oksigeniamarandu:chat' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes' => ['user' => CAP_ALLOW],
+        'archetypes' => [],
     ],
     // See every conversation, of every department.
     'local/oksigeniamarandu:chatall' => [

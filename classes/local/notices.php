@@ -414,12 +414,69 @@ class notices {
         if (!isset(self::SETTING[$channel]) || !isset(self::all()[$key]) || !self::allows(self::all()[$key], $channel)) {
             return;
         }
+        if ($channel === 'whatsapp' && $on) {
+            // Switched on by hand, a notice Meta counts as marketing is an exception the organisation wants: it stays.
+            $off = self::marketing_off();
+            if (isset($off[$key])) {
+                unset($off[$key]);
+                set_config('marketingoffnotices', json_encode($off), 'local_oksigeniamarandu');
+            }
+        }
+        self::turn($key, $channel, $on);
+    }
+
+    /**
+     * Switches a notice on or off for a channel, without anything else.
+     *
+     * @param string $key "component/notice".
+     * @param string $channel whatsapp or telegram.
+     * @param bool $on On or off.
+     */
+    private static function turn(string $key, string $channel, bool $on): void {
         $keys = array_diff(self::enabled($channel), [$key]);
         if ($on) {
             $keys[] = $key;
         }
         $keys = array_values(array_intersect(array_keys(self::all()), $keys));
         set_config(self::SETTING[$channel], implode(',', $keys), 'local_oksigeniamarandu');
+    }
+
+    /**
+     * The notices that stopped going by WhatsApp when Meta moved their template to marketing, with when.
+     *
+     * @return int[] By "component/notice".
+     */
+    public static function marketing_off(): array {
+        $off = json_decode((string)get_config('local_oksigeniamarandu', 'marketingoffnotices'), true);
+        return is_array($off) ? array_map('intval', $off) : [];
+    }
+
+    /**
+     * The template of a notice changed its category: one Meta counts as marketing stops going by WhatsApp, since it costs
+     * several times a utility one and many of them add up (setting marketingoff; the other channels go on), and one that
+     * stopped so goes again when a text of it comes back as utility. Whoever switches it on by hand keeps it.
+     *
+     * @param string $component The plugin.
+     * @param string $notice The notice.
+     * @param int|null $now The time.
+     */
+    public static function marketing_moved(string $component, string $notice, ?int $now = null): void {
+        if (!get_config('local_oksigeniamarandu', 'marketingoff')) {
+            return;
+        }
+        $key = $component . '/' . $notice;
+        $marketing = templates::is_marketing($component, $notice);
+        $off = self::marketing_off();
+        if ($marketing && !isset($off[$key]) && in_array($key, self::keys(self::SETTING['whatsapp']), true)) {
+            $off[$key] = $now ?? time();
+            self::turn($key, 'whatsapp', false);
+        } else if (!$marketing && isset($off[$key])) {
+            unset($off[$key]);
+            self::turn($key, 'whatsapp', true);
+        } else {
+            return;
+        }
+        set_config('marketingoffnotices', json_encode($off), 'local_oksigeniamarandu');
     }
 
     /**

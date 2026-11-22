@@ -82,8 +82,17 @@ final class chat_test extends \advanced_testcase {
      * An account with two departments, three people and three conversations.
      */
     protected function setUp(): void {
+        global $CFG;
         parent::setUp();
         $this->resetAfterTest();
+        // Nobody opens the chat by default: here every account may, and being a person of the account is what decides.
+        assign_capability(
+            'local/oksigeniamarandu:chat',
+            CAP_ALLOW,
+            $CFG->defaultuserroleid,
+            \context_system::instance()->id,
+            true
+        );
         set_config('chatwooturl', 'https://chat.example.com', 'local_oksigeniamarandu');
         set_config('chatwootaccount', 7, 'local_oksigeniamarandu');
         set_config('chatwoottoken', \core\encryption::encrypt('token'), 'local_oksigeniamarandu');
@@ -1149,7 +1158,7 @@ final class chat_test extends \advanced_testcase {
         $set = ['utility' => 0.0166, 'marketing' => 'x', 'currency' => 'USD'];
         set_config('chatprices', json_encode($set), 'local_oksigeniamarandu');
         $this->assertSame(
-            ['currency' => 'USD', 'utility' => 0.0166, 'marketing' => 0.06, 'authentication' => 0.03],
+            ['currency' => 'USD', 'utility' => 0.0166, 'marketing' => 0.06, 'authentication' => 0.03, 'service' => 0.02],
             templates::prices()
         );
     }

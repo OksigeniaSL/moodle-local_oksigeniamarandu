@@ -18,7 +18,7 @@ namespace local_oksigeniamarandu\local;
 
 /**
  * The confirmations of a person's channels: someone joins, changes channel or leaves, and the chat answers with a card
- * (the cards of Jujol, with the colour, the name and the logo of the organization) and a warm text below it. Without
+ * (the cards, with the colour, the name and the logo of the organization) and a warm text below it. Without
  * the cards (the site turned them off, or the server cannot draw them, or the language has letters the font has not),
  * the text goes alone.
  *

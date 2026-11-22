@@ -47,7 +47,10 @@ $ready = array_keys(array_filter(\local_oksigeniamarandu\api::channels(), functi
 $channels = $ready ?: ['whatsapp', 'telegram'];
 $families = $DB->count_records(consent::CONTACTS, ['status' => 'active', 'channel' => 'whatsapp']);
 $monthly = function (stdClass $notice) use ($families): float {
-    return $notice->perweek * 52 / 12 * max($families, 1) * queue::cost();
+    // At the price of its category, as Meta counts its template: a marketing one costs several times a utility one.
+    $category = templates::is_marketing($notice->component, $notice->notice) ? 'marketing' : 'utility';
+    $price = \local_oksigeniamarandu\local\chat\templates::prices()[$category] ?? queue::cost();
+    return $notice->perweek * 52 / 12 * max($families, 1) * $price;
 };
 $money = function (float $amount) use ($component): string {
     return get_string('panel:money', $component, format_float($amount, 2));
@@ -112,6 +115,7 @@ $PAGE->add_header_action($OUTPUT->render_from_template(
 
 // The notices by plugin, the plugins of the house first and Marandu's own at the end.
 $groups = [];
+$marketingoff = notices::marketing_off();
 foreach ($all as $key => $notice) {
     if (!isset($groups[$notice->component])) {
         $group = notices::group($notice->component);
@@ -133,9 +137,14 @@ foreach ($all as $key => $notice) {
             // Meta would refuse its text: it is for whoever makes the plugin to fix it.
             $note = get_string('notices:wrongtext', $component);
             $review = true;
+        } else if (isset($marketingoff[$key])) {
+            // Meta moved it to marketing and it stopped by itself; a text approved as utility brings it back.
+            $note = get_string('notices:marketingoff', $component, userdate($marketingoff[$key], '%d-%m'));
+            $review = true;
         } else if (templates::approved($notice)) {
-            $note = get_string('notices:cost', $component, $money($monthly($notice)));
-            $review = false;
+            $marketing = templates::is_marketing($notice->component, $notice->notice);
+            $note = get_string($marketing ? 'notices:costmarketing' : 'notices:cost', $component, $money($monthly($notice)));
+            $review = $marketing;
         } else {
             $note = get_string(templates::get($notice, $CFG->lang) ? 'notices:review' : 'notices:notext', $component);
             $review = true;

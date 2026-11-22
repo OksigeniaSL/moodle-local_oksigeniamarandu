@@ -151,6 +151,10 @@ final class bulk_test extends \advanced_testcase {
         // Whoever the site chose hears it; whoever sees every conversation, not.
         $watcher = $this->getDataGenerator()->create_user();
         $other = $this->getDataGenerator()->create_user();
+        // The spend is a page of the chat: whoever watches it opens the chat, by its role.
+        $chatrole = $this->getDataGenerator()->create_role();
+        assign_capability('local/oksigeniamarandu:chat', CAP_ALLOW, $chatrole, \context_system::instance());
+        role_assign($chatrole, $watcher->id, \context_system::instance());
         $role = $this->getDataGenerator()->create_role();
         assign_capability('local/oksigeniamarandu:chatall', CAP_ALLOW, $role, \context_system::instance());
         role_assign($role, $other->id, \context_system::instance());

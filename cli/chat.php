@@ -28,6 +28,7 @@ define('CLI_SCRIPT', true);
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 
+use local_oksigeniamarandu\local\chat\access;
 use local_oksigeniamarandu\local\chat\connection;
 use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\hours;
@@ -48,6 +49,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'prices' => null,
     'start-templates' => null,
     'templates-info' => null,
+    'access-role' => null,
     'sync' => false,
     'sync-all' => false,
     'rebuild' => false,
@@ -83,11 +85,15 @@ Options:
 --team-names=JSON      The name to show of each department, by its name in Chatwoot, which keeps them in small letters:
                        {\"dirección de eso\": \"Dirección de ESO\"}. Without one, its first letter in capitals.
 --prices=JSON          What a message of each category costs, for the cards of the approved messages, cheapest first:
-                       {\"currency\": \"EUR\", \"utility\": 0.02, \"marketing\": 0.06, \"authentication\": 0.03}.
+                       {\"currency\": \"EUR\", \"utility\": 0.02, \"marketing\": 0.06, \"authentication\": 0.03,
+                       \"service\": 0.02}; service, a plain text past the 1,000 free of the month of a number.
 --start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
                        separated: they go first when a person starts a conversation.
 --templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title,
                        description and, optionally, gaps, what goes in each gap by its key ({\"2\": \"the reason\"}).
+--access-role[=ROLE]   Only the people of the account open the chat: gives them this role of the site (its short
+                       name; without it, the role of the plugin, made if missing), from now on also to whoever joins
+                       the account, and takes the capability away from the role of every authenticated user.
 --sync                 Fills the index with the conversations of the last month now.
 --sync-all             Fills the index with every conversation of the inboxes, whenever it was: after bringing a
                        history into Chatwoot (import_history.rb), which never comes by the webhook.
@@ -133,6 +139,12 @@ try {
         mtrace('Connected: ' . $counts['agents'] . ' users of the account, ' . $counts['teams'] . ' departments, ' .
             $counts['inboxes'] . ' inboxes' .
             (empty($env['CHATWOOT_PLATFORM_TOKEN']) ? ', without platform app.' : ', with platform app.'));
+        if (!access::role()) {
+            // Nobody opens the chat but its people: the role of the plugin, given to them now and to whoever joins.
+            $role = access::choose();
+            $done = access::sync();
+            mtrace('Access to the chat: by the role ' . $role->shortname . ', given to ' . $done['given'] . ' people.');
+        }
     } else if ($options['inboxes'] !== null) {
         set_config(
             'chatwootinboxes',
@@ -219,6 +231,13 @@ try {
         set_config('chattemplatesinfo', $info ? json_encode($info, JSON_UNESCAPED_UNICODE) : '', $component);
         mtrace('Approved messages described: ' . count($info));
     }
+    if ($options['access-role'] !== null) {
+        $role = access::choose($options['access-role'] === true ? '' : trim((string)$options['access-role']));
+        $done = access::sync();
+        $closed = access::close();
+        mtrace('Access to the chat: by the role ' . $role->shortname . '; given to ' . $done['given'] . ' people' .
+            ($closed ? '; taken away from ' . $closed . ' roles of every account' : ''));
+    }
     if ($options['webhook']) {
         mtrace('Webhook: ' . connection::webhook());
     }
@@ -239,6 +258,16 @@ try {
         $automatic = count(directory::agents()) - count(directory::people());
         mtrace('People: ' . count(directory::people()) . ($automatic ? ' (and ' . $automatic . ' automatic users)' : '') .
             '; departments: ' . count(directory::teams()));
+        $role = access::role();
+        $open = access::open_roles();
+        mtrace('Access to the chat: ' . ($role ? 'by the role ' . $role->shortname : 'no role chosen (--access-role)') .
+            ($open ? '; OPEN TO EVERY ACCOUNT by ' . implode(', ', array_column($open, 'shortname')) : ''));
+        foreach (access::missing() as $one) {
+            mtrace('  Cannot open the chat: ' . $one['agent']['name'] . ' <' . $one['agent']['email'] . '>');
+        }
+        foreach (access::unmatched() as $agent) {
+            mtrace('  No user of the site with the email of: ' . $agent['name'] . ' <' . $agent['email'] . '>');
+        }
         $hours = hours::of_site()->export();
         mtrace('Hours: ' . ($hours['enabled'] ? $hours['timezone'] : 'always open') . '; closed days ahead: ' .
             count(array_filter($hours['closed'], function ($day) {
@@ -246,11 +275,13 @@ try {
             })));
         mtrace('Index: ' . $GLOBALS['DB']->count_records(mirror::TABLE) . ' conversations; last pass ' .
             (empty($config->chatsynced) ? 'never' : userdate((int)$config->chatsynced)));
-        $approved = \local_oksigeniamarandu\local\chat\templates::all();
+        $approved = \local_oksigeniamarandu\local\chat\templates::usable();
         $first = array_column(array_filter($approved, function ($one) {
             return $one['start'];
         }), 'name');
+        $hidden = count(\local_oksigeniamarandu\local\chat\templates::all()) - count($approved);
         mtrace('Approved messages: ' . count($approved) . ($first ? ' (to start with: ' . implode(', ', $first) . ')' : '') .
+            ($hidden ? '; not offered, being marketing: ' . $hidden : '') .
             '; waiting for Meta: ' . \local_oksigeniamarandu\local\chat\templates::pending());
     }
 } catch (\moodle_exception $e) {

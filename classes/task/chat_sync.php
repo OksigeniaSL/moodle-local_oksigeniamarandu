@@ -58,6 +58,11 @@ class chat_sync extends \core\task\scheduled_task {
                 if ($back) {
                     mtrace('Conversations back on their day: ' . $back);
                 }
+                // Whoever joined the account gets the role of the chat; whoever left it, loses the one given here.
+                $access = \local_oksigeniamarandu\local\chat\access::sync();
+                if ($access['given'] || $access['taken']) {
+                    mtrace('Access to the chat given: ' . $access['given'] . '; taken: ' . $access['taken']);
+                }
             }
         } finally {
             $lock->release();

@@ -40,6 +40,7 @@ use local_oksigeniamarandu\local\telegram_api;
     'org-of' => null,
     'confirm-cards' => null,
     'spend-people' => null,
+    'marketing-off' => null,
     'status' => false,
 ], ['h' => 'help']);
 
@@ -48,7 +49,8 @@ if ($unrecognised) {
 }
 
 $nothing = $options['telegram-token-file'] === '' && $options['whatsapp-number'] === '' && $options['notices'] === ''
-    && $options['org-of'] === null && $options['confirm-cards'] === null && $options['spend-people'] === null;
+    && $options['org-of'] === null && $options['confirm-cards'] === null && $options['spend-people'] === null
+    && $options['marketing-off'] === null;
 if ($options['help'] || ($nothing && !$options['status'])) {
     echo "Sets up Oksigenia Marandu on this site.
 
@@ -59,7 +61,8 @@ Options:
 --whatsapp-number=ID        Moves WhatsApp to another number of the same account and token: its phone number id.
                             Checks it with Meta, keeps the number it has (the links to join follow it), closes the
                             24 hours of everyone (they were with the other number) and reads the templates again.
---notices=PLUGINS           Switches on every notice of these plugins (comma separated, or all), for --channels.
+--notices=PLUGINS           Switches on every notice of these plugins (comma separated, or all), for --channels; a
+                            single notice as component/notice.
 --channels=CHANNELS         telegram, whatsapp or both (comma separated). Default: telegram.
 --org-of=TEXT               The name of the organization inside a sentence of the confirmations, in the language of
                             the site, such as \"del Colegio Monte Lirio\"; empty for the plain way.
@@ -67,6 +70,9 @@ Options:
                             default) or as the short text of before (0).
 --spend-people=USERS        Who sees what WhatsApp costs and approves the sends to many: user ids, usernames or emails,
                             comma separated; empty for whoever has local/oksigeniamarandu:bulkapprove.
+--marketing-off=0|1         What Meta counts as marketing, by WhatsApp: it stops when Meta moves a template there and
+                            comes back when a text of it is approved as utility, and the chat does not offer those
+                            messages (1, the default); or it goes on as before (0). Telegram does not change.
 --status                    Shows the channels and the notices on.
 -h, --help                  This help.
 
@@ -129,6 +135,11 @@ try {
             'fullname',
             \local_oksigeniamarandu\local\spend::people()
         )) ?: 'nobody') . '.');
+    }
+    if ($options['marketing-off'] !== null) {
+        $on = !empty($options['marketing-off']);
+        set_config('marketingoff', $on ? 1 : 0, 'local_oksigeniamarandu');
+        mtrace('What Meta counts as marketing, by WhatsApp: ' . ($on ? 'not' : 'yes, as before') . '.');
     }
     if ($options['status']) {
         foreach (setup::status() as $line) {

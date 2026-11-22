@@ -29,7 +29,7 @@
  * @return bool
  */
 function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
-    global $DB;
+    global $CFG, $DB;
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2026102201) {
@@ -459,6 +459,32 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
             }
         }
         upgrade_plugin_savepoint(true, 2026121500, 'local', 'oksigeniamarandu');
+    }
+
+    if ($oldversion < 2026122200) {
+        // What Meta counts as marketing stops going by WhatsApp: the rule applies once to what is in marketing now. Those
+        // on by WhatsApp go off, and those already taken off it by hand (off by WhatsApp, on by Telegram) are written down
+        // too, so that all of them go again by themselves when a text of theirs is approved as utility. An exception is
+        // switched on again by hand (cli/setup.php --notices=<component/notice> --channels=whatsapp).
+        $split = function ($value): array {
+            return array_values(array_filter(array_map('trim', explode(',', (string)$value))));
+        };
+        $whatsapp = $split(get_config('local_oksigeniamarandu', 'enablednotices'));
+        $telegram = $split(get_config('local_oksigeniamarandu', 'telegramnotices'));
+        $off = [];
+        $records = $DB->get_records('local_oksigeniamarandu_tpl', ['category' => 'marketing', 'status' => 'approved',
+            'lang' => $CFG->lang]);
+        foreach ($records as $record) {
+            $key = $record->component . '/' . $record->notice;
+            if (in_array($key, $whatsapp, true) || in_array($key, $telegram, true)) {
+                $off[$key] = time();
+            }
+        }
+        if ($off && get_config('local_oksigeniamarandu', 'marketingoffnotices') === false) {
+            set_config('enablednotices', implode(',', array_diff($whatsapp, array_keys($off))), 'local_oksigeniamarandu');
+            set_config('marketingoffnotices', json_encode($off), 'local_oksigeniamarandu');
+        }
+        upgrade_plugin_savepoint(true, 2026122200, 'local', 'oksigeniamarandu');
     }
 
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.

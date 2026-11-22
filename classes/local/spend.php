@@ -134,7 +134,7 @@ class spend {
             foreach (self::people() as $user) {
                 $message = new \core\message\message();
                 $message->component = self::COMPONENT;
-                $message->name = 'chat';
+                $message->name = 'spend';
                 $message->userfrom = \core_user::get_noreply_user();
                 $message->userto = $user;
                 $message->subject = $subject;

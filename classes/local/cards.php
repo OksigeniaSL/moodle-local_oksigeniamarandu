@@ -17,7 +17,7 @@
 namespace local_oksigeniamarandu\local;
 
 /**
- * The cards of the posts of the channel, made on the server from the templates of the house (cards/<type>/, by Gaudí):
+ * The cards of the posts of the channel, made on the server from the templates of the house (cards/<type>/):
  * a still one with GD and an animated one with ffmpeg, in the colour and with the name of the organization. The text
  * never goes over the drawing; it shrinks to fit and ends in «…» if it still does not.
  *
@@ -1253,7 +1253,7 @@ class cards {
     }
 
     /**
-     * Sticks the logo of the site on a card (Jujol): a label of paper, outlined in ink, with a short hard shadow, over the
+     * Sticks the logo of the site on a card: a label of paper, outlined in ink, with a short hard shadow, over the
      * bottom-right corner of the scene, its size by its area so that a long logo and a square one weigh the same. On a
      * logo for dark backgrounds the label goes in the accent. Without a logo, the card stays as it was.
      *

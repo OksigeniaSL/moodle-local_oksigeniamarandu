@@ -17,7 +17,7 @@
 namespace local_oksigeniamarandu\local;
 
 /**
- * The gestures of the settings without the look of a form (Jujol): an hour as a plate with half an hour less and more,
+ * The gestures of the settings without the look of a form: an hour as a plate with half an hour less and more,
  * a number with one less and one more, and where a span of the day falls on the ruler of the 24 hours. The page of
  * the channel and the quiet hours and limits use them (templates channel_plate, channel_stepper and channel_day).
  *

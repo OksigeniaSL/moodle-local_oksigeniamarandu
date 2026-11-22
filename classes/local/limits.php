@@ -46,7 +46,7 @@ class limits {
         }
     }
 
-    /** @var string[] The cards of the page, each saved on its own (Jujol): the quiet, the notices a day, the urgent, the money. */
+    /** @var string[] The cards of the page, each saved on its own: the quiet, the notices a day, the urgent, the money. */
     public const PARTS = ['quiet', 'perday', 'urgent', 'money'];
 
     /**

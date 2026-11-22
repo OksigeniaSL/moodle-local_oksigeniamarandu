@@ -1438,7 +1438,7 @@
     font-weight: 700;
 }
 
-/* Opting out by hand (Jujol): how they asked, a button for each way that opts out at a touch, and another reason folded,
+/* Opting out by hand: how they asked, a button for each way that opts out at a touch, and another reason folded,
    with what it was written. The first button of the form takes the Enter of that field; nobody sees it. */
 .local-oksigeniamarandu-panel .mrd-default {
     position: absolute;
@@ -5540,7 +5540,7 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     border: 1px solid var(--mrd-line);
 }
 
-/* The settings without the look of a form (Jujol): the channel, the quiet hours and the limits. Every setting is a
+/* The settings without the look of a form: the channel, the quiet hours and the limits. Every setting is a
    gesture and saves itself. The time of review in amber, as the hourglass of the review; the channel in the blue of Telegram, the
    same on every site, because it says which channel it is. */
 .local-oksigeniamarandu-wizard {
@@ -6489,7 +6489,7 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     }
 }
 
-/* The quiet hours and the limits (Jujol): the week as seven rulers, the quiet hours dark as the night, and the name of
+/* The quiet hours and the limits: the week as seven rulers, the quiet hours dark as the night, and the name of
    each day the switch that quiets it whole; the notices a day as bubbles on a phone; the money with its gauge. */
 .local-oksigeniamarandu-wizard .mrd-limites {
     display: block;

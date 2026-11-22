@@ -122,7 +122,27 @@ class templates {
         } else {
             $DB->update_record(self::TABLE, $record);
         }
+        notices::marketing_moved($record->component, $record->notice);
         return $record;
+    }
+
+    /**
+     * Whether Meta counts the template of a notice as marketing: the one in the language of the site, or else any.
+     *
+     * @param string $component The plugin.
+     * @param string $notice The notice.
+     * @return bool
+     */
+    public static function is_marketing(string $component, string $notice): bool {
+        global $CFG, $DB;
+        $records = $DB->get_records(self::TABLE, ['component' => $component, 'notice' => $notice], 'id ASC');
+        foreach ($records as $record) {
+            if ($record->lang === $CFG->lang) {
+                return $record->category === 'marketing';
+            }
+        }
+        $record = reset($records);
+        return $record ? $record->category === 'marketing' : false;
     }
 
     /**
@@ -321,6 +341,7 @@ class templates {
         $template->nextbody = null;
         $template->timemodified = time();
         $DB->update_record(self::TABLE, $template);
+        notices::marketing_moved($template->component, $template->notice);
     }
 
     /**
@@ -404,6 +425,9 @@ class templates {
                 $record->timemodified = time();
                 $DB->update_record(self::TABLE, $record);
                 $changed = true;
+                if ($before[1] !== $record->category) {
+                    notices::marketing_moved($record->component, $record->notice);
+                }
             }
         }
         // The template that will replace another one: approved, it takes its place.

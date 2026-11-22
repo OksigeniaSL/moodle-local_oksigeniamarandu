@@ -37,6 +37,17 @@ $messageproviders = [
             'oksigeniamarandu' => MESSAGE_DISALLOWED,
         ],
     ],
+    // What WhatsApp costs and the sends to many: one that waits for your approval, how the one you asked for ended, the
+    // budget of the month passed. Without the capability of the chat: whoever asks for a send may not attend it.
+    'spend' => [
+        'defaults' => [
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED,
+            // By Telegram the approval goes as a question of its own, with its buttons.
+            'oksigeniamarandu' => MESSAGE_DISALLOWED,
+        ],
+    ],
     // A number or a chat joined to your account: if it was not you, you know at once. Never by that same chat.
     'newchat' => [
         'defaults' => [

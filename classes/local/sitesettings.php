@@ -43,6 +43,9 @@ class sitesettings {
             'optinkeywords' => keywords::DEFAULT_OPTIN,
             'optoutkeywords' => keywords::DEFAULT_OPTOUT,
             'usefamily' => 1,
+            // What Meta moves to marketing stops going by WhatsApp (notices::marketing_moved()), and the chat does not
+            // offer it: it costs several times a utility message. cli/setup.php --marketing-off=0 leaves it going.
+            'marketingoff' => 1,
         ];
     }
 

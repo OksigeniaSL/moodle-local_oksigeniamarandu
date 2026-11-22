@@ -148,6 +148,46 @@ final class templates_test extends \advanced_testcase {
     }
 
     /**
+     * A notice whose template Meta moves to marketing stops going by WhatsApp, and goes again when it comes back as
+     * utility; one the organisation switches on by hand stays.
+     */
+    public function test_marketing_stops_whatsapp(): void {
+        $this->resetAfterTest();
+        set_config('marketingoff', 1, 'local_oksigeniamarandu');
+        $key = 'local_oksigeniamarandu/notification';
+        $name = 'mrd_local_oksigeniamarandu_notification';
+        templates::sync($this->meta(), 'waba1');
+        notices::set($key, 'whatsapp', true);
+        notices::set($key, 'telegram', true);
+
+        // Moved to marketing: off by WhatsApp, on by Telegram, and written down.
+        $this->assertTrue(templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING'));
+        $this->assertNotContains($key, notices::enabled('whatsapp'));
+        $this->assertContains($key, notices::enabled('telegram'));
+        $this->assertArrayHasKey($key, notices::marketing_off());
+        // Said again, nothing more.
+        $this->assertFalse(templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING'));
+
+        // Back as utility: on again by itself.
+        templates::update_from_meta($name, 'en', 'APPROVED', 'UTILITY');
+        $this->assertContains($key, notices::enabled('whatsapp'));
+        $this->assertSame([], notices::marketing_off());
+
+        // Switched on by hand while in marketing, it stays: an exception of the organisation.
+        templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING');
+        notices::set($key, 'whatsapp', true);
+        $this->assertSame([], notices::marketing_off());
+        templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING');
+        $this->assertContains($key, notices::enabled('whatsapp'));
+
+        // An organisation that lets marketing go: nothing changes.
+        set_config('marketingoff', 0, 'local_oksigeniamarandu');
+        templates::update_from_meta($name, 'en', 'APPROVED', 'UTILITY');
+        templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING');
+        $this->assertContains($key, notices::enabled('whatsapp'));
+    }
+
+    /**
      * A template Meta moved to marketing keeps that category: its new text goes as a new template, under the name with
      * _2, and the old one goes on sending meanwhile; once Meta approves the new one, it takes its place and the old one is
      * deleted in the next run.

@@ -66,7 +66,7 @@ class chat_extras extends chat_base {
         foreach (directory::teams() as $team) {
             $teams[] = $team + ['mine' => in_array($team['id'], $viewer->teams)];
         }
-        return ['canned' => directory::canned(), 'templates' => templates::all(), 'pending' => templates::pending(),
+        return ['canned' => directory::canned(), 'templates' => templates::usable(), 'pending' => templates::pending(),
             'people' => $people, 'teams' => $teams];
     }
 

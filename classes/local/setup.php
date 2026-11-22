@@ -58,7 +58,8 @@ class setup {
     /**
      * Switches on, for each channel given, every notice that the plugins given declare.
      *
-     * @param string[] $components The plugins, as local_oksigeniaeguahe; all for every plugin.
+     * @param string[] $components The plugins, as local_oksigeniaeguahe; all for every plugin; or one notice, as
+     *                             local_oksigeniaeguahe/act_invitation.
      * @param string[] $channels whatsapp, telegram or both.
      * @return string[] The notices switched on, as component/notice.
      * @throws \moodle_exception If a channel is not one, or a plugin declares no notices.
@@ -74,6 +75,11 @@ class setup {
             return $notice->component;
         }, $all));
         $every = in_array('all', $components, true);
+        // One notice by itself, as component/notice: such as the exception to what Meta counts as marketing.
+        $single = array_values(array_filter($components, function ($one) use ($all) {
+            return isset($all[$one]);
+        }));
+        $components = array_diff($components, $single);
         if (!$every) {
             foreach ($components as $component) {
                 if (!in_array($component, $declaring, true)) {
@@ -84,8 +90,8 @@ class setup {
                 }
             }
         }
-        $keys = array_keys(array_filter($all, function ($notice) use ($every, $components) {
-            return $every || in_array($notice->component, $components, true);
+        $keys = array_keys(array_filter($all, function ($notice) use ($every, $components, $single) {
+            return $every || in_array($notice->component, $components, true) || in_array($notice->key, $single, true);
         }));
         foreach ($channels as $channel) {
             foreach ($keys as $key) {
@@ -161,6 +167,9 @@ class setup {
             $on = array_values(array_intersect(notices::enabled($channel), array_keys(notices::all())));
             $lines[] = $line . '; notices on: ' . ($on ? implode(', ', $on) : 'none');
         }
+        $off = notices::marketing_off();
+        $lines[] = 'Marketing by WhatsApp: ' . (get_config('local_oksigeniamarandu', 'marketingoff') ? 'not' : 'yes') .
+            ($off ? '; stopped when Meta moved them: ' . implode(', ', array_keys($off)) : '');
         return $lines;
     }
 }

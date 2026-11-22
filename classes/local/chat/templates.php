@@ -62,6 +62,21 @@ class templates {
     }
 
     /**
+     * The approved messages the team may send: without those Meta counts as marketing, unless the organisation lets them
+     * go (setting marketingoff), since each costs several times a utility one.
+     *
+     * @return array As all() gives them.
+     */
+    public static function usable(): array {
+        if (!get_config('local_oksigeniamarandu', 'marketingoff')) {
+            return self::all();
+        }
+        return array_values(array_filter(self::all(), function ($template) {
+            return strtoupper((string)$template['category']) !== 'MARKETING';
+        }));
+    }
+
+    /**
      * The approved messages the organisation uses to write first to someone who never wrote (setting
      * chatstarttemplates): they go first when a person starts a conversation.
      *
@@ -111,7 +126,7 @@ class templates {
      * @return array|null
      */
     public static function find(string $name, string $language): ?array {
-        foreach (self::all() as $template) {
+        foreach (self::usable() as $template) {
             $same = \core_text::strtolower($template['language']) === \core_text::strtolower($language);
             if ($template['name'] === $name && $same) {
                 return $template;
@@ -166,13 +181,14 @@ class templates {
     }
 
     /** What a message of each category costs when the centre does not say: rough figures, to check with Meta. */
-    public const PRICES = ['currency' => 'EUR', 'utility' => 0.02, 'marketing' => 0.06, 'authentication' => 0.03];
+    public const PRICES = ['currency' => 'EUR', 'utility' => 0.02, 'marketing' => 0.06, 'authentication' => 0.03,
+        'service' => 0.02];
 
     /**
      * What a message of each category costs, as the centre set it (cli/chat.php --prices), for the cards of the
      * approved messages.
      *
-     * @return array currency, utility, marketing and authentication.
+     * @return array currency, utility, marketing, authentication and service (a plain text past the free ones of the month).
      */
     public static function prices(): array {
         $set = json_decode((string)get_config('local_oksigeniamarandu', 'chatprices'), true);

@@ -3616,7 +3616,7 @@
             renderComposer();
         }
         /* ---------------------------------------------------------------------------------------------------------------
-           What WhatsApp costs this month and the sends to many that wait for approval (Jujol's mock-up): only for the
+           What WhatsApp costs this month and the sends to many that wait for approval (its mock-up): only for the
            people the site chose, and for whoever administers, who chooses them. From chat_spend, every five minutes.
            --------------------------------------------------------------------------------------------------------------- */
         function loadSpend(args) {
@@ -3940,7 +3940,8 @@
             h += '<div class="gs-cats">' + ['utility', 'marketing', 'service', 'authentication'].filter(function (k) {
                 return k !== 'authentication' || (cat[k] && cat[k].count);
             }).map(function (k) {
-                var c = cat[k] || { count: 0, cost: 0 }, free = k === 'service';
+                // Plain replies are free up to a thousand a month by number (Meta, since October 2026); past them, their cost.
+                var c = cat[k] || { count: 0, cost: 0 }, free = k === 'service' && !(c.cost > 0);
                 return '<div><i style="background:var(--cat-' + (free ? 'srv' : GS_CAT[k]) + ')"></i><span>' + esc(s('cat' + k)) +
                     (free ? ' <small>· ' + esc(s('gsfreelow')) + '</small>' : '') + '</span><span class="gs-n">' + esc(free ? String(c.count) : s('gsmessages', c.count)) + '</span><span class="gs-e">' +
                     esc(free ? s('gsfree') : gsMoney(c.cost, cur)) + '</span></div>';
@@ -5553,7 +5554,7 @@
             }).join('') + '</div>';
         }
         /* «Who is it?»: several marks at once, as labels (a teacher can also be the mother of a pupil), each with what it
-           needs written under it, and the face it has in the lists among the marked ones (Jujol's mock-up). The family
+           needs written under it, and the face it has in the lists among the marked ones (its mock-up). The family
            of the records comes by itself and is not unmarked here. */
         var QF = [['family', 'casa', true], ['staff', 'gafete', false], ['supplier', 'caja', false], ['alumni', 'birrete', true],
             ['other', 'lapiz', false]];

@@ -46,8 +46,17 @@ final class chat_review_test extends \advanced_testcase {
      * A Chatwoot of made-up people and conversations, never called.
      */
     protected function setUp(): void {
+        global $CFG;
         parent::setUp();
         $this->resetAfterTest();
+        // Nobody opens the chat by default: here every account may, and being a person of the account is what decides.
+        assign_capability(
+            'local/oksigeniamarandu:chat',
+            CAP_ALLOW,
+            $CFG->defaultuserroleid,
+            \context_system::instance()->id,
+            true
+        );
         set_config('chatwooturl', 'https://chat.example.com', 'local_oksigeniamarandu');
         set_config('chatwootaccount', 7, 'local_oksigeniamarandu');
         set_config('chatwoottoken', \core\encryption::encrypt('token'), 'local_oksigeniamarandu');

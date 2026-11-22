@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.54.0 (2026-11-22)
+
+- Nobody opens the conversations by default: the capability `local/oksigeniamarandu:chat` no longer goes to every
+  authenticated user. A role of the site gives it to the people of the account of Chatwoot with an account on the site
+  (the role of the plugin, «Conversations team», made when connecting; or one of the organisation with
+  `cli/chat.php --access-role=<short name>`, which also takes the capability away from every account). Whoever joins
+  the account gets it within a minute, and whoever leaves loses the one given so. `--status` names who cannot open the
+  chat and who has no account with that email.
+- What Meta counts as marketing stops going by WhatsApp: when Meta moves the template of a notice there, the notice
+  goes off for WhatsApp by itself (it goes on by Telegram), and comes back when a text of it is approved as utility.
+  One switched on again by hand stays. «Which notices go out» says it, with the price of each category. The approved
+  messages in marketing are not offered in the conversations either («New», «Pick up again»). `cli/setup.php
+  --marketing-off=0` leaves everything as before.
+- What WhatsApp costs this month, for the monthly limit: each template at the price of its category, the plain texts
+  inside the 24 hours past the 1,000 Meta gives free each month to a number (since October 2026, when Meta also started
+  charging utility templates inside the 24 hours), and Meta's own figure for the month when it is higher. The spend
+  shows the service messages with their cost once they have one.
+- The notices of the spend and of the sends to many (one waiting for approval, how the one asked for ended, the budget
+  passed) go by a provider of their own, «WhatsApp spend and sends to many»: whoever asks for a send from another plugin
+  may not open the chat.
+- On updating, the rule applies once to what is in marketing now; an exception is switched on again with
+  `cli/setup.php --notices=<component/notice> --channels=whatsapp`, which now also takes a single notice.
+- The general notice in Spanish without addressing anyone as «tú»: «Aviso de {{1}}: «{{2}}». Se puede leer entero en
+  el enlace.»
+- The names of who drew or reviewed each piece, out of the code and of this file.
+
 ## 0.53.1 (2026-11-21)
 
 - The guide «Attend» with the messages of the team (16 pages): «Messages of the team», «Writing to somebody», the board
@@ -111,20 +137,20 @@ Fixes:
 
 ## 0.50.1 (2026-11-21)
 
-- «May be the same family» once: its block, not a hint in the row of the family as well (Jujol).
+- «May be the same family» once: its block, not a hint in the row of the family as well.
 
 ## 0.50.0 (2026-11-21)
 
 - «Who is it?» with several marks at once (family, staff, supplier, former pupil, other): each with the line it needs
   (what they do, what they offer and their company, their year, what they are for the centre), written where it is
   read and kept by itself; the face in the lists, the first marked or the one chosen; the family of the records comes
-  by itself. The lists, the header of the file and the address book show every mark (Jujol's mock-up).
+  by itself. The lists, the header of the file and the address book show every mark.
 - A change of a contact made in Chatwoot itself reaches the conversations of it, by its webhook.
 
 ## 0.49.1 (2026-11-21)
 
 - Choosing who sees the spend and approves keeps each touch by itself, says who sees it now, and never leaves it to
-  nobody; «Done» folds it (Jujol).
+  nobody; «Done» folds it.
 - Why a send waits comes from the same figure as the bar: the budget spent already, or spent with this send.
 - The − and + of the plates of hours and of the steps, drawn instead of letters, so that they sit in the middle.
 
@@ -145,7 +171,7 @@ Fixes:
 
 ## 0.48.1 (2026-11-21)
 
-- The label of the card of leaving, shorter so that it keeps its size: «Para volver, escríbannos» (Jujol).
+- The label of the card of leaving, shorter so that it keeps its size: «Para volver, escríbannos».
 
 ## 0.48.0 (2026-11-21)
 
@@ -304,7 +330,7 @@ Fixes:
 
 ## 0.32.0 (2026-11-13)
 
-- The page of the channel without a form, by Jujol: each card saves itself at a touch, and with JavaScript changes in
+- The page of the channel without a form: each card saves itself at a touch, and with JavaScript changes in
   its place. «What goes to the channel» saves each kind as it is touched (before, it waited for «Save changes»). «The day
   of the channel» draws the 24 hours with the time of review, that of the channel and the posts of a busy day; hours are
   plates with half an hour less and more, days are sheets of a calendar, the gap between two posts is a row of chips.
@@ -338,7 +364,7 @@ Fixes:
 
 ## 0.28.0 (2026-11-08)
 
-- Two cards more, by Jujol: the weather warning (its level in a badge of its own colour, the times of the episode and the
+- Two cards more: the weather warning (its level in a badge of its own colour, the times of the episode and the
   areas) and the work of a class (the photo hung whole from the line of the class with two pegs, the title and the
   group). The weather warnings and the work of a class go with them, still and animated.
 - «What goes to the channel»: a kind without a card has the picture of a message instead of an empty box.
@@ -350,7 +376,7 @@ Fixes:
 
 ## 0.27.0 (2026-11-08)
 
-- The page of the channel, after the review of Jujol: what waits for a review shows the card it will have (larger at a
+- The page of the channel, after its review: what waits for a review shows the card it will have (larger at a
   touch; above its buttons on a phone); each kind of «What goes to the channel» has its card, small, with the colour of
   the organization; a bar to save appears as soon as something changes, and the browser asks before leaving with changes
   not saved; the hours do not break on a phone and the days go below; the marks of the links show only when they are

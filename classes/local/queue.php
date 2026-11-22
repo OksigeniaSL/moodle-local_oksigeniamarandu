@@ -19,8 +19,9 @@ namespace local_oksigeniamarandu\local;
 /**
  * The queue of notices: each one waits for its template, the quiet hours and the limits of the site, and then goes out.
  *
- * Inside the 24 hours after a family last wrote, the notice goes as plain text, which is free; outside, with its
- * template, which Meta charges. Nothing goes to a number that has not opted in, nor after the monthly limit.
+ * Inside the 24 hours after a family last wrote, the notice goes as plain text, which is free up to a thousand a month
+ * by number (a template costs there too since October 2026); outside, with its template, which Meta charges. Nothing
+ * goes to a number that has not opted in, nor after the monthly limit.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -38,6 +39,9 @@ class queue {
 
     /** What a template costs when the site does not say, in euros: a guess, to be checked with the prices of Meta. */
     public const DEFAULT_COST = 0.02;
+
+    /** The plain texts a number may send free each month inside the 24 hours; Meta charges from the next one. */
+    public const FREE_TEXTS = 1000;
 
     /** Free replies are possible until 24 hours after the family last wrote; a margin, so as not to arrive late. */
     public const WINDOW = DAYSECS - 30 * MINSECS;
@@ -670,7 +674,9 @@ class queue {
     }
 
     /**
-     * What the templates sent this month cost, roughly: free messages are not counted.
+     * What WhatsApp has cost this month, roughly: each template at the price of its category, and the plain texts inside
+     * the 24 hours past the ones Meta gives free each month to a number (since October 2026). If Meta already said
+     * more for the month (its figures, which count also the replies of the team), that.
      *
      * @param int $now The time.
      * @return float Euros.
@@ -680,12 +686,27 @@ class queue {
         $start = new \DateTime('@' . $now);
         $start->setTimezone(\core_date::get_server_timezone_object());
         $start->modify('first day of this month midnight');
-        $count = $DB->count_records_select(
+        $prices = chat\templates::prices();
+        $rows = $DB->get_records_sql(
+            "SELECT t.category, COUNT(1) AS sent
+               FROM {" . self::TABLE . "} q
+          LEFT JOIN {" . templates::TABLE . "} t ON t.component = q.component AND t.notice = q.notice AND t.lang = :lang
+              WHERE q.kind = 'template' AND q.timesent >= :start AND q.status <> 'failed'
+           GROUP BY t.category",
+            ['lang' => $GLOBALS['CFG']->lang, 'start' => $start->getTimestamp()]
+        );
+        $cost = 0.0;
+        foreach ($rows as $row) {
+            $cost += $row->sent * (float)($prices[strtolower((string)$row->category)] ?? self::cost());
+        }
+        $texts = $DB->count_records_select(
             self::TABLE,
-            "kind = 'template' AND timesent >= ? AND status <> 'failed'",
+            "kind = 'text' AND timesent >= ? AND status <> 'failed'",
             [$start->getTimestamp()]
         );
-        return $count * self::cost();
+        $cost += max(0, $texts - self::FREE_TEXTS) * (float)($prices['service'] ?? $prices['utility']);
+        $month = spend::month();
+        return max($cost, $month['month'] === userdate($now, '%Y-%m', 99, false, false) ? (float)$month['cost'] : 0.0);
     }
 
     /**

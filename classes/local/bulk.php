@@ -555,7 +555,7 @@ class bulk {
             }
             $message = new \core\message\message();
             $message->component = self::COMPONENT;
-            $message->name = 'chat';
+            $message->name = 'spend';
             $message->userfrom = \core_user::get_noreply_user();
             $message->userto = $user;
             $message->subject = $subject;
@@ -599,7 +599,7 @@ class bulk {
         $subject = get_string('bulk:said', self::COMPONENT, (object)['label' => (string)$bulk->label, 'said' => self::said($bulk)]);
         $message = new \core\message\message();
         $message->component = self::COMPONENT;
-        $message->name = 'chat';
+        $message->name = 'spend';
         $message->userfrom = \core_user::get_noreply_user();
         $message->userto = $asker;
         $message->subject = $subject;

@@ -318,7 +318,7 @@ if ($current) {
         return array_values(array_map($post, $DB->get_records_select(channel::TABLE, $where, null, $sort, '*', 0, $limit)));
     };
     // The settings, as gestures of the channel: each card saves itself, and the one just saved comes back open, with its
-    // «Saved» (Jujol). Hours are plates with half an hour less and more; a number, one less and one more.
+    // «Saved». Hours are plates with half an hour less and more; a number, one less and one more.
     $join = function (array $list) use ($component): string {
         $last = array_pop($list);
         return $list ? get_string('channel:and', $component, (object)['list' => implode(', ', $list), 'last' => $last])

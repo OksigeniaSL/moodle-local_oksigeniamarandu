@@ -41,8 +41,13 @@ everyone who writes, on top of Chatwoot. Each version is small and tested before
 2. Visit *Site administration > Notifications* to finish the install.
 3. Open *Oksigenia Marandu* (in *Site administration > Plugins > Local plugins*): its wizard connects WhatsApp and
    sends you a test message; its page of Telegram connects the bot.
-4. Give the capability `local/oksigeniamarandu:chat` to the role of the staff who attend the conversations, and
-   `local/oksigeniamarandu:chatall` to whoever sees them all.
+4. Nobody opens the conversations by default, not even knowing the address. Connecting Chatwoot gives the role
+   «Conversations team» (`marandu_chat`) to its people with an account on the site, and from then on to whoever joins
+   the account; whoever leaves loses it. `cli/chat.php --access-role=<short name>` uses a role of your own instead.
+   Give `local/oksigeniamarandu:chatall` to whoever sees them all.
+5. What Meta counts as marketing stops going by WhatsApp by itself (it costs several times a utility message) and the
+   conversations do not offer those approved messages; the other channels go on. A notice switched on again by hand
+   stays, and one whose text comes back as utility goes again. `cli/setup.php --marketing-off=0` leaves it as before.
 
 Whoever hosts many sites can do it from the command line, with the secrets in a file or on the standard input, never
 in the arguments (from Moodle 5.1, with `public/` before `local/`):

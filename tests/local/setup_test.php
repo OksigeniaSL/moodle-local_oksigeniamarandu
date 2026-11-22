@@ -202,6 +202,10 @@ final class setup_test extends \advanced_testcase {
             notices::enabled('telegram')
         );
         $this->assertSame([], notices::enabled('whatsapp'));
+        // One notice by itself.
+        $this->assertSame(['local_admissions/visit_confirmed'], setup::notices(['local_admissions/visit_confirmed'], ['whatsapp']));
+        $this->assertSame(['local_admissions/visit_confirmed'], notices::enabled('whatsapp'));
+        notices::set('local_admissions/visit_confirmed', 'whatsapp', false);
 
         foreach ([[['local_nothing'], ['telegram'], 'setup:nonotices'], [['local_canteen'], ['sms'], 'setup:nochannel']] as $case) {
             try {
@@ -220,6 +224,7 @@ final class setup_test extends \advanced_testcase {
         $status = setup::status();
         $this->assertStringStartsWith('WhatsApp: not set up', $status[0]);
         $this->assertStringContainsString('local_canteen/menu_changed', $status[1]);
+        $this->assertStringStartsWith('Marketing by WhatsApp:', end($status));
     }
 
     /**

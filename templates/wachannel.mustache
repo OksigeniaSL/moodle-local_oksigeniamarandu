@@ -215,18 +215,18 @@
         }
         return copied;
     };
-    // Tells done whether the text is on the clipboard: by the clipboard of the browser or, failing it, by hand.
-    var copy = function(done) {
+    // Tells whether the text is on the clipboard: by the clipboard of the browser or, failing it, by hand.
+    var copy = function(tell) {
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(function() {
-                done(true);
+                tell(true);
                 return true;
             }).catch(function() {
-                done(byhand());
+                tell(byhand());
             });
             return;
         }
-        done(byhand());
+        tell(byhand());
     };
     root.addEventListener('click', function(e) {
         if (e.target.closest('[data-copy]')) {

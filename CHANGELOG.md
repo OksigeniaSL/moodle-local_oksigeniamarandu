@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.57.1 (2026-11-22)
+## 0.57.2 (2026-11-22)
 
-- The page for the channel of WhatsApp copies the text without a native promise, as the checks of Moodle 4.5 ask.
+- The page for the channel of WhatsApp copies the text as the checks of Moodle 4.5 ask: without a native promise and
+  without a callback inside one (0.57.1 and 0.57.2).
 
 ## 0.57.0 (2026-11-22)
 

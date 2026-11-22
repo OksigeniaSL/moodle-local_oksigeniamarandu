@@ -21,10 +21,13 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
+use local_oksigeniamarandu\local\chat\chatwoot;
+use local_oksigeniamarandu\local\chat\hours;
 use local_oksigeniamarandu\local\inbox;
 
 /**
- * What the site knows of a WhatsApp number, for the shared inbox that gets its messages too (local\inbox).
+ * What the site knows of a WhatsApp number, for the shared inbox that gets its messages too (local\inbox), and, with the
+ * conversations of the team, whether each department attends now and when it opens, for the bot of its menu.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -65,7 +68,27 @@ class whatsapp_context extends external_api {
         $context = \context_system::instance();
         self::validate_context($context);
         require_capability('local/oksigeniamarandu:inbox', $context);
-        return inbox::context($params['phone'], $params['messageid'], min(90, max(1, $params['days'])));
+        $result = inbox::context($params['phone'], $params['messageid'], min(90, max(1, $params['days'])));
+        $result['teams'] = self::teams();
+        return $result;
+    }
+
+    /**
+     * The departments of the conversations of the team, now: none without them, or if Chatwoot does not answer, so that
+     * the bot always has the rest.
+     *
+     * @param int|null $now The time, for the tests.
+     * @return array As teams in what it returns.
+     */
+    public static function teams(?int $now = null): array {
+        if (!chatwoot::is_configured()) {
+            return [];
+        }
+        try {
+            return hours::teams_now($now);
+        } catch (\moodle_exception $e) {
+            return [];
+        }
     }
 
     /**
@@ -93,6 +116,22 @@ class whatsapp_context extends external_api {
                     'active' => new external_value(PARAM_ALPHA, 'Whether the account works there: yes, no or unknown'),
                 ]),
                 'The accounts in the programs of the centre of the one adult of the number, from the record of families',
+                VALUE_DEFAULT,
+                []
+            ),
+            'teams' => new external_multiple_structure(
+                new external_single_structure([
+                    'id' => new external_value(PARAM_INT, 'The department, as Chatwoot numbers its teams'),
+                    'name' => new external_value(PARAM_TEXT, 'Its name, as the site shows it'),
+                    'internal' => new external_value(PARAM_BOOL, 'Whether it is not in the menu of the families'),
+                    'open' => new external_value(PARAM_BOOL, 'Whether it attends now, by its own hours and the calendar'),
+                    'opensat' => new external_value(PARAM_INT, 'When it opens next; 0 if it is open now, or never opens'),
+                    'opensattext' => new external_value(
+                        PARAM_TEXT,
+                        'When it opens next, short, in the language of the site («mañana a las 7:30»); empty if open'
+                    ),
+                ]),
+                'The departments of the conversations of the team, by name; none without them',
                 VALUE_DEFAULT,
                 []
             ),

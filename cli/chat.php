@@ -33,6 +33,7 @@ use local_oksigeniamarandu\local\chat\connection;
 use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\hours;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\team_hours;
 
 [$options, $unrecognised] = cli_get_params([
     'help' => false,
@@ -43,6 +44,7 @@ use local_oksigeniamarandu\local\chat\mirror;
     'automatic' => null,
     'calendar' => null,
     'closed-words' => null,
+    'team-hours' => null,
     'colors' => null,
     'stages' => null,
     'team-names' => null,
@@ -80,7 +82,17 @@ Options:
 --automatic=USERS      The users of the account that are a bot and not a person (such as the one of a bot of the
                        menu): ids or emails, comma separated.
 --calendar=URL         An iCal with the closed days; empty for none.
---closed-words=WORDS   The words that start the name of a closed day in it, comma separated.
+--closed-words=WORDS   The words that start the name of a closed day in it, comma separated. An event named
+                       «Department: word» («Canteen: closed») closes only that department, and «Department: hours»
+                       («Office: 8:00-12:00») gives it other hours that day.
+--team-hours=HOURS     The week of each department that does not keep the hours of the inbox, all of them at once
+                       (those not written keep the inbox's); empty for none. Departments separated by «;», each
+                       «department=days hours»: the department by its name or its number; days by their names in
+                       English, Spanish, Portuguese or Arabic, whole or short (mon, lun, seg), alone or as a range
+                       (mon-fri), separated by commas; then the hours of those days, one span or several (9:00-14:00,
+                       16:00-18:00; 9-14 and 24:00 are fine). The days not written are closed. Example:
+                       \"Canteen=mon-fri 7:30-15:30; Admissions=mon-fri 9:00-14:00,16:00-18:00;
+                       Office=mon-thu 8:00-14:00, fri 8:00-13:00\"
 --colors=COLOURS       The colours of the organisation for the page, comma separated (#rrggbb).
 --stages=JSON          The stages of the organisation, youngest first: a list of {label, color, dark, code, match,
                        show}; code is the stage the record of families guesses from a group (such as PRI), match a
@@ -197,6 +209,18 @@ try {
     if ($options['closed-words'] !== null) {
         set_config('chatclosedwords', trim($options['closed-words']), $component);
     }
+    if ($options['team-hours'] !== null) {
+        try {
+            $weeks = team_hours::set($options['team-hours'] === true ? '' : (string)$options['team-hours']);
+        } catch (\invalid_parameter_exception $e) {
+            cli_error('--team-hours: ' . $e->debuginfo);
+        }
+        $teams = directory::teams();
+        mtrace('Departments with hours of their own: ' . count($weeks));
+        foreach ($weeks as $teamid => $week) {
+            mtrace('  ' . ($teams[$teamid]['name'] ?? $teamid) . ': ' . team_hours::describe($week));
+        }
+    }
     if ($options['colors'] !== null) {
         set_config('chatcolors', trim($options['colors']), $component);
     }
@@ -301,11 +325,23 @@ try {
         foreach (access::unmatched() as $agent) {
             mtrace('  No user of the site with the email of: ' . $agent['name'] . ' <' . $agent['email'] . '>');
         }
-        $hours = hours::of_site()->export();
-        mtrace('Hours: ' . ($hours['enabled'] ? $hours['timezone'] : 'always open') . '; closed days ahead: ' .
-            count(array_filter($hours['closed'], function ($day) {
-                return $day >= date('Y-m-d');
-            })));
+        $site = hours::of_site();
+        $today = date('Y-m-d');
+        $ahead = $site->days_ahead($today);
+        mtrace('Hours of the inbox: ' . $site->describe() . ' (' . $site->export()['timezone'] . '); closed days ahead: ' .
+            $ahead['closed']);
+        // Each department: its own week, or the inbox's, with what the calendar says only of it.
+        $byteam = hours::by_team();
+        $own = team_hours::get();
+        foreach (directory::teams() as $teamid => $team) {
+            $hours = $byteam[$teamid];
+            $ahead = $hours->days_ahead($today);
+            $special = array_map(function ($day, $spans) {
+                return $day . ' ' . $spans;
+            }, array_keys($ahead['special']), $ahead['special']);
+            mtrace('  ' . $team['name'] . ': ' . (isset($own[$teamid]) ? $hours->describe() : 'as the inbox') .
+                '; closed days ahead: ' . $ahead['closed'] . ($special ? '; other hours: ' . implode(', ', $special) : ''));
+        }
         mtrace('Index: ' . $GLOBALS['DB']->count_records(mirror::TABLE) . ' conversations; last pass ' .
             (empty($config->chatsynced) ? 'never' : userdate((int)$config->chatsynced)));
         $approved = \local_oksigeniamarandu\local\chat\templates::usable();

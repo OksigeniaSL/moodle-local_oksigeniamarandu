@@ -19,8 +19,8 @@ namespace local_oksigeniamarandu\local\chat;
 /**
  * Who of the team hears of what happens in a conversation, on the phone and in the bell of the site: whoever has it,
  * when the contact writes; the people of its department, when nobody has it and the contact starts waiting; whoever it
- * is passed to; whoever is named in a note. Only in the hours of the team, but what is passed or named; never to who
- * did it; once every ten minutes at most for the same conversation.
+ * is passed to; whoever is named in a note. Only in the hours of its department, but what is passed or named; never to
+ * who did it; once every ten minutes at most for the same conversation.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -46,7 +46,7 @@ class notify {
         if ($new->status === 'pending' || $new->status === 'resolved') {
             return;
         }
-        $open = self::hours()->is_open($now);
+        $open = self::hours((int)$new->teamid)->is_open($now);
         $name = $new->name !== '' ? $new->name : '+' . $new->phone;
         $news = [];
         $wrote = $new->lastincoming > ($old->lastincoming ?? 0) && $new->lastincoming >= $now - self::FRESH;
@@ -229,13 +229,14 @@ class notify {
     }
 
     /**
-     * The hours of the team, or always open if Chatwoot does not answer.
+     * The hours of a department (those of the inbox without one), or always open if Chatwoot does not answer.
      *
+     * @param int $teamid The department, or 0.
      * @return hours
      */
-    protected static function hours(): hours {
+    protected static function hours(int $teamid): hours {
         try {
-            return hours::of_site();
+            return hours::of_team($teamid);
         } catch (\moodle_exception $e) {
             return new hours('', []);
         }

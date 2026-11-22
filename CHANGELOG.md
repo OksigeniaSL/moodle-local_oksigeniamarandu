@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.58.0 (2026-11-22)
+
+- Hours by department in the conversations of the team: a canteen does not open when the office does. Each department
+  (a team of Chatwoot) can have a week of its own, set with `cli/chat.php --team-hours`, all of them at once: «;»
+  between departments, each «department=days hours», the department by its name in Chatwoot, the name it is shown with
+  or its number; days by their names in English, Spanish, Portuguese or Arabic, whole or short, alone or as a range
+  (`mon-fri`, `lun-vie`, `seg-sex`), then the hours of those days, one span or several (`9:00-14:00,16:00-18:00`); the
+  days not written are closed. Example: `"Canteen=mon-fri 7:30-15:30; Admissions=mon-fri 9:00-14:00,16:00-18:00;
+  Office=mon-thu 8:00-14:00, fri 8:00-13:00"`. A department without one keeps the hours of the inbox, as before; empty,
+  none has its own. `--status` says the hours of the inbox and of each department, with its closed days ahead and the
+  days with other hours.
+- The calendar of closed days says more: an event that starts with the name of a department and a colon is only for
+  it. «Canteen: closed» (any word of the closed days after the colon) closes only that department that day; «Office:
+  8:00-12:00» gives it other hours that day. A general closed day closes every department, as before; what the calendar
+  says of a department that day wins over it.
+- Where the hours of each department count: the wait of each conversation, in the hours of its department (also in
+  «Your work», whose «out of hours» is now about the departments of the person); the notices to the team, which only go
+  in the hours of the department of the conversation; «Remind me», whose day starts when that department opens; and the
+  automatic messages out of hours, marked with the moon by the hours of the department.
+- On the screen, with departments of their own hours: the box «Out of hours» of the rail when every department of the
+  person is closed, with when the first opens; otherwise, each closed department says on its tray when it opens; in
+  the start, the table of the whole centre says how each department is now («Open until 15:30», «Opens tomorrow at
+  7:30»), and whoever does not see the whole centre gets their departments, each a way into its tray; and a quiet band
+  in a conversation whose department is out of hours while the person's are open. The page gets `teamhours` (the
+  departments with something of their own, each with its `id` and its hours), and the hours have several spans a day
+  (`spans`) and days of their own (`special`).
+- For the bot of the menu, `local_oksigeniamarandu_whatsapp_context` returns `teams`: each department with `id`, `name`,
+  `internal`, `open` (now), `opensat` (when it opens next, 0 if open) and `opensattext` (short, in the language of the
+  site: «mañana a las 7:30», «el lunes a las 9:00», «hoy a las 16:00»); none without the conversations of the team, or
+  if Chatwoot does not answer.
+
 ## 0.57.2 (2026-11-22)
 
 - The page for the channel of WhatsApp copies the text as the checks of Moodle 4.5 ask: without a native promise and

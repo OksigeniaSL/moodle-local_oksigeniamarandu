@@ -183,7 +183,8 @@ class directory {
         $members = [];
         foreach ($client->call('GET', '/teams') as $team) {
             $id = (int)$team['id'];
-            $teams[$id] = ['id' => $id, 'name' => self::label((string)$team['name'])];
+            // The name as shown, and the one Chatwoot keeps, which the hours of a department may name too.
+            $teams[$id] = ['id' => $id, 'name' => self::label((string)$team['name']), 'raw' => trim((string)$team['name'])];
             $members[$id] = [];
             foreach ($client->call('GET', '/teams/' . $id . '/team_members') as $member) {
                 $members[$id][] = (int)$member['id'];
@@ -303,7 +304,7 @@ class directory {
     /**
      * The departments.
      *
-     * @return array By id: id and name, with the internal ones marked.
+     * @return array By id: id, name (as shown) and raw (as in Chatwoot), with the internal ones marked.
      */
     public static function teams(): array {
         $internal = self::internal_ids();

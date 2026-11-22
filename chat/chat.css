@@ -419,6 +419,20 @@
     color: var(--tinta-3);
     font-weight: 500;
 }
+/* A department out of its hours while the person's are open: when it opens, under its moon, in the grey of the night. */
+#mrd-chat .mrd-bandeja .mrd-t small.mrd-t-cerrado {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    color: var(--tinta-3);
+    font-weight: 500;
+}
+#mrd-chat .mrd-t-cerrado .mrd-i {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin-top: 2px;
+}
 #mrd-chat .mrd-bandeja .mrd-n {
     display: none;
     margin-inline-start: auto;
@@ -3688,6 +3702,21 @@
 #mrd-chat .mrd-inicio-dep-n {
     font-weight: 700;
 }
+/* How the department is now, under its name: open until when, or its moon and when it opens. */
+#mrd-chat .mrd-inicio-dep-h {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-inicio-dep-h .mrd-i {
+    flex: none;
+    width: 13px;
+    height: 13px;
+}
 #mrd-chat .mrd-inicio-dep-c {
     white-space: nowrap;
     font-weight: 700;
@@ -6398,6 +6427,72 @@
     flex-direction: column;
     gap: 8px;
 }
+/* The departments of the person, now: each a way into its tray, open until when or closed until when. */
+#mrd-chat .mrd-inicio-horas {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#mrd-chat .mrd-inicio-horas > h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+#mrd-chat .mrd-inicio-horas > h3 .mrd-i {
+    width: 15px;
+    height: 15px;
+}
+#mrd-chat .mrd-inicio-horas-l {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 8px;
+}
+#mrd-chat .mrd-inicio-hora {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+    background: var(--hoja);
+    color: var(--tinta);
+    text-align: start;
+    font-size: 14px;
+    line-height: 1.3;
+}
+#mrd-chat .mrd-inicio-hora > .mrd-i {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-inicio-hora span {
+    min-width: 0;
+}
+#mrd-chat .mrd-inicio-hora b {
+    display: block;
+    font-weight: 700;
+}
+#mrd-chat .mrd-inicio-hora small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-inicio-hora.mrd-cerrado {
+    background: var(--hoja-2);
+}
+#mrd-chat .mrd-inicio-hora.mrd-cerrado > .mrd-i,
+#mrd-chat .mrd-inicio-hora.mrd-cerrado small {
+    color: var(--tinta-3);
+}
+
+@media (hover: hover) {
+    #mrd-chat .mrd-inicio-hora:hover {
+        border-color: var(--acento-anillo);
+    }
+}
 #mrd-chat .mrd-inicio-centro > h3 {
     display: flex;
     align-items: center;
@@ -7241,6 +7336,29 @@
     flex-basis: 200px;
 }
 
+/* Its department is out of hours: quiet, in the grey of the night box of the rail, with its moon. */
+#mrd-chat .mrd-banda-horario {
+    flex-wrap: nowrap;
+    padding: 8px 12px;
+    background: var(--hoja-2);
+    border-color: var(--linea);
+    font-size: 13.5px;
+}
+#mrd-chat .mrd-banda-horario .mrd-banda-i {
+    width: 30px;
+    height: 30px;
+    background: var(--hoja);
+    color: var(--tinta-2);
+    box-shadow: inset 0 0 0 1px var(--linea-2);
+}
+#mrd-chat .mrd-banda-horario .mrd-banda-i .mrd-i {
+    width: 16px;
+    height: 16px;
+}
+#mrd-chat .mrd-banda-horario .mrd-banda-t {
+    flex: 1 1 auto;
+}
+
 /* ---------- «Apuntar llamada»: the button of the head and its sheet ---------- */
 #mrd-chat .mrd-mando.mrd-llamar-b {
     color: var(--acento-texto);
@@ -7474,6 +7592,16 @@
     }
     #mrd-chat .mrd-banda-quieta .mrd-banda-b {
         width: auto;
+    }
+    /* The department out of hours, as small as it can be read: it says something, it asks nothing. */
+    #mrd-chat .mrd-banda-horario {
+        gap: 10px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    #mrd-chat .mrd-banda-horario .mrd-banda-i {
+        width: 26px;
+        height: 26px;
     }
     #mrd-chat .mrd-btn.mrd-llamada-ahora-no,
     #mrd-chat .mrd-btn.mrd-llamada-ofrece,

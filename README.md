@@ -34,8 +34,9 @@ everyone who writes, on top of Chatwoot. Each version is small and tested before
 - **Telegram:** a bot of the organisation, made with @BotFather.
 - **The conversations of the team (optional):** an account of Chatwoot (self-hosted) whose inbox receives the same
   WhatsApp. Each department is a team of Chatwoot; each person of the team, an agent of Chatwoot with the same email as
-  their account on the site (one account per email); the hours of the team, those of the inbox. A platform app of
-  Chatwoot (made in its super administration) lets each person answer as themself.
+  their account on the site (one account per email); the hours of the team, those of the inbox, or a week of its own
+  for a department that keeps other hours (`cli/chat.php --team-hours`). A platform app of Chatwoot (made in its super
+  administration) lets each person answer as themself.
 
 ## Install
 
@@ -61,7 +62,17 @@ sudo -u www-data php local/oksigeniamarandu/cli/chat.php --env=- --webhook --syn
 
 `setup.php` connects the bot and switches on the notices of some plugins (`--notices`, or `all`) for `--channels`;
 `chat.php` connects Chatwoot (`CHATWOOT_URL`, `CHATWOOT_ACCOUNT`, `CHATWOOT_TOKEN` of an administrator of the account,
-`CHATWOOT_PLATFORM_TOKEN` and `CHATWOOT_INBOX`). `--status` shows how the site is, and `--help` has the rest.
+`CHATWOOT_PLATFORM_TOKEN` and `CHATWOOT_INBOX`). A department that does not open when the inbox does gets its own week:
+
+```
+sudo -u www-data php local/oksigeniamarandu/cli/chat.php \
+  --team-hours="Canteen=mon-fri 7:30-15:30; Admissions=mon-fri 9:00-14:00,16:00-18:00; Office=mon-thu 8:00-14:00, fri 8:00-13:00"
+```
+
+Days by their names in English, Spanish, Portuguese or Arabic, whole or short, alone or as a range; then the hours of
+those days, one span or several. In the calendar of closed days (`--calendar`), «Canteen: closed» closes only that
+department that day, and «Office: 8:00-12:00» gives it other hours that day. `--status` shows how the site is, and
+`--help` has the rest.
 
 ## Development
 

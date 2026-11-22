@@ -18,7 +18,7 @@ namespace local_oksigeniamarandu\local\chat;
 
 /**
  * The card of the conversations in «Your work» (the dashboard of the block Tembiapo and of the app): what waits for
- * this person, and what has waited too long, counting only the hours of the team.
+ * this person, and what has waited too long, counting only the hours of the department of each conversation.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -48,7 +48,9 @@ class workcard {
             if (!$viewer || $viewer->readonly) {
                 return null;
             }
-            $hours = hours::of_site();
+            $byteam = hours::by_team($now);
+            $site = hours::of_site($now);
+            $mytimes = hours::of_viewer($viewer, $now);
         } catch (\moodle_exception $e) {
             return null;
         }
@@ -79,22 +81,26 @@ class workcard {
         if (!$figures) {
             $figures[] = get_string('chat:work:nothing', self::COMPONENT);
         }
-        if (!$hours->is_open($now)) {
-            $opens = $hours->next_open($now);
-            if ($opens) {
-                $figures[] = get_string('chat:work:closed', self::COMPONENT, self::when($opens, $now));
-            }
+        // Out of hours: all the departments of the person, and when the first opens.
+        $opens = hours::first_opening($mytimes, $now);
+        if ($opens > 0) {
+            // Every department keeps the time zone of the inbox: any of them says when.
+            $figures[] = get_string('chat:work:closed', self::COMPONENT, reset($mytimes)->say_when($opens, $now));
         }
 
         $alerts = [];
-        $late = array_filter(array_merge($mine, $unassigned), function ($row) use ($hours, $now) {
-            return $hours->waited((int)$row->waitsince, $now) >= self::URGENT;
+        // How long each one has waited, in the hours of its department.
+        $waited = function ($row) use ($byteam, $site, $now) {
+            return ($byteam[(int)$row->teamid] ?? $site)->waited((int)$row->waitsince, $now);
+        };
+        $late = array_filter(array_merge($mine, $unassigned), function ($row) use ($waited) {
+            return $waited($row) >= self::URGENT;
         });
         if (count($late) === 1) {
             $row = reset($late);
             $alerts[] = ['text' => get_string('chat:work:lateone', self::COMPONENT, (object)[
                 'name' => $row->name !== '' ? $row->name : '+' . $row->phone,
-                'hours' => intdiv($hours->waited((int)$row->waitsince, $now), HOURSECS),
+                'hours' => intdiv($waited($row), HOURSECS),
             ]), 'url' => (new \moodle_url($page, ['c' => $row->cwid]))->out(false), 'level' => 'urgent',
                 'due' => (int)$row->waitsince];
         } else if ($late) {
@@ -149,23 +155,5 @@ class workcard {
                     'url' => (new \moodle_url($page, ['b' => 'unassigned']))->out(false)],
             ],
         ];
-    }
-
-    /**
-     * When the team opens, as it is said: at a time today, or the day of the week and the time.
-     *
-     * @param int $time When it opens.
-     * @param int $now Now.
-     * @return string
-     */
-    private static function when(int $time, int $now): string {
-        $hour = userdate($time, get_string('strftimetime', 'langconfig'));
-        if (userdate($time, '%Y%m%d') === userdate($now, '%Y%m%d')) {
-            return get_string('chat:work:attime', self::COMPONENT, $hour);
-        }
-        return get_string('chat:work:atday', self::COMPONENT, (object)[
-            'day' => \core_text::strtolower(userdate($time, '%A')),
-            'time' => $hour,
-        ]);
     }
 }

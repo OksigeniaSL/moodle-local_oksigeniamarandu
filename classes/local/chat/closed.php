@@ -21,7 +21,9 @@ use local_oksigeniamarandu\local\calendar;
 /**
  * The days the team does not attend at all, from a calendar of the site (an iCal): the events whose name starts with one
  * of its words, such as «Closed» or «Bank holiday». Holidays of the pupils are not closed days unless the calendar says
- * so: an office often works on them. Read twice a day.
+ * so: an office often works on them. An event that starts with the name of a department and a colon is only for it:
+ * «Canteen: closed» closes that department that day, and «Office: 8:00-12:00» gives it other hours that day. Read twice
+ * a day.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -50,42 +52,105 @@ class closed {
      * @return string[] Y-m-d, in order.
      */
     public static function days(?int $now = null): array {
+        return self::read($now)['days'];
+    }
+
+    /**
+     * What the calendar says of each department, by its name without accents or capitals: the days it is closed, and
+     * the days it has other hours.
+     *
+     * @param int|null $now The time, for the tests.
+     * @return array By name: closed (Y-m-d, in order) and hours (by Y-m-d, the spans [open, close] in minutes).
+     */
+    public static function teams(?int $now = null): array {
+        return self::read($now)['teams'];
+    }
+
+    /**
+     * The calendar, read: from the cache if it was read less than half a day ago.
+     *
+     * @param int|null $now The time, for the tests.
+     * @return array days and teams.
+     */
+    protected static function read(?int $now): array {
         $url = trim((string)get_config('local_oksigeniamarandu', 'chatcalendar'));
         if (self::$fortests === null && $url === '') {
-            return [];
+            return ['days' => [], 'teams' => []];
         }
         $cache = \cache::make('local_oksigeniamarandu', 'chatlong');
-        $key = 'closed_' . sha1($url . '|' . self::words());
+        $key = 'closedteams_' . sha1($url . '|' . self::words());
         $kept = self::$fortests === null ? $cache->get($key) : false;
         if ($kept !== false && $kept['time'] > time() - 12 * HOURSECS) {
-            return $kept['days'];
+            return $kept['read'];
         }
         $now = $now ?? time();
         $body = self::$fortests ?? calendar::fetch($url);
         if ($body === null) {
             // The calendar did not come: the last days read are better than none, and it is not asked for again in
             // the next half hour.
-            $days = $kept === false ? [] : $kept['days'];
+            $read = $kept === false ? ['days' => [], 'teams' => []] : $kept['read'];
             if (self::$fortests === null) {
-                $cache->set($key, ['time' => time() - 12 * HOURSECS + 30 * MINSECS, 'days' => $days]);
+                $cache->set($key, ['time' => time() - 12 * HOURSECS + 30 * MINSECS, 'read' => $read]);
             }
-            return $days;
+            return $read;
         }
         $days = [];
+        $teams = [];
         foreach (calendar::parse($body, $now - 62 * DAYSECS, $now + 366 * DAYSECS) as $event) {
-            if (!self::is_closed($event->name)) {
+            // A closed day for all; or one only for a department, which leaves the rest as they are.
+            $all = self::is_closed($event->name);
+            $mark = $all ? null : self::team_mark($event->name);
+            if (!$all && $mark === null) {
                 continue;
             }
             for ($day = $event->first; $day <= $event->last; $day = date('Y-m-d', strtotime($day . ' +1 day'))) {
-                $days[$day] = $day;
+                if ($mark === null) {
+                    $days[$day] = $day;
+                } else if ($mark[1] === null) {
+                    $teams[$mark[0]]['closed'][$day] = $day;
+                } else {
+                    $teams[$mark[0]]['hours'][$day] = $mark[1];
+                }
             }
         }
         ksort($days);
-        $days = array_values($days);
-        if (self::$fortests === null) {
-            $cache->set($key, ['time' => time(), 'days' => $days]);
+        foreach ($teams as $name => $marks) {
+            $closed = $marks['closed'] ?? [];
+            ksort($closed);
+            $hours = $marks['hours'] ?? [];
+            ksort($hours);
+            $teams[$name] = ['closed' => array_values($closed), 'hours' => $hours];
         }
-        return $days;
+        ksort($teams);
+        $read = ['days' => array_values($days), 'teams' => $teams];
+        if (self::$fortests === null) {
+            $cache->set($key, ['time' => time(), 'read' => $read]);
+        }
+        return $read;
+    }
+
+    /**
+     * Whether an event is only for a department: its name, a colon, and a word of the closed days or the hours of that
+     * day («Canteen: closed», «Office: 8:00-12:00»). Which departments there are is not known here: any name will do.
+     *
+     * @param string $name The name of the event.
+     * @return array|null [the name of the department without accents or capitals, null if closed or its spans], or null.
+     */
+    public static function team_mark(string $name): ?array {
+        $at = strpos($name, ':');
+        if ($at === false) {
+            return null;
+        }
+        $team = self::plain(substr($name, 0, $at));
+        $rest = trim(substr($name, $at + 1));
+        if ($team === '' || $rest === '') {
+            return null;
+        }
+        if (self::is_closed($rest)) {
+            return [$team, null];
+        }
+        $spans = team_hours::parse_spans($rest);
+        return $spans === null ? null : [$team, $spans];
     }
 
     /**
@@ -122,7 +187,7 @@ class closed {
      * @param string $text The text.
      * @return string
      */
-    protected static function plain(string $text): string {
+    public static function plain(string $text): string {
         $text = \core_text::strtolower(trim($text));
         $text = \core_text::specialtoascii($text);
         return preg_replace('/^[^a-z0-9]+/', '', preg_replace('/\s+/', ' ', $text));

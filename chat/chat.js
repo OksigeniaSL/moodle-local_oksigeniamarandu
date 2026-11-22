@@ -421,22 +421,6 @@
         function isoKey(iso) {
             return +String(iso || '').replace(/-/g, '') || 0;
         }
-        // The team works that day (without hours, every day).
-        function openDay(k) {
-            return !HOURS_ON || !!windowOfKey(k);
-        }
-        // When a day starts for a reminder: the opening of the team, or 8:00 (as the server does).
-        function remAt(k) {
-            var y = Math.floor(k / 10000), mo = Math.floor(k / 100) % 100, d = k % 100;
-            var w = WEEK[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()];
-            if (HOURS_ON && w && !w.closed && !w.allday) {
-                var o = hm(w.open);
-                if (o[0] * 60 + o[1] > 0) {
-                    return zonedMs(y, mo, d, o[0], o[1]);
-                }
-            }
-            return zonedMs(y, mo, d, 8, 0);
-        }
         // «mañana», «el lunes», «el 3 de diciembre».
         function remShort(ms) {
             var k = dayKey(ms), today = dayKey(nowMs()), d = new Date(ms);
@@ -446,92 +430,169 @@
             return s('remonday', k < shiftKey(today, 7) ? fWeekday.format(d) : fDayMonth.format(d));
         }
 
-        /* -------- Working hours: the wait counts only while the centre is open -------- */
-        var HOURS_ON = !!(hours.enabled && hours.week && hours.week.length);
-        var WEEK = {};
-        (hours.week || []).forEach(function (w) {
-            WEEK[w.day] = w;
-        });
-        var CLOSED = {};
-        (hours.closed || []).forEach(function (d) {
-            CLOSED[String(d)] = true;
-        });
+
+        /* -------- Working hours: the wait counts only while the department of a conversation is open --------
+           The hours of the inbox (cfg.hours) and those of each department that has its own week, or days of the calendar
+           only for it (cfg.teamhours): each day, its spans; a closed day, none; a day of its own, its own spans. */
         function hm(x) {
             var p = String(x || '0:0').split(':');
             return [+p[0] || 0, +p[1] || 0];
         }
-        function windowOfKey(key) {
-            var y = Math.floor(key / 10000), mo = Math.floor(key / 100) % 100, d = key % 100;
-            var iso = y + '-' + (mo < 10 ? '0' : '') + mo + '-' + (d < 10 ? '0' : '') + d;
-            var wd = new Date(Date.UTC(y, mo - 1, d)).getUTCDay();
-            var w = WEEK[wd];
-            if (!w || w.closed || CLOSED[iso]) {
-                return null;
-            }
-            if (w.allday) {
-                var n = shiftKey(key, 1);
-                return [zonedMs(y, mo, d, 0, 0), zonedMs(Math.floor(n / 10000), Math.floor(n / 100) % 100, n % 100, 0, 0)];
-            }
-            var o = hm(w.open), c = hm(w.close);
-            return [zonedMs(y, mo, d, o[0], o[1]), zonedMs(y, mo, d, c[0], c[1])];
-        }
-        function openAt(ms) {
-            if (!HOURS_ON) {
-                return true;
-            }
-            var w = windowOfKey(dayKey(ms));
-            return !!(w && ms >= w[0] && ms < w[1]);
-        }
-        function businessMs(from, to) {
-            if (!HOURS_ON) {
-                return Math.max(0, to - from);
-            }
-            var total = 0, key = dayKey(from), last = dayKey(to);
-            for (var i = 0; i < 62 && key <= last; i++) {
-                var w = windowOfKey(key);
-                if (w) {
-                    var a = Math.max(w[0], from), b = Math.min(w[1], to);
-                    if (b > a) {
-                        total += b - a;
-                    }
+        function makeHours(h) {
+            h = h || {};
+            var on = !!(h.enabled && h.week && h.week.length);
+            var week = {}, closed = {}, special = {};
+            (h.week || []).forEach(function (w) {
+                week[w.day] = w.closed ? [] : w.spans && w.spans.length ? w.spans
+                    : w.allday ? [{ open: '00:00', close: '24:00' }] : [{ open: w.open, close: w.close }];
+            });
+            (h.closed || []).forEach(function (d) {
+                closed[String(d)] = true;
+            });
+            (h.special || []).forEach(function (x) {
+                special[String(x.day)] = x.spans || [];
+            });
+            // The spans of a day, as moments.
+            function windowsOfKey(key) {
+                var y = Math.floor(key / 10000), mo = Math.floor(key / 100) % 100, d = key % 100, iso = keyIso(key);
+                if (closed[iso]) {
+                    return [];
                 }
-                key = shiftKey(key, 1);
+                var spans = special[iso] || week[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()] || [];
+                return spans.map(function (sp) {
+                    var o = hm(sp.open), c = hm(sp.close);
+                    return [zonedMs(y, mo, d, o[0], o[1]), zonedMs(y, mo, d, c[0], c[1])];
+                });
             }
-            return total;
-        }
-        function nextOpening(ms) {
-            if (!HOURS_ON) {
+            function openAt(ms) {
+                return !on || windowsOfKey(dayKey(ms)).some(function (w) {
+                    return ms >= w[0] && ms < w[1];
+                });
+            }
+            function businessMs(from, to) {
+                if (!on) {
+                    return Math.max(0, to - from);
+                }
+                var total = 0, key = dayKey(from), last = dayKey(to);
+                for (var i = 0; i < 62 && key <= last; i++) {
+                    windowsOfKey(key).forEach(function (w) {
+                        total += Math.max(0, Math.min(w[1], to) - Math.max(w[0], from));
+                    });
+                    key = shiftKey(key, 1);
+                }
+                return total;
+            }
+            // When it opens next (0 if never, or without hours); a summer closed can be long.
+            function nextOpening(ms) {
+                if (!on) {
+                    return 0;
+                }
+                var key = dayKey(ms);
+                for (var i = 0; i < 120; i++) {
+                    var ws = windowsOfKey(key);
+                    for (var j = 0; j < ws.length; j++) {
+                        if (ws[j][0] > ms) {
+                            return ws[j][0];
+                        }
+                    }
+                    key = shiftKey(key, 1);
+                }
                 return 0;
             }
-            var key = dayKey(ms);
-            for (var i = 0; i < 21; i++) {
-                var w = windowOfKey(key);
-                if (w && w[0] > ms) {
-                    return w[0];
-                }
-                key = shiftKey(key, 1);
+            // When it closes, if it is open: the end of the span it is in (0 if not open, or without hours).
+            function closingAt(ms) {
+                var w = on ? windowsOfKey(dayKey(ms)).filter(function (x) {
+                    return ms >= x[0] && ms < x[1];
+                })[0] : null;
+                return w ? w[1] : 0;
             }
-            return 0;
+            // First thing in the day: open, and opened less than two hours ago.
+            function isMorning() {
+                var w = on ? windowsOfKey(dayKey(nowMs()))[0] : null, n = nowMs();
+                return !!(w && n >= w[0] && n < w[1] && n - w[0] < 2 * 3600000);
+            }
+            // It arrived after the last closing time and before today's opening.
+            function arrivedAtNight(c) {
+                var w = on ? windowsOfKey(dayKey(nowMs()))[0] : null;
+                var at = (c.waitingsince || 0) * 1000;
+                return !!(w && at && at < w[0] && !openAt(at) && businessMs(at, w[0]) === 0);
+            }
+            // The team works that day (without hours, every day).
+            function openDay(k) {
+                return !on || windowsOfKey(k).length > 0;
+            }
+            // When a day starts for a reminder: the opening of the team, or 8:00 (as the server does).
+            function remAt(k) {
+                var y = Math.floor(k / 10000), mo = Math.floor(k / 100) % 100, d = k % 100;
+                var w = on ? windowsOfKey(k)[0] : null;
+                return w && w[0] > zonedMs(y, mo, d, 0, 0) ? w[0] : zonedMs(y, mo, d, 8, 0);
+            }
+            return { on: on, openAt: openAt, businessMs: businessMs, nextOpening: nextOpening, closingAt: closingAt,
+                isMorning: isMorning, arrivedAtNight: arrivedAtNight, openDay: openDay, remAt: remAt };
         }
-        function todayWindow() {
-            return HOURS_ON ? windowOfKey(dayKey(nowMs())) : null;
+        var SITE_HOURS = makeHours(hours);
+        var TEAM_HOURS = {};
+        (cfg.teamhours || []).forEach(function (h) {
+            TEAM_HOURS[h.id] = makeHours(h);
+        });
+        // Whether some department keeps hours of its own: then each one says how it is.
+        var BYTEAM = (cfg.teamhours || []).length > 0;
+        function hoursOf(teamid) {
+            return (teamid && TEAM_HOURS[teamid]) || SITE_HOURS;
         }
-        // First thing in the day: open, and opened less than two hours ago.
-        function isMorning() {
-            var w = todayWindow(), n = nowMs();
-            return !!(w && n >= w[0] && n < w[1] && n - w[0] < 2 * 3600000);
+        function hoursConv(c) {
+            return hoursOf(c && c.teamid);
         }
-        // It arrived after the last closing time and before today's opening.
-        function arrivedAtNight(c) {
-            var w = todayWindow();
-            var at = (c.waitingsince || 0) * 1000;
-            return !!(w && at && at < w[0] && !openAt(at) && businessMs(at, w[0]) === 0);
+        // It arrived out of the hours of its department, which opened a moment ago.
+        function nightArrival(c) {
+            var hh = hoursConv(c);
+            return hh.isMorning() && hh.arrivedAtNight(c);
+        }
+        /* The departments of the person, for what is said of them all («out of hours»): theirs; without any, every
+           department and the inbox for whoever sees everything, the inbox for the rest. */
+        function myHours() {
+            var mine = teams().filter(function (t) {
+                return t.mine;
+            });
+            if (mine.length) {
+                return mine.map(function (t) {
+                    return hoursOf(t.id);
+                });
+            }
+            return me.seesall ? [SITE_HOURS].concat(teams().map(function (t) {
+                return hoursOf(t.id);
+            })) : [SITE_HOURS];
+        }
+        // All of them closed now: when the first opens (-1 if none ever does); 0 if one of them is open.
+        function firstOpening(list) {
+            var n = nowMs(), first = -1;
+            for (var i = 0; i < list.length; i++) {
+                if (!list[i].on || list[i].openAt(n)) {
+                    return 0;
+                }
+                var next = list[i].nextOpening(n);
+                if (next && (first < 0 || next < first)) {
+                    first = next;
+                }
+            }
+            return first;
+        }
+        // How a department is now, in a few words: «Abierto hasta las 14:00», or closed and «Abre mañana a las 7:30».
+        function teamState(teamid) {
+            var hh = hoursOf(teamid), n = nowMs();
+            if (!hh.on || hh.openAt(n)) {
+                // Open until midnight, or always: just open.
+                var until = hh.on ? hh.closingAt(n) : 0, end = until ? zp(until) : null;
+                return { open: true, text: end && end.h + end.mi > 0 ? s('teamopenuntil', fmtTime(until)) : s('teamopen') };
+            }
+            var next = hh.nextOpening(n);
+            return { open: false, next: next, text: next ? s('teamopensat', whenPhrase(next)) : s('closednow') };
         }
         function waitMs(c) {
             if (!c.waitingsince) {
                 return 0;
             }
-            return businessMs(c.waitingsince * 1000, nowMs());
+            return hoursConv(c).businessMs(c.waitingsince * 1000, nowMs());
         }
         function waitText(c) {
             return waitTextLoose(c).replace(/ (?=\d|h\b|min\b)/g, '\u00a0');
@@ -1544,15 +1605,17 @@
             }
             return longestIn(keys) >= 4 * 3600000 ? ' mrd-pend mrd-larga' : ' mrd-pend';
         }
-        function trayButton(key, icon, name, lines, n, strong) {
+        // shut: a department out of its hours while the person's are open says when it opens, under its moon.
+        function trayButton(key, icon, name, lines, n, strong, shut) {
             var on = st.inbox === key, pend = pendClass(n, [key]);
             return '<button type="button" class="mrd-bandeja' + (on ? ' mrd-on' : '') + (strong ? ' mrd-fuerte' : '') + (n ? '' : ' mrd-vacia') +
                 (pend ? ' mrd-con-pend' + (pend.indexOf('mrd-larga') >= 0 ? ' mrd-con-larga' : '') : '') +
-                '" data-a="inbox" data-v="' + esc(key) + '" title="' + esc(name + ': ' + lines.join(' · ')) + '"' +
+                '" data-a="inbox" data-v="' + esc(key) + '" title="' + esc(name + ': ' + lines.concat(shut ? [shut] : []).join(' · ')) + '"' +
                 (on ? ' aria-current="true"' : '') + '>' + ico(icon) + '<span class="mrd-t">' + esc(name) +
                 lines.map(function (l) {
                     return '<small>' + esc(l) + '</small>';
-                }).join('') + '</span><span class="mrd-n' + (n ? pend : ' mrd-cero') + '">' + n + '</span></button>';
+                }).join('') + (shut ? '<small class="mrd-t-cerrado">' + ico('luna') + '<span>' + esc(shut) + '</span></small>' : '') +
+                '</span><span class="mrd-n' + (n ? pend : ' mrd-cero') + '">' + n + '</span></button>';
         }
         function teamLines(t) {
             var n = t.reply !== undefined ? t.reply : countLocal('team:' + t.id);
@@ -1567,11 +1630,8 @@
             return { n: n, lines: lines };
         }
         function nightCount() {
-            if (!isMorning()) {
-                return 0;
-            }
             return allConvs().filter(function (c) {
-                return c.section === 'reply' && arrivedAtNight(c);
+                return c.section === 'reply' && nightArrival(c);
             }).length;
         }
         function greeting() {
@@ -1597,13 +1657,19 @@
             // The name of the screen takes back to its start: what is yours and how each department is doing.
             var h = '<button type="button" class="mrd-marca" data-a="home" title="' + esc(s('hometitle')) + '">' + brandMark() +
                 '<span class="mrd-marca-t"><small>' + esc(brand.name || '') + '</small><strong>' + esc(s('apptitle')) + '</strong></span></button>';
-            var night = nightCount();
+            var night = nightCount(), opens = firstOpening(myHours());
+            // With departments of their own hours, while the person's are open, each closed one of theirs says when it opens
+            // (the others, in the table of the start).
+            var shut = function (t) {
+                var x = BYTEAM && !opens ? teamState(t.id) : null;
+                return x && !x.open ? x.text : '';
+            };
             if (night) {
                 h += '<div class="mrd-buenos"><b>' + esc(greeting()) + '</b>' + esc(night === 1 ? s('nightarrived1') : s('nightarrived', night)) + '</div>';
-            } else if (HOURS_ON && !openAt(nowMs())) {
-                var next = nextOpening(nowMs());
+            } else if (opens) {
+                // Every department of the person is closed: when the first opens.
                 h += '<div class="mrd-buenos"><b>' + ico('luna') + esc(s('closednow')) + '</b>' +
-                    esc(next ? s('opensat', whenPhrase(next)) : s('closedhelp')) + '</div>';
+                    esc(opens > 0 ? s('opensat', whenPhrase(opens)) : s('closedhelp')) + '</div>';
             }
             h += trayButton('mine', 'yo', s('mine'), [counts.mine ? s('toreply', counts.mine) : s('nothingtoreply')], counts.mine, true);
             h += trayButton('unassigned', 'nadie', s('unassigned'), unLines, counts.unassigned, true);
@@ -1611,7 +1677,7 @@
                 h += '<div class="mrd-rotulo">' + esc(mine.length === 1 ? s('yourteam') : s('yourteams')) + '</div><div class="mrd-rotulo-sep"></div>';
                 h += mine.map(function (t) {
                     var x = teamLines(t);
-                    return trayButton('team:' + t.id, teamIcon(t), t.name, x.lines, x.n);
+                    return trayButton('team:' + t.id, teamIcon(t), t.name, x.lines, x.n, false, shut(t));
                 }).join('');
             }
             var noteam = allConvs().some(function (c) {
@@ -2082,9 +2148,9 @@
             var done = all.filter(function (c) {
                 return c.section === 'resolved' && later.indexOf(c) < 0;
             }).sort(byActivity);
-            var night = isMorning() ? reply.filter(arrivedAtNight).sort(function (a, b) {
+            var night = reply.filter(nightArrival).sort(function (a, b) {
                 return a.waitingsince - b.waitingsince;
-            }) : [];
+            });
             var rest = reply.filter(function (c) {
                 return night.indexOf(c) < 0;
             });
@@ -4036,7 +4102,7 @@
                     '<p class="mrd-inicio-n">' + esc(s('newconvhelp')) + '</p>' +
                     '<button type="button" class="mrd-btn mrd-chico" data-a="new">' + esc(s('newconvtitle')) + '</button></div>';
             }
-            h += '</div>';
+            h += '</div>' + homeHoursHtml();
             var spendUp = gsQuiet();
             h += gsApprovals() + (spendUp ? gsMonth() : '');
             var mineToSee = READONLY ? [] : boardToSee();
@@ -4082,6 +4148,22 @@
                 return '<a class="mrd-btn mrd-chico" href="' + esc(g.url) + '" target="_blank" rel="noopener">' + ico('libro') +
                     esc(s(g.kind === 'coordinate' ? 'guidecoordinate' : 'guideattend')) + '</a>';
             }).join('');
+        }
+        /* With departments of their own hours, whoever does not see the whole centre sees how theirs are now, each one a
+           way into its tray: open until when, or closed and when it opens. Whoever sees everything has it in the table. */
+        function homeHoursHtml() {
+            var mine = teams().filter(function (t) {
+                return t.mine;
+            });
+            if (!BYTEAM || me.seesall || !mine.length) {
+                return '';
+            }
+            return '<section class="mrd-inicio-horas"><h3>' + ico('reloj') + esc(s('hometeamhours')) + '</h3><div class="mrd-inicio-horas-l">' +
+                mine.map(function (t) {
+                    var x = teamState(t.id);
+                    return '<button type="button" class="mrd-inicio-hora' + (x.open ? '' : ' mrd-cerrado') + '" data-a="inbox" data-v="team:' + t.id +
+                        '">' + ico(x.open ? teamIcon(t) : 'luna') + '<span><b>' + esc(t.name) + '</b><small>' + esc(x.text) + '</small></span></button>';
+                }).join('') + '</div></section>';
         }
         /* The whole centre, for whoever sees everything: a sentence in the grey of the text with its parts (how many, how
            many in the person's departments and in the others, the one that waits longest) and the table below. No alarm:
@@ -4153,10 +4235,14 @@
                 esc(s('hometoreplycol')) + '</span><span>' + esc(s('homelongestcol')) + '</span><span>' + esc(s('homewhocol')) + '</span><span></span></div>';
             h += rows.map(function (r) {
                 var first = r.list[0], long = first && waitMs(first) >= 4 * 3600000;
+                // With departments of their own hours, each one says how it is now, under its name.
+                var now = BYTEAM && r.id ? teamState(r.id) : null;
                 return '<button type="button" class="mrd-inicio-dep' + (first ? (long ? ' mrd-con-pend mrd-larga' : ' mrd-con-pend') : ' mrd-inicio-dep-cero') +
                     '" data-a="inbox" data-v="' + (r.id ? 'team:' + r.id : 'noteam') + '" aria-label="' +
-                    esc(s('hometeamopen', { team: r.id ? teamName(r.id) : s('noteam'), n: r.list.length })) + '">' +
-                    '<span class="mrd-inicio-dep-n">' + esc(r.id ? teamName(r.id) : s('noteam')) + '</span>' +
+                    esc(s('hometeamopen', { team: r.id ? teamName(r.id) : s('noteam'), n: r.list.length }) + (now ? ' · ' + now.text : '')) + '">' +
+                    '<span class="mrd-inicio-dep-n">' + esc(r.id ? teamName(r.id) : s('noteam')) +
+                    (now ? '<small class="mrd-inicio-dep-h' + (now.open ? '' : ' mrd-cerrado') + '">' + (now.open ? '' : ico('luna')) + esc(now.text) +
+                        '</small>' : '') + '</span>' +
                     '<span class="mrd-inicio-dep-c">' + (first ? '<span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' + r.list.length + '</span>' : '0') +
                     '</span>' + (first ? '<span class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(waitText(first)) + '</span>' : '<span></span>') +
                     '<span class="mrd-inicio-dep-q">' + esc(r.people.join(' · ')) + '</span>' + ico('der', 'mrd-inicio-dep-ir') + '</button>';
@@ -4263,13 +4349,14 @@
             }
         }
 
-        /* -------- Above the conversation: what did not arrive, and who of the team already attends the family -------- */
+        /* -------- Above the conversation: what did not arrive, who of the team already attends the family, and its
+           department out of hours -------- */
         function renderBands() {
             var c = conv(st.open), zone = el.chat.querySelector('.mrd-bandas');
             if (!zone) {
                 return;
             }
-            var h = c ? failBand(c) + heldBand(c) : '';
+            var h = c ? failBand(c) + heldBand(c) + hoursBand(c) : '';
             if (zone.getAttribute('data-sig') === h) {
                 return;
             }
@@ -4324,6 +4411,20 @@
                 '<button type="button" class="mrd-btn mrd-chico mrd-banda-no" data-a="heldlater">' + esc(s('heldlater')) +
                 '</button>' +
                 '</div></div>';
+        }
+        /* Its department keeps hours of its own and is out of them while the person's are open (when theirs are closed
+           too, the rail says so): the wait of this conversation does not count, and when it opens. One quiet line. */
+        function hoursBand(c) {
+            if (!BYTEAM || !c.teamid || c.section === 'resolved' || firstOpening(myHours())) {
+                return '';
+            }
+            var x = teamState(c.teamid);
+            if (x.open) {
+                return '';
+            }
+            return '<div class="mrd-banda mrd-banda-horario" role="status"><span class="mrd-banda-i">' + ico('luna') + '</span>' +
+                '<div class="mrd-banda-t"><b>' + esc(s('teamclosedtitle', teamName(c.teamid))) + '</b><p>' +
+                esc(x.next ? s('teamclosedwait', whenPhrase(x.next)) : s('teamclosedwaitnever')) + '</p></div></div>';
         }
         /* «Ahora no» to the band of who already attends the family: it does not come back in that conversation for that
            person while the tab is open (the browser's storage of the session, or the page's own if there is none). */
@@ -4464,6 +4565,8 @@
         /* «Remind me»: a day (the next ones the team works, or any in the sheet of five weeks) and a line of what for;
            that day, when the team opens, the conversation is back in «Mine» with the line as a note, and a notice. */
         function popRemind(c) {
+            // The days and the hour its department opens.
+            var hh = hoursConv(c), openDay = hh.openDay, remAt = hh.remAt;
             var today = dayKey(nowMs()), chosen = isoKey(st.rem.day), quick = [], k = shiftKey(today, 1);
             for (var i = 0; i < 14 && quick.length < 3; i++, k = shiftKey(k, 1)) {
                 if (openDay(k)) {
@@ -4669,7 +4772,8 @@
             var de, cls = 'mrd-msg mrd-nos';
             if (m.kind === 'bot') {
                 cls += ' mrd-auto';
-                var night = HOURS_ON && at && !openAt(at);
+                // Out of the hours of the department of the conversation, when it came.
+                var hh = hoursConv(conv(st.open)), night = hh.on && at && !hh.openAt(at);
                 de = '<div class="mrd-de">' + ico(night ? 'luna' : 'mensaje') + esc(night ? s('automaticnight') : s('automatic')) + '</div>';
             } else {
                 var sig = m.signature || (m.author && m.author.name) || '';

@@ -35,8 +35,9 @@ escriba, encima de Chatwoot. Cada versión es pequeña y se prueba antes de publ
 - **Telegram:** un bot de la organización, hecho con @BotFather.
 - **Las conversaciones del equipo (opcional):** una cuenta de Chatwoot (instalado en un servidor propio) cuya bandeja
   recibe el mismo WhatsApp. Cada departamento es un equipo de Chatwoot; cada persona del equipo, un agente de Chatwoot
-  con el mismo correo que su cuenta del sitio (una cuenta por correo); el horario del equipo, el de la bandeja. Una app de
-  plataforma de Chatwoot (se crea en su superadministración) deja que cada persona conteste a su nombre.
+  con el mismo correo que su cuenta del sitio (una cuenta por correo); el horario del equipo, el de la bandeja, o una
+  semana propia para el departamento que tiene otro horario (`cli/chat.php --team-hours`). Una app de plataforma de
+  Chatwoot (se crea en su superadministración) deja que cada persona conteste a su nombre.
 
 ## Instalación
 
@@ -57,7 +58,17 @@ sudo -u www-data php local/oksigeniamarandu/cli/chat.php --env=- --webhook --syn
 
 `setup.php` conecta el bot y enciende los avisos de unos plugins (`--notices`, o `all`) en `--channels`; `chat.php`
 conecta Chatwoot (`CHATWOOT_URL`, `CHATWOOT_ACCOUNT`, `CHATWOOT_TOKEN` de un administrador de la cuenta,
-`CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_INBOX`). `--status` dice cómo está el sitio, y `--help` trae el resto.
+`CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_INBOX`). El departamento que no abre cuando la bandeja tiene su propia semana:
+
+```
+sudo -u www-data php local/oksigeniamarandu/cli/chat.php \
+  --team-hours="Comedor=lun-vie 7:30-15:30; Admisiones=lun-vie 9:00-14:00,16:00-18:00; Secretaría=lun-jue 8:00-14:00, vie 8:00-13:00"
+```
+
+Los días, por su nombre en español, inglés, portugués o árabe, entero o corto, solos o en un tramo; después, las horas
+de esos días, un tramo o varios. En el calendario de días cerrados (`--calendar`), «Comedor: cerrado» cierra solo ese
+departamento ese día, y «Secretaría: 8:00-12:00» le da otro horario ese día. `--status` dice cómo está el sitio, y
+`--help` trae el resto.
 
 ## Desarrollo
 

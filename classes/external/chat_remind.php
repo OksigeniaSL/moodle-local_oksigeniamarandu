@@ -19,6 +19,7 @@ namespace local_oksigeniamarandu\external;
 use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
+use local_oksigeniamarandu\local\chat\hours;
 use local_oksigeniamarandu\local\chat\reminders;
 
 /**
@@ -63,7 +64,8 @@ class chat_remind extends chat_base {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $params['day'])) {
                 throw new \invalid_parameter_exception('The day is not a date');
             }
-            $now = reminders::set($viewer, $row, $params['day'], $params['reason']);
+            // The day starts when the department of the conversation opens.
+            $now = reminders::set($viewer, $row, $params['day'], $params['reason'], hours::of_team((int)$row->teamid));
         }
         $viewer->forget_reminders();
         return ['conversation' => self::export($viewer, $now)];

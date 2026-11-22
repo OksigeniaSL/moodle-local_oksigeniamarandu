@@ -70,6 +70,13 @@ if ($problem !== '') {
 $PAGE->set_pagelayout('embedded');
 $version = (int)get_config('local_oksigeniamarandu', 'version');
 $hours = hours::of_site();
+// The departments with hours of their own (their week, or days of the calendar only for them); the rest keep these.
+$teamhours = [];
+foreach (hours::by_team() as $teamid => $one) {
+    if ($one->own) {
+        $teamhours[] = ['id' => $teamid] + $one->export();
+    }
+}
 
 // The texts of the page: every string of the plugin that starts with «chatui:», without it.
 $strings = [];
@@ -140,6 +147,7 @@ $config = [
         'colors' => $colors,
     ],
     'hours' => $hours->export(),
+    'teamhours' => $teamhours,
     'start' => ['conversation' => $conversation, 'inbox' => $tray !== '' ? $tray : 'mine', 'aviso' => $aviso,
         'team' => optional_param('eq', 0, PARAM_INT)],
     'backgrounds' => chat_prefs::current(),

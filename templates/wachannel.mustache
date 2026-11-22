@@ -215,27 +215,27 @@
         }
         return copied;
     };
-    var copy = function() {
+    // Tells done whether the text is on the clipboard: by the clipboard of the browser or, failing it, by hand.
+    var copy = function(done) {
         if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text).then(function() {
+            navigator.clipboard.writeText(text).then(function() {
+                done(true);
                 return true;
-            }, function() {
-                return byhand();
+            }).catch(function() {
+                done(byhand());
             });
+            return;
         }
-        return Promise.resolve(byhand());
+        done(byhand());
     };
     root.addEventListener('click', function(e) {
         if (e.target.closest('[data-copy]')) {
-            copy().then(function(copied) {
+            copy(function(copied) {
                 say(copied ? root.dataset.copied : root.dataset.copyfailed);
-                return copied;
-            }).catch(function() {
-                say(root.dataset.copyfailed);
             });
         } else if (e.target.closest('[data-share]') && files[kind]) {
             // The text goes to the clipboard too, in case WhatsApp does not take it with the file.
-            copy().catch(function() {
+            copy(function() {
                 return false;
             });
             navigator.share({files: [files[kind]], text: text}).then(function() {

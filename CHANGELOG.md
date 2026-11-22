@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.57.1 (2026-11-22)
+
+- The page for the channel of WhatsApp copies the text without a native promise, as the checks of Moodle 4.5 ask.
+
 ## 0.57.0 (2026-11-22)
 
 - The channel of WhatsApp, with the same posts as the channel of Telegram. Meta has no official way to post in a

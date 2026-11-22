@@ -248,6 +248,9 @@ class viewer {
         $later = $row->status === 'snoozed';
         $replyuntil = $row->lastincoming ? (int)$row->lastincoming + DAYSECS : 0;
         $remind = $this->reminders()[(int)$row->cwid] ?? null;
+        // The last message of the team did not arrive: when, and why in words the team can act on.
+        $failedat = (int)($row->failedat ?? 0);
+        $failure = $failedat ? message::failure((string)($row->failerror ?? '')) : ['code' => 0, 'text' => ''];
         return [
             'id' => (int)$row->cwid,
             'status' => (string)$row->status,
@@ -268,6 +271,9 @@ class viewer {
             'lastactivity' => (int)$row->lastactivity,
             'rev' => (int)$row->timemodified,
             'remind' => $remind,
+            'failedat' => $failedat,
+            'failcode' => $failure['code'],
+            'failreason' => $failure['text'],
         ];
     }
 

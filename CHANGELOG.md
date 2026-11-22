@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.55.0 (2026-11-22)
+
+- What does not arrive by WhatsApp, in sight: the index keeps when the last message of the team failed (`failedat`, from
+  the webhooks of Chatwoot and the passes), until a later one goes out or the family writes. The list marks the
+  conversation «Did not arrive», in charcoal (never the red or amber of waiting), and the conversation opens with a band
+  that says why in plain words (the codes of Meta 131000, 131026, 131042, 131047, 131048, 131049, 131050, 131053 and
+  131056; any other, «WhatsApp did not deliver it»), the number to call and «Log a call». The line under the message
+  says the same. An approved message that did not arrive is no longer «waited for».
+- «Log a call» in two touches: «They answered» or «No answer», and a line of what was said if one wants. It stays as a
+  note in the person's name (`local_oksigeniamarandu_chat_call`), marked with the content attribute `marandu_call` and
+  kept in Moodle too, and the page draws it as a call. Nobody answered and the 24 hours are over: the approved message
+  for it, ready in one touch (`cli/chat.php --call-template`, `chat_llamada_sin_respuesta` if not given).
+- «Already with…»: with the common record of families, a conversation shows who of the team has another one of the same
+  family (open, with the menu or put off), in which department, with whom and the last thing said (only to whoever may
+  open it), with «See it», «Pass it to…» and «I'll handle it» (`held` in `chat_contact`).
+- A student of age beside the adults of their family, never instead of them, in «New» and in the file, labelled
+  «Student, of age»: `cli/chat.php --adult-students=1` with `--birth-field=<short name>`, the field of the profile with
+  the date of birth (the record of families keeps none), and the mobile of the profile. Off by default.
+- The waits show on the list of a real site: the screen read `waitingsince` and the server gives `waitsince`.
+- What the families get by themselves, reread to sound like a person: leaving no longer says «we will not write to you
+  here any more» (the team still answers; what ends is the notices); the bot of Telegram says that its chat is only for
+  notices and to write or call as usual, instead of «nobody reads what is written»; writing after leaving asks «Would
+  you like us to send them again?»; the welcome, the code that does not work, sharing the number and the closed
+  questions, in shorter words. In every language of the families.
+
 ## 0.54.1 (2026-11-22)
 
 - The role of the chat goes to every person of the account who does not have it, also to whoever opened the chat by

@@ -76,6 +76,20 @@ class templates {
         }));
     }
 
+    /** The approved message offered after a call nobody answered, when the organisation does not name another. */
+    public const CALL_DEFAULT = 'chat_llamada_sin_respuesta';
+
+    /**
+     * The approved message the page offers in one touch after a call nobody answered, once the 24 hours are over
+     * (setting chatcalltemplate, cli/chat.php --call-template); the page offers it only if it is among usable().
+     *
+     * @return string Its name, or empty for none.
+     */
+    public static function call_name(): string {
+        $name = get_config('local_oksigeniamarandu', 'chatcalltemplate');
+        return $name === false ? self::CALL_DEFAULT : trim((string)$name);
+    }
+
     /**
      * The approved messages the organisation uses to write first to someone who never wrote (setting
      * chatstarttemplates): they go first when a person starts a conversation.

@@ -141,6 +141,9 @@ abstract class chat_base extends external_api {
             ], 'The day whoever looks asked to have it back', VALUE_OPTIONAL),
             'lastactivity' => new external_value(PARAM_INT, 'Its last movement'),
             'rev' => new external_value(PARAM_INT, 'When its row changed: an answer with an older one is out of date'),
+            'failedat' => new external_value(PARAM_INT, 'When the last message of the team did not arrive, or 0', VALUE_DEFAULT, 0),
+            'failcode' => new external_value(PARAM_INT, 'The code of Meta for it, or 0', VALUE_DEFAULT, 0),
+            'failreason' => new external_value(PARAM_TEXT, 'Why it did not arrive, in plain words, or empty', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -162,6 +165,8 @@ abstract class chat_base extends external_api {
             'signature' => new external_value(PARAM_TEXT, 'The signature the family read on top'),
             'status' => new external_value(PARAM_ALPHA, 'sent, delivered, read, failed, progress or empty'),
             'error' => new external_value(PARAM_TEXT, 'Why it did not arrive'),
+            'reason' => new external_value(PARAM_TEXT, 'Why it did not arrive, in plain words', VALUE_DEFAULT, ''),
+            'call' => new external_value(PARAM_ALPHA, 'A call written down: answered or missed; empty if not', VALUE_DEFAULT, ''),
             'attachments' => new external_multiple_structure(new external_single_structure([
                 'type' => new external_value(PARAM_ALPHA, 'image, audio, video or file'),
                 'url' => new external_value(PARAM_RAW, 'Where it is'),

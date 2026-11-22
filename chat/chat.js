@@ -22,7 +22,8 @@
         team: 'local_oksigeniamarandu_chat_team',
         spend: 'local_oksigeniamarandu_chat_spend',
         flag: 'local_oksigeniamarandu_chat_flag',
-        start: 'local_oksigeniamarandu_chat_start'
+        start: 'local_oksigeniamarandu_chat_start',
+        call: 'local_oksigeniamarandu_chat_call'
     };
 
     /* ---------------------------------------------------------------------------------------------------------------
@@ -149,7 +150,15 @@
         ubicacion: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
         menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
         deshacer: '<path d="M9 7l-4 4 4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/>',
-        pasar: '<path d="M4 12h13"/><path d="M13 7l5 5-5 5"/><path d="M20 5v14"/>'
+        pasar: '<path d="M4 12h13"/><path d="M13 7l5 5-5 5"/><path d="M20 5v14"/>',
+        // A WhatsApp that did not arrive, and a call that was answered or not.
+        nollego: '<path d="M4 5h16v11H9.5L5 19.5V16H4z"/><path d="M12 8.2v3.4"/><path d="M12 13.9v.01" stroke-width="2.6"/>',
+        telsi: '<path d="M5.5 3.5h3l2 5-2.5 1.6a11 11 0 0 0 5.9 5.9l1.6-2.5 5 2v3a2 2 0 0 1-2 2' +
+            'A16.5 16.5 0 0 1 3.5 5.5a2 2 0 0 1 2-2z"/>' +
+            '<path d="M14.5 6.2l2 2 4-4.2"/>',
+        telno: '<path d="M5.5 3.5h3l2 5-2.5 1.6a11 11 0 0 0 5.9 5.9l1.6-2.5 5 2v3a2 2 0 0 1-2 2' +
+            'A16.5 16.5 0 0 1 3.5 5.5a2 2 0 0 1 2-2z"/>' +
+            '<path d="M15.5 3.5l5 5M20.5 3.5l-5 5"/>'
     };
 
     /* Icons of the departments: Chatwoot teams have only a name, so a few common words choose a picture. */
@@ -598,7 +607,10 @@
             // conversation with a family about to go as a card; the search of the cards; the last half of «Equipo» on a
             // phone and the last tray with families.
             team: null, teamUnread: 0, teamRev: -1, room: null, rooms: {}, teamPick: false, teamQ: '', teamDrafts: {}, teamCards: {},
-            passQ: '', passFound: {}, passFor: '', teamHalf: 'team', lastTray: ''
+            passQ: '', passFound: {}, passFor: '', teamHalf: 'team', lastTray: '',
+            // A call being written down (its line, and the approved message offered after one nobody answered); the
+            // conversations where the person said «I'll handle it» although someone else has another of the family.
+            call: { line: '', offer: 0 }, heldOk: {}
         };
         var seq = 0;
 
@@ -1912,6 +1924,11 @@
         function convItem(c, opts) {
             var ct = c.contact || {};
             var tags = [];
+            // A WhatsApp that did not arrive goes first, seen from afar: someone has to call or write another way.
+            if (c.failedat) {
+                tags.push('<span class="mrd-etq mrd-etq-nollego" title="' + esc(c.failreason || s('notarrived')) + '">' +
+                    ico('nollego') + esc(s('notarrived')) + '</span>');
+            }
             if (c.assignee) {
                 tags.push('<span class="mrd-etq mrd-quien">' + avAgent(c.assignee, 'mrd-s') + esc(isMine(c) ? s('You') : firstName(c.assignee)) + '</span>');
             } else if (c.section !== 'resolved' && c.section !== 'later') {
@@ -1964,6 +1981,7 @@
                 txt = ico('checks') + (pv.author ? esc((pv.author.me ? s('You') : firstName(pv.author)) + ': ') : '') + txt;
             }
             return '<button type="button" class="mrd-conv' + (st.open === c.id ? ' mrd-on' : '') + (c.unread ? ' mrd-nuevo' : '') +
+                (c.failedat ? ' mrd-con-fallo' : '') +
                 '" data-a="conv" data-v="' + c.id + '"' + (st.open === c.id ? ' aria-current="true"' : '') + '>' + avContact(ct) +
                 '<span class="mrd-conv-cuerpo"><span class="mrd-conv-l1"><span class="mrd-conv-nombre">' +
                 (opts.found && st.search.trim() ? markWords(ct.name || fmtPhone(ct.phone), st.search) : esc(ct.name || fmtPhone(ct.phone))) +
@@ -3609,8 +3627,11 @@
                 renderPie(inboxCounts());
                 return;
             }
-            el.chat.innerHTML = '<div class="mrd-chat-cab"></div><div class="mrd-hilo" tabindex="-1"></div><div class="mrd-escribir"></div>';
+            el.chat.innerHTML = '<div class="mrd-chat-cab"></div><div class="mrd-bandas"></div>' +
+                '<div class="mrd-hilo" tabindex="-1"></div>' +
+                '<div class="mrd-escribir"></div>';
             renderHead();
+            renderBands();
             renderThread();
             st.composerSig = '';
             renderComposer();
@@ -4184,8 +4205,10 @@
                 : avAgent(null, 'mrd-s') + '<span>' + esc(s('unassigned')) + '</span>';
             var dis = READONLY ? ' disabled' : '';
             var resolved = c.section === 'resolved';
-            // Whoever is writing (why to be reminded, or a line for the department it goes to) keeps the box and the caret.
-            var typed = head.querySelector('.mrd-rem-motivo, .mrd-pasar-nota'), typing = typed && document.activeElement === typed;
+            // Whoever is writing (why to be reminded, a line for the department it goes to, or what was said on the phone)
+            // keeps the box and the caret.
+            var typed = head.querySelector('.mrd-rem-motivo, .mrd-pasar-nota, .mrd-llamada-linea');
+            var typing = typed && document.activeElement === typed;
             var caret = typing ? typed.selectionStart : 0, typedCls = typing ? typed.className : '';
             // On a phone the bell and the tick say what they do, in a word under them.
             var remLabel = c.remind ? s('remindback', remShort(c.remind.at * 1000)) : s('remindbtn');
@@ -4202,7 +4225,12 @@
                 owner + (READONLY ? '' : ico('abajo', 'mrd-flecha')) + '</button>' +
                 (READONLY ? '' : '<button type="button" class="mrd-mando mrd-pasar-b" data-a="pop" data-v="dep" aria-expanded="' + (st.pop === 'dep') + '">' +
                     ico('pasar') + '<span>' + esc(s('passbtn')) + '</span></button>') +
-                (st.pop === 'dep' ? popTeams(c) : st.pop === 'dueno' ? popPeople(c) : '') + '</div>' +
+                // A call to this number, written down in two touches.
+                (READONLY || !digits(ct.phone) ? '' : '<button type="button" class="mrd-mando mrd-llamar-b" data-a="pop" ' +
+                    'data-v="llamada" aria-expanded="' + (st.pop === 'llamada') + '" aria-label="' + esc(s('callchip')) +
+                    '" title="' + esc(s('callbtntitle')) + '">' + ico('tel') + '<span>' + esc(s('callchip')) + '</span></button>') +
+                (st.pop === 'dep' ? popTeams(c) : st.pop === 'dueno' ? popPeople(c) : st.pop === 'llamada' ? popCall(c) : '') +
+                '</div>' +
                 '<div class="mrd-cab-der"><button type="button" class="mrd-btn mrd-ver-ficha" data-a="ficha">' + ico('ficha') + esc(s('file')) + '</button>' +
                 remBtn + (READONLY ? '' : resolved
                     ? '<button type="button" class="mrd-btn mrd-hecho mrd-resolver" data-a="reopen" title="' + esc(s('reopen')) + '">' + ico('check') +
@@ -4217,9 +4245,187 @@
             // A menu opens under its button, inside the screen.
             var pm = head.querySelector('.mrd-pop-menu');
             if (pm) {
-                var b = head.querySelector(st.pop === 'dueno' ? '.mrd-mando.mrd-quien' : '.mrd-pasar-b'), mandos = head.querySelector('.mrd-mandos');
+                var b = head.querySelector(st.pop === 'dueno' ? '.mrd-mando.mrd-quien' : st.pop === 'llamada' ? '.mrd-llamar-b'
+                    : '.mrd-pasar-b');
+                var mandos = head.querySelector('.mrd-mandos');
                 var w = pm.offsetWidth || 320;
-                pm.style.setProperty('--x', Math.max(0, Math.min(b.offsetLeft, mandos.clientWidth - w)) + 'px');
+                pm.style.setProperty('--x', Math.max(0, Math.min(b ? b.offsetLeft : 0, mandos.clientWidth - w)) + 'px');
+            }
+        }
+
+        /* -------- Above the conversation: what did not arrive, and who of the team already attends the family -------- */
+        function renderBands() {
+            var c = conv(st.open), zone = el.chat.querySelector('.mrd-bandas');
+            if (!zone) {
+                return;
+            }
+            var h = c ? failBand(c) + heldBand(c) : '';
+            if (zone.getAttribute('data-sig') === h) {
+                return;
+            }
+            zone.setAttribute('data-sig', h);
+            zone.innerHTML = h;
+        }
+        /* The last message did not reach them: why, in plain words, and the number to call, with the call written down
+           after. Until a later message goes out, or they write. */
+        function failBand(c) {
+            if (!c.failedat) {
+                return '';
+            }
+            var ct = c.contact || {}, d = digits(ct.phone), number = fmtPhone(d);
+            var dial = d ? '<a class="mrd-btn mrd-chico mrd-banda-tel" href="tel:+' + d + '" data-a="tel" data-v="' + esc(number) +
+                '" aria-label="' + esc(s('calldial', number)) + '">' + ico('tel') + '<span>' + esc(number) + '</span></a>' : '';
+            var write = READONLY || !d ? '' : '<button type="button" class="mrd-btn mrd-chico" data-a="callopen">' + ico('nota') +
+                esc(s('callbtn')) + '</button>';
+            return '<div class="mrd-banda mrd-banda-fallo" role="status"><span class="mrd-banda-i">' + ico('nollego') + '</span>' +
+                '<div class="mrd-banda-t"><b>' + esc(s('failtitle')) + '</b>' +
+                '<span class="mrd-banda-cuando">' + esc(listTime(c.failedat * 1000)) + '</span>' +
+                '<p>' + esc(c.failreason || s('failedplain')) + '</p></div>' +
+                '<div class="mrd-banda-b">' + dial + write + '</div></div>';
+        }
+        /* Someone else of the team already has another conversation of the same family (by the common record): who, in
+           which department, with whom, and the last thing said. Whoever opens this one sees it, and decides: pass it to
+           that person, or keep it. Kept, it stays as one quiet line. */
+        function heldBand(c) {
+            var held = st.fichaFor === c.id && st.ficha && st.ficha.held ? st.ficha.held : [];
+            var x = held[0];
+            if (!x) {
+                return '';
+            }
+            var who = { agentid: x.agentid, name: x.name, firstname: x.firstname }, first = x.firstname || x.name;
+            var where = x.teamname ? s('heldwhere', { team: x.teamname, adult: x.adult }) : s('heldwith', x.adult);
+            var see = x.sees ? '<button type="button" class="mrd-btn mrd-chico" data-a="heldsee" data-v="' + x.conversation + '">' +
+                esc(s('beforesee')) + '</button>' : '';
+            if ((isMine(c) && st.heldOk[c.id]) || READONLY) {
+                return '<div class="mrd-banda mrd-banda-lleva mrd-banda-quieta">' + avAgent(who, 'mrd-s') +
+                    '<span class="mrd-banda-t">' + esc(s('heldquiet', first)) + ' · ' + esc(where) + '</span>' +
+                    (see ? '<div class="mrd-banda-b">' + see + '</div>' : '') + '</div>';
+            }
+            var when = x.at ? '<small>' + esc(listTime(x.at * 1000)) + '</small>' : '';
+            var said = x.preview ? '<p class="mrd-banda-cita"><span>«' + esc(x.preview) + '»</span>' + when + '</p>' : '';
+            return '<div class="mrd-banda mrd-banda-lleva">' + avAgent(who, 'mrd-m') +
+                '<div class="mrd-banda-t"><b>' + esc(s('heldby', first)) + '</b><p>' + esc(where) + '</p>' + said + '</div>' +
+                '<div class="mrd-banda-b">' + see +
+                '<button type="button" class="mrd-btn mrd-chico" data-a="heldpass" data-v="' + x.agentid + '">' + ico('pasar') +
+                esc(s('heldpass', first)) + '</button>' +
+                '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="heldmine">' + ico('check') +
+                esc(s('takeit')) + '</button></div></div>';
+        }
+        /* «Llamada»: the number to call, a line of what was said if one wants, and how it went, which keeps it at once.
+           Nobody answered and the 24 hours are over: the approved message for that, ready in one touch. */
+        function popCall(c) {
+            var ct = c.contact || {}, d = digits(ct.phone), name = contactFirst(c);
+            var head = '<div class="mrd-pop mrd-pop-menu mrd-pop-llamada" role="dialog" aria-label="' +
+                esc(s('calltitle', name)) + '">';
+            var tpl = (st.extras.templates || [])[callTpl()];
+            if (st.call.offer === c.id && tpl) {
+                return head + '<div class="mrd-llamada-hecha">' + ico('telno') + '<span>' + esc(s('calldonemissed')) +
+                    '</span></div>' +
+                    '<p class="mrd-llamada-q">' + esc(s('callofferq')) + '</p>' +
+                    '<button type="button" class="mrd-btn mrd-primario mrd-llamada-tpl" data-a="calltpl">' + ico('mensaje') +
+                    '<span>' + esc(s('calloffer', tplTitle(tpl))) + '</span></button>' +
+                    '<button type="button" class="mrd-btn mrd-chico mrd-llamada-ahora-no" data-a="callnotnow">' +
+                    esc(s('callnotnow')) + '</button></div>';
+            }
+            var dial = d ? '<a class="mrd-llamada-num" href="tel:+' + d + '" data-a="tel" data-v="' + esc(fmtPhone(d)) + '">' +
+                ico('tel') + '<span>' + esc(s('calldial', fmtPhone(d))) + '</span></a>' : '';
+            return head + '<h5>' + esc(s('calltitle', name)) + '</h5>' + dial +
+                '<label class="mrd-rem-l"><span>' + esc(s('callline')) + ' <small>' + esc(s('passoptional')) + '</small></span>' +
+                '<input type="text" class="mrd-llamada-linea" maxlength="300" autocomplete="off" placeholder="' + esc(s('callph')) +
+                '" value="' + esc(st.call.line) + '"></label>' +
+                '<p class="mrd-llamada-q">' + esc(s('callask')) + '</p><div class="mrd-llamada-botones">' +
+                '<button type="button" class="mrd-btn mrd-llamada-si" data-a="callsave" data-v="1">' + ico('telsi') +
+                esc(s('callanswered')) + '</button>' +
+                '<button type="button" class="mrd-btn mrd-llamada-no" data-a="callsave" data-v="0">' + ico('telno') +
+                esc(s('callmissed')) + '</button></div>' +
+                '<p class="mrd-rem-ayuda">' + esc(s('callhelp')) + '</p></div>';
+        }
+        // The approved message for a call nobody answered, among those that may be sent: in the language of the page if
+        // it is there in several.
+        function callTpl() {
+            var name = cfg.calltemplate || '', list = st.extras.templates || [], found = -1;
+            if (!name) {
+                return -1;
+            }
+            list.forEach(function (t, i) {
+                if (t.name === name && (found < 0 || String(t.language).indexOf(LANG) === 0)) {
+                    found = i;
+                }
+            });
+            return found;
+        }
+        // The last call written down nobody answered, if nothing went to them after it and they can no longer be written
+        // to freely: the approved message for it is offered on its line.
+        function callOfferId(c) {
+            if (READONLY || !c || canReply(c) || callTpl() < 0) {
+                return 0;
+            }
+            for (var i = st.msgs.length - 1; i >= 0; i--) {
+                var m = st.msgs[i];
+                if (m.kind === 'incoming' || (m.kind === 'outgoing' && !m.failed && m.status !== 'failed')) {
+                    return 0;
+                }
+                if (m.kind === 'note' && m.call) {
+                    return m.call === 'missed' ? m.id : 0;
+                }
+            }
+            return 0;
+        }
+        function writeCall(btn, answered) {
+            var c = conv(st.open), line = st.call.line.trim();
+            if (!c) {
+                return;
+            }
+            busy(btn, true);
+            tr.call(M.call, { conversation: c.id, answered: answered, text: line }).then(function (r) {
+                st.call.line = '';
+                if (r && r.conversation) {
+                    mergeConv(r.conversation);
+                }
+                if (st.open === c.id && r && r.message && indexOfMsg(r.message.id) < 0) {
+                    st.msgs.push(r.message);
+                    sortMsgs();
+                }
+                var now = conv(c.id) || c;
+                // Nobody answered and the 24 hours are over: the approved message for it, in one touch.
+                if (!answered && !canReply(now) && callTpl() >= 0 && !READONLY) {
+                    st.call.offer = c.id;
+                    st.pop = 'llamada';
+                } else {
+                    st.pop = null;
+                    toast(s(answered ? 'calldoneanswered' : 'calldonemissed'));
+                }
+                refreshAfterData();
+                renderThread();
+                focusPop(st.pop ? '.mrd-llamada-tpl' : '');
+                pollSoon();
+                return r;
+            }).catch(function (e) {
+                busy(btn, false);
+                failToast(e);
+            });
+        }
+        // The approved message for a call nobody answered, in the box, with the gaps it can fill already filled.
+        function prepareCallTpl() {
+            var i = callTpl();
+            st.pop = null;
+            st.call.offer = 0;
+            if (i < 0 || !conv(st.open)) {
+                renderHead();
+                return;
+            }
+            st.mode = 'reply';
+            st.tpl = i;
+            renderHead();
+            renderComposer(true);
+            var gaps = el.chat.querySelectorAll('.mrd-escribir .mrd-hueco'), next = null;
+            Array.prototype.forEach.call(gaps, function (g) {
+                if (!next && !g.textContent.trim()) {
+                    next = g;
+                }
+            });
+            if (next || gaps[0]) {
+                (next || gaps[0]).focus();
             }
         }
         /* «Remind me»: a day (the next ones the team works, or any in the sheet of five weeks) and a line of what for;
@@ -4414,6 +4620,9 @@
             if (m.kind === 'activity') {
                 return '<div class="mrd-sistema"' + id + '>' + ico('flecha') + '<span>' + esc(m.text) + (time ? ' · ' + esc(time) : '') + '</span></div>';
             }
+            if (m.kind === 'note' && m.call) {
+                return callLineHtml(m, time);
+            }
             if (m.kind === 'note') {
                 var who = m.author && m.author.me ? me.firstname || firstName(m.author) : firstName(m.author);
                 return '<div class="mrd-nota' + (m.pending ? ' mrd-pendiente' : '') + '"' + id + '><div class="mrd-de">' + ico('nota') +
@@ -4452,9 +4661,41 @@
                     esc(s('retry')) + '</button></div>';
             }
             if (m.status === 'failed') {
+                // Why, in words the team can act on; what WhatsApp said, for whoever needs it, on the pointer.
+                if (m.reason) {
+                    return '<div class="mrd-fallo-l" title="' + esc(m.error) + '"><span><b>' + esc(s('failedplain')) + '.</b> ' +
+                        esc(m.reason) + '</span></div>';
+                }
                 return '<div class="mrd-fallo-l">' + esc(m.error ? s('failed', m.error) : s('failedplain')) + '</div>';
             }
             return '';
+        }
+        /* A call written down: who called and when, how it went, and what was said. */
+        function callLineHtml(m, time) {
+            var who = m.author && m.author.me ? me.firstname || firstName(m.author) : firstName(m.author);
+            var ok = m.call === 'answered';
+            return '<div class="mrd-llamada mrd-llamada-' + (ok ? 'si' : 'no') + (m.pending ? ' mrd-pendiente' : '') +
+                '" data-id="' + esc(m.id) + '"><span class="mrd-llamada-i">' + ico(ok ? 'telsi' : 'telno') + '</span>' +
+                '<div class="mrd-llamada-t"><div class="mrd-llamada-cab"><b>' + esc(s('callby', who || '')) + '</b>' +
+                '<span class="mrd-llamada-res">' + esc(ok ? s('callwasanswered') : s('callmissed')) + '</span>' +
+                (time ? '<span class="mrd-llamada-h">' + esc(time) + '</span>' : '') + '</div>' +
+                (m.text ? '<p>' + textHtml(m.text, false) + '</p>' : '') + '</div></div>';
+        }
+        // The approved message for a call nobody answered, on the line of the last one, while it is still due.
+        function placeCallOffer() {
+            var hilo = hiloEl();
+            if (!hilo) {
+                return;
+            }
+            Array.prototype.forEach.call(hilo.querySelectorAll('.mrd-llamada-ofrece'), function (n) {
+                n.remove();
+            });
+            var id = callOfferId(conv(st.open)), tpl = (st.extras.templates || [])[callTpl()];
+            var node = id && tpl ? hilo.querySelector('.mrd-llamada[data-id="' + cssEsc(id) + '"] .mrd-llamada-t') : null;
+            if (node) {
+                node.insertAdjacentHTML('beforeend', '<button type="button" class="mrd-btn mrd-chico mrd-llamada-ofrece" ' +
+                    'data-a="calltpl">' + ico('mensaje') + esc(s('calloffer', tplTitle(tpl))) + '</button>');
+            }
         }
         function sortMsgs() {
             st.msgs.sort(function (a, b) {
@@ -4740,7 +4981,8 @@
                 if (m.kind === 'incoming') {
                     return false;
                 }
-                if (m.kind === 'outgoing' && m.template && !m.failed) {
+                // One that WhatsApp did not deliver is not waited for: another way is needed.
+                if (m.kind === 'outgoing' && m.template && !m.failed && m.status !== 'failed') {
                     return true;
                 }
             }
@@ -5534,9 +5776,14 @@
                 return '';
             }
             return '<div class="mrd-seccion"><h4>' + esc(quiet ? s('familyadults') : s('whowrites')) + '</h4>' + f.contacts.map(function (k) {
-                return '<div class="mrd-contacto"><span class="mrd-av mrd-m mrd-con-bicho" aria-hidden="true">' + bicho(digits(k.phone) || k.name) + '</span><span><b>' +
+                // A student of age says so in their label, beside the adults; the rest, who they are and their number.
+                var line = [k.student ? '' : k.role, fmtPhone(k.phone)].filter(Boolean).join(' · ');
+                return '<div class="mrd-contacto' + (k.student ? ' mrd-contacto-alumno' : '') + '">' +
+                    '<span class="mrd-av mrd-m mrd-con-bicho" aria-hidden="true">' + bicho(digits(k.phone) || k.name) +
+                    '</span><span><b>' +
                     esc(k.name) + (f.contacts.length > 1 && k.conversation && k.conversation === st.open ? ' <span class="mrd-marca-este">' + esc(s('thischat')) + '</span>' : '') +
-                    '</b><small>' + esc([k.role, fmtPhone(k.phone)].filter(Boolean).join(' · ')) + '</small></span>' + callButton(k.phone) + '</div>';
+                    '</b>' + (k.student ? studentTag() : '') + '<small>' + esc(line) + '</small></span>' + callButton(k.phone) +
+                    '</div>';
             }).join('') + '</div>';
         }
         function otherConvsHtml(f) {
@@ -5861,6 +6108,7 @@
                 box.classList.toggle('mrd-sin-ficha', !f);
                 renderFicha();
                 renderBefore();
+                renderBands();
                 renderComposer();
             }).catch(function () {
                 if (st.fichaFor !== id) {
@@ -5961,6 +6209,7 @@
                 st.readby = [];
                 st.mode = canReply(c) || READONLY ? 'reply' : (st.drafts[id] && st.drafts[id].note ? 'note' : 'reply');
                 st.pop = null;
+                st.call = { line: '', offer: 0 };
                 st.tpl = -1;
                 st.pickAgain = false;
                 st.joined = '';
@@ -6080,6 +6329,10 @@
             if (old && old.rev !== undefined && c.rev !== undefined && c.rev < old.rev) {
                 return;
             }
+            // The server calls the wait «waitsince»; the screen reads «waitingsince», as the contract first wrote it.
+            if (c.waitingsince === undefined && c.waitsince !== undefined) {
+                c.waitingsince = c.waitsince;
+            }
             st.convs[c.id] = c;
         }
         function removeConv(id) {
@@ -6109,6 +6362,8 @@
             }
             if (c) {
                 renderHead();
+                renderBands();
+                placeCallOffer();
                 renderComposer();
                 if (c.contact && st.fichaKind && c.contact.kind !== st.fichaKind && st.fichaState === 'ok') {
                     loadFicha(st.open);
@@ -6390,8 +6645,10 @@
                 return null;
             });
         }
-        // «Deshacer» on the line of what was done: the server's own line once it has come, ours until then.
+        // «Deshacer» on the line of what was done: the server's own line once it has come, ours until then. The thread is
+        // drawn or grows wherever this is called: the approved message after a call nobody answered goes in place too.
         function placeUndo() {
+            placeCallOffer();
             var hilo = hiloEl();
             if (!hilo) {
                 return;
@@ -6739,8 +6996,13 @@
                 : x.elsewhere ? '<span class="mrd-nueva-estado mrd-ocupada">' + esc(s('newelsewhere', x.elsewhere)) + '</span>' : '';
             return '<button type="button" class="mrd-nueva-cand" data-a="newpick" data-v="' + i + '">' + avContact(candContact(x), 'mrd-m') +
                 '<span class="mrd-nueva-cand-t"><b>' + esc(title) + '</b>' + (x.line ? '<small class="mrd-rel">' + relHtml(candContact(x)) + '</small>' : '') +
-                '<span class="mrd-nueva-meta"><span class="mrd-nueva-fuente">' + esc(s('source' + x.source)) + '</span>' +
+                '<span class="mrd-nueva-meta">' + (x.student ? studentTag() : '') +
+                '<span class="mrd-nueva-fuente">' + esc(s('source' + x.source)) + '</span>' +
                 (x.name ? '<span>' + esc(fmtPhone(x.phone)) + '</span>' : '') + state + '</span></span>' + ico('der', 'mrd-flecha') + '</button>';
+        }
+        // A student of age, written to beside the adults of their family (never instead of them).
+        function studentTag() {
+            return '<span class="mrd-etq-alumno">' + ico('birrete') + esc(s('adultstudent')) + '</span>';
         }
         function newListHtml() {
             var n = st.nueva;
@@ -6806,7 +7068,8 @@
             return '<div class="mrd-nueva-para"><span class="mrd-nueva-rotulo">' + esc(s('newto')) + '</span>' + avContact(candContact(x), 'mrd-m') +
                 '<div class="mrd-nueva-cand-t"><b>' + esc(x.name || fmtPhone(x.phone)) + '</b>' +
                 (x.line ? '<small class="mrd-rel">' + relHtml(candContact(x)) + '</small>' : '') +
-                (x.name ? '<span class="mrd-nueva-meta"><span>' + esc(fmtPhone(x.phone)) + '</span></span>' : '') + '</div>' +
+                (x.name || x.student ? '<span class="mrd-nueva-meta">' + (x.student ? studentTag() : '') +
+                    (x.name ? '<span>' + esc(fmtPhone(x.phone)) + '</span>' : '') + '</span>' : '') + '</div>' +
                 '<span class="mrd-nueva-para-b">' + callButton(x.phone) + '<button type="button" class="mrd-btn mrd-chico" data-a="newchange">' +
                 esc(s('newchange')) + '</button></span></div>';
         }
@@ -7060,9 +7323,10 @@
             var was = st.pop;
             st.pop = null;
             st.pass = null;
+            st.call.offer = 0;
             if (was === 'perfil' || was === 'avisos' || was === 'ayuda') {
                 renderRail();
-            } else if (was === 'dep' || was === 'dueno' || was === 'recordar') {
+            } else if (was === 'dep' || was === 'dueno' || was === 'recordar' || was === 'llamada') {
                 renderHead();
             } else {
                 refreshWritePop();
@@ -7687,6 +7951,55 @@
                         remind(t, c.id, a === 'remsave' ? st.rem.day : '', st.rem.reason);
                     }
                     break;
+                case 'callopen':
+                    // From the band of what did not arrive: the sheet of the call, under its button in the head.
+                    if (c && !READONLY) {
+                        st.pop = 'llamada';
+                        st.call.offer = 0;
+                        renderHead();
+                        focusPop('.mrd-llamada-linea');
+                    }
+                    break;
+                case 'callsave':
+                    writeCall(t, v === '1');
+                    break;
+                case 'calltpl':
+                    prepareCallTpl();
+                    break;
+                case 'callnotnow':
+                    closePops();
+                    break;
+                case 'heldsee':
+                    openAnyConv(+v);
+                    break;
+                case 'heldpass':
+                    if (c) {
+                        var heldTo = +v, heldList = (st.ficha && st.ficha.held) || [];
+                        var heldName = firstName(personName(heldTo)) || (heldList.filter(function (x) {
+                            return x.agentid === heldTo;
+                        })[0] || {}).firstname || '';
+                        runAction(t, 'person', heldTo, '', s('toastgiven', heldName)).then(function (res) {
+                            if (res && !res.gone && conv(st.open)) {
+                                loadFicha(st.open);
+                            }
+                            return res;
+                        });
+                    }
+                    break;
+                case 'heldmine':
+                    if (c) {
+                        var keep = c.id;
+                        st.heldOk[keep] = true;
+                        if (isMine(c)) {
+                            renderBands();
+                        } else {
+                            runAction(t, 'take', 0, '', s('toastmine')).then(function (res) {
+                                renderBands();
+                                return res;
+                            });
+                        }
+                    }
+                    break;
                 case 'histclear':
                     st.hf = { mine: false, team: 0, period: '' };
                     st.hfDep = false;
@@ -7728,13 +8041,16 @@
                                 railOpener.focus();
                             }
                         }
-                    } else if (v === 'dep' || v === 'dueno' || v === 'recordar') {
+                    } else if (v === 'dep' || v === 'dueno' || v === 'recordar' || v === 'llamada') {
                         if (v === 'recordar' && st.pop && c) {
                             st.rem = { day: c.remind ? keyIso(dayKey(c.remind.at * 1000)) : '', reason: c.remind ? c.remind.reason : '' };
                         }
+                        st.call.offer = 0;
                         renderHead();
                         // The focus goes into the menu, to its first choice; closed, back to its button.
-                        focusPop(st.pop ? (v === 'recordar' ? '.mrd-rem-rapidos .mrd-chip, .mrd-pop button' : '.mrd-pop-fila') : '');
+                        var into = v === 'recordar' ? '.mrd-rem-rapidos .mrd-chip, .mrd-pop button'
+                            : v === 'llamada' ? '.mrd-llamada-linea' : '.mrd-pop-fila';
+                        focusPop(st.pop ? into : '');
                         if (!st.pop) {
                             var opener = el.chat.querySelector('[data-a="pop"][data-v="' + v + '"]');
                             if (opener) {
@@ -8060,6 +8376,10 @@
             }
             if (t.classList && t.classList.contains('mrd-pasar-nota') && st.pass) {
                 st.pass.note = t.value;
+                return;
+            }
+            if (t.classList && t.classList.contains('mrd-llamada-linea')) {
+                st.call.line = t.value;
                 return;
             }
             if (t.classList && t.classList.contains('mrd-rem-motivo')) {

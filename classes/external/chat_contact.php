@@ -21,6 +21,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_oksigeniamarandu\local\chat\family;
+use local_oksigeniamarandu\local\chat\held;
 use local_oksigeniamarandu\local\chat\marks;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\chat\mirror;
@@ -101,7 +102,7 @@ class chat_contact extends chat_base {
         $result = ['kind' => $kind, 'marks' => $marks, 'face' => (string)($row->kindface ?? ''), 'notes' => marks::notes_of($row),
             'familyauto' => $auto, 'familyfile' => (bool)$family, 'title' => (string)$row->name, 'phone' => (string)$row->phone,
             'line' => '', 'children' => [], 'services' => [], 'contacts' => [], 'rows' => [], 'source' => '',
-            'conversations' => $others, 'maybe' => [], 'optout' => self::optout((string)$row->phone)];
+            'conversations' => $others, 'maybe' => [], 'optout' => self::optout((string)$row->phone), 'held' => []];
         if ($family) {
             $result['title'] = $family['title'] !== '' ? $family['title'] : (string)$row->name;
             $result['line'] = $family['line'];
@@ -110,15 +111,26 @@ class chat_contact extends chat_base {
                     'tutor' => '', 'stage' => $child['stage'] ?? ['label' => '', 'color' => '', 'dark' => ''], 'applying' => false];
             }
             [$seeswhere, $seesparams] = $viewer->where();
-            // The adults of the family and their numbers, only when the centre checked this one.
-            foreach ($family['verified'] ? $family['adults'] : [] as $adult) {
+            // The adults of the family and their numbers, only when the centre checked this one; beside them, never
+            // instead of them, the students of age with a mobile, when the site writes to them.
+            $people = $family['verified'] ? $family['adults'] : [];
+            foreach ($family['verified'] ? $family['students'] ?? [] : [] as $student) {
+                $people[] = ['name' => $student['name'], 'phone' => $student['phone'], 'student' => true];
+            }
+            foreach ($people as $adult) {
                 // The newest conversation of that adult that this person can open.
                 $conversation = $adult['phone'] === '' ? false : $DB->get_field_sql(
                     "SELECT MAX(c.cwid) FROM {" . mirror::TABLE . "} c WHERE c.phone = :phone AND $seeswhere",
                     ['phone' => $adult['phone']] + $seesparams
                 );
-                $result['contacts'][] = ['name' => $adult['name'], 'role' => '', 'phone' => $adult['phone'],
-                    'conversation' => (int)$conversation];
+                $student = !empty($adult['student']);
+                $result['contacts'][] = ['name' => $adult['name'],
+                    'role' => $student ? get_string('chat:family:adultstudent', 'local_oksigeniamarandu') : '',
+                    'phone' => $adult['phone'], 'conversation' => (int)$conversation, 'student' => $student];
+            }
+            // Who of the team already attends this family in another conversation.
+            if ($row->cwid) {
+                $result['held'] = held::elsewhere($viewer, $row);
             }
             $result['source'] = get_string(
                 $family['verified'] ? 'chat:family:source' : 'chat:family:sourcehint',
@@ -228,6 +240,7 @@ class chat_contact extends chat_base {
                 'role' => new external_value(PARAM_TEXT, 'Who they are'),
                 'phone' => new external_value(PARAM_RAW, 'Their number'),
                 'conversation' => new external_value(PARAM_INT, 'Their conversation, or 0'),
+                'student' => new external_value(PARAM_BOOL, 'Whether it is a student of age, by the adults', VALUE_DEFAULT, false),
             ])),
             'rows' => new external_multiple_structure(new external_single_structure([
                 'icon' => new external_value(PARAM_ALPHANUMEXT, 'The icon'),
@@ -267,6 +280,20 @@ class chat_contact extends chat_base {
                     'time' => new external_value(PARAM_INT, 'When'),
                 ])),
             ], 'What this number said no to, and the trail', VALUE_DEFAULT, ['all' => 0, 'scopes' => [], 'trail' => []]),
+            'held' => new external_multiple_structure(new external_single_structure([
+                'conversation' => new external_value(PARAM_INT, 'The other conversation of the family'),
+                'status' => new external_value(PARAM_ALPHA, 'open, pending or snoozed'),
+                'teamid' => new external_value(PARAM_INT, 'Its department, or 0'),
+                'teamname' => new external_value(PARAM_TEXT, 'The name of its department, or empty'),
+                'agentid' => new external_value(PARAM_INT, 'Who has it, in Chatwoot'),
+                'name' => new external_value(PARAM_TEXT, 'Their name'),
+                'firstname' => new external_value(PARAM_TEXT, 'Their first name'),
+                'adult' => new external_value(PARAM_TEXT, 'With whom of the family'),
+                'phone' => new external_value(PARAM_RAW, 'Their number, only digits'),
+                'preview' => new external_value(PARAM_RAW, 'Its last message, if whoever looks sees it'),
+                'at' => new external_value(PARAM_INT, 'When, if whoever looks sees it'),
+                'sees' => new external_value(PARAM_BOOL, 'Whether whoever looks can open it'),
+            ]), 'Who of the team already attends this family in another conversation', VALUE_DEFAULT, []),
         ]);
     }
 }

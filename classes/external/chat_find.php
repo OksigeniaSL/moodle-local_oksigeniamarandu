@@ -73,6 +73,7 @@ class chat_find extends chat_base {
                 ])),
                 'source' => new external_value(PARAM_ALPHA, 'number, family, admissions or contact'),
                 'verified' => new external_value(PARAM_BOOL, 'Whether the family vouched for the number'),
+                'student' => new external_value(PARAM_BOOL, 'Whether it is a student of age, by the adults', VALUE_DEFAULT, false),
                 'conversation' => new external_value(PARAM_INT, 'The last conversation of it that whoever asks sees, or 0'),
                 'open' => new external_value(PARAM_BOOL, 'Whether that conversation is open'),
                 'elsewhere' => new external_value(PARAM_TEXT, 'Where an open conversation of it is that whoever asks does not see'),

@@ -487,6 +487,26 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122200, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122300) {
+        // A WhatsApp that did not arrive, in sight in the lists (when and why), and the calls of the team written down.
+        $table = new xmldb_table('local_oksigeniamarandu_conv');
+        $fields = [
+            new xmldb_field('failedat', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'lastmsgid'),
+            new xmldb_field('failerror', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'failedat'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        $table = new xmldb_table('local_oksigeniamarandu_convmsg');
+        $field = new xmldb_field('callresult', XMLDB_TYPE_CHAR, '10', null, null, null, null, 'timecreated');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026122300, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

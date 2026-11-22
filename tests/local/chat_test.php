@@ -20,6 +20,7 @@ use core_external\external_api;
 use local_oksigeniamarandu\external\chat_action;
 use local_oksigeniamarandu\external\chat_agenda;
 use local_oksigeniamarandu\external\chat_board;
+use local_oksigeniamarandu\external\chat_call;
 use local_oksigeniamarandu\external\chat_contact;
 use local_oksigeniamarandu\external\chat_find;
 use local_oksigeniamarandu\external\chat_flag;
@@ -58,6 +59,9 @@ use local_oksigeniamarandu\local\chat\viewer;
  * @covers     \local_oksigeniamarandu\local\chat\reminders
  * @covers     \local_oksigeniamarandu\local\chat\agenda
  * @covers     \local_oksigeniamarandu\local\chat\board
+ * @covers     \local_oksigeniamarandu\local\chat\held
+ * @covers     \local_oksigeniamarandu\local\chat\family
+ * @covers     \local_oksigeniamarandu\local\chat\actions
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mirror::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(hours::class)]
@@ -71,6 +75,9 @@ use local_oksigeniamarandu\local\chat\viewer;
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\reminders::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\agenda::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(chat\board::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\held::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\family::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(chat\actions::class)]
 final class chat_test extends \advanced_testcase {
     /** Monday 16 November 2026 at 12:00 in the Canary Islands (UTC). */
     private const MONDAY_NOON = 1794830400;
@@ -280,6 +287,8 @@ final class chat_test extends \advanced_testcase {
             3 => [$this->message(30, 0, 'Gracias', $now - 900), $this->message(31, 1, 'A usted', $now - 800)],
         ];
         directory::use_client($this->client);
+        // The families found are kept for the request: each test starts without them.
+        chat\family::forget();
     }
 
     /**
@@ -1247,5 +1256,240 @@ final class chat_test extends \advanced_testcase {
         $this->assertFalse(mirror::verify($body, $time, $signature, 'other', self::MONDAY_NOON + 10));
         $this->assertFalse(mirror::verify($body, $time, $signature, 'secret', self::MONDAY_NOON + HOURSECS));
         $this->assertFalse(mirror::verify($body, $time, $signature, '', self::MONDAY_NOON));
+    }
+
+    /**
+     * Why WhatsApp did not deliver, in words the team can act on, by the code of Meta wherever Chatwoot writes it.
+     */
+    public function test_failure_reasons(): void {
+        $said = function (string $why): string {
+            return get_string('chat:fail:' . $why, 'local_oksigeniamarandu');
+        };
+        $cases = [
+            '131026: Message undeliverable' => [131026, 'cannot'],
+            '(#131026) Message Undeliverable.' => [131026, 'cannot'],
+            '131047: Re-engagement message' => [131047, 'closed'],
+            '131049: This message was not delivered to maintain healthy ecosystem engagement.' => [131049, 'held'],
+            '131050: User has stopped marketing messages' => [131050, 'optout'],
+            '131048: Spam rate limit hit' => [131048, 'toomany'],
+            'Error 131056 (Business, Consumer) pair rate limit hit' => [131056, 'toomany'],
+            '131053: Media upload error' => [131053, 'media'],
+            '131042: Business eligibility payment issue' => [131042, 'payment'],
+            '131000: Something went wrong' => [131000, 'whatsapp'],
+            '100: Invalid parameter' => [100, 'other'],
+            'Unknown failure' => [0, 'other'],
+            '' => [0, 'other'],
+        ];
+        foreach ($cases as $error => [$code, $why]) {
+            $this->assertSame(['code' => $code, 'text' => $said($why)], message::failure($error), $error);
+        }
+    }
+
+    /**
+     * The index keeps when the last message of the team did not arrive, until a later one goes out or the family writes;
+     * a message still on its way or a note change nothing. It comes with the webhook, and the page gets it said plainly.
+     */
+    public function test_failed_last_message(): void {
+        global $DB;
+        $now = time();
+        $failed = $this->message(2, 1, 'Le mando el certificado.', $now - 50) +
+            ['status' => 'failed', 'content_attributes' => ['external_error' => '131026: Message undeliverable']];
+        $sent = $this->message(3, 1, 'Se lo mando otra vez.', $now - 40) + ['status' => 'sent'];
+        $hello = $this->message(1, 0, 'Hola', $now - 100);
+        $row = mirror::from_messages([$hello, $failed]);
+        $this->assertSame([$now - 50, '131026: Message undeliverable'], [$row['failedat'], $row['failerror']]);
+        $this->assertSame(0, mirror::from_messages([$hello, $failed, $sent])['failedat']);
+        $this->assertSame(0, mirror::from_messages([$failed, $this->message(4, 0, 'Ya me llegó', $now - 30)])['failedat']);
+        $going = $this->message(5, 1, 'Otra vez', $now - 20) + ['status' => 'progress'];
+        $this->assertSame($now - 50, mirror::from_messages([$hello, $failed, $going])['failedat']);
+        // Messages that do not speak of it (a note) keep what the row knew.
+        $old = (object)['lastmsgid' => 0, 'waitsince' => 0, 'lastincoming' => 0, 'preview' => '', 'previewkind' => '',
+            'previewat' => 0, 'failedat' => 123, 'failerror' => '131047: Re-engagement message'];
+        $note = mirror::from_messages([$this->message(6, 1, 'Ojo', $now, 'user', true)], $old);
+        $this->assertSame([123, '131047: Re-engagement message'], [$note['failedat'], $note['failerror']]);
+
+        // By the webhook: Chatwoot says the message changed, and the row knows it did not arrive.
+        mirror::sync();
+        $this->client->messages[1][] = $failed;
+        mirror::webhook(['event' => 'message_updated', 'account' => ['id' => 7], 'conversation' => ['id' => 1]]);
+        $this->assertSame($now - 50, (int)$DB->get_field(mirror::TABLE, 'failedat', ['cwid' => 1]));
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $poll = external_api::clean_returnvalue(chat_poll::execute_returns(), chat_poll::execute(0, 1, 0));
+        $one = array_values(array_filter($poll['conversations'], function ($c) {
+            return $c['id'] === 1;
+        }))[0];
+        $cannot = get_string('chat:fail:cannot', 'local_oksigeniamarandu');
+        $this->assertSame([$now - 50, 131026, $cannot], [$one['failedat'], $one['failcode'], $one['failreason']]);
+        $last = end($poll['messages']);
+        $this->assertSame(['failed', $cannot, ''], [$last['status'], $last['reason'], $last['call']]);
+        // The family writes: the mark goes.
+        $this->client->messages[1][] = $this->message(7, 0, 'Les llamo yo', $now - 10);
+        mirror::webhook(['event' => 'message_created', 'account' => ['id' => 7], 'conversation' => ['id' => 1]]);
+        $this->assertSame(0, (int)$DB->get_field(mirror::TABLE, 'failedat', ['cwid' => 1]));
+    }
+
+    /**
+     * A call is written down as a note in the person's name, marked with its own content attribute and kept in Moodle
+     * too: the page draws it as a call, with what was said, also when the account did not keep the attribute.
+     */
+    public function test_call_note(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $this->setUser($ana);
+        $result = external_api::clean_returnvalue(chat_call::execute_returns(), chat_call::execute(1, false, '  Saltó el buzón. '));
+        $this->assertSame(['note', 'missed', 'Saltó el buzón.', true], [$result['message']['kind'], $result['message']['call'],
+            $result['message']['text'], $result['message']['author']['me']]);
+        $posted = array_values(array_filter($this->client->calls, function ($call) {
+            return $call[0] === 'POST' && $call[1] === '/conversations/1/messages';
+        }))[0][2];
+        $this->assertTrue($posted['private']);
+        $this->assertSame(['marandu_call' => 'missed'], $posted['content_attributes']);
+        $this->assertSame(get_string('chat:call:missed', 'local_oksigeniamarandu') . "\nSaltó el buzón.", $posted['content']);
+        $id = (int)$result['message']['id'];
+        $this->assertSame('missed', $DB->get_field(message::TABLE, 'callresult', ['cwmsgid' => $id]));
+        // The messages as the page gets them: the note is a call although the account gave it back without the attribute.
+        $viewer = viewer::for_user($ana);
+        $list = message::export_list($this->client->messages[1], $viewer);
+        $this->assertSame(['missed', 'Saltó el buzón.'], [end($list)['call'], end($list)['text']]);
+        // With the attribute, from anyone: an answered call without a line.
+        $header = get_string('chat:call:answered', 'local_oksigeniamarandu');
+        $answered = message::export($this->message(9, 1, $header, time(), 'user', true) +
+            ['content_attributes' => ['marandu_call' => 'answered']], $viewer);
+        $this->assertSame(['answered', ''], [$answered['call'], $answered['text']]);
+        // A note that is not a call stays as it is.
+        $plain = message::export($this->message(10, 1, "Ojo\ncon esto", time(), 'user', true), $viewer);
+        $this->assertSame(['', "Ojo\ncon esto"], [$plain['call'], $plain['text']]);
+        // The approved message offered after a call nobody answered: the usual one unless the organisation says another.
+        $this->assertSame('chat_llamada_sin_respuesta', templates::call_name());
+        set_config('chatcalltemplate', '', 'local_oksigeniamarandu');
+        $this->assertSame('', templates::call_name());
+        // Only whoever can write.
+        $this->setAdminUser();
+        $this->expectException(\moodle_exception::class);
+        chat_call::execute(1, true, '');
+    }
+
+    /**
+     * A family of the common record: Laura (conversation 1) and Pedro, with their numbers checked by the centre, and a
+     * student; Pedro writes in conversation 4, which Luis has in Recibos.
+     *
+     * @return array The family, and the student.
+     */
+    private function family_of_laura(): array {
+        $student = $this->getDataGenerator()->create_user(['firstname' => 'Nora', 'lastname' => 'Martín',
+            'phone2' => '+34 611 22 33 44']);
+        $familyid = \local_oksigeniafamily\api::create_family('csv');
+        \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Laura', 'lastname' => 'Martín', 'phone' => '+34600000001',
+            'phoneverified' => true]);
+        \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Pedro', 'lastname' => 'Martín', 'phone' => '+34600000009',
+            'phoneverified' => true]);
+        \local_oksigeniafamily\api::add_child($familyid, (int)$student->id);
+        $this->client->conversations[4] = $this->conversation(4, 11, 2, 'Pedro', '+34600000009');
+        $this->client->messages[4] = [$this->message(40, 0, 'El recibo de Nora', time() - 200)];
+        return [$familyid, $student];
+    }
+
+    /**
+     * Whoever opens a conversation of a family sees who of the team already has another of the same family, where, with
+     * whom, and what was said only if they may open it; not their own, nor the person who has this one too.
+     */
+    public function test_held_by_someone_else(): void {
+        global $DB;
+        if (!class_exists('\local_oksigeniafamily\api')) {
+            $this->markTestSkipped('local_oksigeniafamily is not installed');
+        }
+        $this->family_of_laura();
+        mirror::sync();
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $held = external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1))['held'];
+        $this->assertCount(1, $held);
+        $this->assertSame(
+            [4, 2, 'Luis Gómez', 'Luis', 'Recibos', 'Pedro Martín', 'open', false, '', 0],
+            [$held[0]['conversation'], $held[0]['agentid'], $held[0]['name'], $held[0]['firstname'], $held[0]['teamname'],
+                $held[0]['adult'], $held[0]['status'], $held[0]['sees'], $held[0]['preview'], $held[0]['at']]
+        );
+        // Whoever sees everything reads what was said.
+        $marta = $this->person('marta@example.com', 'Marta');
+        $this->setUser($marta);
+        $held = external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1))['held'];
+        $this->assertSame([true, 'El recibo de Nora'], [$held[0]['sees'], $held[0]['preview']]);
+        // Luis himself: nobody else attends the family.
+        $this->setUser($this->person('luis@example.com', 'Luis'));
+        $this->assertSame([], external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(4))['held']);
+        // Luis has this one too: nobody else attends the family either.
+        $one = $DB->get_record(mirror::TABLE, ['cwid' => 1]);
+        $one->assigneeid = 2;
+        $this->assertSame([], chat\held::elsewhere(viewer::for_user($marta), $one));
+        // Resolved, it is nobody's any more.
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 4]);
+        $this->assertSame([], chat\held::elsewhere(viewer::for_user($marta), $DB->get_record(mirror::TABLE, ['cwid' => 1])));
+    }
+
+    /**
+     * A student of age with a mobile goes beside the adults of the family, in the file and when starting a conversation,
+     * only when the site wants it and says where the date of birth is; a minor never.
+     */
+    public function test_adult_students(): void {
+        global $DB;
+        $this->assertSame('2008-03-15', chat\family::birth_date('15/03/2008', 'text'));
+        $this->assertSame('2008-03-15', chat\family::birth_date('2008-03-15', 'text'));
+        $this->assertSame('2008-03-15', chat\family::birth_date('15.03.2008', 'text'));
+        $this->assertNull(chat\family::birth_date('2008-02-30', 'text'));
+        $this->assertNull(chat\family::birth_date('', 'datetime'));
+        // Midnight of that day in Madrid is the evening before in UTC: still that day.
+        $madrid = (new \DateTime('2008-03-15 00:00', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $this->assertSame('2008-03-15', chat\family::birth_date((string)$madrid, 'datetime'));
+        $this->assertSame(17, chat\family::age('2008-11-23', self::MONDAY_NOON + 6 * DAYSECS));
+        $this->assertSame(18, chat\family::age('2008-11-22', self::MONDAY_NOON + 6 * DAYSECS));
+        if (!class_exists('\local_oksigeniafamily\api')) {
+            $this->markTestSkipped('local_oksigeniafamily is not installed');
+        }
+        [$familyid, $nora] = $this->family_of_laura();
+        $minor = $this->getDataGenerator()->create_user(['firstname' => 'Bruno', 'lastname' => 'Martín',
+            'phone2' => '+34611220000']);
+        \local_oksigeniafamily\api::add_child($familyid, (int)$minor->id);
+        $field = $this->getDataGenerator()->create_custom_profile_field(['shortname' => 'fechanac', 'name' => 'Fecha de nacimiento',
+            'datatype' => 'datetime']);
+        $born = function (\stdClass $user, int $years) use ($DB, $field) {
+            $DB->insert_record('user_info_data', (object)['userid' => $user->id, 'fieldid' => $field->id,
+                'data' => (string)strtotime('-' . $years . ' years -10 days'), 'dataformat' => 0]);
+        };
+        $born($nora, 19);
+        $born($minor, 15);
+        mirror::sync();
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $contacts = function (): array {
+            $file = external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1));
+            return array_column($file['contacts'], 'student', 'phone');
+        };
+        $fresh = function () {
+            chat\family::forget();
+            \cache::make('local_oksigeniamarandu', 'chat')->purge();
+        };
+        // Off by default; on without a field of the date of birth, nobody's age is known.
+        $this->assertSame(['34600000001' => false, '34600000009' => false], $contacts());
+        set_config('chatadultstudents', 1, 'local_oksigeniamarandu');
+        $fresh();
+        $this->assertFalse(chat\family::adult_students_on());
+        $this->assertCount(2, $contacts());
+        set_config('chatbirthfield', 'fechanac', 'local_oksigeniamarandu');
+        $fresh();
+        $this->assertTrue(chat\family::adult_students_on());
+        $this->assertSame(['34600000001' => false, '34600000009' => false, '34611223344' => true], $contacts());
+        $file = external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1));
+        $this->assertSame(
+            ['Nora Martín', get_string('chat:family:adultstudent', 'local_oksigeniamarandu')],
+            [$file['contacts'][2]['name'], $file['contacts'][2]['role']]
+        );
+        // Starting a conversation: her name finds her first, written to as the adults are; the minor is not there.
+        $found = external_api::clean_returnvalue(chat_find::execute_returns(), chat_find::execute('nora'))['candidates'];
+        $this->assertSame(['34611223344', true, 'family'], [$found[0]['phone'], $found[0]['student'], $found[0]['source']]);
+        $this->assertNotContains('34611220000', array_column($found, 'phone'));
+        $this->assertFalse($found[1]['student']);
+        // Without a mobile in her profile, she is not offered.
+        $DB->set_field('user', 'phone2', '', ['id' => $nora->id]);
+        $fresh();
+        $this->assertCount(2, $contacts());
     }
 }

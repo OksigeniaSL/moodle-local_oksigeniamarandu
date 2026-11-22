@@ -32,6 +32,28 @@ class message {
     private const TYPES = [0 => 'incoming', 1 => 'outgoing', 2 => 'activity', 3 => 'template'];
 
     /**
+     * Why WhatsApp did not deliver a message, by the code of Meta, as a person of the team can act on it: the string
+     * chat:fail:<why>. Written from memory: verify with Meta's error codes.
+     */
+    public const FAILURES = [
+        131000 => 'whatsapp',
+        131026 => 'cannot',
+        131042 => 'payment',
+        131047 => 'closed',
+        131048 => 'toomany',
+        131049 => 'held',
+        131050 => 'optout',
+        131053 => 'media',
+        131056 => 'toomany',
+    ];
+
+    /** The content attribute that marks a note of the team as a call: answered or missed. */
+    public const CALL = 'marandu_call';
+
+    /** The results of a call. */
+    public const CALLS = ['answered', 'missed'];
+
+    /**
      * What a message is for the page: incoming (from the contact), outgoing (from a person of the team), note
      * (private), bot (from a bot or automatic) or activity (what happened, such as an assignment).
      *
@@ -82,17 +104,23 @@ class message {
      * @param array $message The message, as Chatwoot gives it.
      * @param viewer $viewer Who looks.
      * @param array $authors Who wrote each message from Moodle, by its id: the id of the user.
+     * @param array $calls The notes of a call written from Moodle, by its id: answered or missed.
      * @return array As the contract of the page says.
      */
-    public static function export(array $message, viewer $viewer, array $authors = []): array {
+    public static function export(array $message, viewer $viewer, array $authors = [], array $calls = []): array {
         $kind = self::kind($message);
         $text = (string)($message['content'] ?? '');
+        $id = (int)($message['id'] ?? 0);
+        // A call written down: its result, and what was said, without the line that tells the account what it is.
+        $call = $kind === 'note' ? self::call_of($message, (string)($calls[$id] ?? '')) : '';
+        if ($call !== '') {
+            $text = trim((string)preg_replace('/^[^\n]*\n?/u', '', $text, 1));
+        }
         $signature = '';
         if ($kind === 'outgoing' && preg_match('/^\*([^*\n]{1,80})\*\n/u', $text, $match)) {
             $signature = $match[1];
             $text = (string)substr($text, strlen($match[0]));
         }
-        $id = (int)($message['id'] ?? 0);
         $userid = (int)($authors[$id] ?? 0);
         $sender = $message['sender'] ?? [];
         $name = (string)($sender['available_name'] ?? $sender['name'] ?? '');
@@ -119,6 +147,7 @@ class message {
         }
         $template = (string)($message['additional_attributes']['template_params']['name'] ?? '');
         $status = (string)($message['status'] ?? '');
+        $error = (string)($message['content_attributes']['external_error'] ?? '');
         return [
             'id' => $id,
             'kind' => $kind,
@@ -127,7 +156,9 @@ class message {
             'author' => ['name' => $name, 'me' => $userid === $viewer->userid],
             'signature' => $signature,
             'status' => in_array($status, ['sent', 'delivered', 'read', 'failed', 'progress']) ? $status : '',
-            'error' => (string)($message['content_attributes']['external_error'] ?? ''),
+            'error' => $error,
+            'reason' => $status === 'failed' ? self::failure($error)['text'] : '',
+            'call' => $call,
             'attachments' => $attachments,
             'template' => $template,
         ];
@@ -214,10 +245,11 @@ class message {
      */
     public static function export_list(array $raw, viewer $viewer): array {
         $authors = self::authors(array_column($raw, 'id'));
+        $calls = self::calls(array_column($raw, 'id'));
         $list = [];
         $last = ['', 0, ''];
         foreach ($raw as $one) {
-            $message = self::export($one, $viewer, $authors);
+            $message = self::export($one, $viewer, $authors, $calls);
             if ($message['kind'] === 'activity') {
                 [$message['text'], $what] = self::activity($message['text']);
                 $by = $message['text'];
@@ -321,17 +353,68 @@ class message {
     }
 
     /**
+     * Which of these messages are calls written down from Moodle, and how they went.
+     *
+     * @param int[] $ids The ids of the messages.
+     * @return array By id of the message: answered or missed.
+     */
+    public static function calls(array $ids): array {
+        global $DB;
+        $ids = array_filter(array_map('intval', $ids));
+        if (!$ids) {
+            return [];
+        }
+        [$in, $params] = $DB->get_in_or_equal($ids);
+        $select = "cwmsgid $in AND callresult IS NOT NULL";
+        return $DB->get_records_select_menu(self::TABLE, $select, $params, '', 'cwmsgid, callresult');
+    }
+
+    /**
+     * Whether a note is a call written down, and how it went: as its content attributes say, or as Moodle kept it
+     * (in case the account did not keep them).
+     *
+     * @param array $message The note, as Chatwoot gives it.
+     * @param string $kept What Moodle kept of it, if anything.
+     * @return string answered, missed or empty.
+     */
+    public static function call_of(array $message, string $kept = ''): string {
+        $said = (string)($message['content_attributes'][self::CALL] ?? $kept);
+        return in_array($said, self::CALLS, true) ? $said : '';
+    }
+
+    /**
+     * Why WhatsApp did not deliver a message, as a person of the team can act on it: the code of Meta, which the text
+     * of Chatwoot carries at its start («131047: Re-engagement message») or between brackets («(#131026) …»).
+     *
+     * @param string $error What Chatwoot kept of the failure.
+     * @return array code (0 if none) and text (in plain words).
+     */
+    public static function failure(string $error): array {
+        $code = 0;
+        $patterns = ['/^\s*\(?#?(\d{3,6})\)?(?=[\s:.,)\]-]|$)/', '/\(#(\d{3,6})\)/', '/\b(13\d{4})\b/'];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $error, $match)) {
+                $code = (int)$match[1];
+                break;
+            }
+        }
+        $why = self::FAILURES[$code] ?? 'other';
+        return ['code' => $code, 'text' => get_string('chat:fail:' . $why, 'local_oksigeniamarandu')];
+    }
+
+    /**
      * Keeps who wrote a message.
      *
      * @param int $messageid The message in Chatwoot.
      * @param int $conversationid Its conversation.
      * @param int $userid Who wrote it.
+     * @param string $call For a call written down: answered or missed.
      */
-    public static function remember(int $messageid, int $conversationid, int $userid): void {
+    public static function remember(int $messageid, int $conversationid, int $userid, string $call = ''): void {
         global $DB;
         if ($messageid && !$DB->record_exists(self::TABLE, ['cwmsgid' => $messageid])) {
             $DB->insert_record(self::TABLE, (object)['cwmsgid' => $messageid, 'convid' => $conversationid,
-                'userid' => $userid, 'timecreated' => time()]);
+                'userid' => $userid, 'timecreated' => time(), 'callresult' => in_array($call, self::CALLS, true) ? $call : null]);
         }
     }
 }

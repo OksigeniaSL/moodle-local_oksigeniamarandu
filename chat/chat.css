@@ -7077,3 +7077,425 @@
         flex: none;
     }
 }
+
+/* ===================================================================================================================
+   0.55: what does not arrive by WhatsApp, the calls of the team, who already attends the family, students of age.
+   =================================================================================================================== */
+
+/* What did not arrive is charcoal, solid: never the red of long waits nor the amber of waiting, the violet of the team,
+   the teal and magenta of the categories or the blue of the accent. Seen from afar, it means «call or write by hand». */
+#mrd-chat {
+    --nollego: #2f3440;
+    --nollego-tinta: #fff;
+    --nollego-suave: #eef0f4;
+    --nollego-linea: #c5cad4;
+    --nollego-texto: #262b35;
+}
+#mrd-chat.mrd-dark {
+    --nollego: #e6e9ef;
+    --nollego-tinta: #15171c;
+    --nollego-suave: #262a31;
+    --nollego-linea: #4a505c;
+    --nollego-texto: #eef1f6;
+}
+#mrd-chat .mrd-etq.mrd-etq-nollego {
+    background: var(--nollego);
+    border-color: var(--nollego);
+    color: var(--nollego-tinta);
+    font-weight: 800;
+}
+#mrd-chat .mrd-conv.mrd-con-fallo::after {
+    content: "";
+    position: absolute;
+    inset-block: 8px;
+    inset-inline-end: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+    background: var(--nollego);
+}
+
+/* ---------- Above the conversation: bands that stay in sight while the thread scrolls ---------- */
+#mrd-chat .mrd-bandas {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: none;
+}
+#mrd-chat .mrd-bandas:not(:empty) {
+    padding: 10px 20px 0;
+}
+#mrd-chat .mrd-banda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--linea-2);
+    background: var(--hoja);
+    color: var(--tinta);
+    font-size: 14px;
+    line-height: 1.35;
+}
+#mrd-chat .mrd-banda-t {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+#mrd-chat .mrd-banda-t b {
+    font-weight: 800;
+}
+#mrd-chat .mrd-banda-t p {
+    margin: 2px 0 0;
+    color: var(--tinta-2);
+    overflow-wrap: anywhere;
+}
+#mrd-chat .mrd-banda-b {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+#mrd-chat .mrd-banda-b .mrd-btn .mrd-i {
+    width: 16px;
+    height: 16px;
+}
+#mrd-chat .mrd-banda-cuando {
+    margin-inline-start: 8px;
+    font-size: 12.5px;
+    color: var(--tinta-3);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The last message did not reach them: the band in charcoal, with the number to call. */
+#mrd-chat .mrd-banda-fallo {
+    background: var(--nollego-suave);
+    border-color: var(--nollego-linea);
+    border-inline-start: 5px solid var(--nollego);
+}
+#mrd-chat .mrd-banda-fallo .mrd-banda-t b {
+    color: var(--nollego-texto);
+}
+#mrd-chat .mrd-banda-i {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--nollego);
+    color: var(--nollego-tinta);
+}
+#mrd-chat .mrd-banda-i .mrd-i {
+    width: 20px;
+    height: 20px;
+}
+#mrd-chat .mrd-btn.mrd-banda-tel {
+    background: var(--nollego);
+    border-color: var(--nollego);
+    color: var(--nollego-tinta);
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-btn.mrd-banda-tel:hover {
+    border-color: var(--nollego);
+    opacity: 0.9;
+}
+
+/* Someone else attends the family: who, where, with whom and the last thing said, and the two ways out. */
+#mrd-chat .mrd-banda-lleva {
+    background: var(--acento-suave);
+    border-color: var(--acento-anillo);
+}
+#mrd-chat .mrd-banda-lleva > .mrd-av {
+    flex: none;
+}
+#mrd-chat .mrd-banda-cita {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    min-width: 0;
+}
+#mrd-chat .mrd-banda-cita span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-style: italic;
+}
+#mrd-chat .mrd-banda-cita small {
+    flex: none;
+    color: var(--tinta-3);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-banda-quieta {
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-banda-quieta .mrd-banda-t {
+    flex-basis: 200px;
+}
+
+/* ---------- «Apuntar llamada»: the button of the head and its sheet ---------- */
+#mrd-chat .mrd-mando.mrd-llamar-b {
+    color: var(--acento-texto);
+    border-color: var(--acento-anillo);
+}
+#mrd-chat .mrd-pop-llamada {
+    width: 330px;
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#mrd-chat .mrd-pop-llamada h5 {
+    margin: 2px 0 0;
+}
+#mrd-chat .mrd-llamada-num {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: var(--hoja-2);
+    color: var(--acento-texto);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+}
+#mrd-chat .mrd-llamada-num .mrd-i {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+#mrd-chat .mrd-llamada-linea {
+    width: 100%;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: var(--hoja);
+    color: var(--tinta);
+    font-size: 14px;
+    font-weight: 400;
+}
+#mrd-chat .mrd-llamada-linea:focus {
+    outline: none;
+    border-color: var(--acento-texto);
+    box-shadow: 0 0 0 3px var(--acento-anillo);
+}
+#mrd-chat .mrd-rem-l small {
+    font-weight: 600;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-llamada-q {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-llamada-botones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+#mrd-chat .mrd-llamada-botones .mrd-btn {
+    min-height: 48px;
+    white-space: normal;
+    text-align: center;
+}
+#mrd-chat .mrd-llamada-botones .mrd-i {
+    width: 20px;
+    height: 20px;
+    flex: none;
+}
+#mrd-chat .mrd-btn.mrd-llamada-si {
+    border-color: var(--verde);
+    color: var(--verde-texto);
+}
+#mrd-chat .mrd-btn.mrd-llamada-no {
+    border-color: var(--tinta-3);
+    color: var(--tinta);
+}
+
+@media (hover: hover) {
+    #mrd-chat .mrd-btn.mrd-llamada-si:hover {
+        background: var(--verde-suave);
+    }
+    #mrd-chat .mrd-btn.mrd-llamada-no:hover {
+        background: var(--hoja-2);
+    }
+}
+#mrd-chat .mrd-llamada-hecha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--hoja-2);
+    font-size: 13.5px;
+    font-weight: 700;
+}
+#mrd-chat .mrd-llamada-hecha .mrd-i {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+#mrd-chat .mrd-btn.mrd-llamada-tpl {
+    white-space: normal;
+    text-align: start;
+    justify-content: flex-start;
+    min-height: 44px;
+}
+#mrd-chat .mrd-btn.mrd-llamada-ahora-no {
+    align-self: flex-start;
+}
+
+/* ---------- A call written down, in the thread: who, when, how it went and what was said ---------- */
+#mrd-chat .mrd-llamada {
+    align-self: stretch;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 10px 8% 6px;
+    padding: 8px 12px 9px;
+    border: 1px solid var(--linea-2);
+    border-radius: 12px;
+    background: var(--hoja);
+    color: var(--tinta);
+    overflow-wrap: anywhere;
+}
+#mrd-chat .mrd-llamada.mrd-pendiente {
+    opacity: 0.65;
+}
+#mrd-chat .mrd-llamada-i {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--hoja-2);
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-llamada-i .mrd-i {
+    width: 18px;
+    height: 18px;
+}
+#mrd-chat .mrd-llamada-si .mrd-llamada-i {
+    background: var(--verde-suave);
+    color: var(--verde-texto);
+}
+#mrd-chat .mrd-llamada-t {
+    flex: 1;
+    min-width: 0;
+}
+#mrd-chat .mrd-llamada-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    font-size: 13.5px;
+}
+#mrd-chat .mrd-llamada-res {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--hoja-2);
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-llamada-si .mrd-llamada-res {
+    background: var(--verde-suave);
+    color: var(--verde-texto);
+}
+#mrd-chat .mrd-llamada-h {
+    font-size: 12px;
+    color: var(--tinta-3);
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-llamada-t p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    white-space: pre-line;
+}
+#mrd-chat .mrd-btn.mrd-llamada-ofrece {
+    margin-top: 8px;
+    white-space: normal;
+    text-align: start;
+}
+
+/* ---------- A student of age, beside the adults of the family ---------- */
+#mrd-chat .mrd-etq-alumno {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    padding: 1px 8px 1px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--acento-anillo);
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+#mrd-chat .mrd-etq-alumno .mrd-i {
+    width: 14px;
+    height: 14px;
+}
+#mrd-chat .mrd-contacto-alumno .mrd-etq-alumno {
+    margin: 2px 0;
+    max-width: 100%;
+    white-space: normal;
+}
+
+/* ---------- On a phone: the bands tighter, the call as a sheet at the foot, touches of 40 px ---------- */
+@media (max-width: 760px) {
+    #mrd-chat .mrd-bandas:not(:empty) {
+        padding: 8px 10px 0;
+    }
+    #mrd-chat .mrd-banda {
+        padding: 8px 10px;
+        font-size: 13.5px;
+    }
+    #mrd-chat .mrd-banda-b {
+        width: 100%;
+    }
+    #mrd-chat .mrd-banda-b .mrd-btn {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-banda-quieta .mrd-banda-b {
+        width: auto;
+    }
+    #mrd-chat .mrd-pop-llamada {
+        position: fixed;
+        inset: auto 12px 12px;
+        width: auto;
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        z-index: 40;
+    }
+    #mrd-chat .mrd-btn.mrd-llamada-ahora-no,
+    #mrd-chat .mrd-btn.mrd-llamada-ofrece,
+    #mrd-chat .mrd-mando.mrd-llamar-b {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-llamada {
+        margin-inline: 2%;
+    }
+}
+
+/* With the department, who has it and «Pasar a…» in one row, the call is only its icon, of 40 px. */
+@media (max-width: 480px) {
+    #mrd-chat .mrd-chat-cab .mrd-mando.mrd-llamar-b {
+        flex: none;
+        min-width: 40px;
+        justify-content: center;
+        padding-inline: 8px;
+    }
+    #mrd-chat .mrd-chat-cab .mrd-mando.mrd-llamar-b > span {
+        display: none;
+    }
+}

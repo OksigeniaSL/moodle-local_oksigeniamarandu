@@ -143,4 +143,31 @@ class actions {
         mirror::refresh((int)$row->cwid);
         return $sent;
     }
+
+    /**
+     * Writes down a call of the team to the contact, as a note in the person's name: whether they answered, and what
+     * was said if the person wants. The account reads it as a note; the page, by its content attribute, as a call.
+     *
+     * @param viewer $viewer Who called.
+     * @param \stdClass $row The conversation.
+     * @param bool $answered Whether they answered.
+     * @param string $line What was said, or empty.
+     * @return array The message, as Chatwoot gives it.
+     */
+    public static function call(viewer $viewer, \stdClass $row, bool $answered, string $line = ''): array {
+        $result = $answered ? 'answered' : 'missed';
+        $line = trim(preg_replace('/\s+/u', ' ', $line));
+        $content = get_string('chat:call:' . $result, 'local_oksigeniamarandu') . ($line === '' ? '' : "\n" . $line);
+        $sent = directory::as_person($viewer, function (chatwoot $client) use ($row, $content, $result) {
+            return $client->call('POST', '/conversations/' . (int)$row->cwid . '/messages', [
+                'content' => $content,
+                'message_type' => 'outgoing',
+                'private' => true,
+                'content_attributes' => [message::CALL => $result],
+            ]);
+        });
+        message::remember((int)($sent['id'] ?? 0), (int)$row->cwid, $viewer->userid, $result);
+        mirror::refresh((int)$row->cwid);
+        return $sent;
+    }
 }

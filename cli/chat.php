@@ -50,6 +50,9 @@ use local_oksigeniamarandu\local\chat\mirror;
     'start-templates' => null,
     'templates-info' => null,
     'access-role' => null,
+    'adult-students' => null,
+    'birth-field' => null,
+    'call-template' => null,
     'sync' => false,
     'sync-all' => false,
     'rebuild' => false,
@@ -94,6 +97,13 @@ Options:
 --access-role[=ROLE]   Only the people of the account open the chat: gives them this role of the site (its short
                        name; without it, the role of the plugin, made if missing), from now on also to whoever joins
                        the account, and takes the capability away from the role of every authenticated user.
+--adult-students=0|1   Whether a student of age (18, by the date of birth of their profile) with a mobile (the second
+                       phone of their profile) is written to beside the adults of their family, never instead of them.
+                       Off by default. The record of families keeps no date of birth: it needs --birth-field.
+--birth-field=NAME     The short name of the field of the profile with the date of birth: a date field, or a text one
+                       written as 2008-03-15, 15/03/2008, 15-03-2008 or 15.03.2008; empty for none.
+--call-template=NAME   The approved message offered after a call nobody answered, once the 24 hours are over
+                       (chat_llamada_sin_respuesta if not given); empty for none.
 --sync                 Fills the index with the conversations of the last month now.
 --sync-all             Fills the index with every conversation of the inboxes, whenever it was: after bringing a
                        history into Chatwoot (import_history.rb), which never comes by the webhook.
@@ -238,6 +248,29 @@ try {
         mtrace('Access to the chat: by the role ' . $role->shortname . '; given to ' . $done['given'] . ' people' .
             ($closed ? '; taken away from ' . $closed . ' roles of every account' : ''));
     }
+    if ($options['birth-field'] !== null) {
+        $short = trim((string)$options['birth-field']);
+        if ($short !== '' && !$DB->record_exists('user_info_field', ['shortname' => $short])) {
+            cli_error('No field of the profile with the short name ' . $short);
+        }
+        set_config('chatbirthfield', $short, $component);
+        mtrace('Date of birth: ' . ($short === '' ? '-' : 'from the field ' . $short));
+    }
+    if ($options['adult-students'] !== null) {
+        set_config('chatadultstudents', empty($options['adult-students']) ? 0 : 1, $component);
+    }
+    if ($options['adult-students'] !== null || $options['birth-field'] !== null) {
+        // The families kept a few minutes say it again at once.
+        \local_oksigeniamarandu\local\chat\family::forget();
+        \cache::make($component, 'chat')->purge();
+        mtrace('Students of age beside the adults: ' . (\local_oksigeniamarandu\local\chat\family::adult_students_on() ? 'on'
+            : (get_config($component, 'chatadultstudents') ? 'asked, but without a field of the date of birth (--birth-field)'
+            : 'off')));
+    }
+    if ($options['call-template'] !== null) {
+        set_config('chatcalltemplate', trim((string)$options['call-template']), $component);
+        mtrace('After a call nobody answered: ' . (trim((string)$options['call-template']) ?: '-'));
+    }
     if ($options['webhook']) {
         mtrace('Webhook: ' . connection::webhook());
     }
@@ -283,6 +316,13 @@ try {
         mtrace('Approved messages: ' . count($approved) . ($first ? ' (to start with: ' . implode(', ', $first) . ')' : '') .
             ($hidden ? '; not offered, being marketing: ' . $hidden : '') .
             '; waiting for Meta: ' . \local_oksigeniamarandu\local\chat\templates::pending());
+        $call = \local_oksigeniamarandu\local\chat\templates::call_name();
+        $usable = in_array($call, array_column($approved, 'name'), true);
+        mtrace('After a call nobody answered: ' . ($call === '' ? '-' : $call .
+            ($usable ? '' : ' (not among the approved messages it may send)')));
+        $field = \local_oksigeniamarandu\local\chat\family::birth_field();
+        mtrace('Students of age beside the adults: ' . (empty($config->chatadultstudents) ? 'off' : 'on') .
+            '; date of birth: ' . ($field ? 'field ' . $field->shortname . ' (' . $field->datatype . ')' : 'no field'));
     }
 } catch (\moodle_exception $e) {
     cli_error($e->getMessage() . (empty($e->debuginfo) ? '' : ' (' . $e->debuginfo . ')'));

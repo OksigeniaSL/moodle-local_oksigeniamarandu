@@ -146,6 +146,8 @@ $config = [
     'flags' => \local_oksigeniamarandu\external\chat_flag::current(),
     'favs' => \local_oksigeniamarandu\local\chat\agenda::favourites((int)$USER->id),
     'prices' => \local_oksigeniamarandu\local\chat\templates::prices(),
+    // The approved message offered after a call nobody answered, if it is among those that may be sent.
+    'calltemplate' => \local_oksigeniamarandu\local\chat\templates::call_name(),
     'guides' => $guides,
     'stages' => array_map(function ($stage) {
         return ['label' => $stage['label'], 'color' => $stage['color'], 'dark' => $stage['dark']];

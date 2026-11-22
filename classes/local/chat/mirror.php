@@ -269,7 +269,7 @@ class mirror {
      * @param array $messages The messages, in order, as Chatwoot gives them.
      * @param \stdClass|null $old The row it had, if any.
      * @param bool $fresh Without keeping the 24 hours the row had: only what these messages say.
-     * @return array lastmsgid, waitsince, lastincoming, preview, previewkind and previewat.
+     * @return array lastmsgid, waitsince, lastincoming, preview, previewkind, previewat, failedat and failerror.
      */
     public static function from_messages(array $messages, ?\stdClass $old = null, bool $fresh = false): array {
         $wait = 0;
@@ -277,6 +277,8 @@ class mirror {
         $lastincoming = 0;
         $preview = null;
         $lastid = $old ? (int)$old->lastmsgid : 0;
+        // Whether the last message of the team arrived, as these messages say it; null if they do not say.
+        $failed = null;
         foreach ($messages as $message) {
             $lastid = max($lastid, (int)($message['id'] ?? 0));
             $kind = message::kind($message);
@@ -288,9 +290,19 @@ class mirror {
                 if (empty($message['content_attributes']['imported'])) {
                     $lastincoming = max($lastincoming, $at);
                 }
+                // The family wrote: whatever did not arrive before, they are there.
+                $failed = [0, ''];
             } else if ($kind === 'outgoing') {
                 $wait = 0;
                 $answered = true;
+                $status = (string)($message['status'] ?? '');
+                if ($status === 'failed') {
+                    $error = trim((string)($message['content_attributes']['external_error'] ?? ''));
+                    $failed = [$at ?: time(), \core_text::substr($error, 0, 255)];
+                } else if (in_array($status, ['sent', 'delivered', 'read'], true)) {
+                    // A later one went out: the failure is behind. One still on its way changes nothing yet.
+                    $failed = [0, ''];
+                }
             }
             // The list shows what a person or the contact said: an automatic message or a bot only when there is nothing else.
             if ($kind !== 'activity' && ($kind !== 'bot' || !$preview || message::kind($preview) === 'bot')) {
@@ -308,6 +320,8 @@ class mirror {
             'preview' => $old ? (string)$old->preview : '',
             'previewkind' => $old ? (string)$old->previewkind : '',
             'previewat' => $old ? (int)$old->previewat : 0,
+            'failedat' => $failed ? $failed[0] : (int)($old->failedat ?? 0),
+            'failerror' => $failed ? $failed[1] : (string)($old->failerror ?? ''),
         ];
         if ($preview) {
             // Without the signature on top of what a person sent: the list shows what was said.

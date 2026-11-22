@@ -64,6 +64,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_call' => [
+        'classname' => \local_oksigeniamarandu\external\chat_call::class,
+        'description' => 'Writes down a call of the team to the contact of a conversation, as a note the family does not see.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_flag' => [
         'classname' => \local_oksigeniamarandu\external\chat_flag::class,
         'description' => 'A small choice of a person on the page of the conversations: the tour seen, the sound, the notices.',

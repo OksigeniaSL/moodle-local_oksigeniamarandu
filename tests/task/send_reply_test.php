@@ -163,8 +163,8 @@ final class send_reply_test extends \advanced_testcase {
         $this->assertCount(2, $sent[0]);
 
         $sent = $this->run_reply('34600000001', 'optout');
-        $this->assertStringContainsString('Our door is always open', $sent[0][1]);
-        $this->assertStringContainsString('just write to us', $sent[0][1]);
+        $this->assertStringContainsString('we will not send you notices here any more', $sent[0][1]);
+        $this->assertStringContainsString('just ask', $sent[0][1]);
 
         $sent = $this->run_reply('34600000001', '', false, ['phone' => '34600000001', 'confirm' => 'away',
             'others' => ['telegram', 'email']]);

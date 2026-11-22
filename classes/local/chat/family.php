@@ -35,6 +35,12 @@ class family {
     /** @var array The families found in this request, by phone. */
     protected static $found = [];
 
+    /** @var array The students of age found in this request, by account: name, phone and userid, or null. */
+    protected static $students = [];
+
+    /** @var array The field of the date of birth, by its short name, once read. */
+    protected static $fields = [];
+
     /**
      * Whether the site has the common record of families, with the search by number.
      *
@@ -184,6 +190,7 @@ class family {
                 'verified' => !empty($adult->phoneverified),
                 'children' => $found[0]['children'],
                 'adults' => $found[0]['adults'],
+                'students' => $found[0]['students'],
                 'households' => 1,
             ];
         }
@@ -195,6 +202,7 @@ class family {
             'verified' => true,
             'children' => array_merge(...array_column($found, 'children')),
             'adults' => array_merge(...array_column($found, 'adults')),
+            'students' => array_merge(...array_column($found, 'students')),
             'households' => count($found),
         ];
     }
@@ -204,7 +212,8 @@ class family {
      * group as people say it, its adults and the line that says whose family it is.
      *
      * @param array $household As the record gives it.
-     * @return array children, adults (name, phone and verified) and line.
+     * @return array children, adults (name, phone and verified), students (the children of age with a mobile, when the
+     *               site wants them: name, phone and userid) and line.
      */
     protected static function describe(array $household): array {
         $children = [];
@@ -217,6 +226,7 @@ class family {
                 'group' => $group,
                 'stage' => $stage ? ['label' => $stage['label'], 'color' => $stage['color'], 'dark' => $stage['dark']] : null,
                 'order' => $order,
+                'userid' => (int)($child['userid'] ?? 0),
             ];
         }
         usort($children, function ($a, $b) {
@@ -233,7 +243,15 @@ class family {
             return $child['group'] !== '' ? $child['name'] . ' (' . $child['group'] . ')' : $child['name'];
         }, $children);
         $line = $names ? get_string('chat:family:line', 'local_oksigeniamarandu', self::join($names)) : '';
-        return ['children' => $children, 'adults' => $adults, 'line' => $line];
+        // A student of age can be written to beside the adults, never instead of them, when the site wants it.
+        $students = [];
+        $ofage = self::adult_students_on() ? self::students(array_column($children, 'userid')) : [];
+        foreach ($children as $child) {
+            if (isset($ofage[$child['userid']])) {
+                $students[] = $ofage[$child['userid']];
+            }
+        }
+        return ['children' => $children, 'adults' => $adults, 'students' => $students, 'line' => $line];
     }
 
     /**
@@ -242,7 +260,8 @@ class family {
      *
      * @param string $query What was typed.
      * @param int $limit How many families at most.
-     * @return array Each with line, children and adults (name, phone, verified and whether their name matched).
+     * @return array Each with line, children and adults (name, phone, verified, whether their name matched and whether
+     *               they are a student of age, written to beside the adults).
      */
     public static function search(string $query, int $limit = 6): array {
         $words = self::words($query);
@@ -256,7 +275,11 @@ class family {
             }
             $adults = [];
             foreach ($family['adults'] as $adult) {
-                $adults[] = $adult + ['matched' => self::matches($words, self::words($adult['name']), true)];
+                $adults[] = $adult + ['matched' => self::matches($words, self::words($adult['name']), true), 'student' => false];
+            }
+            foreach ($family['students'] ?? [] as $student) {
+                $adults[] = ['name' => $student['name'], 'phone' => $student['phone'], 'verified' => false,
+                    'matched' => self::matches($words, self::words($student['name']), true), 'student' => true];
             }
             usort($adults, function ($a, $b) {
                 return $b['matched'] <=> $a['matched'];
@@ -272,7 +295,7 @@ class family {
     /**
      * The roll of families, short, to look names up in it: kept a few minutes, as the rest of the directory.
      *
-     * @return array Each with words, line, children and adults.
+     * @return array Each with words, line, children, adults and students.
      */
     protected static function index(): array {
         $cache = \cache::make('local_oksigeniamarandu', 'chat');
@@ -282,18 +305,153 @@ class family {
         }
         $api = self::API;
         $index = [];
+        $batch = [];
+        $add = function (array $households) use (&$index) {
+            // The students of age of a few hundred households, in one query.
+            if (self::adult_students_on()) {
+                $userids = [];
+                foreach ($households as $household) {
+                    foreach ($household['children'] ?? [] as $child) {
+                        $userids[] = (int)(((array)$child)['userid'] ?? 0);
+                    }
+                }
+                self::students($userids);
+            }
+            foreach ($households as $household) {
+                $family = self::describe($household);
+                $names = array_merge(array_column($family['adults'], 'name'), array_map(function ($child) {
+                    return $child['name'] . ' ' . $child['lastname'];
+                }, $family['children']));
+                $index[] = ['words' => self::words(implode(' ', $names)), 'line' => $family['line'],
+                    'children' => $family['children'], 'students' => $family['students'],
+                    'adults' => array_values(array_filter($family['adults'], function ($adult) {
+                        return $adult['phone'] !== '';
+                    }))];
+            }
+        };
         foreach ($api::each_household(true, true) as $household) {
-            $family = self::describe((array)$household);
-            $names = array_merge(array_column($family['adults'], 'name'), array_map(function ($child) {
-                return $child['name'] . ' ' . $child['lastname'];
-            }, $family['children']));
-            $index[] = ['words' => self::words(implode(' ', $names)), 'line' => $family['line'],
-                'children' => $family['children'], 'adults' => array_values(array_filter($family['adults'], function ($adult) {
-                    return $adult['phone'] !== '';
-                }))];
+            $batch[] = (array)$household;
+            if (count($batch) >= 500) {
+                $add($batch);
+                $batch = [];
+            }
         }
+        $add($batch);
         $cache->set('familyindex', $index);
         return $index;
+    }
+
+    /**
+     * Whether the students of age are written to beside the adults of their family (cli/chat.php --adult-students=1),
+     * and the site says where their date of birth is (--birth-field): without it, nobody's age is known.
+     *
+     * @return bool
+     */
+    public static function adult_students_on(): bool {
+        return (bool)get_config('local_oksigeniamarandu', 'chatadultstudents') && self::birth_field() !== null;
+    }
+
+    /**
+     * The field of the profile with the date of birth, as the site said it (setting chatbirthfield, its short name): a
+     * date field, or a text one with the date written as 2008-03-15, 15/03/2008, 15-03-2008 or 15.03.2008.
+     *
+     * @return \stdClass|null id, shortname and datatype; null if the site said none or it does not exist.
+     */
+    public static function birth_field(): ?\stdClass {
+        global $DB;
+        $short = trim((string)get_config('local_oksigeniamarandu', 'chatbirthfield'));
+        if ($short === '') {
+            return null;
+        }
+        if (!array_key_exists($short, self::$fields)) {
+            self::$fields[$short] = $DB->get_record('user_info_field', ['shortname' => $short], 'id, shortname, datatype') ?: null;
+        }
+        return self::$fields[$short];
+    }
+
+    /**
+     * The students among these accounts who are 18 or older by the date of birth of their profile and have a mobile in
+     * it (the second phone of the profile): the record of families keeps neither.
+     *
+     * @param int[] $userids The accounts of the children.
+     * @param int|null $now The time, for the tests.
+     * @return array By account: name, phone (only digits, with the country code) and userid.
+     */
+    public static function students(array $userids, ?int $now = null): array {
+        global $DB;
+        $field = self::birth_field();
+        $userids = array_values(array_unique(array_filter(array_map('intval', $userids))));
+        if (!$field || !$userids) {
+            return [];
+        }
+        $ask = array_values(array_diff($userids, array_keys(self::$students)));
+        foreach (array_chunk($ask, 1000) as $chunk) {
+            [$in, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'kid');
+            $sql = "SELECT u.id, u.firstname, u.lastname, u.phone2, d.data
+                      FROM {user} u
+                      JOIN {user_info_data} d ON d.userid = u.id AND d.fieldid = :fieldid
+                     WHERE u.id $in AND u.deleted = 0 AND u.suspended = 0";
+            $rows = $DB->get_records_sql($sql, $params + ['fieldid' => $field->id]);
+            foreach ($chunk as $userid) {
+                self::$students[$userid] = null;
+                $row = $rows[$userid] ?? null;
+                $birth = $row ? self::birth_date((string)$row->data, (string)$field->datatype) : null;
+                $phone = $row && trim((string)$row->phone2) !== '' ? starter::number((string)$row->phone2) : null;
+                if ($birth && $phone && self::age($birth, $now ?? time()) >= 18) {
+                    self::$students[$userid] = ['name' => trim($row->firstname . ' ' . $row->lastname), 'phone' => $phone,
+                        'userid' => $userid];
+                }
+            }
+        }
+        $result = [];
+        foreach ($userids as $userid) {
+            if (!empty(self::$students[$userid])) {
+                $result[$userid] = self::$students[$userid];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * A date of birth as the profile keeps it, as a day.
+     *
+     * @param string $data What the profile has.
+     * @param string $datatype The type of the field: datetime keeps a time, the rest the text written.
+     * @return string|null The day as Y-m-d, or null if it is not a date.
+     */
+    public static function birth_date(string $data, string $datatype): ?string {
+        $data = trim($data);
+        if ($data === '' || $data === '0') {
+            return null;
+        }
+        if ($datatype === 'datetime') {
+            // Midnight of that day where it was written: half a day later it is that day in any time zone.
+            return ctype_digit($data) ? gmdate('Y-m-d', (int)$data + 12 * HOURSECS) : null;
+        }
+        foreach (['!Y-m-d', '!d/m/Y', '!d-m-Y', '!d.m.Y'] as $format) {
+            $date = \DateTime::createFromFormat($format, $data, new \DateTimeZone('UTC'));
+            if ($date && $date->format(substr($format, 1)) === $data) {
+                return $date->format('Y-m-d');
+            }
+        }
+        return null;
+    }
+
+    /**
+     * How many years someone born that day has at a time, in the time zone of the site.
+     *
+     * @param string $birth The day, as Y-m-d.
+     * @param int $now The time.
+     * @return int
+     */
+    public static function age(string $birth, int $now): int {
+        [$year, $month, $day] = array_map('intval', explode('-', $birth));
+        $today = (new \DateTime('@' . $now))->setTimezone(\core_date::get_server_timezone_object());
+        $age = (int)$today->format('Y') - $year;
+        if ([(int)$today->format('n'), (int)$today->format('j')] < [$month, $day]) {
+            $age--;
+        }
+        return max(0, $age);
     }
 
     /**
@@ -356,5 +514,7 @@ class family {
      */
     public static function forget(): void {
         self::$found = [];
+        self::$students = [];
+        self::$fields = [];
     }
 }

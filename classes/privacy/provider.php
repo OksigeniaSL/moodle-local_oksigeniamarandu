@@ -162,6 +162,7 @@ class provider implements
             'userid' => 'privacy:metadata:convmsg:userid',
             'cwmsgid' => 'privacy:metadata:convmsg:cwmsgid',
             'timecreated' => 'privacy:metadata:convmsg:timecreated',
+            'callresult' => 'privacy:metadata:convmsg:callresult',
         ], 'privacy:metadata:convmsg');
         $collection->add_database_table(mirror::TABLE, [
             'phone' => 'privacy:metadata:conv:phone',
@@ -296,7 +297,7 @@ class provider implements
             }, $DB->get_records(viewer::SEEN, ['userid' => $userid], 'id'))),
             'written' => array_values(array_map(function ($written) {
                 return ['conversation' => (int)$written->convid, 'message' => (int)$written->cwmsgid,
-                    'time' => transform::datetime($written->timecreated)];
+                    'time' => transform::datetime($written->timecreated), 'call' => (string)($written->callresult ?? '')];
             }, $DB->get_records(message::TABLE, ['userid' => $userid], 'id'))),
             'passed' => array_values(array_map(function ($passed) {
                 return ['conversation' => (int)$passed->cwid, 'time' => transform::datetime($passed->passedat)];

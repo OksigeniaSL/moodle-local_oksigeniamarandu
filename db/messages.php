@@ -15,8 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * The notices the site sends to the people of the team about their conversations: on the phone (the app) and in the
- * bell of the site, never by email.
+ * The notices the site sends to the people of the team: their conversations, what WhatsApp costs, a new chat joined to
+ * their account and the posts for the channel of WhatsApp; on the phone (the app) and in the bell of the site.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -45,6 +45,17 @@ $messageproviders = [
             'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
             'email' => MESSAGE_PERMITTED,
             // By Telegram the approval goes as a question of its own, with its buttons.
+            'oksigeniamarandu' => MESSAGE_DISALLOWED,
+        ],
+    ],
+    // A post of the channel of Telegram that waits for the channel of WhatsApp, for whoever publishes there and has no
+    // WhatsApp nor Telegram joined; and a post taken out of Telegram after it went to WhatsApp. Whoever has them joined
+    // gets it there, as the notice «channel_whatsapp» of lib.php, with the post ready to forward.
+    'wachannel' => [
+        'defaults' => [
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED,
             'oksigeniamarandu' => MESSAGE_DISALLOWED,
         ],
     ],

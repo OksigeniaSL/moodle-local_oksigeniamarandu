@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.57.0 (2026-11-22)
+
+- The channel of WhatsApp, with the same posts as the channel of Telegram. Meta has no official way to post in a
+  channel of WhatsApp, so a person does it, with help: when a post goes out in Telegram, whoever publishes in WhatsApp
+  gets the new notice of Marandu «Post for the channel of WhatsApp» (`channel_whatsapp`, by WhatsApp and Telegram, asked
+  for: neither the quiet hours nor the notices a day hold it back). On WhatsApp, inside the 24 hours, the post itself
+  (its animation as a video, or its image, with its text below), ready to forward to the channel, and the notice with
+  the link to its page after it; outside them, the template with its button. On Telegram, a card with the image and the
+  button. Whoever has neither gets it in the bell and on the app (message provider `wachannel`).
+- The page of each post (`wachannel.php`), for the phone: how it looks in WhatsApp; «Share on WhatsApp» with the Web
+  Share API (the file and the text, which is copied too), where the browser shares files; by hand, «Save the image» or
+  the video, «Copy the text» (with the box of the text if the clipboard refuses) and «Open the channel» (or WhatsApp
+  Web); and «It is published», which writes down who and when, stops the notices that had not gone and changes those of
+  Telegram to say who did it. If the image or the animation has something made with artificial intelligence (`'ai' =>
+  true` in the content of the post, or `"ai": true` in the `plantilla.json` of its card), a line says to label it in
+  WhatsApp; otherwise, nothing.
+- The text for WhatsApp (`local\watext`): *bold*, _italic_, ~struck~ and `code` from the entities of Telegram, a link
+  in a word after it in brackets, nothing of the richer marks, and a mark of the text itself at the edge of a word
+  changed for the character that looks like it, so that it never breaks a format. The button of the post goes as its
+  link after its label, through `go.php?w=` (and the shortener, if the site has one), counted apart and with
+  `utm_source=whatsapp`.
+- One reminder, three hours later, in the hours of the channel, to the same people, if nobody marked it. What is not
+  published in WhatsApp holds nothing of Telegram back, and the pace of the channel is already that of Telegram. A post
+  taken out of Telegram no longer waits for WhatsApp, and whoever had published it there is told to delete it.
+- On the page of the channel, a folded card «Channel of WhatsApp»: on or off (on, its notice is switched on for
+  WhatsApp and Telegram), who publishes (a chip for each person who may review, and anyone else by username or email;
+  nobody, whoever reviews on Telegram), its name and its link (only `https://whatsapp.com/channel/…`). Each post that
+  went out says whether it is in WhatsApp, with its visits from there; «Your work» says what is missing there.
+- `cli/setup.php --whatsapp-channel=0|1`, `--whatsapp-channel-people=`, `--whatsapp-channel-name=` and
+  `--whatsapp-channel-url=`; `--status` says how it is.
+- For other plugins: `api::whatsapp_channel()` (link and name of the channel of WhatsApp), `whatsapp` in
+  `api::channel()` beside the link of Telegram, which does not change, and `whatsapp` in `api::channel_stats()`.
+  `api::notify()` takes `caption` (a message made to be forwarded, which goes under its `video` or its image inside the
+  24 hours) in its `$rich`.
+- The links of the channel were not shortened with a shortener that only takes the fields as a form: they go now as
+  `application/x-www-form-urlencoded`, joined with `&`.
+- New table `local_oksigeniamarandu_wapost`, in the privacy provider (who marked a post published, and when).
+
 ## 0.56.0 (2026-11-22)
 
 - A student of age: the day of birth comes from the common record of families (Oksigenia Family 0.3.40 on), so

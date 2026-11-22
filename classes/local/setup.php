@@ -170,6 +170,24 @@ class setup {
         $off = notices::marketing_off();
         $lines[] = 'Marketing by WhatsApp: ' . (get_config('local_oksigeniamarandu', 'marketingoff') ? 'not' : 'yes') .
             ($off ? '; stopped when Meta moved them: ' . implode(', ', array_keys($off)) : '');
+        $lines[] = self::whatsapp_channel();
         return $lines;
+    }
+
+    /**
+     * How the channel of WhatsApp is, in one line: on or off, its name and link, and who publishes there.
+     *
+     * @return string
+     */
+    public static function whatsapp_channel(): string {
+        $people = array_map('fullname', wachannel::people());
+        $line = 'Channel of WhatsApp: ' . (wachannel::enabled() ? 'on' : 'off');
+        $name = wachannel::name();
+        $url = wachannel::channel_url();
+        if ($name !== '' || $url !== '') {
+            $line .= ', ' . trim($name . ($url !== '' ? ' ' . $url : ''));
+        }
+        return $line . '; published by ' . ($people ? implode(', ', $people) : 'nobody')
+            . (wachannel::chosen() ? '' : ' (whoever reviews)');
     }
 }

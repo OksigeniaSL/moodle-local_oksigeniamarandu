@@ -1,0 +1,254 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/wachannel
+
+    A post of the channel of Telegram, ready for the channel of WhatsApp, made for the phone: on the left (on top, on a
+    phone) how it looks in WhatsApp, its animation or its image with its text; on the right, how to publish it. Where
+    the browser shares files (phones), «Share on WhatsApp» first, which copies the text too, in case WhatsApp does not
+    take it with the file; and always, by hand, the three steps: save the image, copy the text, open the channel and
+    paste. «It is published» at the end. Without JavaScript, the steps by hand work: the files are links, and the text
+    is in its box to copy.
+
+    Context variables required for this template:
+    * gone - The link is no longer valid: nothing else.
+    * title, channel, intelegram - The post, the name of the channel of WhatsApp and when it went out in Telegram.
+    * base - The name of the file the browser shares, without its extension.
+    * video, image - Each with src (to show it), fetch (the file, for the browser to share) and save (to download it).
+    * both, nomedia, step1 - Whether it has the two, or neither, and the first step, saving what it has.
+    * text, html - Its text for WhatsApp, as it is and as it looks.
+    * waiting, formurl, sesskey - Whether it waits for «It is published», and where it goes.
+    * done, justdone, withdrawn - Who published it and when, whether it was just now, and if it was taken back.
+    * channelurl, paste, backurl - The link of the channel of WhatsApp, the third step and the page of the channel.
+    * ai - Whether its image or its animation has something made with artificial intelligence: the line to label it.
+
+    Example context (json):
+    {
+        "title": "Jornada de puertas abiertas", "channel": "Escuela Ejemplo", "intelegram": "Salió en Telegram hoy a las 10:00.",
+        "base": "jornada-de-puertas-abiertas",
+        "image": {"src": "https://example.com/card.jpg", "fetch": "https://example.com/m", "save": "https://example.com/s"},
+        "both": false, "nomedia": false, "step1": "Guarda la imagen.",
+        "text": "*Jornada de puertas abiertas*", "html": "<strong>Jornada de puertas abiertas</strong>",
+        "waiting": true, "formurl": "https://example.com/local/oksigeniamarandu/wachannel.php?t=abc", "sesskey": "abc",
+        "channelurl": "https://whatsapp.com/channel/0029VaEjemploInventado00",
+        "paste": "Abre «Escuela Ejemplo» en WhatsApp, adjunta lo que guardaste y pega el texto.", "backurl": ""
+    }
+}}
+<div class="local-oksigeniamarandu-wapost"{{^gone}} data-base="{{base}}"{{#video}} data-videofetch="{{fetch}}"{{/video}}{{#image}} data-imagefetch="{{fetch}}"{{/image}}
+    data-copied="{{#str}} wachannel:copied, local_oksigeniamarandu {{/str}}"
+    data-copyfailed="{{#str}} wachannel:copyfailed, local_oksigeniamarandu {{/str}}"
+    data-shared="{{#str}} wachannel:shared, local_oksigeniamarandu {{/str}}"
+    data-sharefailed="{{#str}} wachannel:sharefailed, local_oksigeniamarandu {{/str}}"{{/gone}}>
+    {{#gone}}
+    <section class="mrd-wa-ido">
+        <span class="mrd-wa-marca" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M13 12h28a6 6 0 0 1 6 6v13a6 6 0 0 1-6 6H25l-8 7v-7h-4a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="currentColor" fill-opacity=".12"/><path d="M21 20l12 12M33 20 21 32"/></svg></span>
+        <h1>{{#str}} wachannel:gone, local_oksigeniamarandu {{/str}}</h1>
+        <p>{{#str}} wachannel:gone_help, local_oksigeniamarandu {{/str}}</p>
+    </section>
+    {{/gone}}
+    {{^gone}}
+    <header class="mrd-wa-cab">
+        <span class="mrd-wa-marca" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M13 12h28a6 6 0 0 1 6 6v13a6 6 0 0 1-6 6H25l-8 7v-7h-4a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="currentColor" fill-opacity=".12"/><path d="M15 21h22M15 28h14"/><path d="M36 50c3-6 9-9 18-9"/><path d="M48 35l6 6-6 6"/></svg></span>
+        <div class="mrd-wa-cab-t">
+            <p class="mrd-wa-para">{{#str}} wachannel:title, local_oksigeniamarandu {{/str}}{{#channel}} · <b>{{.}}</b>{{/channel}}</p>
+            <h1>{{title}}</h1>
+            <p class="mrd-wa-sub">{{intelegram}}</p>
+        </div>
+    </header>
+
+    {{#done}}<div class="mrd-wa-hecho{{#justdone}} mrd-wa-recien{{/justdone}}" role="status"><span class="mrd-wa-sello" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><p>{{.}}</p></div>{{/done}}
+    {{#withdrawn}}<p class="mrd-wa-retirada" role="status">{{.}}</p>{{/withdrawn}}
+
+    <div class="mrd-wa-cuerpo">
+        <section class="mrd-wa-muestra" aria-labelledby="mrd-wa-asi">
+            <h2 class="mrd-wa-rotulo" id="mrd-wa-asi">{{#str}} wachannel:preview, local_oksigeniamarandu {{/str}}</h2>
+            {{#both}}
+            <div class="mrd-wa-elige" role="group" aria-label="{{#str}} wachannel:which, local_oksigeniamarandu {{/str}}" data-kinds hidden>
+                <button type="button" class="mrd-wa-chip" data-kind="video" aria-pressed="true">{{#str}} wachannel:withvideo, local_oksigeniamarandu {{/str}}</button>
+                <button type="button" class="mrd-wa-chip" data-kind="image" aria-pressed="false">{{#str}} wachannel:withimage, local_oksigeniamarandu {{/str}}</button>
+            </div>
+            {{/both}}
+            <div class="mrd-wa-fondo">
+                <figure class="mrd-wa-burbuja">
+                    {{#video}}<video class="mrd-wa-media" data-show="video" src="{{src}}" autoplay muted loop playsinline width="1280" height="720"></video>{{/video}}
+                    {{#image}}<img class="mrd-wa-media" data-show="image" src="{{src}}" alt="" width="1280" height="720"{{#both}} hidden{{/both}}>{{/image}}
+                    <figcaption class="mrd-wa-texto">{{{html}}}</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section class="mrd-wa-hacer" aria-labelledby="mrd-wa-como">
+            <h2 class="mrd-wa-rotulo" id="mrd-wa-como">{{#str}} wachannel:how, local_oksigeniamarandu {{/str}}</h2>
+            <div class="mrd-wa-compartir" data-sharebox hidden>
+                <button type="button" class="mrd-wa-btn mrd-wa-verde" data-share><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 13v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"/><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/></svg>{{#str}} wachannel:share, local_oksigeniamarandu {{/str}}</button>
+                <p class="mrd-wa-nota">{{#str}} wachannel:share_help, local_oksigeniamarandu {{/str}}</p>
+                <p class="mrd-wa-otra">{{#str}} wachannel:byhand, local_oksigeniamarandu {{/str}}</p>
+            </div>
+            <ol class="mrd-wa-pasos">
+                {{^nomedia}}
+                <li><div class="mrd-wa-paso"><b>{{step1}}</b>
+                    <div class="mrd-wa-fila">
+                        {{#video}}<a class="mrd-wa-btn" href="{{save}}" download data-save="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 20h16"/></svg>{{#str}} wachannel:savevideo, local_oksigeniamarandu {{/str}}</a>{{/video}}
+                        {{#image}}<a class="mrd-wa-btn" href="{{save}}" download data-save="image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 20h16"/></svg>{{#str}} wachannel:saveimage, local_oksigeniamarandu {{/str}}</a>{{/image}}
+                    </div></div></li>
+                {{/nomedia}}
+                <li><div class="mrd-wa-paso"><b>{{#str}} wachannel:step2, local_oksigeniamarandu {{/str}}</b>
+                    <div class="mrd-wa-fila"><button type="button" class="mrd-wa-btn" data-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>{{#str}} wachannel:copy, local_oksigeniamarandu {{/str}}</button></div></div></li>
+                <li><div class="mrd-wa-paso"><b>{{paste}}</b>
+                    <div class="mrd-wa-fila">
+                        {{#channelurl}}<a class="mrd-wa-btn" href="{{.}}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>{{#str}} wachannel:openchannel, local_oksigeniamarandu {{/str}}</a>{{/channelurl}}
+                        {{^channelurl}}<a class="mrd-wa-btn" href="https://web.whatsapp.com/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>{{#str}} wachannel:openweb, local_oksigeniamarandu {{/str}}</a>{{/channelurl}}
+                    </div></div></li>
+            </ol>
+            <p class="mrd-wa-estado" role="status" aria-live="polite" data-status></p>
+            <details class="mrd-wa-tal">
+                <summary>{{#str}} wachannel:text, local_oksigeniamarandu {{/str}}</summary>
+                <textarea readonly rows="8" aria-label="{{#str}} wachannel:text, local_oksigeniamarandu {{/str}}" data-raw>{{text}}</textarea>
+            </details>
+            {{#ai}}<p class="mrd-wa-ia" role="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>{{#str}} wachannel:ai, local_oksigeniamarandu {{/str}}</span></p>{{/ai}}
+            {{#waiting}}
+            <form method="post" action="{{formurl}}" class="mrd-wa-fin">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="action" value="done">
+                <button type="submit" class="mrd-wa-btn mrd-wa-listo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{#str}} wachannel:done, local_oksigeniamarandu {{/str}}</button>
+                <p class="mrd-wa-nota">{{#str}} wachannel:done_help, local_oksigeniamarandu {{/str}}</p>
+            </form>
+            {{/waiting}}
+            {{#backurl}}<a class="mrd-wa-volver" href="{{.}}">{{#str}} wachannel:back, local_oksigeniamarandu {{/str}}</a>{{/backurl}}
+        </section>
+    </div>
+    {{/gone}}
+</div>
+{{#js}}
+(function() {
+    var root = document.querySelector('.local-oksigeniamarandu-wapost[data-base]');
+    if (!root) {
+        return;
+    }
+    var raw = root.querySelector('[data-raw]');
+    var text = raw.value;
+    var status = root.querySelector('[data-status]');
+    var kind = root.querySelector('[data-show="video"]') ? 'video' : 'image';
+    var files = {};
+    var extensions = {'image/png': 'png', 'image/jpeg': 'jpg', 'video/mp4': 'mp4'};
+    var say = function(message) {
+        status.textContent = message;
+    };
+    // What goes with the text: the animation or the image, each with its file to save; and sharing, once the browser
+    // has the file of what goes.
+    var show = function() {
+        root.querySelectorAll('[data-show]').forEach(function(media) {
+            media.hidden = media.dataset.show !== kind;
+        });
+        root.querySelectorAll('[data-save]').forEach(function(link) {
+            link.hidden = link.dataset.save !== kind;
+        });
+        root.querySelectorAll('[data-kind]').forEach(function(chip) {
+            chip.setAttribute('aria-pressed', chip.dataset.kind === kind ? 'true' : 'false');
+        });
+        var box = root.querySelector('[data-sharebox]');
+        box.hidden = !files[kind];
+        root.classList.toggle('mrd-wa-puede', !!files[kind]);
+    };
+    var kinds = root.querySelector('[data-kinds]');
+    if (kinds) {
+        kinds.hidden = false;
+        kinds.addEventListener('click', function(e) {
+            var chip = e.target.closest('[data-kind]');
+            if (chip) {
+                kind = chip.dataset.kind;
+                show();
+            }
+        });
+    }
+    // Sharing a file needs the tap itself: the files are fetched beforehand, only where the browser can share them.
+    if (navigator.share && navigator.canShare && window.fetch && window.File) {
+        ['video', 'image'].forEach(function(which) {
+            var url = root.dataset[which + 'fetch'];
+            if (!url) {
+                return;
+            }
+            fetch(url, {credentials: 'same-origin'}).then(function(response) {
+                if (!response.ok) {
+                    throw new Error(String(response.status));
+                }
+                return response.blob();
+            }).then(function(blob) {
+                var type = blob.type || (which === 'video' ? 'video/mp4' : 'image/jpeg');
+                var file = new File([blob], root.dataset.base + '.' + (extensions[type] || 'jpg'), {type: type});
+                files[which] = navigator.canShare({files: [file], text: text}) ? file : null;
+                show();
+                return files[which];
+            }).catch(function() {
+                files[which] = null;
+                return null;
+            });
+        });
+    }
+    // Copying: with the clipboard of the browser; if it is not there, or it refuses, the box with the text, selected.
+    var byhand = function() {
+        var box = raw.closest('details');
+        if (box) {
+            box.open = true;
+        }
+        raw.focus();
+        raw.select();
+        var copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+        return copied;
+    };
+    var copy = function() {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text).then(function() {
+                return true;
+            }, function() {
+                return byhand();
+            });
+        }
+        return Promise.resolve(byhand());
+    };
+    root.addEventListener('click', function(e) {
+        if (e.target.closest('[data-copy]')) {
+            copy().then(function(copied) {
+                say(copied ? root.dataset.copied : root.dataset.copyfailed);
+                return copied;
+            }).catch(function() {
+                say(root.dataset.copyfailed);
+            });
+        } else if (e.target.closest('[data-share]') && files[kind]) {
+            // The text goes to the clipboard too, in case WhatsApp does not take it with the file.
+            copy().catch(function() {
+                return false;
+            });
+            navigator.share({files: [files[kind]], text: text}).then(function() {
+                say(root.dataset.shared);
+                return true;
+            }).catch(function(error) {
+                if (!error || error.name !== 'AbortError') {
+                    say(root.dataset.sharefailed);
+                }
+                return false;
+            });
+        }
+    });
+    show();
+})();
+{{/js}}

@@ -21,9 +21,11 @@ use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\cloud_api;
 use local_oksigeniamarandu\local\queue;
 use local_oksigeniamarandu\local\telegram_api;
+use local_oksigeniamarandu\local\wachannel;
 
 /**
- * Sends the notices of the queue that can go out now, by WhatsApp and by Telegram, and what goes to the channel.
+ * Sends the notices of the queue that can go out now, by WhatsApp and by Telegram, what goes to the channel, and the reminder
+ * of what waits for the channel of WhatsApp.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -67,6 +69,11 @@ class send_queue extends \core\task\scheduled_task {
             if (array_sum($counts)) {
                 mtrace('Marandu, the channel: ' . json_encode($counts));
             }
+        }
+        // What nobody marked published in the channel of WhatsApp in a while: its reminder, once.
+        $reminded = wachannel::remind();
+        if ($reminded) {
+            mtrace('Marandu, the channel of WhatsApp: ' . $reminded . ' reminded');
         }
     }
 }

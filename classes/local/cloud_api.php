@@ -199,24 +199,56 @@ class cloud_api {
      *
      * @param string $to Digits with the country code.
      * @param string $mediaid The id Meta gave to the image when it went up (upload_media()).
-     * @param string $caption The text, up to 1024 characters.
+     * @param string $caption The text, up to 1024 characters; empty for none.
      * @return string The id Meta gives to the message (wamid).
      * @throws api_exception If Meta does not take the message.
      */
     public function send_image(string $to, string $mediaid, string $caption): string {
+        return $this->send_media($to, 'image', $mediaid, $caption);
+    }
+
+    /**
+     * Sends a video (an MP4 with H.264, as the cards that move are) with its text below, such as a post to forward to a
+     * channel. Only inside the 24 hours after the number last wrote.
+     *
+     * @param string $to Digits with the country code.
+     * @param string $mediaid The id Meta gave to the video when it went up (upload_media()).
+     * @param string $caption The text, up to 1024 characters; empty for none.
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    public function send_video(string $to, string $mediaid, string $caption): string {
+        return $this->send_media($to, 'video', $mediaid, $caption);
+    }
+
+    /**
+     * Sends an image or a video already uploaded, with its text below if it has one.
+     *
+     * @param string $to Digits with the country code.
+     * @param string $type image or video.
+     * @param string $mediaid The id Meta gave to it.
+     * @param string $caption The text, up to 1024 characters; empty for none.
+     * @return string The id Meta gives to the message (wamid).
+     * @throws api_exception If Meta does not take the message.
+     */
+    private function send_media(string $to, string $type, string $mediaid, string $caption): string {
+        $media = ['id' => $mediaid];
+        if ($caption !== '') {
+            $media['caption'] = \core_text::substr($caption, 0, 1024);
+        }
         return $this->send_message([
             'messaging_product' => 'whatsapp',
             'recipient_type' => 'individual',
             'to' => $to,
-            'type' => 'image',
-            'image' => ['id' => $mediaid, 'caption' => \core_text::substr($caption, 0, 1024)],
+            'type' => $type,
+            $type => $media,
         ]);
     }
 
     /**
-     * Uploads an image to Meta, for the messages of the number: Meta keeps it 30 days.
+     * Uploads an image or a video to Meta, for the messages of the number: Meta keeps it 30 days.
      *
-     * @param string $bytes The image, a JPEG or a PNG of up to 5 MB.
+     * @param string $bytes The image, a JPEG or a PNG of up to 5 MB; or the video, an MP4 of up to 16 MB.
      * @param string $name Its name, with its extension.
      * @return string The id Meta gives to it.
      * @throws api_exception If Meta does not take it.

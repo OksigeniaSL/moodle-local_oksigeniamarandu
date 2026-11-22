@@ -14,7 +14,9 @@ official WhatsApp Business account and its own bot: only to people who opted in,
 ## Status
 
 **Alpha.** Notices of the site and of its plugins by WhatsApp and Telegram, each person on the channels they chose; the
-channel of the organisation on Telegram; questions with buttons (permissions, approvals, the approval of a login);
+channel of the organisation on Telegram and, with the same posts, its channel of WhatsApp, published by a person with
+each post made ready (WhatsApp does not let anyone post in its channels from outside); questions with buttons
+(permissions, approvals, the approval of a login);
 sends to many with their approval and the spend of the month; and the conversations of the team with families and
 everyone who writes, on top of Chatwoot. Each version is small and tested before it is released.
 

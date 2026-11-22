@@ -36,13 +36,14 @@ use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\panel;
 use local_oksigeniamarandu\local\sky;
 use local_oksigeniamarandu\local\telegram_api;
+use local_oksigeniamarandu\local\wachannel;
 use local_oksigeniamarandu\local\weather;
 use local_oksigeniamarandu\local\work;
 
 $component = 'local_oksigeniamarandu';
 $baseurl = new moodle_url('/local/oksigeniamarandu/channel.php');
 // The cards of the settings, each saved on its own: what goes to the channel, its day, and what is set once.
-$parts = ['what', 'day', 'calendar', 'weather', 'place', 'links', 'cards'];
+$parts = ['what', 'day', 'wachannel', 'calendar', 'weather', 'place', 'links', 'cards'];
 $system = context_system::instance();
 $canconfig = has_capability('moodle/site:config', $system);
 if ($canconfig) {
@@ -180,9 +181,37 @@ if ($action !== '' && confirm_sesskey()) {
             if ($ffmpeg !== null) {
                 set_config('ffmpeg', preg_match('~^/[\w./-]+$~', $ffmpeg) ? $ffmpeg : '', $component);
             }
+            // The channel of WhatsApp: on or off, its name, its link, and who publishes there: each person a chip, and
+            // anyone else of the site by their username or email.
+            if ($posted('wachannel') !== null) {
+                wachannel::set_enabled((bool)optional_param('wachannel', 0, PARAM_BOOL));
+            }
+            if ($posted('wachannelname') !== null) {
+                set_config('wachannelname', trim(optional_param('wachannelname', '', PARAM_TEXT)), $component);
+            }
+            // A link that is not of a channel of WhatsApp is not kept: the card says so.
+            $missing = [];
+            $waurl = $posted('wachannelurl');
+            if ($waurl !== null && !wachannel::set_url($waurl)) {
+                $missing['wabadurl'] = 1;
+            }
+            if (optional_param('wapeoplesent', 0, PARAM_BOOL)) {
+                $ids = array_keys(array_filter(optional_param_array('wapeople', [], PARAM_INT)));
+                $add = trim(optional_param('waadd', '', PARAM_RAW_TRIMMED));
+                if ($add !== '') {
+                    $user = $DB->get_record('user', ['username' => core_text::strtolower($add), 'deleted' => 0])
+                        ?: $DB->get_record('user', ['email' => $add, 'deleted' => 0], '*', IGNORE_MULTIPLE);
+                    if ($user && !isguestuser($user)) {
+                        $ids[] = (int)$user->id;
+                    } else {
+                        $missing['wamiss'] = core_text::substr($add, 0, 100);
+                    }
+                }
+                wachannel::set_people($ids);
+            }
             // Back to the card that was touched, open, with its «Saved».
             $part = in_array($part, $parts, true) ? $part : '';
-            redirect(new moodle_url($baseurl, ['saved' => $part ?: 1], $part ? 'mrd-' . $part : null));
+            redirect(new moodle_url($baseurl, ['saved' => $part ?: 1] + $missing, $part ? 'mrd-' . $part : null));
         } else if (in_array($action, ['publish', 'skip'], true)) {
             $post = $DB->get_record(channel::TABLE, ['id' => required_param('post', PARAM_INT)], '*', MUST_EXIST);
             channel::decide($post, $action === 'publish', (int)$USER->id, $bot);
@@ -277,7 +306,7 @@ if ($current) {
             'field' => 'mrd-p-' . md5($kind->key),
             'thumb' => $kind->card !== '' && $canconfig ? cards::thumbnail(cards::sample($kind->card), 144) : null];
     }
-    $post = function (stdClass $row) use ($component, $now): array {
+    $post = function (stdClass $row) use ($component, $now, $DB): array {
         $content = json_decode($row->content, true) ?: [];
         $kind = channel::kinds()[$row->component . '/' . $row->kind] ?? (object)['component' => $row->component,
             'kind' => $row->kind];
@@ -301,6 +330,16 @@ if ($current) {
             $when = $at <= $now ? get_string('channel:review:now', $component) : work::when($at, $now);
         }
         $goes = get_string('channel:review:goes', $component, (object)['kind' => channel::name($kind), 'when' => $when]);
+        // What went out in Telegram, in the channel of WhatsApp too: waiting, published or taken back, with its page.
+        $whatsapp = null;
+        $wa = in_array($row->status, ['published', 'removed'], true) ? $DB->get_record(wachannel::TABLE, ['postid' => $row->id])
+            : false;
+        if ($wa) {
+            $whatsapp = ['label' => get_string('wachannel:state:' . $wa->status, $component),
+                'waiting' => $wa->status === 'waiting',
+                'url' => wachannel::url($wa)->out(false),
+                'clicks' => (int)$wa->clicks ? get_string('channel:clicks', $component, (int)$wa->clicks) : ''];
+        }
         return [
             'id' => $row->id,
             'goes' => $goes,
@@ -312,6 +351,7 @@ if ($current) {
             'clicks' => (int)$row->clicks ? get_string('channel:clicks', $component, (int)$row->clicks) : '',
             'error' => (string)$row->error,
             'urgent' => (bool)$row->urgent,
+            'whatsapp' => $whatsapp,
         ];
     };
     $list = function (string $where, string $sort, int $limit = 10) use ($DB, $post): array {
@@ -399,6 +439,65 @@ if ($current) {
         'perday' => gestures::stepper('postperday', $perday, 50, get_string('channel:day:perday', $component)),
         'perweek' => gestures::stepper('postperweek', $perweek, 300, get_string('channel:day:perweek', $component)),
     ];
+
+    // The channel of WhatsApp: on or off, who publishes there (a chip for each person who may review, and for whoever the
+    // site chose), its name and its link.
+    $chosen = wachannel::chosen();
+    $candidates = [];
+    $active = function ($user): bool {
+        return $user && !$user->deleted && !$user->suspended;
+    };
+    $capable = get_users_by_capability($system, 'local/oksigeniamarandu:channel', 'u.*', 'u.lastname ASC, u.firstname ASC');
+    foreach ($capable as $user) {
+        if ($active($user)) {
+            $candidates[(int)$user->id] = $user;
+        }
+    }
+    foreach (array_merge(array_keys($reviewers), $chosen) as $userid) {
+        $user = isset($candidates[$userid]) ? $candidates[$userid] : core_user::get_user($userid);
+        if ($active($user)) {
+            $candidates[(int)$userid] = $user;
+        }
+    }
+    $people = [];
+    foreach (array_slice($candidates, 0, 40, true) as $userid => $user) {
+        $initials = core_text::strtoupper(core_text::substr($user->firstname, 0, 1) . core_text::substr($user->lastname, 0, 1));
+        $people[] = ['id' => $userid, 'name' => fullname($user), 'initials' => $initials,
+            'on' => in_array($userid, $chosen, true)];
+    }
+    $publishers = array_map('fullname', wachannel::people());
+    if ($chosen) {
+        $peopleline = get_string('wachannel:people:chosen', $component);
+    } else if ($reviewers) {
+        $peopleline = get_string('wachannel:people:reviewers', $component, $join($publishers));
+    } else {
+        $peopleline = get_string('wachannel:people:capable', $component);
+    }
+    $waon = wachannel::enabled();
+    $waname = wachannel::name();
+    $missing = optional_param('wamiss', '', PARAM_TEXT);
+    $badurl = optional_param('wabadurl', 0, PARAM_BOOL);
+    // Its line, folded: off; or its name, and who publishes there.
+    $waline = get_string('wachannel:line:off', $component);
+    if ($waon) {
+        $waline = get_string(count($publishers) > 1 ? 'wachannel:line:onmany' : 'wachannel:line:on', $component, (object)[
+            'channel' => $waname === '' ? get_string('wachannel:line:noname', $component) : $waname,
+            'people' => $publishers ? $join($publishers) : get_string('wachannel:line:nobody', $component),
+        ]);
+    }
+    $wacard = $folded('wachannel') + [
+        'on' => $waon,
+        'line' => $waline,
+        'people' => $people,
+        'peopleline' => $peopleline,
+        'missing' => $missing === '' ? '' : get_string('wachannel:addnotfound', $component, $missing),
+        'badurl' => $badurl,
+        'name' => $waname,
+        'url' => (string)get_config($component, 'wachannelurl'),
+    ];
+    if ($missing !== '' || $badurl) {
+        $wacard['open'] = true;
+    }
 
     // The calendar: where it comes from, the days with class as the sheets of a week, and the two posts it makes.
     $ical = (string)($config->calendarical ?? '');
@@ -542,6 +641,7 @@ if ($current) {
         'kinds' => $kinds,
         'whatsaved' => $saved === 'what',
         'day' => $day,
+        'wachannel' => $wacard,
         'calendar' => $calendarcard,
         'weather' => $weathercard,
         'place' => $placecard,

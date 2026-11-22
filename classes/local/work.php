@@ -173,6 +173,27 @@ class work {
         if ($failed) {
             $alerts[] = self::alert('work:failed', new \moodle_url($page, null, 'mrd-failed'), 'today', $failed);
         }
+        // What went out in Telegram and waits for the channel of WhatsApp, while it is in its moment: each with its page.
+        $whatsapp = wachannel::enabled() ? wachannel::waiting($now) : [];
+        if ($whatsapp && count($whatsapp) <= self::NAMED) {
+            foreach ($whatsapp as $one) {
+                $alerts[] = self::alert(
+                    'work:wachannel',
+                    wachannel::url($one),
+                    'today',
+                    wachannel::title($one),
+                    (int)$one->timecreated
+                );
+            }
+        } else if ($whatsapp) {
+            $alerts[] = self::alert(
+                'work:wachannelmany',
+                new \moodle_url($page, null, 'mrd-published'),
+                'today',
+                count($whatsapp),
+                (int)reset($whatsapp)->timecreated
+            );
+        }
         // The most urgent first and, in each level, by deadline; what has none, after.
         usort($alerts, function (array $a, array $b): int {
             return [$a['level'] === 'urgent' ? 0 : 1, isset($a['due']) ? 0 : 1, $a['due'] ?? 0]

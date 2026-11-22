@@ -15,7 +15,9 @@ silencio.
 ## Estado
 
 **Alfa.** Los avisos del sitio y de sus plugins por WhatsApp y Telegram, cada persona por los canales que elige; el
-canal de la organización en Telegram; preguntas con botones (autorizaciones, aprobaciones, la aprobación de un acceso);
+canal de la organización en Telegram y, con lo mismo, su canal de WhatsApp, que publica una persona con la publicación
+ya preparada (WhatsApp no deja publicar en sus canales desde fuera); preguntas con botones (autorizaciones,
+aprobaciones, la aprobación de un acceso);
 envíos masivos con su aprobación y el gasto del mes; y las conversaciones del equipo con las familias y con quien
 escriba, encima de Chatwoot. Cada versión es pequeña y se prueba antes de publicarla.
 

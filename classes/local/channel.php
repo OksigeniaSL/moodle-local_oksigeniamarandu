@@ -314,8 +314,10 @@ class channel {
      * @param array $content Any of title, image (a URL of this site with a PNG or a JPEG), animation (a URL of this site
      *                       with an MP4, which goes instead of the card), card (a card Marandu makes from its templates,
      *                       as cards::clean() takes it, which goes as its image and its animation), lines, text, url (a
-     *                       web address, for its button), label (of the button) and utm (false for a link that must go
-     *                       as it is); a title or a text at least.
+     *                       web address, for its button), label (of the button), utm (false for a link that must go
+     *                       as it is) and ai (true when its own image or animation has something made or edited with
+     *                       artificial intelligence: whoever publishes it in the channel of WhatsApp is told to give it
+     *                       the label WhatsApp asks for; a card says it in its template); a title or a text at least.
      * @param int|null $when Not before this time; now if null.
      * @param bool $urgent Whether it goes at any hour, and its review too.
      * @param string $key What the plugin knows it by, up to 100 characters, to change it or take it back.
@@ -440,7 +442,7 @@ class channel {
      */
     public static function clean(array $content): array {
         global $CFG;
-        $parts = ['title', 'image', 'animation', 'card', 'lines', 'text', 'url', 'label', 'utm'];
+        $parts = ['title', 'image', 'animation', 'card', 'lines', 'text', 'url', 'label', 'utm', 'ai'];
         $unknown = array_diff(array_keys($content), $parts);
         if ($unknown) {
             throw new \coding_exception('A post has no ' . implode(', ', $unknown));
@@ -466,6 +468,9 @@ class channel {
         }
         if (array_key_exists('utm', $content) && !$content['utm']) {
             $clean['utm'] = false;
+        }
+        if (!empty($content['ai'])) {
+            $clean['ai'] = true;
         }
         return $clean;
     }
@@ -571,6 +576,7 @@ class channel {
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'published', 'messageid' => $messageid,
                     'error' => null, 'timepublished' => $now, 'timemodified' => $now]);
                 $counts['published']++;
+                self::whatsapp('published', $post, null, $now);
             } catch (api_exception $e) {
                 if (self::channel_error($e)) {
                     set_config('channelproblem', 'norights', self::COMPONENT);
@@ -591,6 +597,7 @@ class channel {
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'removed', 'error' => null,
                     'timemodified' => $now]);
                 $counts['removed']++;
+                self::whatsapp('withdraw', $post, $api, $now);
             } catch (api_exception $e) {
                 // It stays in the channel, as Telegram says why; taking it back again tries again.
                 $DB->update_record(self::TABLE, (object)['id' => $post->id, 'status' => 'published',
@@ -1156,12 +1163,32 @@ class channel {
     }
 
     /**
+     * What went out or was taken out of the channel, for its channel of WhatsApp: nothing of it holds Telegram back.
+     *
+     * @param string $what published or withdraw.
+     * @param \stdClass $post The post.
+     * @param telegram_api|null $api The bot.
+     * @param int $now The time.
+     */
+    private static function whatsapp(string $what, \stdClass $post, ?telegram_api $api, int $now): void {
+        try {
+            if ($what === 'published') {
+                wachannel::published($post, $now);
+            } else {
+                wachannel::withdraw($post, $api, $now);
+            }
+        } catch (\Throwable $e) {
+            debugging('Marandu: the channel of WhatsApp did not hear of a post: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
      * The label of the button of a post.
      *
      * @param array $content The content of the post.
      * @return string
      */
-    private static function label(array $content): string {
+    public static function label(array $content): string {
         return ($content['label'] ?? '') !== '' ? $content['label'] : get_string('channel:open', self::COMPONENT);
     }
 

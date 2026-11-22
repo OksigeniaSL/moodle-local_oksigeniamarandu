@@ -668,10 +668,19 @@ final class channel_test extends \advanced_testcase {
         $this->assertNull(api::channel_link());
         set_config('channelusername', 'escuelaejemplo', 'local_oksigeniamarandu');
         $this->assertSame(
-            ['url' => 'https://t.me/escuelaejemplo', 'title' => 'Escuela Ejemplo', 'members' => null],
+            ['url' => 'https://t.me/escuelaejemplo', 'title' => 'Escuela Ejemplo', 'members' => null, 'whatsapp' => null],
             api::channel()
         );
         $this->assertSame('https://t.me/escuelaejemplo', api::channel_link());
+        // The channel of WhatsApp beside it, when the site gives its link; the link of Telegram stays as it was.
+        $this->assertNull(api::whatsapp_channel());
+        $this->assertFalse(wachannel::set_url('https://example.org/channel/abc'));
+        $this->assertTrue(wachannel::set_url('https://whatsapp.com/channel/0029VaEjemploInventado00'));
+        $this->assertSame('https://whatsapp.com/channel/0029VaEjemploInventado00', api::channel()['whatsapp']);
+        $this->assertSame('https://t.me/escuelaejemplo', api::channel_link());
+        set_config('wachannelname', 'Escuela Ejemplo, avisos', 'local_oksigeniamarandu');
+        $this->assertSame(['url' => 'https://whatsapp.com/channel/0029VaEjemploInventado00',
+            'title' => 'Escuela Ejemplo, avisos'], api::whatsapp_channel());
     }
 
     /**
@@ -702,6 +711,7 @@ final class channel_test extends \advanced_testcase {
             'reactions' => ['❤' => 5, '👍' => 3, 'custom' => 1],
             'reactionstotal' => 9,
             'members' => 225,
+            'whatsapp' => null,
         ]], api::channel_stats('local_example', 'book'));
         $this->assertSame([], api::channel_stats('local_example', 'open_day'));
 

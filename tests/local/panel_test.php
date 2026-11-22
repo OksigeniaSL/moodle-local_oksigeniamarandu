@@ -293,9 +293,9 @@ final class panel_test extends \advanced_testcase {
             return [$item->name, $item->count, $item->icon];
         }, panel::bynotice(self::WEDNESDAY)->on));
         // Other plugins of the site may declare notices of their own, switched off here; of Marandu, the conversations of
-        // the team, which each site switches on for Telegram.
-        $mine = ['local_oksigeniamarandu/board', 'local_oksigeniamarandu/bulk', 'local_oksigeniamarandu/chat',
-            'local_oksigeniamarandu/team'];
+        // the team, which each site switches on for Telegram, and the post for the channel of WhatsApp.
+        $mine = ['local_oksigeniamarandu/board', 'local_oksigeniamarandu/bulk', 'local_oksigeniamarandu/channel_whatsapp',
+            'local_oksigeniamarandu/chat', 'local_oksigeniamarandu/team'];
         $this->assertSame($mine, array_values(array_map(function ($item) {
             return $item->key;
         }, array_filter(panel::bynotice(self::WEDNESDAY)->off, function ($item) {
@@ -312,8 +312,8 @@ final class panel_test extends \advanced_testcase {
 
         // Switched off for every channel and not sent this month: apart.
         set_config('enablednotices', '', 'local_oksigeniamarandu');
-        $expected = ['local_oksigeniamarandu/board', 'local_oksigeniamarandu/bulk', 'local_oksigeniamarandu/chat',
-            'local_oksigeniamarandu/notification', 'local_oksigeniamarandu/team'];
+        $expected = ['local_oksigeniamarandu/board', 'local_oksigeniamarandu/bulk', 'local_oksigeniamarandu/channel_whatsapp',
+            'local_oksigeniamarandu/chat', 'local_oksigeniamarandu/notification', 'local_oksigeniamarandu/team'];
         $this->assertSame($expected, array_values(array_filter(
             array_column(panel::bynotice(self::WEDNESDAY + 40 * DAYSECS)->off, 'key'),
             function ($key) {

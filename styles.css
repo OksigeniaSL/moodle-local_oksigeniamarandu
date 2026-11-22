@@ -6761,6 +6761,596 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     stroke-linecap: round;
 }
 
+/* The channel of WhatsApp on the page of the channel: who publishes there, as chips with their initials; the switch in
+   the green of WhatsApp; and the mark of each post that went out, waiting or published there. */
+.local-oksigeniamarandu-channel {
+    --mrd-wa-key: #0d7a55;
+}
+
+[data-bs-theme="dark"] .local-oksigeniamarandu-channel {
+    --mrd-wa-key: #2fb57f;
+}
+
+.local-oksigeniamarandu-wizard .mrd-llave-wa[aria-pressed="true"] .mrd-llave-i {
+    border-color: var(--mrd-wa-key);
+    background: var(--mrd-wa-key);
+}
+
+.local-oksigeniamarandu-wizard .mrd-plegada-wa .mrd-cara {
+    color: var(--mrd-wa-key);
+}
+
+.local-oksigeniamarandu-wizard .mrd-personas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.local-oksigeniamarandu-wizard .mrd-persona {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 4px 14px 4px 4px;
+    border: 1px dashed var(--mrd-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--mrd-ink);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wizard .mrd-persona-i {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--mrd-bg-chip);
+    color: var(--mrd-ink-soft);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.local-oksigeniamarandu-wizard .mrd-persona[aria-pressed="true"] {
+    border: 1px solid var(--mrd-ink);
+    background: var(--mrd-ink);
+    color: var(--mrd-bg);
+}
+
+.local-oksigeniamarandu-wizard .mrd-persona[aria-pressed="true"] .mrd-persona-i {
+    background: var(--mrd-wa-key);
+    color: #fff;
+}
+
+.local-oksigeniamarandu-wizard .mrd-persona:focus-visible {
+    outline: 2px solid var(--mrd-blue-text);
+    outline-offset: 2px;
+}
+
+.local-oksigeniamarandu-channel .mrd-wamark {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--mrd-green-soft);
+    color: var(--mrd-green-text);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.local-oksigeniamarandu-channel .mrd-wamark-falta {
+    background: var(--mrd-warn-soft);
+    color: var(--mrd-warn-ink);
+}
+
+/* The page of a post for the channel of WhatsApp: made for the phone, one column; on a computer, how it looks on the
+   left and how to publish it on the right. The colours of the theme, and the green of WhatsApp for what is of WhatsApp:
+   plain colours, so that the boards of the classrooms (Chrome 93) see the same. Touches of 48 px, or 40 at least. */
+.local-oksigeniamarandu-wapost {
+    --wa-ink: var(--bs-body-color, #1d2125);
+    --wa-soft: var(--bs-secondary-color, #5f6b76);
+    --wa-card: var(--bs-body-bg, #fff);
+    --wa-raise: var(--bs-tertiary-bg, #f6f7f9);
+    --wa-line: var(--bs-border-color, #dee2e6);
+    --wa-edge: #aab3bd;
+    --wa-green: #0d7a55;
+    --wa-on-green: #fff;
+    --wa-green-ink: #0b6b4a;
+    --wa-green-soft: #e1f3ea;
+    --wa-ok-soft: var(--bs-success-bg-subtle, #e6f4ea);
+    --wa-ok-ink: var(--bs-success-text-emphasis, #134a26);
+    --wa-warn-soft: var(--bs-warning-bg-subtle, #fcefdc);
+    --wa-warn-ink: var(--bs-warning-text-emphasis, #604520);
+    --wa-focus: var(--bs-primary, #0f6cbf);
+    --wa-chat: #efeae2;
+    --wa-dots: rgba(84, 72, 54, 0.09);
+    --wa-bubble: #fff;
+    --wa-bubble-ink: #111b21;
+    --wa-link: #027eb5;
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: 14px 16px 44px;
+    color: var(--wa-ink);
+    font-size: 17px;
+    line-height: 1.45;
+}
+
+[data-bs-theme="dark"] .local-oksigeniamarandu-wapost {
+    --wa-edge: #5d6772;
+    --wa-green: #35bd86;
+    --wa-on-green: #04140d;
+    --wa-green-ink: #6fd8a9;
+    --wa-green-soft: #12291f;
+    --wa-chat: #0b141a;
+    --wa-dots: rgba(233, 237, 239, 0.05);
+    --wa-bubble: #202c33;
+    --wa-bubble-ink: #e9edef;
+    --wa-link: #53bdeb;
+}
+
+.local-oksigeniamarandu-wapost h1,
+.local-oksigeniamarandu-wapost h2,
+.local-oksigeniamarandu-wapost p {
+    margin: 0;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-cab {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 4px 0 18px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-marca {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: var(--wa-green-soft);
+    color: var(--wa-green-ink);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-marca svg {
+    width: 38px;
+    height: 38px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-cab-t {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-para {
+    color: var(--wa-green-ink);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wapost h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-sub {
+    color: var(--wa-soft);
+    font-size: 15px;
+}
+
+/* Published: a stamp in green; just now, it comes in once. */
+.local-oksigeniamarandu-wapost .mrd-wa-hecho {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 18px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: var(--wa-ok-soft);
+    color: var(--wa-ok-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-sello {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--wa-ok-ink);
+    color: var(--wa-ok-soft);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-sello svg {
+    width: 24px;
+    height: 24px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-recien .mrd-wa-sello {
+    animation: mrd-wa-sello 0.45s ease-out;
+}
+
+@keyframes mrd-wa-sello {
+    from {
+        opacity: 0;
+        transform: scale(1.8) rotate(-12deg);
+    }
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-retirada {
+    margin: 0 0 18px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: var(--wa-warn-soft);
+    color: var(--wa-warn-ink);
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-cuerpo {
+    display: grid;
+    gap: 22px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-rotulo {
+    margin: 0 0 10px;
+    color: var(--wa-soft);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* How it looks: a bubble of a channel on the backdrop of a chat, with the animation or the image and the text. */
+.local-oksigeniamarandu-wapost .mrd-wa-elige {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 10px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-chip {
+    min-height: 40px;
+    padding: 4px 16px;
+    border: 1px solid var(--wa-edge);
+    border-radius: 999px;
+    background: var(--wa-card);
+    color: var(--wa-ink);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-chip[aria-pressed="true"] {
+    border-color: var(--wa-ink);
+    background: var(--wa-ink);
+    color: var(--wa-card);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-fondo {
+    padding: 16px 14px;
+    border-radius: 20px;
+    background-color: var(--wa-chat);
+    background-image: radial-gradient(var(--wa-dots) 1.5px, transparent 1.6px);
+    background-size: 18px 18px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-burbuja {
+    margin: 0;
+    padding: 4px;
+    border-radius: 4px 12px 12px;
+    background: var(--wa-bubble);
+    box-shadow: 0 1px 1.5px rgba(11, 20, 26, 0.16);
+    color: var(--wa-bubble-ink);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-media {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 9px;
+    background: var(--wa-raise);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-texto {
+    padding: 8px 8px 6px;
+    font-size: 15.5px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-texto a {
+    color: var(--wa-link);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-texto code {
+    color: inherit;
+    font-size: 0.92em;
+}
+
+/* How to publish it: sharing first where the browser can, and the three steps by hand. */
+.local-oksigeniamarandu-wapost .mrd-wa-compartir {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 6px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-nota {
+    color: var(--wa-soft);
+    font-size: 14px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-otra {
+    margin-top: 12px;
+    color: var(--wa-soft);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px 18px;
+    border: 1.5px solid var(--wa-edge);
+    border-radius: 14px;
+    background: var(--wa-card);
+    color: var(--wa-ink);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-btn svg {
+    flex: none;
+    width: 20px;
+    height: 20px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-btn:focus-visible,
+.local-oksigeniamarandu-wapost .mrd-wa-chip:focus-visible,
+.local-oksigeniamarandu-wapost .mrd-wa-tal summary:focus-visible {
+    outline: 3px solid var(--wa-focus);
+    outline-offset: 2px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-verde {
+    width: 100%;
+    min-height: 58px;
+    border-color: var(--wa-green);
+    background: var(--wa-green);
+    color: var(--wa-on-green);
+    font-size: 18px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-verde svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* A tap leaves no hover behind: only a mouse changes the look. */
+@media (hover: hover) {
+    .local-oksigeniamarandu-wapost .mrd-wa-btn:hover {
+        border-color: var(--wa-ink);
+        color: var(--wa-ink);
+        text-decoration: none;
+    }
+
+    .local-oksigeniamarandu-wapost .mrd-wa-verde:hover {
+        border-color: var(--wa-green);
+        color: var(--wa-on-green);
+        filter: brightness(1.08);
+    }
+
+    .local-oksigeniamarandu-wapost .mrd-wa-listo:hover {
+        color: var(--wa-card);
+        filter: brightness(1.15);
+    }
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-pasos {
+    display: grid;
+    gap: 14px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: mrd-wa-paso;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-pasos li {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    counter-increment: mrd-wa-paso;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-pasos li::before {
+    content: counter(mrd-wa-paso);
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--wa-green-soft);
+    color: var(--wa-green-ink);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-paso {
+    display: grid;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-paso b {
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-estado {
+    min-height: 1.5em;
+    margin: 12px 0 0;
+    color: var(--wa-ok-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-tal {
+    margin: 6px 0 0;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-tal summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    list-style: none;
+    color: var(--wa-soft);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-tal summary::-webkit-details-marker {
+    display: none;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-tal summary::before {
+    content: "";
+    width: 0;
+    height: 0;
+    margin-right: 8px;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid currentColor;
+    transition: transform 0.15s;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-tal[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-tal textarea {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--wa-line);
+    border-radius: 12px;
+    background: var(--wa-raise);
+    color: var(--wa-ink);
+    font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-ia {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 16px 0 0;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--wa-warn-soft);
+    color: var(--wa-warn-ink);
+    font-weight: 700;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-ia svg {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-fin {
+    display: grid;
+    gap: 8px;
+    margin: 20px 0 0;
+    padding: 20px 0 0;
+    border-top: 1px dashed var(--wa-line);
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-listo {
+    width: 100%;
+    min-height: 56px;
+    border-color: var(--wa-ink);
+    background: var(--wa-ink);
+    color: var(--wa-card);
+    font-size: 18px;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-volver {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    margin-top: 14px;
+    color: var(--wa-soft);
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-wapost .mrd-wa-ido {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding: 48px 0;
+    text-align: center;
+}
+
+/* On a computer, side by side: how it looks on the left, how to publish it on the right. */
+@media (min-width: 860px) {
+    .local-oksigeniamarandu-wapost {
+        padding-top: 28px;
+    }
+
+    .local-oksigeniamarandu-wapost .mrd-wa-cuerpo {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        gap: 40px;
+    }
+
+    .local-oksigeniamarandu-wapost .mrd-wa-fondo {
+        padding: 26px 24px;
+    }
+
+    .local-oksigeniamarandu-wapost h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .local-oksigeniamarandu-wapost .mrd-wa-recien .mrd-wa-sello {
+        animation: none;
+    }
+
+    .local-oksigeniamarandu-wapost .mrd-wa-tal summary::before {
+        transition: none;
+    }
+}
+
+.local-oksigeniamarandu-wapost [hidden] {
+    display: none;
+}
+
 /* ---------- Browsers without color-mix() (Chrome before 111, Firefox before 113: the classroom boards) ----------
    A variable whose value they cannot read is empty when used: tinted backgrounds came out transparent and every border
    took the colour of the text. Here, the same mixes as plain colours over a light page, and over a dark one. */

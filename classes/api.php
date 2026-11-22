@@ -548,7 +548,10 @@ class api {
      * @param int $validfor Seconds after which it is no longer worth sending.
      * @param array $rich A card on Telegram instead of its text: any of title, image (a URL of this site with a PNG or a
      *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
-     *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
+     *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template, but
+     *                    for caption: a message made to be forwarded, with the marks of WhatsApp, which inside the 24 hours
+     *                    goes under its video (video, an MP4 of this site) or its image, with the notice and its link after
+     *                    it; outside them, the template, as always.
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @param string $lang The language to write it in, such as that of the family, if the site has its language pack (see
      *                     language()); a person who chose a language on Telegram gets theirs. Empty for theirs or the site's.
@@ -795,7 +798,8 @@ class api {
      * The channel of Telegram of the site, as anyone may find it: for a QR on a screen or a link on a page.
      *
      * @return array|null With url (https://t.me/<name>), title and members (how many it had the last time it was
-     *                    counted, or null); null if the site has no channel ready or its channel is private.
+     *                    counted, or null), and whatsapp (the link of the channel of WhatsApp of the site, if it gave one,
+     *                    or null; since 0.57.0); null if the site has no channel ready or its channel is private.
      */
     public static function channel(): ?array {
         $channel = local\channel::current();
@@ -804,7 +808,24 @@ class api {
         }
         $members = local\channel::members(time());
         return ['url' => 'https://t.me/' . $channel->username, 'title' => $channel->title,
-            'members' => $members ? $members->now : null];
+            'members' => $members ? $members->now : null, 'whatsapp' => self::whatsapp_channel()['url'] ?? null];
+    }
+
+    /**
+     * The channel of WhatsApp of the site, as anyone may find it, whatever its channel of Telegram: for a QR on a screen
+     * or a link on a page, beside that of Telegram.
+     *
+     * @return array|null With url (https://whatsapp.com/channel/…) and title (its name, or that of the site); null if the
+     *                    site gave no link.
+     */
+    public static function whatsapp_channel(): ?array {
+        $url = local\wachannel::channel_url();
+        if ($url === '') {
+            return null;
+        }
+        $title = local\wachannel::name() ?: format_string(get_site()->fullname, true, ['context' => \context_system::instance(),
+            'escape' => false]);
+        return ['url' => $url, 'title' => $title];
     }
 
     /**
@@ -829,8 +850,10 @@ class api {
      *                       address, for its button, which counts the visits), label (of the button), card (a card Marandu
      *                       draws from its templates, still and animated: ['type' => open_day, outing, this_week, no_class,
      *                       book, big_number or sky, 'zones' => [...]], see local\cards), animation (a URL of this site
-     *                       with an MP4, instead of the card) and utm (false for a link that must go as it is); a title or
-     *                       a text at least.
+     *                       with an MP4, instead of the card), utm (false for a link that must go as it is) and ai (true
+     *                       when its own image or animation has something made or edited with artificial intelligence:
+     *                       whoever publishes it in the channel of WhatsApp is told to label it there; a card says it in
+     *                       its plantilla.json, "ai": true); a title or a text at least.
      * @param int|null $when Not before this time; now if null.
      * @param bool $urgent Whether it goes at any hour, such as classes called off.
      * @param string $key What the plugin knows it by, to change it while it waits or take it back with channel_cancel().
@@ -901,13 +924,16 @@ class api {
     /**
      * How the posts of a plugin did in the channel, to measure it: when each went out, the visits through its button,
      * its reactions (anonymous, by emoji, as Telegram counts them, since 0.29.0) and how many people the channel had that
-     * day. Telegram does not tell bots how many saw a post. Nothing of any person.
+     * day. Telegram does not tell bots how many saw a post. Since 0.57.0, how it did in the channel of WhatsApp too: when
+     * it was marked published there and the visits through its link there. Nothing of any person.
      *
      * @param string $component The plugin.
      * @param string $kind Its kind of post; every kind if empty.
      * @param string $key The key of one post; every one if empty.
      * @return array[] Each with key, kind, status, timepublished (null if it did not go out), clicks, reactions (emoji =>
-     *                 how many), reactionstotal and members (null if the channel was not counted then).
+     *                 how many), reactionstotal, members (null if the channel was not counted then) and whatsapp (null if
+     *                 it did not wait for the channel of WhatsApp; or status waiting, published or withdrawn,
+     *                 timepublished, null if it was not marked, and clicks).
      */
     public static function channel_stats(string $component, string $kind = '', string $key = ''): array {
         global $DB;
@@ -923,7 +949,9 @@ class api {
         }
         $days = $DB->get_records_menu(local\channel::STATS, null, 'timeday ASC', 'timeday, members');
         $stats = [];
-        foreach ($DB->get_records_select(local\channel::TABLE, $where, $params, 'id ASC') as $post) {
+        $posts = $DB->get_records_select(local\channel::TABLE, $where, $params, 'id ASC');
+        $whatsapp = local\wachannel::stats(array_keys($posts));
+        foreach ($posts as $post) {
             $reactions = json_decode((string)($post->reactions ?? ''), true) ?: [];
             $members = null;
             if ($post->timepublished) {
@@ -943,6 +971,7 @@ class api {
                 'reactions' => $reactions,
                 'reactionstotal' => array_sum($reactions),
                 'members' => $members,
+                'whatsapp' => $whatsapp[(int)$post->id] ?? null,
             ];
         }
         return $stats;
@@ -1092,8 +1121,9 @@ class api {
      * An account of the site that passes to another person (in many centres, the account of whoever leaves goes to who
      * comes): the new person does not inherit anything of Marandu from the old one. The numbers and chats joined to the
      * account stop getting its notices, and what the conversations kept of that person goes: what they read, their
-     * reminders and favourites, their board, their place among those who approve the sends. The person of the account of
-     * Chatwoot follows the email of the account: if the email does not change, give the new person their own agent.
+     * reminders and favourites, their board, their place among those who approve the sends or publish in the channel of
+     * WhatsApp. The person of the account of Chatwoot follows the email of the account: if the email does not change,
+     * give the new person their own agent.
      *
      * @param int $userid The account.
      */
@@ -1114,6 +1144,10 @@ class api {
         )), [$userid, 0]));
         if ((string)get_config('local_oksigeniamarandu', 'spendpeople') !== '') {
             set_config('spendpeople', implode(',', $people), 'local_oksigeniamarandu');
+        }
+        // Nor their place among those who publish in the channel of WhatsApp.
+        if (in_array($userid, local\wachannel::chosen(), true)) {
+            local\wachannel::set_people(array_diff(local\wachannel::chosen(), [$userid]));
         }
     }
 

@@ -37,15 +37,16 @@ class links {
      *
      * @param string $url The link.
      * @param string $campaign The kind of post.
+     * @param string $source The source instead of the one of the site, such as whatsapp for the channel of WhatsApp.
      * @return string
      */
-    public static function utm(string $url, string $campaign): string {
+    public static function utm(string $url, string $campaign, string $source = ''): string {
         $config = get_config('local_oksigeniamarandu');
         if (empty($config->utm) || !preg_match('~^https?://~i', $url)) {
             return $url;
         }
         $marks = array_filter([
-            'utm_source' => (string)($config->utmsource ?? self::DEFAULTS['utmsource']),
+            'utm_source' => $source !== '' ? $source : (string)($config->utmsource ?? self::DEFAULTS['utmsource']),
             'utm_medium' => (string)($config->utmmedium ?? self::DEFAULTS['utmmedium']),
             'utm_campaign' => $campaign,
         ], 'strlen');
@@ -83,18 +84,21 @@ class links {
         if (!self::has_shortener()) {
             return null;
         }
-        $params = ['action' => 'shorturl', 'format' => 'json', 'url' => $url];
+        $config = get_config('local_oksigeniamarandu');
         try {
+            $params = ['action' => 'shorturl', 'format' => 'json', 'url' => $url,
+                'signature' => empty($config->shortenersignature) ? '' : \core\encryption::decrypt($config->shortenersignature)];
+            // As a form, urlencoded and joined with &: some shorteners take nothing else (they answer 415), and Moodle may
+            // set &amp; as the separator of PHP.
+            $body = http_build_query($params, '', '&');
             if (self::$fortests !== null) {
-                $body = (string)(self::$fortests)($params);
+                $answer = (string)(self::$fortests)($params, $body);
             } else {
                 global $CFG;
                 require_once($CFG->libdir . '/filelib.php');
-                $config = get_config('local_oksigeniamarandu');
-                $params['signature'] = empty($config->shortenersignature) ? ''
-                    : \core\encryption::decrypt($config->shortenersignature);
                 $curl = new \curl(['ignoresecurity' => true]);
-                $body = (string)$curl->post((string)$config->shortener, $params, ['CURLOPT_TIMEOUT' => 15]);
+                $curl->setHeader(['Content-Type: application/x-www-form-urlencoded']);
+                $answer = (string)$curl->post((string)$config->shortener, $body, ['CURLOPT_TIMEOUT' => 15]);
                 if ($curl->get_errno()) {
                     return null;
                 }
@@ -104,14 +108,15 @@ class links {
             return null;
         }
         // A link it had already shortened comes back as a failure, but with its short link: that one is good.
-        $short = (string)(json_decode($body, true)['shorturl'] ?? '');
+        $short = (string)(json_decode($answer, true)['shorturl'] ?? '');
         return preg_match('~^https?://~i', $short) ? $short : null;
     }
 
     /**
      * What answers for the shortener while the tests run; null to forget it.
      *
-     * @param callable|null $fetch Takes the parameters, gives the body of the answer.
+     * @param callable|null $fetch Takes the parameters and the body as it would go (urlencoded), gives the body of the
+     *                             answer.
      */
     public static function fake_for_tests(?callable $fetch): void {
         if (!defined('PHPUNIT_TEST') || !PHPUNIT_TEST) {

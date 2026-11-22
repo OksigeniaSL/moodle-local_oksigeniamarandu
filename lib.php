@@ -65,6 +65,16 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'uncapped' => true,
             'follows' => 'chat',
         ],
+        // A post of the channel of Telegram, for whoever publishes it in the channel of WhatsApp too: on WhatsApp, inside the
+        // 24 hours, the post itself (its video or its image with its text) ready to forward, and this notice with the link
+        // to its page after it; outside them, the template with its button; on Telegram, a card with the button. It
+        // comes when the post goes out: neither the quiet hours nor the notices a day hold it back.
+        'channel_whatsapp' => [
+            'examples' => ['Colegio Ejemplo', 'Jornada de puertas abiertas'],
+            'perweek' => 0,
+            'askedfor' => true,
+            'uncapped' => true,
+        ],
         // A send to many that waits for approval, to whoever may approve it: «Approve» and «Reject» from Telegram itself.
         'bulk' => [
             'examples' => ['Inés: Invitación a la jornada de puertas abiertas, 142 por WhatsApp, 8,52 EUR'],

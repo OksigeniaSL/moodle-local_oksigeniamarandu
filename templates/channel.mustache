@@ -23,7 +23,7 @@
     The settings. «What goes to the channel», each kind with its three choices; «The day of the channel», a ruler of the
     24 hours with the time of review and that of the channel and where the posts of a busy day fall, with the plates of
     the hours, the days as sheets and the pace; and, below, what is set once, in folded cards that say in one line what
-    they have: the calendar, the weather warnings, the place and its sky, the links and the cards.
+    they have: the channel of WhatsApp, the calendar, the weather warnings, the place and its sky, the links and the cards.
 
     Saving. Each card is a form of its own that sends only what it has (part, the card it is): the server saves what
     comes and leaves the rest. A day, a switch or a choice carries what it has now as a hidden field at the top and,
@@ -40,12 +40,14 @@
     * formurl, sesskey - Where the forms go.
     * connect - Without a channel: botname and candidate (id, title, username), the channel Telegram said the bot can post in.
     * channel - With a channel: title, username, url, problem, members, growth, reviewers, noreviewers; the posts review,
-      ready, published and failed (id, title, kind, when, clicks, error, urgent), and empty; kinds (name, desc, thumb,
-      field, choices with value, label, on) and whatsaved; and the cards, each with key, saved and open:
+      ready, published and failed (id, title, kind, when, clicks, error, urgent, and whatsapp: label, waiting, url and
+      clicks, in the channel of WhatsApp), and empty; kinds (name, desc, thumb, field, choices with value, label, on) and
+      whatsaved; and the cards, each with key, saved and open:
       - day: marks (x, label, odd), reviewspans and postspans (a, w), planes (a, n, time), caption, the plates
         reviewfrom, reviewto, postfrom and postto (local_oksigeniamarandu/channel_plate), reviewdays and postdays
         (local_oksigeniamarandu/channel_day), gap, gaps (value, label, on), perday and perweek
         (local_oksigeniamarandu/channel_stepper);
+      - wachannel: on, line, people (id, name, initials, on), peopleline, missing, badurl, name, url;
       - calendar: face, line, nosource, classdays, site, weekthumb, evethumb, weekhour, evehour, ical, link, keywords;
       - weather: face, line, nofeed, levels (value, colour, on, lit, label), severity, status, feed, areas;
       - place: face, line, noplace, sky (lines), latitude, longitude, tle, tledefault;
@@ -138,8 +140,8 @@
         <ul class="mrd-posts">{{#ready}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}</small></span></li>{{/ready}}</ul>
         {{/ready.0}}
         {{#published.0}}
-        <h3>{{#str}} channel:published, local_oksigeniamarandu {{/str}}</h3>
-        <ul class="mrd-posts">{{#published}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}{{#clicks}} · {{.}}{{/clicks}}</small></span></li>{{/published}}</ul>
+        <h3 id="mrd-published">{{#str}} channel:published, local_oksigeniamarandu {{/str}}</h3>
+        <ul class="mrd-posts">{{#published}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}{{#clicks}} · {{.}}{{/clicks}}</small></span>{{#whatsapp}}<a class="mrd-wamark{{#waiting}} mrd-wamark-falta{{/waiting}}" href="{{url}}">{{label}}{{#clicks}} · {{.}}{{/clicks}}</a>{{/whatsapp}}</li>{{/published}}</ul>
         {{/published.0}}
         {{#failed.0}}
         <h3 id="mrd-failed">{{#str}} channel:failed, local_oksigeniamarandu {{/str}}</h3>
@@ -206,6 +208,44 @@
 
         <h3 class="mrd-tramo">{{#str}} channel:once, local_oksigeniamarandu {{/str}}</h3>
         <div class="mrd-una-vez">
+            {{#wachannel}}
+            <details class="mrd-plegada mrd-plegada-wa" id="mrd-wachannel" data-part{{#open}} open{{/open}}>
+                <summary><span class="mrd-cara mrd-cara-dibujo"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13 12h28a6 6 0 0 1 6 6v13a6 6 0 0 1-6 6H25l-8 7v-7h-4a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="currentColor" fill-opacity=".12"/><path d="M15 21h22M15 28h14"/><path d="M36 50c3-6 9-9 18-9"/><path d="M48 35l6 6-6 6"/></svg></span>
+                    <span class="mrd-plegada-t"><b>{{#str}} wachannel, local_oksigeniamarandu {{/str}}</b><span>{{line}}</span></span>
+                    {{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}<span class="mrd-cambiar" aria-hidden="true">{{#str}} channel:change, local_oksigeniamarandu {{/str}}</span></summary>
+                <form method="post" action="{{formurl}}" class="mrd-dentro">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="part" value="wachannel">
+                    <input type="hidden" name="wachannel" value="{{#on}}1{{/on}}{{^on}}0{{/on}}">
+                    <input type="hidden" name="wapeoplesent" value="1">
+                    {{#people}}{{#on}}<input type="hidden" name="wapeople[{{id}}]" value="1">{{/on}}{{/people}}
+                    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+                    <p class="mrd-explica">{{#str}} wachannel:desc, local_oksigeniamarandu {{/str}}</p>
+                    <button type="submit" class="mrd-llave mrd-llave-wa" name="wachannel" value="{{#on}}0{{/on}}{{^on}}1{{/on}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} wachannel:on, local_oksigeniamarandu {{/str}}</button>
+                    <h4 id="mrd-wa-people">{{#str}} wachannel:people, local_oksigeniamarandu {{/str}}</h4>
+                    {{#people.0}}<div class="mrd-personas" role="group" aria-labelledby="mrd-wa-people">{{#people}}<button type="submit" class="mrd-persona" name="wapeople[{{id}}]" value="{{#on}}0{{/on}}{{^on}}1{{/on}}" aria-pressed="{{#on}}true{{/on}}{{^on}}false{{/on}}"><span class="mrd-persona-i" aria-hidden="true">{{initials}}</span>{{name}}</button>{{/people}}</div>{{/people.0}}
+                    <p class="mrd-estado">{{peopleline}}</p>
+                    {{#missing}}<p class="mrd-err" role="alert">{{.}}</p>{{/missing}}
+                    {{#badurl}}<p class="mrd-err" role="alert">{{#str}} wachannel:badurl, local_oksigeniamarandu {{/str}}</p>{{/badurl}}
+                    <div class="mrd-dorso">
+                        <div class="mrd-campos">
+                            <label class="mrd-campo"><span>{{#str}} wachannel:name, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="wachannelname" value="{{name}}" autocomplete="off">
+                                <small>{{#str}} wachannel:name_desc, local_oksigeniamarandu {{/str}}</small></label>
+                            <label class="mrd-campo"><span>{{#str}} wachannel:url, local_oksigeniamarandu {{/str}}</span>
+                                <input type="url" name="wachannelurl" value="{{url}}" placeholder="https://whatsapp.com/channel/" autocomplete="off">
+                                <small>{{#str}} wachannel:url_desc, local_oksigeniamarandu {{/str}}</small></label>
+                            <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} wachannel:add, local_oksigeniamarandu {{/str}}</span>
+                                <input type="text" name="waadd" value="" autocomplete="off">
+                                <small>{{#str}} wachannel:add_desc, local_oksigeniamarandu {{/str}}</small></label>
+                        </div>
+                        <button type="submit" class="mrd-btn mrd-primary mrd-guardar">{{#str}} save {{/str}}</button>
+                    </div>
+                </form>
+            </details>
+            {{/wachannel}}
+
             {{#calendar}}
             <details class="mrd-plegada" id="mrd-calendar" data-part{{#open}} open{{/open}}>
                 <summary><span class="mrd-cara">{{#face}}<img src="{{.}}" alt="" width="72" height="40">{{/face}}</span>

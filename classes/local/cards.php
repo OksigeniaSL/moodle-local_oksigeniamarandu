@@ -24,7 +24,9 @@ namespace local_oksigeniamarandu\local;
  * A post asks for one with the part card of its content: ['type' => 'open_day', 'zones' => ['kicker' => …, 'title' =>
  * …, 'date' => …, 'detail' => …]]. The zones of each type are in its plantilla.json; org is the name of the
  * organization unless the post says another. The card is made before the post goes to review, so whoever reviews sees
- * it as it will go.
+ * it as it will go. A template whose drawing has something made or edited with artificial intelligence says so with
+ * "ai": true in its plantilla.json (those of the house are drawn with code: none says it), so that whoever publishes the
+ * post in the channel of WhatsApp is told to give it the label WhatsApp asks for.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -81,6 +83,30 @@ class cards {
         $template = json_decode((string)file_get_contents($dir . '/plantilla.json'), true);
         $template['dir'] = $dir;
         return $template;
+    }
+
+    /**
+     * Whether the drawing of a type of card has something made or edited with artificial intelligence, as its
+     * plantilla.json says ("ai": true).
+     *
+     * @param string $type The type.
+     * @return bool False for a type it does not know.
+     */
+    public static function with_ai(string $type): bool {
+        if (!in_array($type, self::TYPES, true) && !in_array($type, self::CONFIRMATIONS, true)) {
+            return false;
+        }
+        return self::says_ai(self::template($type));
+    }
+
+    /**
+     * Whether a template says that its drawing has something made with artificial intelligence: "ai": true, nothing else.
+     *
+     * @param array $template The template, as plantilla.json has it.
+     * @return bool
+     */
+    public static function says_ai(array $template): bool {
+        return ($template['ai'] ?? false) === true;
     }
 
     /**

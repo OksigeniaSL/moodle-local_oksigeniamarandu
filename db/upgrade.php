@@ -507,6 +507,14 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122300, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122500) {
+        // The channel of WhatsApp: the posts of the channel of Telegram that wait for it, published there by a person.
+        if (!$dbman->table_exists('local_oksigeniamarandu_wapost')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_oksigeniamarandu_wapost');
+        }
+        upgrade_plugin_savepoint(true, 2026122500, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

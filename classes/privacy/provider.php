@@ -46,6 +46,7 @@ use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\history;
 use local_oksigeniamarandu\local\telegram;
+use local_oksigeniamarandu\local\wachannel;
 
 /**
  * The numbers, their consent and whom they stand for. A number is a user's when a link ties it to that user; numbers of
@@ -82,6 +83,10 @@ class provider implements
             'decidedby' => 'privacy:metadata:post:decidedby',
             'timedecided' => 'privacy:metadata:post:timedecided',
         ], 'privacy:metadata:post');
+        $collection->add_database_table(wachannel::TABLE, [
+            'doneby' => 'privacy:metadata:wapost:doneby',
+            'timedone' => 'privacy:metadata:wapost:timedone',
+        ], 'privacy:metadata:wapost');
         $collection->add_database_table(consent::LOG, [
             'action' => 'privacy:metadata:consent:action',
             'source' => 'privacy:metadata:consent:source',
@@ -199,6 +204,7 @@ class provider implements
         if (
             $DB->record_exists(consent::LINKS, ['userid' => $userid])
             || $DB->record_exists(channel::TABLE, ['decidedby' => $userid])
+            || $DB->record_exists(wachannel::TABLE, ['doneby' => $userid])
             || $DB->record_exists(viewer::SEEN, ['userid' => $userid])
             || $DB->record_exists(reminders::TABLE, ['userid' => $userid])
             || $DB->record_exists(board::TABLE, ['authorid' => $userid])
@@ -227,6 +233,7 @@ class provider implements
         }
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . consent::LINKS . '} WHERE userid IS NOT NULL', []);
         $userlist->add_from_sql('decidedby', 'SELECT decidedby FROM {' . channel::TABLE . '} WHERE decidedby IS NOT NULL', []);
+        $userlist->add_from_sql('doneby', 'SELECT doneby FROM {' . wachannel::TABLE . '} WHERE doneby IS NOT NULL', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . viewer::SEEN . '}', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . reminders::TABLE . '}', []);
         $userlist->add_from_sql('authorid', 'SELECT authorid FROM {' . board::TABLE . '}', []);
@@ -289,6 +296,10 @@ class provider implements
             return ['post' => $post->component . '/' . $post->kind, 'decision' => $post->status,
                 'time' => transform::datetime($post->timedecided)];
         }, $DB->get_records(channel::TABLE, ['decidedby' => $contextlist->get_user()->id], 'id')));
+        // The posts the user marked published in the channel of WhatsApp.
+        $whatsapp = array_values(array_map(function ($one) {
+            return ['post' => (int)$one->postid, 'time' => transform::datetime($one->timedone)];
+        }, $DB->get_records(wachannel::TABLE, ['doneby' => $contextlist->get_user()->id], 'id')));
         // What the user did in the conversations of the team: what they read, wrote and passed.
         $userid = $contextlist->get_user()->id;
         $conversations = [
@@ -320,10 +331,11 @@ class provider implements
                     'time' => transform::datetime($one->timecreated)];
             }, $DB->get_records_select(team::MESSAGES, "userid = ? AND kind IN ('text', 'conv')", [$userid], 'id'))),
         ];
-        if ($numbers || $reviewed || array_filter($conversations)) {
+        if ($numbers || $reviewed || $whatsapp || array_filter($conversations)) {
             writer::with_context($context)->export_data(
                 [get_string('pluginname', 'local_oksigeniamarandu')],
-                (object)['numbers' => $numbers, 'reviewed' => $reviewed, 'conversations' => $conversations]
+                (object)['numbers' => $numbers, 'reviewed' => $reviewed, 'whatsappchannel' => $whatsapp,
+                    'conversations' => $conversations]
             );
         }
     }
@@ -380,6 +392,7 @@ class provider implements
             self::delete_user((int)$userid);
         }
         $DB->set_field_select(channel::TABLE, 'decidedby', null, 'decidedby IS NOT NULL');
+        $DB->set_field_select(wachannel::TABLE, 'doneby', null, 'doneby IS NOT NULL');
         $DB->delete_records(viewer::SEEN);
         $DB->delete_records(reminders::TABLE);
         $DB->delete_records(board::TO);
@@ -430,6 +443,7 @@ class provider implements
         $DB->delete_records(consent::LINKS, ['userid' => $userid]);
         // The posts the user reviewed stay, without who said it.
         $DB->set_field(channel::TABLE, 'decidedby', null, ['decidedby' => $userid]);
+        $DB->set_field(wachannel::TABLE, 'doneby', null, ['doneby' => $userid]);
         // In the conversations, the messages stay in Chatwoot; here goes what tells who read, wrote or passed.
         $DB->delete_records(viewer::SEEN, ['userid' => $userid]);
         $DB->delete_records(reminders::TABLE, ['userid' => $userid]);

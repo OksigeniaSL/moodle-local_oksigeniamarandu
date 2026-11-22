@@ -20,7 +20,9 @@ namespace local_oksigeniamarandu\local;
  * The card of a notice on Telegram: a rich message with a title, an image, a list, some text and the button.
  *
  * A plugin asks for it with the last argument of api::notify() and api::notify_child(). WhatsApp ignores it and goes with
- * its template. The parts are plain text: Telegram receives them as blocks, so nothing has to be escaped.
+ * its template, but for a message made to be forwarded (caption): inside the 24 hours, WhatsApp sends its video or its
+ * image with that text below, and the notice with its link after it. The parts are plain text: Telegram receives them as
+ * blocks, so nothing has to be escaped.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -56,13 +58,15 @@ class rich {
      *
      * @param array $rich Any of: title (text); image (a URL of this site with a PNG or a JPEG, which Marandu reads and
      *                    uploads, so that it works on a site Telegram cannot reach); lines (texts of a list); text (a text,
-     *                    or several, each line a paragraph); style of the button (primary, danger or success).
+     *                    or several, each line a paragraph); style of the button (primary, danger or success). For WhatsApp,
+     *                    caption (a text with the marks of WhatsApp, up to 4096 characters: the message to forward, under
+     *                    the image) and video (a URL of this site with an MP4, which goes instead of the image there).
      * @return array The clean parts; empty if nothing is left to show.
-     * @throws \coding_exception With a part it does not know, an image of another site or a style it does not know.
+     * @throws \coding_exception With a part it does not know, an image or a video of another site or a style it does not know.
      */
     public static function clean(array $rich): array {
         global $CFG;
-        $unknown = array_diff(array_keys($rich), ['title', 'image', 'lines', 'text', 'style']);
+        $unknown = array_diff(array_keys($rich), ['title', 'image', 'lines', 'text', 'style', 'caption', 'video']);
         if ($unknown) {
             throw new \coding_exception('A rich message has no ' . implode(', ', $unknown));
         }
@@ -70,6 +74,11 @@ class rich {
         $image = $image instanceof \moodle_url ? $image->out(false) : (string)$image;
         if ($image !== '' && strpos($image, $CFG->wwwroot . '/') !== 0) {
             throw new \coding_exception('The image of a rich message has to be on this site');
+        }
+        $video = $rich['video'] ?? '';
+        $video = $video instanceof \moodle_url ? $video->out(false) : (string)$video;
+        if ($video !== '' && strpos($video, $CFG->wwwroot . '/') !== 0) {
+            throw new \coding_exception('The video of a rich message has to be on this site');
         }
         $style = $rich['style'] ?? null;
         if ($style !== null && !in_array($style, self::STYLES, true)) {
@@ -84,6 +93,8 @@ class rich {
             'image' => $image,
             'lines' => self::plain_list((array)($rich['lines'] ?? []), self::MAX_LINES, self::LINE_LENGTH),
             'text' => self::plain_list($paragraphs, self::MAX_PARAGRAPHS, self::PARAGRAPH_LENGTH),
+            'caption' => \core_text::substr(trim((string)($rich['caption'] ?? '')), 0, 4096),
+            'video' => $video,
         ]);
         if ($clean && $style !== null) {
             $clean['style'] = $style;

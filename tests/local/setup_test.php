@@ -224,7 +224,8 @@ final class setup_test extends \advanced_testcase {
         $status = setup::status();
         $this->assertStringStartsWith('WhatsApp: not set up', $status[0]);
         $this->assertStringContainsString('local_canteen/menu_changed', $status[1]);
-        $this->assertStringStartsWith('Marketing by WhatsApp:', end($status));
+        $this->assertStringStartsWith('Marketing by WhatsApp:', $status[count($status) - 2]);
+        $this->assertStringStartsWith('Channel of WhatsApp: off', end($status));
     }
 
     /**

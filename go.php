@@ -16,7 +16,7 @@
 
 /**
  * The button of a notice: notes the visit and goes on to the page of the notice, always on this site. The same for the
- * button of a post of the channel, which counts its visits.
+ * button of a post of the channel, which counts its visits, and for its link in the channel of WhatsApp.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -31,10 +31,16 @@ require(__DIR__ . '/../../config.php');
 
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\queue;
+use local_oksigeniamarandu\local\wachannel;
 
 $post = optional_param('p', '', PARAM_ALPHANUM);
 if ($post !== '') {
     redirect(new moodle_url(channel::click($post) ?? '/'));
+}
+// The same post in the channel of WhatsApp: its visits apart, with utm_source=whatsapp.
+$whatsapp = optional_param('w', '', PARAM_ALPHANUM);
+if ($whatsapp !== '') {
+    redirect(new moodle_url(wachannel::click($whatsapp) ?? '/'));
 }
 
 $token = optional_param('k', '', PARAM_ALPHANUM);

@@ -70,6 +70,12 @@ class queue {
     /** While the account has a problem, the queue tries again this often. */
     private const BLOCKED_RETRY = 15 * MINSECS;
 
+    /** The longest text WhatsApp takes under an image or a video. */
+    private const CAPTION = 1024;
+
+    /** For how many of the 30 days Meta keeps an image or a video uploaded it is used again. */
+    private const MEDIA_DAYS = 25;
+
     /** Where the problem of the account of each channel is kept. */
     private const BLOCKED_SETTING = ['whatsapp' => 'sendblocked', 'telegram' => 'telegramblocked'];
 
@@ -265,13 +271,26 @@ class queue {
             }
             try {
                 $question = !empty($row->ref) && $notice->options;
+                $rich = $question || empty($row->rich) ? [] : (json_decode($row->rich, true) ?: []);
                 if ($free) {
                     $text = self::render($notice, $params, $lang);
                     if ($row->url) {
                         $text .= "\n" . templates::button_url($row->token);
                     }
                     $buttons = $question ? answers::whatsapp_buttons($row, $notice, $lang) : [];
-                    if (count($buttons) > 3) {
+                    if (!empty($rich['caption'])) {
+                        // A message made to be forwarded, such as a post for a channel: its video or its image with its
+                        // text below, as it is; the notice and its link go after it, so that they are not forwarded.
+                        $wamid = self::send_forwardable($api, $contact->phone, $rich);
+                        try {
+                            $api->send_text($contact->phone, $text);
+                        } catch (api_exception $e) {
+                            debugging(
+                                'Marandu: the link after a message to forward did not go: ' . $e->getMessage(),
+                                DEBUG_DEVELOPER
+                            );
+                        }
+                    } else if (count($buttons) > 3) {
                         // More answers than the three buttons WhatsApp allows: a list.
                         $wamid = $api->send_list($contact->phone, $text, get_string_manager()->get_string(
                             'answer:choose',
@@ -407,6 +426,88 @@ class queue {
             }
         }
         return [$telegram->send_text($chat, self::render($notice, $params, $lang), $url, $label, $silent), $refused];
+    }
+
+    /**
+     * Sends a message made to be forwarded by WhatsApp: its video, or else its image, with its text below (a text longer
+     * than a caption goes in a message of its own after it); the text alone if neither goes. A video or an image that
+     * Meta refuses for itself gives way to the next one; any other problem (the 24 hours over, the account, a limit) stops
+     * it as it would stop the text.
+     *
+     * @param cloud_api $api The number of the site.
+     * @param string $phone Digits with the country code.
+     * @param array $rich The parts of the notice: caption, and video or image.
+     * @return string The id Meta gives to the first message.
+     * @throws api_exception If Meta does not take the text either, or the problem is not of the video or the image.
+     */
+    private static function send_forwardable(cloud_api $api, string $phone, array $rich): string {
+        $caption = (string)$rich['caption'];
+        $long = \core_text::strlen($caption) > self::CAPTION;
+        foreach (['video', 'image'] as $type) {
+            $bytes = empty($rich[$type]) ? null : ($type === 'video' ? rich::video($rich[$type]) : rich::image($rich[$type]));
+            if ($bytes === null) {
+                continue;
+            }
+            try {
+                $id = self::media_id($api, $bytes);
+                $wamid = $type === 'video' ? $api->send_video($phone, $id, $long ? '' : $caption)
+                    : $api->send_image($phone, $id, $long ? '' : $caption);
+            } catch (api_exception $e) {
+                self::forget_media($bytes);
+                if (self::failure($e) !== 'final') {
+                    throw $e;
+                }
+                debugging('Marandu: WhatsApp did not take the ' . $type . ' of a message: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                continue;
+            }
+            // The video or the image went: a text too long for it, after it, on its own.
+            if ($long) {
+                $api->send_text($phone, $caption);
+            }
+            return $wamid;
+        }
+        return $api->send_text($phone, $caption);
+    }
+
+    /**
+     * The id of an image or a video on the number of the site: it goes up to Meta once and is used again for 25 of the
+     * 30 days Meta keeps it.
+     *
+     * @param cloud_api $api The number of the site.
+     * @param string $bytes The image or the video.
+     * @return string
+     * @throws api_exception If Meta does not take it.
+     */
+    private static function media_id(cloud_api $api, string $bytes): string {
+        $cache = \cache::make('local_oksigeniamarandu', 'confirmcards');
+        $key = self::media_key($bytes);
+        $media = $cache->get($key);
+        if (!$media || $media['time'] < time() - self::MEDIA_DAYS * DAYSECS) {
+            $type = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
+            $names = ['image/png' => 'post.png', 'video/mp4' => 'post.mp4'];
+            $media = ['id' => $api->upload_media($bytes, $names[$type] ?? 'post.jpg'), 'time' => time()];
+            $cache->set($key, $media);
+        }
+        return (string)$media['id'];
+    }
+
+    /**
+     * Forgets the id of an image or a video: perhaps Meta no longer has it, and the next one uploads it again.
+     *
+     * @param string $bytes The image or the video.
+     */
+    private static function forget_media(string $bytes): void {
+        \cache::make('local_oksigeniamarandu', 'confirmcards')->delete(self::media_key($bytes));
+    }
+
+    /**
+     * Where the id of an image or a video is kept: by the number of the site, which owns it, and the file.
+     *
+     * @param string $bytes The image or the video.
+     * @return string
+     */
+    private static function media_key(string $bytes): string {
+        return 'wa_' . sha1((string)get_config('local_oksigeniamarandu', 'phonenumberid') . ':' . sha1($bytes));
     }
 
     /**

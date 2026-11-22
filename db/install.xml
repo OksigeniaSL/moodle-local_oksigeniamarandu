@@ -196,6 +196,30 @@
         <INDEX NAME="source" UNIQUE="false" FIELDS="component, kind, sourcekey"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_wapost" COMMENT="A post of the channel of Telegram that waits for the channel of WhatsApp, published there by a person, or taken back">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="postid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The post of the channel of Telegram"/>
+        <FIELD NAME="token" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="For its page and the link of its button in WhatsApp"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="waiting" SEQUENCE="false" COMMENT="waiting, published or withdrawn"/>
+        <FIELD NAME="link" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Where its button goes in WhatsApp: the short link, or that of Marandu"/>
+        <FIELD NAME="clicks" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Visits through its link in WhatsApp"/>
+        <FIELD NAME="doneby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Who marked it published in WhatsApp"/>
+        <FIELD NAME="timedone" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When"/>
+        <FIELD NAME="timereminded" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When its one reminder went"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="When it went out in Telegram and who publishes was told"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="postid" TYPE="foreign-unique" FIELDS="postid" REFTABLE="local_oksigeniamarandu_post" REFFIELDS="id"/>
+        <KEY NAME="doneby" TYPE="foreign" FIELDS="doneby" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="token" UNIQUE="true" FIELDS="token"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status, timecreated"/>
+      </INDEXES>
+    </TABLE>
     <TABLE NAME="local_oksigeniamarandu_chstat" COMMENT="How many people the channel of Telegram had each day">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

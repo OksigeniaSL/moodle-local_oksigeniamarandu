@@ -41,6 +41,10 @@ use local_oksigeniamarandu\local\telegram_api;
     'confirm-cards' => null,
     'spend-people' => null,
     'marketing-off' => null,
+    'whatsapp-channel' => null,
+    'whatsapp-channel-people' => null,
+    'whatsapp-channel-name' => null,
+    'whatsapp-channel-url' => null,
     'status' => false,
 ], ['h' => 'help']);
 
@@ -50,7 +54,9 @@ if ($unrecognised) {
 
 $nothing = $options['telegram-token-file'] === '' && $options['whatsapp-number'] === '' && $options['notices'] === ''
     && $options['org-of'] === null && $options['confirm-cards'] === null && $options['spend-people'] === null
-    && $options['marketing-off'] === null;
+    && $options['marketing-off'] === null && $options['whatsapp-channel'] === null
+    && $options['whatsapp-channel-people'] === null && $options['whatsapp-channel-name'] === null
+    && $options['whatsapp-channel-url'] === null;
 if ($options['help'] || ($nothing && !$options['status'])) {
     echo "Sets up Oksigenia Marandu on this site.
 
@@ -73,6 +79,16 @@ Options:
 --marketing-off=0|1         What Meta counts as marketing, by WhatsApp: it stops when Meta moves a template there and
                             comes back when a text of it is approved as utility, and the chat does not offer those
                             messages (1, the default); or it goes on as before (0). Telegram does not change.
+--whatsapp-channel=0|1      The posts of the channel of Telegram, for the channel of WhatsApp too (1): whoever
+                            publishes there gets each one ready to forward or share, and marks it published. Switching
+                            it on switches on its notice for WhatsApp and Telegram.
+--whatsapp-channel-people=USERS
+                            Who publishes in the channel of WhatsApp: user ids, usernames or emails, comma separated;
+                            empty for whoever reviews the channel.
+--whatsapp-channel-name=TEXT
+                            The name of the channel of WhatsApp, for whoever publishes; empty for none.
+--whatsapp-channel-url=URL  The link of the channel of WhatsApp (https://whatsapp.com/channel/...), to open it from the
+                            page of each post, and for the other plugins beside that of Telegram; empty for none.
 --status                    Shows the channels and the notices on.
 -h, --help                  This help.
 
@@ -140,6 +156,38 @@ try {
         $on = !empty($options['marketing-off']);
         set_config('marketingoff', $on ? 1 : 0, 'local_oksigeniamarandu');
         mtrace('What Meta counts as marketing, by WhatsApp: ' . ($on ? 'not' : 'yes, as before') . '.');
+    }
+    if ($options['whatsapp-channel-name'] !== null) {
+        $name = $options['whatsapp-channel-name'] === true ? '' : trim((string)$options['whatsapp-channel-name']);
+        set_config('wachannelname', clean_param($name, PARAM_TEXT), 'local_oksigeniamarandu');
+    }
+    if ($options['whatsapp-channel-url'] !== null) {
+        $url = $options['whatsapp-channel-url'] === true ? '' : (string)$options['whatsapp-channel-url'];
+        if (!\local_oksigeniamarandu\local\wachannel::set_url($url)) {
+            cli_error('Not a link of a channel of WhatsApp: ' . $url);
+        }
+    }
+    if ($options['whatsapp-channel-people'] !== null) {
+        $ids = [];
+        foreach ($list($options['whatsapp-channel-people'] === true ? '' : (string)$options['whatsapp-channel-people']) as $who) {
+            $user = ctype_digit($who) ? $DB->get_record('user', ['id' => (int)$who, 'deleted' => 0])
+                : ($DB->get_record('user', ['username' => core_text::strtolower($who), 'deleted' => 0])
+                ?: $DB->get_record('user', ['email' => $who, 'deleted' => 0], '*', IGNORE_MULTIPLE));
+            if (!$user) {
+                cli_error('There is no user ' . $who);
+            }
+            $ids[] = (int)$user->id;
+        }
+        \local_oksigeniamarandu\local\wachannel::set_people($ids);
+    }
+    if ($options['whatsapp-channel'] !== null) {
+        \local_oksigeniamarandu\local\wachannel::set_enabled(!empty($options['whatsapp-channel']));
+    }
+    if (
+        $options['whatsapp-channel'] !== null || $options['whatsapp-channel-people'] !== null
+            || $options['whatsapp-channel-name'] !== null || $options['whatsapp-channel-url'] !== null
+    ) {
+        mtrace(\local_oksigeniamarandu\local\setup::whatsapp_channel());
     }
     if ($options['status']) {
         foreach (setup::status() as $line) {

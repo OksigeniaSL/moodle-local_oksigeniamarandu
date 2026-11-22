@@ -128,6 +128,24 @@ final class access_test extends \advanced_testcase {
     }
 
     /**
+     * Whoever opens the chat by another role gets the role of the chat too.
+     */
+    public function test_role_also_to_whoever_opens_it_otherwise(): void {
+        global $CFG;
+        $this->resetAfterTest();
+        $system = \context_system::instance();
+        $ana = $this->getDataGenerator()->create_user(['email' => 'ana@example.com']);
+        assign_capability(access::CAPABILITY, CAP_ALLOW, $CFG->defaultuserroleid, $system->id, true);
+        $this->account([['id' => 1, 'name' => 'Ana Pérez', 'email' => 'ana@example.com']]);
+        access::choose();
+        // Ana opens it as every account does; she gets the role all the same, so closing it to every account keeps her in.
+        $this->assertSame(['given' => 1, 'taken' => 0], access::sync());
+        access::close();
+        $this->assertTrue($this->can($ana));
+        $this->assertSame(['given' => 0, 'taken' => 0], access::sync());
+    }
+
+    /**
      * A role of the organisation, by its short name; and the capability taken from every account.
      */
     public function test_own_role_and_closing(): void {

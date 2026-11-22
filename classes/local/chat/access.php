@@ -149,8 +149,8 @@ class access {
     }
 
     /**
-     * Gives the role to the people of the account who cannot open the chat, and takes the one given here away from whoever
-     * is no longer in it. Without a role chosen, nothing: the organisation decides who gets in.
+     * Gives the role to the people of the account who do not have it, and takes the one given here away from whoever is
+     * no longer in it. Without a role chosen, nothing: the organisation decides who gets in.
      *
      * @return array given and taken: how many.
      */
@@ -162,15 +162,17 @@ class access {
         }
         $system = \context_system::instance();
         $given = 0;
-        foreach (self::missing() as $one) {
-            role_assign($role->id, $one['user']->id, $system->id, self::COMPONENT);
-            $given++;
-        }
         $people = [];
         foreach (directory::people() as $agent) {
             $user = notify::user_of($agent);
-            if ($user) {
-                $people[(int)$user->id] = true;
+            if (!$user) {
+                continue;
+            }
+            $people[(int)$user->id] = true;
+            // The role itself, also to whoever opens the chat by another role now: that one may be taken away later.
+            if (!user_has_role_assignment($user->id, $role->id, $system->id)) {
+                role_assign($role->id, $user->id, $system->id, self::COMPONENT);
+                $given++;
             }
         }
         $taken = 0;

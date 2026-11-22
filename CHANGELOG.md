@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.54.1 (2026-11-22)
+
+- The role of the chat goes to every person of the account who does not have it, also to whoever opened the chat by
+  another role: closing the chat to every account no longer leaves them out until the next minute.
+
 ## 0.54.0 (2026-11-22)
 
 - Nobody opens the conversations by default: the capability `local/oksigeniamarandu:chat` no longer goes to every

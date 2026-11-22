@@ -610,7 +610,17 @@
             passQ: '', passFound: {}, passFor: '', teamHalf: 'team', lastTray: '',
             // A call being written down (its line, and the approved message offered after one nobody answered); the
             // conversations where the person said «I'll handle it» although someone else has another of the family.
-            call: { line: '', offer: 0 }, heldOk: {}
+            call: { line: '', offer: 0 }, heldOk: (function () {
+                var kept = {}, key = 'mrd-chat-lleva-' + ((cfg.me && cfg.me.userid) || 0);
+                try {
+                    JSON.parse(root.sessionStorage.getItem(key) || '[]').forEach(function (id) {
+                        kept[id] = true;
+                    });
+                } catch (e) {
+                    // Without storage, nothing put off yet.
+                }
+                return kept;
+            })()
         };
         var seq = 0;
 
@@ -4296,27 +4306,48 @@
             var where = x.teamname ? s('heldwhere', { team: x.teamname, adult: x.adult }) : s('heldwith', x.adult);
             var see = x.sees ? '<button type="button" class="mrd-btn mrd-chico" data-a="heldsee" data-v="' + x.conversation + '">' +
                 esc(s('beforesee')) + '</button>' : '';
-            if ((isMine(c) && st.heldOk[c.id]) || READONLY) {
+            if (heldLater(c.id)) {
+                return '';
+            }
+            if (READONLY) {
                 return '<div class="mrd-banda mrd-banda-lleva mrd-banda-quieta">' + avAgent(who, 'mrd-s') +
                     '<span class="mrd-banda-t">' + esc(s('heldquiet', first)) + ' · ' + esc(where) + '</span>' +
                     (see ? '<div class="mrd-banda-b">' + see + '</div>' : '') + '</div>';
             }
             var when = x.at ? '<small>' + esc(listTime(x.at * 1000)) + '</small>' : '';
             var said = x.preview ? '<p class="mrd-banda-cita"><span>«' + esc(x.preview) + '»</span>' + when + '</p>' : '';
+            // Keeping it is the «I'll handle it» of below; here, giving it to whoever already attends the family.
             return '<div class="mrd-banda mrd-banda-lleva">' + avAgent(who, 'mrd-m') +
                 '<div class="mrd-banda-t"><b>' + esc(s('heldby', first)) + '</b><p>' + esc(where) + '</p>' + said + '</div>' +
-                '<div class="mrd-banda-b">' + see +
-                '<button type="button" class="mrd-btn mrd-chico" data-a="heldpass" data-v="' + x.agentid + '">' + ico('pasar') +
-                esc(s('heldpass', first)) + '</button>' +
-                '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="heldmine">' + ico('check') +
-                esc(s('takeit')) + '</button></div></div>';
+                '<div class="mrd-banda-b"><button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="heldpass" data-v="' +
+                x.agentid + '">' + ico('pasar') + esc(s('heldpass', first)) + '</button>' + see +
+                '<button type="button" class="mrd-btn mrd-chico mrd-banda-no" data-a="heldlater">' + esc(s('heldlater')) +
+                '</button>' +
+                '</div></div>';
+        }
+        /* «Ahora no» to the band of who already attends the family: it does not come back in that conversation for that
+           person while the tab is open (the browser's storage of the session, or the page's own if there is none). */
+        function heldKey() {
+            return 'mrd-chat-lleva-' + (me.userid || 0);
+        }
+        function heldLater(id, set) {
+            if (set) {
+                st.heldOk[id] = true;
+                try {
+                    root.sessionStorage.setItem(heldKey(), JSON.stringify(Object.keys(st.heldOk)));
+                } catch (e) {
+                    // Without storage it is remembered while the page is open.
+                }
+            }
+            return !!st.heldOk[id];
         }
         /* «Llamada»: the number to call, a line of what was said if one wants, and how it went, which keeps it at once.
            Nobody answered and the 24 hours are over: the approved message for that, ready in one touch. */
         function popCall(c) {
             var ct = c.contact || {}, d = digits(ct.phone), name = contactFirst(c);
-            var head = '<div class="mrd-pop mrd-pop-menu mrd-pop-llamada" role="dialog" aria-label="' +
-                esc(s('calltitle', name)) + '">';
+            // The veil only shows on a phone, where the sheet comes from below: touching it closes the sheet.
+            var head = '<div class="mrd-pop-velo" data-a="callnotnow" aria-hidden="true"></div>' +
+                '<div class="mrd-pop mrd-pop-menu mrd-pop-llamada" role="dialog" aria-label="' + esc(s('calltitle', name)) + '">';
             var tpl = (st.extras.templates || [])[callTpl()];
             if (st.call.offer === c.id && tpl) {
                 return head + '<div class="mrd-llamada-hecha">' + ico('telno') + '<span>' + esc(s('calldonemissed')) +
@@ -4330,7 +4361,7 @@
             var dial = d ? '<a class="mrd-llamada-num" href="tel:+' + d + '" data-a="tel" data-v="' + esc(fmtPhone(d)) + '">' +
                 ico('tel') + '<span>' + esc(s('calldial', fmtPhone(d))) + '</span></a>' : '';
             return head + '<h5>' + esc(s('calltitle', name)) + '</h5>' + dial +
-                '<label class="mrd-rem-l"><span>' + esc(s('callline')) + ' <small>' + esc(s('passoptional')) + '</small></span>' +
+                '<label class="mrd-rem-l"><span>' + esc(s('callline')) + '</span>' +
                 '<input type="text" class="mrd-llamada-linea" maxlength="300" autocomplete="off" placeholder="' + esc(s('callph')) +
                 '" value="' + esc(st.call.line) + '"></label>' +
                 '<p class="mrd-llamada-q">' + esc(s('callask')) + '</p><div class="mrd-llamada-botones">' +
@@ -4418,14 +4449,16 @@
             st.tpl = i;
             renderHead();
             renderComposer(true);
+            // The gap still empty takes the keys, or the button if the file filled them all; on a phone, no keyboard yet.
             var gaps = el.chat.querySelectorAll('.mrd-escribir .mrd-hueco'), next = null;
             Array.prototype.forEach.call(gaps, function (g) {
                 if (!next && !g.textContent.trim()) {
                     next = g;
                 }
             });
-            if (next || gaps[0]) {
-                (next || gaps[0]).focus();
+            var go = next || el.chat.querySelector('.mrd-escribir [data-a="tplsend"]');
+            if (go && !touchy()) {
+                go.focus();
             }
         }
         /* «Remind me»: a day (the next ones the team works, or any in the sheet of five weeks) and a line of what for;
@@ -4655,18 +4688,20 @@
             }
             return '<div class="' + cls + '"' + id + '>' + de + body + '<div class="mrd-msg-pie">' + esc(time) + statusIcon(m) + '</div>' + failHtml(m) + '</div>';
         }
+        // What did not go or did not arrive, in the charcoal of «No le llegó», with its sign: red is for long waits.
         function failHtml(m) {
             if (m.failed) {
-                return '<div class="mrd-fallo-l">' + esc(s('notsent')) + '<button type="button" data-a="retry" data-v="' + esc(m.id) + '">' +
-                    esc(s('retry')) + '</button></div>';
+                return '<div class="mrd-fallo-l">' + ico('nollego') + '<span>' + esc(s('notsent')) + '</span>' +
+                    '<button type="button" data-a="retry" data-v="' + esc(m.id) + '">' + esc(s('retry')) + '</button></div>';
             }
             if (m.status === 'failed') {
                 // Why, in words the team can act on; what WhatsApp said, for whoever needs it, on the pointer.
                 if (m.reason) {
-                    return '<div class="mrd-fallo-l" title="' + esc(m.error) + '"><span><b>' + esc(s('failedplain')) + '.</b> ' +
-                        esc(m.reason) + '</span></div>';
+                    return '<div class="mrd-fallo-l" title="' + esc(m.error) + '">' + ico('nollego') + '<span><b>' +
+                        esc(s('failedplain')) + '.</b> ' + esc(m.reason) + '</span></div>';
                 }
-                return '<div class="mrd-fallo-l">' + esc(m.error ? s('failed', m.error) : s('failedplain')) + '</div>';
+                return '<div class="mrd-fallo-l">' + ico('nollego') + '<span>' +
+                    esc(m.error ? s('failed', m.error) : s('failedplain')) + '</span></div>';
             }
             return '';
         }
@@ -5349,7 +5384,30 @@
             if (c && c.lastincoming && lastDayGap(p, t)) {
                 return lastDayText(c.lastincoming * 1000, p.example);
             }
+            if (isCallTpl(t) && p.key === callReasonKey(t)) {
+                return callReason(c);
+            }
             return '';
+        }
+        /* The approved message after a call nobody answered says what it was about. Its gap gets what the file says when
+           it is sure (the one place the family asks for); otherwise it stays empty with its name, never an example that
+           reads as a datum of this family. */
+        function isCallTpl(t) {
+            return !!(t && cfg.calltemplate && t.name === cfg.calltemplate);
+        }
+        function callReasonKey(t) {
+            var gap = (t.params || []).filter(function (p) {
+                return !/name|nombre|nom\b/i.test(p.key || '') && !greets(t, p.key);
+            })[0];
+            return gap ? gap.key : '';
+        }
+        function callReason(c) {
+            var f = c && st.fichaFor === c.id && st.ficha ? st.ficha : null;
+            var asking = f ? (f.children || []).filter(function (k) {
+                return k.applying && String(k.group || '').trim();
+            }) : [];
+            // One place asked for, and only one: «1.º de ESO, curso 2027-2028» is «a place in 1.º de ESO».
+            return asking.length === 1 ? s('callgapplace', String(asking[0].group).split(',')[0].trim()) : '';
         }
         function lastDayGap(p, t) {
             if (p.fill) {
@@ -5387,7 +5445,8 @@
                 var p = params[k] || { key: k, example: '' };
                 var label = gapLabel(p, t);
                 return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" data-nombre="' + esc(label) +
-                    '" data-ejemplo="' + esc(p.example || label) + '" aria-label="' + esc(s('gap', label)) + '">' + esc(tplValue(p, c, t)) + '</span>';
+                    '" data-ejemplo="' + esc(isCallTpl(t) ? label : p.example || label) + '" aria-label="' + esc(s('gap', label)) +
+                    '">' + esc(tplValue(p, c, t)) + '</span>';
             }).replace(/(<span class="mrd-hueco"[^>]*>[^<]*<\/span>)([.,;:!?…)»]+)/g, function (m, gap, mark) {
                 // A gap and the stop after it go together: the line never starts with the stop.
                 return '<span class="mrd-hueco-y">' + gap + mark + '</span>';
@@ -5776,14 +5835,16 @@
                 return '';
             }
             return '<div class="mrd-seccion"><h4>' + esc(quiet ? s('familyadults') : s('whowrites')) + '</h4>' + f.contacts.map(function (k) {
-                // A student of age says so in their label, beside the adults; the rest, who they are and their number.
+                // A student of age says so beside their name, in one line («En el centro» says they are a student); the
+                // rest, who they are and their number.
                 var line = [k.student ? '' : k.role, fmtPhone(k.phone)].filter(Boolean).join(' · ');
                 return '<div class="mrd-contacto' + (k.student ? ' mrd-contacto-alumno' : '') + '">' +
                     '<span class="mrd-av mrd-m mrd-con-bicho" aria-hidden="true">' + bicho(digits(k.phone) || k.name) +
                     '</span><span><b>' +
-                    esc(k.name) + (f.contacts.length > 1 && k.conversation && k.conversation === st.open ? ' <span class="mrd-marca-este">' + esc(s('thischat')) + '</span>' : '') +
-                    '</b>' + (k.student ? studentTag() : '') + '<small>' + esc(line) + '</small></span>' + callButton(k.phone) +
-                    '</div>';
+                    esc(k.name) + (k.student ? ' ' + studentTag(true) : '') +
+                    (f.contacts.length > 1 && k.conversation && k.conversation === st.open
+                        ? ' <span class="mrd-marca-este">' + esc(s('thischat')) + '</span>' : '') +
+                    '</b><small>' + esc(line) + '</small></span>' + callButton(k.phone) + '</div>';
             }).join('') + '</div>';
         }
         function otherConvsHtml(f) {
@@ -7000,9 +7061,10 @@
                 '<span class="mrd-nueva-fuente">' + esc(s('source' + x.source)) + '</span>' +
                 (x.name ? '<span>' + esc(fmtPhone(x.phone)) + '</span>' : '') + state + '</span></span>' + ico('der', 'mrd-flecha') + '</button>';
         }
-        // A student of age, written to beside the adults of their family (never instead of them).
-        function studentTag() {
-            return '<span class="mrd-etq-alumno">' + ico('birrete') + esc(s('adultstudent')) + '</span>';
+        // A student of age, written to beside the adults of their family (never instead of them): «Of age», without
+        // saying whether they are a boy or a girl, which the site does not know.
+        function studentTag(bare) {
+            return '<span class="mrd-etq-alumno">' + (bare ? '' : ico('birrete')) + esc(s('adultstudent')) + '</span>';
         }
         function newListHtml() {
             var n = st.nueva;
@@ -7986,18 +8048,10 @@
                         });
                     }
                     break;
-                case 'heldmine':
+                case 'heldlater':
                     if (c) {
-                        var keep = c.id;
-                        st.heldOk[keep] = true;
-                        if (isMine(c)) {
-                            renderBands();
-                        } else {
-                            runAction(t, 'take', 0, '', s('toastmine')).then(function (res) {
-                                renderBands();
-                                return res;
-                            });
-                        }
+                        heldLater(c.id, true);
+                        renderBands();
                     }
                     break;
                 case 'histclear':

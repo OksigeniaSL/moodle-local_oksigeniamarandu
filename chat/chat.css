@@ -7052,19 +7052,24 @@
     }
 }
 
-/* On a phone the department, who has it and «Pasar a…» share one row: a little tighter, and with a long name the two
-   facts give way with «…» before «Pasar a…» does. */
+/* On a phone the department, who has it, «Pasar a…» and the call go a little tighter, whole: what does not fit goes to
+   the next line, never cut with «…». */
 @media (max-width: 480px) {
     #mrd-chat .mrd-chat-cab .mrd-mandos {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 6px;
     }
     #mrd-chat .mrd-chat-cab .mrd-mando {
-        flex: 0 1 auto;
-        min-width: 0;
+        flex: 0 0 auto;
+        max-width: 100%;
         gap: 4px;
         padding-inline: 7px 8px;
         font-size: 13px;
+    }
+    #mrd-chat .mrd-chat-cab .mrd-mando > span {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
     }
     #mrd-chat .mrd-chat-cab .mrd-mando.mrd-quien {
         padding-inline-start: 3px;
@@ -7445,10 +7450,11 @@
     width: 14px;
     height: 14px;
 }
-#mrd-chat .mrd-contacto-alumno .mrd-etq-alumno {
-    margin: 2px 0;
-    max-width: 100%;
-    white-space: normal;
+#mrd-chat .mrd-contacto-alumno b .mrd-etq-alumno {
+    display: inline-flex;
+    margin-inline-start: 4px;
+    vertical-align: 1px;
+    font-size: 11.5px;
 }
 
 /* ---------- On a phone: the bands tighter, the call as a sheet at the foot, touches of 40 px ---------- */
@@ -7469,14 +7475,6 @@
     #mrd-chat .mrd-banda-quieta .mrd-banda-b {
         width: auto;
     }
-    #mrd-chat .mrd-pop-llamada {
-        position: fixed;
-        inset: auto 12px 12px;
-        width: auto;
-        max-height: calc(100vh - 24px);
-        overflow: auto;
-        z-index: 40;
-    }
     #mrd-chat .mrd-btn.mrd-llamada-ahora-no,
     #mrd-chat .mrd-btn.mrd-llamada-ofrece,
     #mrd-chat .mrd-mando.mrd-llamar-b {
@@ -7487,15 +7485,84 @@
     }
 }
 
-/* With the department, who has it and «Pasar a…» in one row, the call is only its icon, of 40 px. */
-@media (max-width: 480px) {
-    #mrd-chat .mrd-chat-cab .mrd-mando.mrd-llamar-b {
-        flex: none;
-        min-width: 40px;
-        justify-content: center;
-        padding-inline: 8px;
+/* ===================================================================================================================
+   0.55.1: the review of the screens.
+   =================================================================================================================== */
+
+/* The bands sit on a sheet of their own under the head: the thread scrolls below them, never peeking above. */
+#mrd-chat .mrd-bandas:not(:empty) {
+    padding: 10px 20px;
+    background: var(--hoja);
+    border-bottom: 1px solid var(--linea);
+}
+
+/* A message that did not go or did not arrive, in the charcoal of «No le llegó», with its sign: red is for waits. */
+#mrd-chat .mrd-msg.mrd-fallo {
+    border-color: var(--nollego);
+}
+#mrd-chat .mrd-fallo-l {
+    color: var(--nollego-texto);
+}
+#mrd-chat .mrd-fallo-l > .mrd-i {
+    flex: none;
+    width: 16px;
+    height: 16px;
+}
+#mrd-chat .mrd-fallo-l > span {
+    flex: 1 1 200px;
+    min-width: 0;
+}
+#mrd-chat .mrd-msg-pie .mrd-mal {
+    color: var(--nollego-texto);
+}
+
+/* «Ya lo lleva…»: passing it is the first way out; «Ahora no», a quiet one. */
+#mrd-chat .mrd-btn.mrd-banda-no {
+    border-color: transparent;
+    background: transparent;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-btn.mrd-banda-no:hover {
+    border-color: var(--linea-2);
+}
+
+/* The veil behind the sheet of the call: only on a phone. */
+#mrd-chat .mrd-pop-velo {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-bandas:not(:empty) {
+        padding: 8px 10px;
     }
-    #mrd-chat .mrd-chat-cab .mrd-mando.mrd-llamar-b > span {
-        display: none;
+    /* The call comes from below, a sheet over a veil, as on the phone itself. */
+    #mrd-chat .mrd-pop-velo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 46;
+        background: rgba(28, 26, 25, 0.45);
+    }
+    #mrd-chat .mrd-pop.mrd-pop-llamada {
+        position: fixed;
+        inset: auto 0 0;
+        z-index: 47;
+        width: auto;
+        max-width: none;
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        border-width: 1px 0 0;
+        border-radius: 18px 18px 0 0;
+        padding: 22px 16px calc(16px + env(safe-area-inset-bottom));
+    }
+    #mrd-chat .mrd-pop.mrd-pop-llamada::before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        inset-inline-start: calc(50% - 20px);
+        width: 40px;
+        height: 4px;
+        border-radius: 4px;
+        background: var(--linea-2);
     }
 }

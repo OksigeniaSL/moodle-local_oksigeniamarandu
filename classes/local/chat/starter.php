@@ -88,11 +88,15 @@ class starter {
         } else if (\core_text::strlen($query) >= 2) {
             foreach (family::search($query) as $family) {
                 foreach ($family['adults'] as $adult) {
-                    // A student of age, when the site writes to them, beside the adults of their family.
+                    // A student of age, when the site writes to them, beside the adults of their family: their line is
+                    // only their own group, as it is them and not their family.
+                    $student = !empty($adult['student']);
+                    $own = [['name' => $adult['name'], 'stage' => $adult['stage'] ?? null]];
                     $candidates[$adult['phone']] = $candidates[$adult['phone']] ?? [
-                        'name' => $adult['name'], 'phone' => $adult['phone'], 'line' => $family['line'],
-                        'rings' => self::rings($family['children']), 'source' => 'family', 'verified' => $adult['verified'],
-                        'student' => !empty($adult['student']),
+                        'name' => $adult['name'], 'phone' => $adult['phone'],
+                        'line' => $student ? (string)($adult['group'] ?? '') : $family['line'],
+                        'rings' => self::rings($student ? $own : $family['children']),
+                        'source' => 'family', 'verified' => $adult['verified'], 'student' => $student,
                     ];
                 }
             }

@@ -37,8 +37,8 @@ class inbox {
      * @param int $days How many days back the last notice is looked for.
      * @param int|null $now The time, for the tests.
      * @return array phone, status (active, pending, optedout or none), joined (component, area, label), takenby (the
-     *               plugin that answered or kept the message, or empty) and, if there is one, lastnotice (component,
-     *               notice, label, timesent).
+     *               plugin that answered or kept the message, or empty), accounts (as accounts() gives them) and, if
+     *               there is one, lastnotice (component, notice, label, timesent).
      */
     public static function context(string $phone, string $messageid = '', int $days = 7, ?int $now = null): array {
         global $DB;
@@ -48,6 +48,7 @@ class inbox {
             'status' => 'none',
             'joined' => [],
             'takenby' => conversation::taken_by($messageid),
+            'accounts' => self::accounts($digits),
         ];
         $contact = $digits === '' ? false : $DB->get_record(consent::CONTACTS, ['phone' => $digits]);
         if (!$contact) {
@@ -97,5 +98,84 @@ class inbox {
             ];
         }
         return $result;
+    }
+
+    /**
+     * The accounts the adult of a number has in the management programs of the centre, to help them sign in there, as
+     * the common record of families keeps them (Oksigenia Family 0.3.40 on): only when the number is of one active adult
+     * of the record, the centre checked it, and always half hidden. The whole username or email never leaves the site.
+     *
+     * @param string $digits The number, only digits with the country code.
+     * @return array Each with system, label, username (hidden but its last five characters), derived, email (hidden but
+     *               its first three and last two characters before the @, and the domain), and active (yes, no or
+     *               unknown). Empty without the record, or with no adult or several for the number.
+     */
+    public static function accounts(string $digits): array {
+        $api = '\\local_oksigeniafamily\\api';
+        $ready = $digits !== '' && class_exists($api) && method_exists($api, 'external_accounts')
+            && method_exists($api, 'adults_by_phone') && (!method_exists($api, 'is_available') || $api::is_available());
+        if (!$ready) {
+            return [];
+        }
+        $adults = $api::adults_by_phone('+' . $digits);
+        if (count($adults) !== 1) {
+            return [];
+        }
+        $adult = reset($adults);
+        $list = [];
+        foreach ($api::external_accounts((int)$adult->id) as $one) {
+            $one = (array)$one;
+            $active = $one['active'] ?? null;
+            $list[] = [
+                'system' => (string)($one['system'] ?? ''),
+                'label' => (string)($one['label'] ?? ''),
+                'username' => self::hide_username((string)($one['username'] ?? '')),
+                'derived' => !empty($one['derived']),
+                'email' => self::hide_email((string)($one['email'] ?? '')),
+                'active' => $active === null ? 'unknown' : ($active ? 'yes' : 'no'),
+            ];
+        }
+        return $list;
+    }
+
+    /**
+     * A username half hidden: «·» but for its last five characters; a short one shows only its last, and a single
+     * character none.
+     *
+     * @param string $username The username.
+     * @return string Empty if it was.
+     */
+    public static function hide_username(string $username): string {
+        $username = trim($username);
+        $length = \core_text::strlen($username);
+        if ($length === 0) {
+            return '';
+        }
+        $shown = $length > 5 ? 5 : min(1, $length - 1);
+        return str_repeat('·', $length - $shown) . \core_text::substr($username, $length - $shown);
+    }
+
+    /**
+     * An email half hidden: the first three and the last two characters before the @, «·····» between them, and the
+     * whole domain; before an @ of five characters or fewer, only the first one (none, if it has one only).
+     *
+     * @param string $email The email.
+     * @return string Empty if it was.
+     */
+    public static function hide_email(string $email): string {
+        $email = trim($email);
+        if ($email === '') {
+            return '';
+        }
+        $at = \core_text::strrpos($email, '@');
+        $local = $at === false ? $email : \core_text::substr($email, 0, $at);
+        $domain = $at === false ? '' : \core_text::substr($email, $at);
+        $length = \core_text::strlen($local);
+        if ($length > 5) {
+            $local = \core_text::substr($local, 0, 3) . '·····' . \core_text::substr($local, $length - 2);
+        } else {
+            $local = ($length > 1 ? \core_text::substr($local, 0, 1) : '') . '·····';
+        }
+        return $local . $domain;
     }
 }

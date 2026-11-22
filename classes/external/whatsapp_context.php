@@ -83,6 +83,19 @@ class whatsapp_context extends external_api {
                 'label' => new external_value(PARAM_TEXT, 'What the number stands for, as the plugin says it'),
             ]), 'The plugins the number joined with, the last first'),
             'takenby' => new external_value(PARAM_RAW, 'The plugin that answered the message or kept it; empty if none did'),
+            'accounts' => new external_multiple_structure(
+                new external_single_structure([
+                    'system' => new external_value(PARAM_ALPHANUMEXT, 'The management program, such as cifra'),
+                    'label' => new external_value(PARAM_TEXT, 'Its name, as people know it'),
+                    'username' => new external_value(PARAM_TEXT, 'The username there, hidden but its last five characters'),
+                    'derived' => new external_value(PARAM_BOOL, 'Whether the username follows from a rule of the centre'),
+                    'email' => new external_value(PARAM_TEXT, 'Where that program sends a new password, half hidden'),
+                    'active' => new external_value(PARAM_ALPHA, 'Whether the account works there: yes, no or unknown'),
+                ]),
+                'The accounts in the programs of the centre of the one adult of the number, from the record of families',
+                VALUE_DEFAULT,
+                []
+            ),
             'lastnotice' => new external_single_structure([
                 'component' => new external_value(PARAM_COMPONENT, 'The plugin of the notice'),
                 'notice' => new external_value(PARAM_ALPHANUMEXT, 'The notice'),

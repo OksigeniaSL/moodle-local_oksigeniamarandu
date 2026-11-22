@@ -1455,8 +1455,17 @@ final class chat_test extends \advanced_testcase {
             $DB->insert_record('user_info_data', (object)['userid' => $user->id, 'fieldid' => $field->id,
                 'data' => (string)strtotime('-' . $years . ' years -10 days'), 'dataformat' => 0]);
         };
-        $born($nora, 19);
+        // From Oksigenia Family 0.3.40 on, the record gives the day of birth (12:00 UTC), and it goes before the profile:
+        // Nora is 19 by the record and 15 by her profile. Without it, the profile says 19.
+        $record = $DB->get_manager()->field_exists('local_oksigeniafamily_child', 'birthdate');
+        $born($nora, $record ? 15 : 19);
         $born($minor, 15);
+        if ($record) {
+            $day = strtotime('-19 years -10 days');
+            $noon = gmmktime(12, 0, 0, (int)gmdate('n', $day), (int)gmdate('j', $day), (int)gmdate('Y', $day));
+            $DB->set_field('local_oksigeniafamily_child', 'birthdate', $noon, ['userid' => $nora->id]);
+        }
+        $DB->set_field('local_oksigeniafamily_child', 'groupname', '2º BACH A', ['userid' => $nora->id]);
         mirror::sync();
         $this->setUser($this->person('ana@example.com', 'Ana'));
         $contacts = function (): array {
@@ -1467,15 +1476,15 @@ final class chat_test extends \advanced_testcase {
             chat\family::forget();
             \cache::make('local_oksigeniamarandu', 'chat')->purge();
         };
-        // Off by default; on without a field of the date of birth, nobody's age is known.
+        // Off by default. On, the day of the record is enough; without it nor a field of the profile, nobody's age is known.
         $this->assertSame(['34600000001' => false, '34600000009' => false], $contacts());
         set_config('chatadultstudents', 1, 'local_oksigeniamarandu');
         $fresh();
-        $this->assertFalse(chat\family::adult_students_on());
-        $this->assertCount(2, $contacts());
+        $this->assertTrue(chat\family::adult_students_on());
+        $this->assertCount($record ? 3 : 2, $contacts());
+        // The field of the profile, for whom the record gives no day: the minor's profile says 15, so still not him.
         set_config('chatbirthfield', 'fechanac', 'local_oksigeniamarandu');
         $fresh();
-        $this->assertTrue(chat\family::adult_students_on());
         $this->assertSame(['34600000001' => false, '34600000009' => false, '34611223344' => true], $contacts());
         $file = external_api::clean_returnvalue(chat_contact::execute_returns(), chat_contact::execute(1));
         $this->assertSame(
@@ -1487,6 +1496,9 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame(['34611223344', true, 'family'], [$found[0]['phone'], $found[0]['student'], $found[0]['source']]);
         $this->assertNotContains('34611220000', array_column($found, 'phone'));
         $this->assertFalse($found[1]['student']);
+        // Her line is her own group, not the family's: it is her who is written to.
+        $this->assertSame(['2.º BACH A', []], [$found[0]['line'], $found[0]['rings']]);
+        $this->assertStringContainsString('Nora (2.º BACH A)', $found[1]['line']);
         // Without a mobile in her profile, she is not offered.
         $DB->set_field('user', 'phone2', '', ['id' => $nora->id]);
         $fresh();

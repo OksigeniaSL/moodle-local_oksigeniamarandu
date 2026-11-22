@@ -97,11 +97,12 @@ Options:
 --access-role[=ROLE]   Only the people of the account open the chat: gives them this role of the site (its short
                        name; without it, the role of the plugin, made if missing), from now on also to whoever joins
                        the account, and takes the capability away from the role of every authenticated user.
---adult-students=0|1   Whether a student of age (18, by the date of birth of their profile) with a mobile (the second
-                       phone of their profile) is written to beside the adults of their family, never instead of them.
-                       Off by default. The record of families keeps no date of birth: it needs --birth-field.
---birth-field=NAME     The short name of the field of the profile with the date of birth: a date field, or a text one
-                       written as 2008-03-15, 15/03/2008, 15-03-2008 or 15.03.2008; empty for none.
+--adult-students=0|1   Whether a student of age (18, by the day of birth the record of families gives) with a mobile
+                       (the second phone of their profile) is written to beside the adults of their family, never
+                       instead of them. Off by default.
+--birth-field=NAME     For a site whose record of families gives no day of birth (or without that record): the short
+                       name of the field of the profile with it, a date field or a text one written as 2008-03-15,
+                       15/03/2008, 15-03-2008 or 15.03.2008; empty for none.
 --call-template=NAME   The approved message offered after a call nobody answered, once the 24 hours are over
                        (chat_llamada_sin_respuesta if not given); empty for none.
 --sync                 Fills the index with the conversations of the last month now.
@@ -264,8 +265,7 @@ try {
         \local_oksigeniamarandu\local\chat\family::forget();
         \cache::make($component, 'chat')->purge();
         mtrace('Students of age beside the adults: ' . (\local_oksigeniamarandu\local\chat\family::adult_students_on() ? 'on'
-            : (get_config($component, 'chatadultstudents') ? 'asked, but without a field of the date of birth (--birth-field)'
-            : 'off')));
+            : 'off') . '; day of birth: ' . \local_oksigeniamarandu\local\chat\family::births_from());
     }
     if ($options['call-template'] !== null) {
         set_config('chatcalltemplate', trim((string)$options['call-template']), $component);
@@ -320,9 +320,8 @@ try {
         $usable = in_array($call, array_column($approved, 'name'), true);
         mtrace('After a call nobody answered: ' . ($call === '' ? '-' : $call .
             ($usable ? '' : ' (not among the approved messages it may send)')));
-        $field = \local_oksigeniamarandu\local\chat\family::birth_field();
         mtrace('Students of age beside the adults: ' . (empty($config->chatadultstudents) ? 'off' : 'on') .
-            '; date of birth: ' . ($field ? 'field ' . $field->shortname . ' (' . $field->datatype . ')' : 'no field'));
+            '; day of birth: ' . \local_oksigeniamarandu\local\chat\family::births_from());
     }
 } catch (\moodle_exception $e) {
     cli_error($e->getMessage() . (empty($e->debuginfo) ? '' : ' (' . $e->debuginfo . ')'));

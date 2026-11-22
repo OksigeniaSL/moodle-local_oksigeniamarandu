@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.56.0 (2026-11-22)
+
+- A student of age: the day of birth comes from the common record of families (Oksigenia Family 0.3.40 on), so
+  `cli/chat.php --adult-students=1` is enough; `--birth-field` stays for a site whose record gives none, or without it.
+  `--status` says where the day comes from.
+- `local_oksigeniamarandu_whatsapp_context` gives `accounts`: the accounts in the management programs of the centre of
+  the one active adult of the number, as the record of families keeps them (Family 0.3.40 on), always half hidden (the
+  username but its last five characters; the email but the first three and last two characters before the @, and the
+  domain). With no adult, several, or an older record, none.
+- A student of age: in «New», their line is only their own group («2.º Bachillerato»), not their family's; the label
+  says only «Of age», beside the name in the file too (the site does not know whether they are a boy or a girl, and
+  «In the centre» already says they are a student).
+- «Already with…»: «Pass it to…» first, «See it» and «Not now», which keeps the band away from that conversation for
+  that person while the tab is open; «I'll handle it» stays only once, under the conversation.
+- «Did not arrive»: the bands sit on a sheet of their own, so the thread no longer peeks above them; the message that
+  did not arrive, with its border, its sign and its line in the same charcoal as the list and the band.
+- «Log a call»: one label, «A line, if you like», with a short example for both cases; on a phone the sheet comes from
+  below, over a veil. The approved message after a call nobody answered fills its gap only with what the file says
+  surely (the one place the family asks for); otherwise the gap stays empty with its name, never an example.
+- On a phone the chips of the head (department, who has it, «Pass to…», the call) go to the next line when they do not
+  fit, whole, instead of being cut with «…».
+
 ## 0.55.0 (2026-11-22)
 
 - What does not arrive by WhatsApp, in sight: the index keeps when the last message of the team failed (`failedat`, from

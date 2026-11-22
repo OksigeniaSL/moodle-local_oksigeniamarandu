@@ -76,7 +76,7 @@ final class whatsapp_context_test extends \advanced_testcase {
     public function test_context(): void {
         global $DB;
         $this->assertSame(
-            ['phone' => '34600000009', 'status' => 'none', 'joined' => [], 'takenby' => ''],
+            ['phone' => '34600000009', 'status' => 'none', 'joined' => [], 'takenby' => '', 'accounts' => []],
             inbox::context('+34 600 00 00 09')
         );
 
@@ -121,5 +121,59 @@ final class whatsapp_context_test extends \advanced_testcase {
         );
         $this->assertSame(['34600000001', 'active', ''], [$result['phone'], $result['status'], $result['takenby']]);
         $this->assertSame('local_canteen', $result['joined'][0]['component']);
+    }
+
+    /**
+     * A username shows its last five characters; an email, the first three and last two before the @ and the domain;
+     * the short ones, less; never the whole of either.
+     */
+    public function test_hiding(): void {
+        $this->assertSame('······78Z47', inbox::hide_username('12345678Z47'));
+        $this->assertSame('··c', inbox::hide_username('abc'));
+        $this->assertSame('·', inbox::hide_username('a'));
+        $this->assertSame('', inbox::hide_username('  '));
+        $this->assertSame('lau·····in@example.com', inbox::hide_email('laura.martin@example.com'));
+        $this->assertSame('abc·····ef@x.es', inbox::hide_email('abcdef@x.es'));
+        $this->assertSame('a·····@x.es', inbox::hide_email('abcde@x.es'));
+        $this->assertSame('·····@x.es', inbox::hide_email('a@x.es'));
+        $this->assertSame('ñan·····ña@ejemplo.es', inbox::hide_email('ñandú.niña@ejemplo.es'));
+        $this->assertSame('', inbox::hide_email(''));
+    }
+
+    /**
+     * The accounts in the programs of the centre come for the one active adult of a checked number, half hidden; not
+     * for a number of no adult or of several.
+     */
+    public function test_accounts(): void {
+        if (!method_exists('\\local_oksigeniafamily\\api', 'external_accounts')) {
+            $this->markTestSkipped('local_oksigeniafamily 0.3.40 or later is not installed');
+        }
+        set_config('cifrausername', '{nif}47', 'local_oksigeniafamily');
+        $familyid = \local_oksigeniafamily\api::create_family('csv');
+        \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Laura', 'phone' => '+34600000001',
+            'phoneverified' => true, 'sourcekey' => 'cifra:1']);
+        \local_oksigeniafamily\local\external::store('cifra', [['key' => 'cifra:1', 'document' => '12345678Z',
+            'email' => 'laura.martin@example.com']], time());
+        $expected = [['system' => 'cifra', 'label' => 'Cifra', 'username' => '······78Z47', 'derived' => true,
+            'email' => 'lau·····in@example.com', 'active' => 'unknown']];
+        $this->assertSame($expected, inbox::context('+34 600 00 00 01')['accounts']);
+
+        // By the web service, as declared, and never the whole of either.
+        $this->setAdminUser();
+        $result = external_api::clean_returnvalue(whatsapp_context::execute_returns(), whatsapp_context::execute('+34600000001'));
+        $this->assertSame($expected, $result['accounts']);
+        $said = json_encode($result, JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString('12345678Z47', $said);
+        $this->assertStringNotContainsString('laura.martin', $said);
+
+        // No adult with the number, or one that only typed it: nothing.
+        $this->assertSame([], inbox::context('+34600000009')['accounts']);
+        \local_oksigeniafamily\api::add_adult($familyid, ['firstname' => 'Pedro', 'phone' => '+34600000002',
+            'sourcekey' => 'cifra:2']);
+        $this->assertSame([], inbox::context('+34600000002')['accounts']);
+        // The same number checked for two adults: whose accounts they are is not known, so none.
+        $other = \local_oksigeniafamily\api::create_family('csv');
+        \local_oksigeniafamily\api::add_adult($other, ['firstname' => 'Marta', 'phone' => '+34600000001', 'phoneverified' => true]);
+        $this->assertSame([], inbox::context('+34600000001')['accounts']);
     }
 }

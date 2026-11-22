@@ -143,7 +143,7 @@ final class team_hours_test extends \advanced_testcase {
      * @param int $minute The minute.
      * @return int
      */
-    private static function at(int $day, int $hour, int $minute = 0): int {
+    private static function moment(int $day, int $hour, int $minute = 0): int {
         return self::MONDAY + $day * DAYSECS + $hour * HOURSECS + $minute * MINSECS;
     }
 
@@ -236,21 +236,21 @@ final class team_hours_test extends \advanced_testcase {
         $canteen = hours::of_team(20, self::MONDAY);
         // From Monday 15:00 to Tuesday 8:00: the inbox counts 15:00 to 17:00 and 7:00 to 8:00; the canteen, half an hour
         // each day.
-        $this->assertSame(3 * HOURSECS, $site->waited(self::at(0, 15), self::at(1, 8)));
-        $this->assertSame(HOURSECS, $canteen->waited(self::at(0, 15), self::at(1, 8)));
-        $this->assertFalse($canteen->is_open(self::at(0, 16)));
-        $this->assertTrue($site->is_open(self::at(0, 16)));
-        $this->assertSame(self::at(1, 7, 30), $canteen->next_open(self::at(0, 16)));
+        $this->assertSame(3 * HOURSECS, $site->waited(self::moment(0, 15), self::moment(1, 8)));
+        $this->assertSame(HOURSECS, $canteen->waited(self::moment(0, 15), self::moment(1, 8)));
+        $this->assertFalse($canteen->is_open(self::moment(0, 16)));
+        $this->assertTrue($site->is_open(self::moment(0, 16)));
+        $this->assertSame(self::moment(1, 7, 30), $canteen->next_open(self::moment(0, 16)));
         // Admissions: Monday 13:00 to 17:00 counts 13:00 to 14:00 and 16:00 to 17:00, and between them it opens at 16:00.
         $admissions = hours::of_team(22, self::MONDAY);
-        $this->assertSame(2 * HOURSECS, $admissions->waited(self::at(0, 13), self::at(0, 17)));
-        $this->assertSame(self::at(0, 16), $admissions->next_open(self::at(0, 14, 30)));
-        $this->assertSame(self::at(1, 9), $admissions->opening('2026-11-17'));
+        $this->assertSame(2 * HOURSECS, $admissions->waited(self::moment(0, 13), self::moment(0, 17)));
+        $this->assertSame(self::moment(0, 16), $admissions->next_open(self::moment(0, 14, 30)));
+        $this->assertSame(self::moment(1, 9), $admissions->opening('2026-11-17'));
         // The office closes at 13:00 on Friday; guidance keeps the inbox.
         $office = hours::of_team(21, self::MONDAY);
-        $this->assertFalse($office->is_open(self::at(4, 13, 30)));
-        $this->assertSame(self::at(7, 8), $office->next_open(self::at(4, 13, 30)));
-        $this->assertTrue(hours::of_team(23, self::MONDAY)->is_open(self::at(4, 16)));
+        $this->assertFalse($office->is_open(self::moment(4, 13, 30)));
+        $this->assertSame(self::moment(7, 8), $office->next_open(self::moment(4, 13, 30)));
+        $this->assertTrue(hours::of_team(23, self::MONDAY)->is_open(self::moment(4, 16)));
         $this->assertFalse(hours::of_team(23, self::MONDAY)->own);
         $this->assertTrue($canteen->own);
         $this->assertSame($site->export(), hours::of_team(0, self::MONDAY)->export());
@@ -293,23 +293,23 @@ final class team_hours_test extends \advanced_testcase {
 
         $byteam = hours::by_team(self::MONDAY);
         // Wednesday 18, closed for all: the inbox and the canteen are closed; the office opens from 9:00 to 12:00.
-        $this->assertFalse(hours::of_site(self::MONDAY)->is_open(self::at(2, 10)));
-        $this->assertFalse($byteam[20]->is_open(self::at(2, 10)));
-        $this->assertTrue($byteam[21]->is_open(self::at(2, 10)));
-        $this->assertFalse($byteam[21]->is_open(self::at(2, 12, 30)));
+        $this->assertFalse(hours::of_site(self::MONDAY)->is_open(self::moment(2, 10)));
+        $this->assertFalse($byteam[20]->is_open(self::moment(2, 10)));
+        $this->assertTrue($byteam[21]->is_open(self::moment(2, 10)));
+        $this->assertFalse($byteam[21]->is_open(self::moment(2, 12, 30)));
         $this->assertFalse($byteam[23]->own);
         // Thursday 19: closed only the canteen, though it also had other hours that day.
-        $this->assertFalse($byteam[20]->is_open(self::at(3, 10)));
-        $this->assertTrue($byteam[21]->is_open(self::at(3, 10)));
+        $this->assertFalse($byteam[20]->is_open(self::moment(3, 10)));
+        $this->assertTrue($byteam[21]->is_open(self::moment(3, 10)));
         // Friday 20: admissions only from 10:00 to 13:00.
-        $this->assertFalse($byteam[22]->is_open(self::at(4, 9, 30)));
-        $this->assertTrue($byteam[22]->is_open(self::at(4, 10, 30)));
-        $this->assertFalse($byteam[22]->is_open(self::at(4, 16, 30)));
-        $this->assertSame(self::at(7, 9), $byteam[22]->next_open(self::at(4, 13)));
+        $this->assertFalse($byteam[22]->is_open(self::moment(4, 9, 30)));
+        $this->assertTrue($byteam[22]->is_open(self::moment(4, 10, 30)));
+        $this->assertFalse($byteam[22]->is_open(self::moment(4, 16, 30)));
+        $this->assertSame(self::moment(7, 9), $byteam[22]->next_open(self::moment(4, 13)));
         // The canteen is closed for two weeks: it opens again on Monday 7 December.
-        $this->assertSame(self::at(21, 7, 30), $byteam[20]->next_open(self::at(4, 16)));
+        $this->assertSame(self::moment(21, 7, 30), $byteam[20]->next_open(self::moment(4, 16)));
         // A wait over the days of each one.
-        $this->assertSame(3 * HOURSECS, $byteam[21]->waited(self::at(2, 0), self::at(3, 0)));
+        $this->assertSame(3 * HOURSECS, $byteam[21]->waited(self::moment(2, 0), self::moment(3, 0)));
 
         // For the page: the closed days of each one, and its days of other hours.
         $canteen = $byteam[20]->export();
@@ -338,13 +338,13 @@ final class team_hours_test extends \advanced_testcase {
         $old->waitsince = 0;
         $old->lastincoming = 0;
         // Monday 16:00: the inbox is open, the canteen is not.
-        $row->waitsince = $row->lastincoming = self::at(0, 16) - 60;
-        notify::changed($old, $row, [], self::at(0, 16));
+        $row->waitsince = $row->lastincoming = self::moment(0, 16) - 60;
+        notify::changed($old, $row, [], self::moment(0, 16));
         $this->runAdhocTasks(\local_oksigeniamarandu\task\chat_notify::class);
         $this->assertCount(0, $sink->get_messages());
         // Tuesday 10:00, open.
-        $row->waitsince = $row->lastincoming = self::at(1, 10) - 60;
-        notify::changed($old, $row, [], self::at(1, 10));
+        $row->waitsince = $row->lastincoming = self::moment(1, 10) - 60;
+        notify::changed($old, $row, [], self::moment(1, 10));
         $this->runAdhocTasks(\local_oksigeniamarandu\task\chat_notify::class);
         $this->assertCount(1, $sink->get_messages());
         $this->assertSame((int)$ana->id, (int)$sink->get_messages()[0]->useridto);
@@ -355,21 +355,21 @@ final class team_hours_test extends \advanced_testcase {
             'last_activity_at' => time(), 'meta' => ['sender' => ['id' => 101, 'name' => 'Laura Martín',
             'phone_number' => '+34600000001'], 'team' => ['id' => 20], 'assignee' => null, 'assignee_type' => null]]];
         $this->client->messages = [1 => [['id' => 10, 'message_type' => 0, 'content' => '¿Mañana hay comedor?',
-            'created_at' => self::at(0, 15), 'private' => false, 'sender' => ['type' => 'contact', 'id' => 101]]]];
+            'created_at' => self::moment(0, 15), 'private' => false, 'sender' => ['type' => 'contact', 'id' => 101]]]];
         mirror::sync();
-        $DB->set_field(mirror::TABLE, 'waitsince', self::at(0, 15), ['cwid' => 1]);
+        $DB->set_field(mirror::TABLE, 'waitsince', self::moment(0, 15), ['cwid' => 1]);
         // Tuesday at 9:00 it has waited two hours of the canteen (four of the inbox): not too long yet.
-        $card = workcard::for_user((int)$ana->id, self::at(1, 9));
+        $card = workcard::for_user((int)$ana->id, self::moment(1, 9));
         $this->assertNotContains('urgent', array_column($card['alerts'], 'level'));
         // At noon, five: too long.
-        $card = workcard::for_user((int)$ana->id, self::at(1, 12));
+        $card = workcard::for_user((int)$ana->id, self::moment(1, 12));
         $this->assertSame('urgent', $card['alerts'][0]['level']);
         $this->assertStringContainsString('Laura Martín', $card['alerts'][0]['text']);
         // On Monday at 16:00 the canteen of Ana is out of hours, though the inbox is not.
-        $card = workcard::for_user((int)$ana->id, self::at(0, 16));
+        $card = workcard::for_user((int)$ana->id, self::moment(0, 16));
         $closed = get_string('chat:work:closed', 'local_oksigeniamarandu', 'tomorrow at 7:30');
         $this->assertStringContainsString($closed, $card['status']);
-        $this->assertStringNotContainsString('tomorrow', workcard::for_user((int)$ana->id, self::at(1, 9))['status']);
+        $this->assertStringNotContainsString('tomorrow', workcard::for_user((int)$ana->id, self::moment(1, 9))['status']);
     }
 
     /**
@@ -380,23 +380,23 @@ final class team_hours_test extends \advanced_testcase {
         team_hours::set(self::EXAMPLE);
         set_config('chatinternal', '20', 'local_oksigeniamarandu');
         // Monday at 15:45.
-        $teams = whatsapp_context::teams(self::at(0, 15, 45));
+        $teams = whatsapp_context::teams(self::moment(0, 15, 45));
         $this->assertSame(['Admisiones', 'Comedor', 'Orientación', 'Secretaría'], array_column($teams, 'name'));
         $this->assertSame(['id' => 22, 'name' => 'Admisiones', 'internal' => false, 'open' => false,
-            'opensat' => self::at(0, 16), 'opensattext' => 'today at 16:00'], $teams[0]);
+            'opensat' => self::moment(0, 16), 'opensattext' => 'today at 16:00'], $teams[0]);
         $this->assertSame(['id' => 20, 'name' => 'Comedor', 'internal' => true, 'open' => false,
-            'opensat' => self::at(1, 7, 30), 'opensattext' => 'tomorrow at 7:30'], $teams[1]);
+            'opensat' => self::moment(1, 7, 30), 'opensattext' => 'tomorrow at 7:30'], $teams[1]);
         $this->assertSame([true, 0, ''], [$teams[2]['open'], $teams[2]['opensat'], $teams[2]['opensattext']]);
         $this->assertSame('tomorrow at 8:00', $teams[3]['opensattext']);
         // Friday at 13:30 the office has closed until Monday.
-        $teams = whatsapp_context::teams(self::at(4, 13, 30));
-        $this->assertSame([self::at(7, 8), 'on Monday at 8:00'], [$teams[3]['opensat'], $teams[3]['opensattext']]);
+        $teams = whatsapp_context::teams(self::moment(4, 13, 30));
+        $this->assertSame([self::moment(7, 8), 'on Monday at 8:00'], [$teams[3]['opensat'], $teams[3]['opensattext']]);
         $this->assertTrue($teams[1]['open']);
         // The canteen closed for two weeks: the date.
         closed::fake_for_tests("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:a\r\nDTSTART;VALUE=DATE:20261123\r\n" .
             "DTEND;VALUE=DATE:20261205\r\nSUMMARY:Comedor: closed\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        $teams = whatsapp_context::teams(self::at(4, 16));
-        $this->assertSame([self::at(21, 7, 30), 'on 7 December at 7:30'], [$teams[1]['opensat'], $teams[1]['opensattext']]);
+        $teams = whatsapp_context::teams(self::moment(4, 16));
+        $this->assertSame([self::moment(21, 7, 30), 'on 7 December at 7:30'], [$teams[1]['opensat'], $teams[1]['opensattext']]);
 
         // By the web service, as it declares it.
         $this->setAdminUser();
@@ -405,6 +405,6 @@ final class team_hours_test extends \advanced_testcase {
         $this->assertSame(['id', 'name', 'internal', 'open', 'opensat', 'opensattext'], array_keys($result['teams'][0]));
         // Without the conversations of the team, none.
         unset_config('chatwooturl', 'local_oksigeniamarandu');
-        $this->assertSame([], whatsapp_context::teams(self::at(0, 10)));
+        $this->assertSame([], whatsapp_context::teams(self::moment(0, 10)));
     }
 }

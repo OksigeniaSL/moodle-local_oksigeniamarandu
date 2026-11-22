@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.58.1 (2026-11-22)
+
+- A helper of the tests of the hours by department no longer shares its name with a method of PHPUnit 9, which made
+  the tests fail on Moodle 4.5.
+
 ## 0.58.0 (2026-11-22)
 
 - Hours by department in the conversations of the team: a canteen does not open when the office does. Each department

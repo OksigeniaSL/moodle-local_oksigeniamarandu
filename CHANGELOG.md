@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.60.1 (2026-11-23)
+
+- The same as 0.60.0. The check of GitHub of the version could not put back its copy of the plugin over the
+  files of git that git now writes read-only; it gives them write permission first.
+
 ## 0.60.0 (2026-11-23)
 
 - «Propose an answer» in the conversations of the team: a button beside the saved answers writes a draft of the answer

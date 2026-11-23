@@ -42,6 +42,8 @@ $observers = [
     [
         'eventname' => '\local_oksigeniafamily\event\adult_removed',
         'callback' => '\local_oksigeniamarandu\local\family::adult_changed',
+        // After the observers of the other plugins, which can still ask who the adult was (api::unlink_adult()).
+        'priority' => -100,
     ],
     [
         'eventname' => '\local_oksigeniafamily\event\adult_updated',

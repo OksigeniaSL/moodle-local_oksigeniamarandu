@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.59.0 (2026-11-23)
+
+- The values of a notice can be a function of the language, `fn(string $lang): array`, in `api::notify()`,
+  `api::notify_child()` and `api::ask()` (which also takes `lang` now): Marandu calls it once for each language, with
+  that of each person (the one they chose on Telegram, else the one the plugin asked for, else that of the site), so
+  that the text and its values go in the same. With values given as they are and a language, the whole notice goes in
+  that language, also to whoever chose another on Telegram: before, the text went in theirs and the values in the
+  plugin's. The queue reads the language of the notice first, also when it closes a question.
+- `api::close_codes()`: the codes of an item that nobody has written yet stop working; what joined with them stays.
+- `api::unlink_adult()`: an adult who leaves the family records. The numbers and chats that stand for that adult there,
+  and for no other adult, stop getting the notices of the items of a plugin; a number shared with an adult who stays
+  keeps them. Marandu now forgets the adult after the observers of the other plugins, so that theirs can still ask.
+- `api::same_contact()`: which accounts and adults of the family records already get the notices of each item on the
+  same active number or chat, so that a plugin does not have to read the tables of Marandu.
+- The links of a plugin that was uninstalled are forgotten once a day (task «Forget the links of plugins that were
+  uninstalled»). A plugin whose folder is missing but that is still installed keeps them.
+
 ## 0.58.1 (2026-11-22)
 
 - A helper of the tests of the hours by department no longer shares its name with a method of PHPUnit 9, which made

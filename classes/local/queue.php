@@ -214,8 +214,9 @@ class queue {
                 continue;
             }
             $params = json_decode($row->params, true) ?: [];
-            // The language the person chose goes first; then the one the plugin asked for; then that of the site.
-            $lang = $contact->lang ?: (($row->lang ?? '') ?: null);
+            // The language of its values goes first, so that the text and the values go in the same: the one the plugin
+            // asked for or wrote them in (api::notify()); then the one the person chose; then that of the site.
+            $lang = ($row->lang ?? '') ?: ($contact->lang ?: null);
             if ($channel === 'telegram') {
                 // Telegram has no templates and no window: the notice, with its link as a button. It is free.
                 try {

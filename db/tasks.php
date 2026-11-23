@@ -44,6 +44,15 @@ $tasks = [
         'dayofweek' => '*',
     ],
     [
+        // The links of the plugins that were uninstalled, forgotten once a day.
+        'classname' => 'local_oksigeniamarandu\task\forget_uninstalled',
+        'minute' => 'R',
+        'hour' => '4',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
+    [
         // The calendar of the channel: every hour, so that its posts are ready a few days before and follow its changes.
         'classname' => 'local_oksigeniamarandu\task\channel_calendar',
         'minute' => 'R',

@@ -422,6 +422,27 @@ class consent {
     }
 
     /**
+     * Forgets the links and the open codes of plugins that were uninstalled: a link can outlive the plugin it was made for.
+     * A plugin whose folder is missing but that is still installed keeps them, as in the middle of an upgrade. The numbers
+     * and chats keep their consent.
+     *
+     * @return int How many links were forgotten.
+     */
+    public static function forget_uninstalled(): int {
+        global $DB;
+        $forgotten = 0;
+        foreach ($DB->get_fieldset_sql('SELECT DISTINCT component FROM {' . self::LINKS . '}') as $component) {
+            [$type] = \core_component::normalize_component((string)$component);
+            if ($type === 'core' || get_config((string)$component, 'version') !== false) {
+                continue;
+            }
+            $forgotten += $DB->count_records(self::LINKS, ['component' => $component]);
+            $DB->delete_records(self::LINKS, ['component' => $component]);
+        }
+        return $forgotten;
+    }
+
+    /**
      * Tells the plugins a contact is linked to that what it said no to changed.
      *
      * @param \stdClass $contact The contact.

@@ -1710,6 +1710,7 @@ $string['task:channelsky'] = 'Prepare the sky of the channel';
 $string['task:channelweather'] = 'Prepare the weather warnings of the channel';
 $string['task:chatsync'] = 'Bring the conversations of the team up to date with Chatwoot';
 $string['task:checkfamily'] = 'Check the numbers of the family records';
+$string['task:forgetuninstalled'] = 'Forget the links of plugins that were uninstalled';
 $string['task:sendqueue'] = 'Send the WhatsApp notices';
 $string['task:spendrefresh'] = 'Read what WhatsApp costs this month';
 $string['task:synctemplates'] = 'Send to Meta the new or changed templates, and ask how they are';

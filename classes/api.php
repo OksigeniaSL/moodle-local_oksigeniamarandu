@@ -540,7 +540,11 @@ class api {
      *
      * @param string $component The plugin that declares the notice.
      * @param string $notice The notice.
-     * @param string[] $params One value for each {{n}} of its text, in order; plain text.
+     * @param string[]|\Closure $params One value for each {{n}} of its text, in order; plain text. Or a function that takes
+     *                                 a language and gives them written in it, fn(string $lang): array, for the dates and
+     *                                 words of the values: Marandu calls it with the language of each person (the one they
+     *                                 chose on Telegram, else $lang, else that of the site), and the text and its values
+     *                                 go in the same.
      * @param \moodle_url|null $url Where its button goes, on this site.
      * @param int $itemid The item of the plugin, such as a family; 0 if the notice is for a user.
      * @param int|null $userid The user, if it is for a user: then every number linked to the user gets it.
@@ -554,14 +558,16 @@ class api {
      *                    it; outside them, the template, as always.
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @param string $lang The language to write it in, such as that of the family, if the site has its language pack (see
-     *                     language()); a person who chose a language on Telegram gets theirs. Empty for theirs or the site's.
+     *                     language()). With values given as they are, the whole notice goes in it, also to a person who
+     *                     chose another language on Telegram, because the values are in this one; with a function, it is
+     *                     only for those who chose none. Empty for theirs or the site's.
      * @param string $only Only by this channel (whatsapp or telegram); empty for every one the notice goes by.
      * @return int How many numbers it was queued for.
      */
     public static function notify(
         string $component,
         string $notice,
-        array $params,
+        array|\Closure $params,
         ?\moodle_url $url = null,
         int $itemid = 0,
         ?int $userid = null,
@@ -590,8 +596,9 @@ class api {
 
     /**
      * The language Marandu writes a notice in when a plugin asks for one: that one, if the site has its language pack, so
-     * that the plugin writes the values of the notice (dates, names) in the same; or else the language of the site. A
-     * person who chose a language on Telegram gets theirs, whatever the plugin asks.
+     * that the plugin writes the values of the notice (dates, names) in the same; or else the language of the site. For a
+     * person who chose a language on Telegram to get theirs, the plugin gives its values as a function of the language
+     * (see notify()).
      *
      * @param string $lang The language asked for, as Moodle writes it (es, pt_br, ar).
      * @return string
@@ -613,7 +620,8 @@ class api {
      *
      * @param string $component The plugin that declares the question.
      * @param string $notice The question.
-     * @param string[] $params One value for each {{n}} of its text, in order; plain text.
+     * @param string[]|\Closure $params One value for each {{n}} of its text, in order; plain text. Or a function of the
+     *                                 language that gives them, as notify() takes it.
      * @param string $ref What the plugin needs to know the question again when it is answered, up to 64 characters.
      * @param int $itemid The item of the plugin, such as an adult of the family records; 0 if it is for a user.
      * @param int|null $userid The user, if it is for a user.
@@ -623,20 +631,22 @@ class api {
      *                     comes back with it.
      * @param bool $urgent Whether it goes at once, in the quiet hours and over the notices a day too, such as asking a person
      *                     whether a login is theirs.
+     * @param string $lang The language to write it in, as notify() takes it.
      * @return int How many numbers and chats it was queued for.
      * @throws \coding_exception If the notice is not a question or the reference is not valid.
      */
     public static function ask(
         string $component,
         string $notice,
-        array $params,
+        array|\Closure $params,
         string $ref,
         int $itemid = 0,
         ?int $userid = null,
         ?\moodle_url $url = null,
         int $validfor = 2 * DAYSECS,
         string $area = '',
-        bool $urgent = false
+        bool $urgent = false,
+        string $lang = ''
     ): int {
         [$declared, $params] = self::prepare($component, $notice, $params);
         $area = self::area($area);
@@ -646,23 +656,19 @@ class api {
         if ($ref === '' || \core_text::strlen($ref) > 64) {
             throw new \coding_exception('The reference of a question has from 1 to 64 characters');
         }
-        $contactids = self::by_channels(self::joined($component, $itemid, $userid, $area, $declared->ownjoin), $declared);
-        foreach ($contactids as $contactid) {
-            queue::add(
-                (int)$contactid,
-                $declared,
-                $params,
-                $url ? $url->out(false) : null,
-                $urgent,
-                $validfor,
-                null,
-                [],
-                $ref,
-                $userid === null ? $itemid : 0,
-                $userid === null ? $area : ''
-            );
-        }
-        return count($contactids);
+        return self::queue_for(
+            self::joined($component, $itemid, $userid, $area, $declared->ownjoin),
+            $declared,
+            $params,
+            $url,
+            $urgent,
+            $validfor,
+            [],
+            $lang,
+            $userid === null ? $itemid : 0,
+            $userid === null ? $area : '',
+            $ref
+        );
     }
 
     /**
@@ -1056,7 +1062,8 @@ class api {
      *
      * @param string $component The plugin that declares the notice.
      * @param string $notice The notice.
-     * @param string[] $params One value for each {{n}} of its text, in order; plain text.
+     * @param string[]|\Closure $params One value for each {{n}} of its text, in order; plain text. Or a function of the
+     *                                 language that gives them, as notify() takes it.
      * @param \moodle_url|null $url Where its button goes, on this site.
      * @param int $childuserid The student.
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
@@ -1064,13 +1071,13 @@ class api {
      * @param array $rich A card on Telegram instead of its text: any of title, image (a URL of this site with a PNG or a
      *                    JPEG), lines, text and style of the button (primary, danger or success), as local\\rich::clean()
      *                    says. If Telegram refuses it, the text goes. WhatsApp ignores it and goes with its template.
-     * @param string $lang The language to write it in, if the site has it (see language()).
+     * @param string $lang The language to write it in, if the site has it, as notify() takes it.
      * @return int How many numbers it was queued for.
      */
     public static function notify_child(
         string $component,
         string $notice,
-        array $params,
+        array|\Closure $params,
         ?\moodle_url $url,
         int $childuserid,
         bool $urgent = false,
@@ -1115,6 +1122,162 @@ class api {
         $count = $DB->count_records_select(consent::LINKS, $where, $params);
         $DB->delete_records_select(consent::LINKS, $where, $params);
         return $count;
+    }
+
+    /**
+     * Closes the codes of an item of a plugin, or of a user, that nobody has written yet, such as those of a card that was
+     * printed again: they stop working. What already joined with them stays; to stop it too, unlink().
+     *
+     * @param string $component The plugin.
+     * @param int $itemid Its item; 0 if the codes are only for a user.
+     * @param int|null $userid The user, if the codes are for one.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
+     * @return int How many codes were closed.
+     */
+    public static function close_codes(string $component, int $itemid = 0, ?int $userid = null, string $area = ''): int {
+        global $DB;
+        $params = ['component' => $component, 'area' => self::area($area), 'itemid' => $itemid];
+        $where = 'component = :component AND area = :area AND itemid = :itemid AND contactid IS NULL AND '
+            . ($userid === null ? 'userid IS NULL' : 'userid = :userid');
+        if ($userid !== null) {
+            $params['userid'] = $userid;
+        }
+        $count = $DB->count_records_select(consent::LINKS, $where, $params);
+        $DB->delete_records_select(consent::LINKS, $where, $params);
+        return $count;
+    }
+
+    /**
+     * An adult who leaves the family records: the numbers and chats that stand for that adult there, and for no other
+     * adult of the records, stop getting the notices of items of a plugin, such as the card of a family that a parent
+     * no longer belongs to. A number shared with another adult who stays keeps them. A chat of Telegram that joined only
+     * with a code of the plugin does not stand for any adult: for it, a new code (unlink() and invite()).
+     *
+     * Call it from an observer of \local_oksigeniafamily\event\adult_removed: Marandu forgets the adult after the
+     * observers of the other plugins, so that there it still knows who the adult was.
+     *
+     * @param string $component The plugin.
+     * @param int $adultid The adult of the family records.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
+     * @param int[]|null $itemids Only these items, such as those of the family the adult leaves; null for all of them.
+     * @return int How many links were dropped.
+     */
+    public static function unlink_adult(string $component, int $adultid, string $area = '', ?array $itemids = null): int {
+        global $DB;
+        $area = self::area($area);
+        if ($itemids === []) {
+            return 0;
+        }
+        $contactids = $DB->get_fieldset_sql(
+            "SELECT DISTINCT l.contactid
+               FROM {" . consent::LINKS . "} l
+              WHERE l.component = :family AND l.itemid = :adultid AND l.contactid IS NOT NULL
+                    AND NOT EXISTS (SELECT 1
+                                      FROM {" . consent::LINKS . "} o
+                                     WHERE o.contactid = l.contactid AND o.component = :family2 AND o.itemid <> :adultid2)",
+            ['family' => family::COMPONENT, 'adultid' => $adultid, 'family2' => family::COMPONENT, 'adultid2' => $adultid]
+        );
+        if (!$contactids) {
+            return 0;
+        }
+        [$insql, $params] = $DB->get_in_or_equal(array_map('intval', $contactids), SQL_PARAMS_NAMED, 'c');
+        $where = "component = :component AND area = :area AND userid IS NULL AND contactid $insql";
+        $params += ['component' => $component, 'area' => $area];
+        if ($itemids !== null) {
+            [$initems, $itemparams] = $DB->get_in_or_equal(array_map('intval', $itemids), SQL_PARAMS_NAMED, 'i');
+            $where .= " AND itemid $initems";
+            $params += $itemparams;
+        }
+        $count = $DB->count_records_select(consent::LINKS, $where, $params);
+        $DB->delete_records_select(consent::LINKS, $where, $params);
+        return $count;
+    }
+
+    /**
+     * Which accounts and adults of the family records already get the notices of items of a plugin on their phone: the
+     * same active number or chat stands for the item and for them, through their account or their record. For instance,
+     * not to send by email to an adult what already reaches their phone.
+     *
+     * @param string $component The plugin.
+     * @param int[] $itemids Its items.
+     * @param int[] $userids The accounts to look for.
+     * @param int[] $adultids The adults of the family records to look for.
+     * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
+     * @return array Item id => ['users' => user ids, 'adults' => adult ids], only for the items with any of them.
+     */
+    public static function same_contact(
+        string $component,
+        array $itemids,
+        array $userids = [],
+        array $adultids = [],
+        string $area = ''
+    ): array {
+        global $DB;
+        $area = self::area($area);
+        $itemids = array_values(array_unique(array_map('intval', $itemids)));
+        $userids = array_flip(array_map('intval', $userids));
+        $adultids = array_flip(array_map('intval', $adultids));
+        if (!$itemids || (!$userids && !$adultids)) {
+            return [];
+        }
+        // The active numbers and chats of each item.
+        $byitem = [];
+        foreach (array_chunk($itemids, 1000) as $chunk) {
+            [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'i');
+            $rows = $DB->get_recordset_sql(
+                "SELECT l.id, l.itemid, l.contactid
+                   FROM {" . consent::LINKS . "} l
+                   JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid AND c.status = :active
+                  WHERE l.component = :component AND l.area = :area AND l.userid IS NULL AND l.itemid $insql",
+                $params + ['active' => 'active', 'component' => $component, 'area' => $area]
+            );
+            foreach ($rows as $row) {
+                $byitem[(int)$row->itemid][(int)$row->contactid] = true;
+            }
+            $rows->close();
+        }
+        if (!$byitem) {
+            return [];
+        }
+        // Whom each of those numbers and chats stands for: accounts, and adults of the family records.
+        $contactids = [];
+        foreach ($byitem as $theirs) {
+            $contactids += $theirs;
+        }
+        $users = [];
+        $adults = [];
+        foreach (array_chunk(array_keys($contactids), 1000) as $chunk) {
+            [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'c');
+            $rows = $DB->get_recordset_sql(
+                "SELECT id, contactid, userid, component, itemid
+                   FROM {" . consent::LINKS . "}
+                  WHERE contactid $insql AND (userid IS NOT NULL OR component = :family)",
+                $params + ['family' => family::COMPONENT]
+            );
+            foreach ($rows as $row) {
+                if ((int)$row->userid > 0 && isset($userids[(int)$row->userid])) {
+                    $users[(int)$row->contactid][(int)$row->userid] = (int)$row->userid;
+                }
+                if ($row->component === family::COMPONENT && isset($adultids[(int)$row->itemid])) {
+                    $adults[(int)$row->contactid][(int)$row->itemid] = (int)$row->itemid;
+                }
+            }
+            $rows->close();
+        }
+        $same = [];
+        foreach ($byitem as $itemid => $theirs) {
+            $found = ['users' => [], 'adults' => []];
+            foreach (array_keys($theirs) as $contactid) {
+                $found['users'] += $users[$contactid] ?? [];
+                $found['adults'] += $adults[$contactid] ?? [];
+            }
+            if ($found['users'] || $found['adults']) {
+                sort($found['users']);
+                sort($found['adults']);
+                $same[$itemid] = $found;
+            }
+        }
+        return $same;
     }
 
     /**
@@ -1253,23 +1416,36 @@ class api {
      *
      * @param string $component The plugin that declares the notice.
      * @param string $notice The notice.
-     * @param string[] $params Its values.
+     * @param string[]|\Closure $params Its values, or the function of the language that gives them (checked when called).
      * @return array The notice and the values.
      * @throws \coding_exception If the notice is not declared or takes another number of values.
      */
-    private static function prepare(string $component, string $notice, array $params): array {
+    private static function prepare(string $component, string $notice, array|\Closure $params): array {
         $declared = notices::get($component, $notice);
         if (!$declared) {
             throw new \coding_exception("The notice {$component}/{$notice} is not declared");
         }
-        if (count($params) !== count($declared->examples)) {
-            throw new \coding_exception("The notice {$component}/{$notice} takes " . count($declared->examples) . ' values');
+        return [$declared, $params instanceof \Closure ? $params : self::values($declared, $params)];
+    }
+
+    /**
+     * The values of a notice, as WhatsApp takes them.
+     *
+     * @param \stdClass $declared The notice.
+     * @param mixed $params Its values.
+     * @return string[]
+     * @throws \coding_exception If they are not as many as the notice takes.
+     */
+    private static function values(\stdClass $declared, mixed $params): array {
+        if (!is_array($params) || count($params) !== count($declared->examples)) {
+            throw new \coding_exception(
+                "The notice {$declared->component}/{$declared->notice} takes " . count($declared->examples) . ' values'
+            );
         }
         // WhatsApp refuses values with new lines, tabs or long runs of spaces.
-        $params = array_map(function ($value) {
+        return array_map(function ($value) {
             return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, 200);
         }, array_values($params));
-        return [$declared, $params];
     }
 
     /**
@@ -1326,7 +1502,7 @@ class api {
      *
      * @param int[] $contactids The contacts.
      * @param \stdClass $declared The notice.
-     * @param string[] $params Its values.
+     * @param string[]|\Closure $params Its values, or the function of the language that gives them.
      * @param \moodle_url|null $url Where its button goes.
      * @param bool $urgent Whether it goes out in the quiet hours and over the notices a day too.
      * @param int $validfor Seconds after which it is no longer worth sending.
@@ -1334,41 +1510,60 @@ class api {
      * @param string $lang The language its plugin asked for.
      * @param int $itemid The item of the plugin it goes to, to count its notices.
      * @param string $area The kind of that item.
+     * @param string|null $ref For a question, what the plugin needs to know it again when it is answered.
      * @return int How many.
      */
     private static function queue_for(
         array $contactids,
         \stdClass $declared,
-        array $params,
+        array|\Closure $params,
         ?\moodle_url $url,
         bool $urgent,
         int $validfor,
         array $rich,
         string $lang = '',
         int $itemid = 0,
-        string $area = ''
+        string $area = '',
+        ?string $ref = null
     ): int {
-        global $DB;
+        global $CFG, $DB;
         $rich = local\rich::clean($rich);
         // Only a language the site has: the texts of the notices are in its language packs.
         $lang = $lang !== '' && self::language($lang) === trim($lang) ? trim($lang) : '';
-        $contactids = self::by_channels($contactids, $declared);
-        foreach ($contactids as $contactid) {
+        $contactids = array_map('intval', self::by_channels($contactids, $declared));
+        // Each contact with the language of its notice and the values written in it. Values given as they are go in the
+        // language the plugin asked for (or that of the person or the site, if it asked for none); a function writes
+        // them in the language of each person: the one they chose, else the one asked for, else that of the site.
+        $rows = [];
+        if ($params instanceof \Closure && $contactids) {
+            $chosen = $DB->get_records_list(consent::CONTACTS, 'id', $contactids, '', 'id, lang');
+            $values = [];
+            foreach ($contactids as $contactid) {
+                $rowlang = (string)($chosen[$contactid]->lang ?? '') ?: ($lang ?: (string)$CFG->lang);
+                $values[$rowlang] = $values[$rowlang] ?? self::values($declared, ($params)($rowlang));
+                $rows[$contactid] = [$values[$rowlang], $rowlang];
+            }
+        } else {
+            foreach ($contactids as $contactid) {
+                $rows[$contactid] = [$params, $lang];
+            }
+        }
+        foreach ($rows as $contactid => [$rowparams, $rowlang]) {
             queue::add(
-                (int)$contactid,
+                $contactid,
                 $declared,
-                $params,
+                $rowparams,
                 $url ? $url->out(false) : null,
                 $urgent,
                 $validfor,
                 null,
                 $rich,
-                null,
+                $ref,
                 $itemid,
                 $area,
-                $lang
+                $rowlang
             );
         }
-        return count($contactids);
+        return count($rows);
     }
 }

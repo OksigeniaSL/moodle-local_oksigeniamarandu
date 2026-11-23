@@ -11,8 +11,22 @@
     var layer = null;
     var loading = null;
 
+    // A page that prints itself without the header of Moodle gives the texts and the site in
+    // <script type="application/json" id="marandu-proposal"> (api::proposal_assets()).
+    var printed = null;
+    function data() {
+        if (printed === null) {
+            var node = document.getElementById('marandu-proposal');
+            try {
+                printed = node ? JSON.parse(node.textContent) : {};
+            } catch (e) {
+                printed = {};
+            }
+        }
+        return printed;
+    }
     function str(key) {
-        var s = root.MaranduProposalStrings || {};
+        var s = root.MaranduProposalStrings || data().strings || {};
         return s[key] || key;
     }
     function el(tag, cls, text) {
@@ -26,7 +40,7 @@
         return e;
     }
     function cfg() {
-        return root.M && root.M.cfg ? root.M.cfg : { wwwroot: '', sesskey: '' };
+        return root.M && root.M.cfg && root.M.cfg.sesskey ? root.M.cfg : data().config || { wwwroot: '', sesskey: '' };
     }
 
     // html2canvas, once. On a page of Moodle it goes through RequireJS, as the anonymous module its wrapper declares

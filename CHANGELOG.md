@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.61.2 (2026-11-23)
+
+- «Propose an improvement» on a page that prints itself without the header of Moodle, with a policy of content that
+  allows no scripts in the page: `api::proposal_assets()` gives the script and the styles to link (`proposal/proposal.css`,
+  with plain buttons for a page without Bootstrap) and the data to print inside
+  `<script type="application/json" id="marandu-proposal">`, which the script reads: its texts, the site and the key of
+  the session.
+- The guide «Attend» with «Propose an answer», «Propose an improvement» and the waiting after an approved message
+  (21 pages).
+
 ## 0.61.1 (2026-11-23)
 
 - The same as 0.61.0, with the description of a parameter that was missing, and html2canvas left out of the search of

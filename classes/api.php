@@ -1292,26 +1292,48 @@ class api {
     public static function proposal_js(): bool {
         global $PAGE;
         static $loaded = false;
-        if (!isloggedin() || isguestuser() || !has_capability('local/oksigeniamarandu:propose', \context_system::instance())) {
+        $assets = self::proposal_assets();
+        if (!$assets) {
             return false;
         }
         if ($loaded) {
             return true;
         }
         $loaded = true;
+        $PAGE->requires->js_init_code('window.MaranduProposalStrings = ' . json_encode($assets['strings'], JSON_HEX_TAG | JSON_HEX_AMP) . ';');
+        $PAGE->requires->js(new \moodle_url($assets['js']));
+        return true;
+    }
+
+    /**
+     * What «Propose an improvement» needs, for a page that prints itself without the header of Moodle (and perhaps with a
+     * policy of content that allows no scripts in the page): the script and the styles to link, and the data to print
+     * as is inside <script type="application/json" id="marandu-proposal">…</script>, which proposal.js reads (the texts,
+     * the address of the site and the key of the session). Then any element with data-marandu-proposal opens it.
+     *
+     * @return array|null js and css (addresses), strings, config (wwwroot, sesskey) and data (the JSON to print); null for
+     *                    an account that may not propose.
+     */
+    public static function proposal_assets(): ?array {
+        global $CFG;
+        if (!isloggedin() || isguestuser() || !has_capability('local/oksigeniamarandu:propose', \context_system::instance())) {
+            return null;
+        }
         $strings = [];
-        foreach (
-            ['title', 'taking', 'mark', 'nopicture', 'what', 'whathint', 'clear', 'cancel', 'send', 'sending', 'needtext',
-                'thanks', 'thankshelp', 'close', 'failed'] as $key
-        ) {
+        $keys = ['title', 'taking', 'mark', 'nopicture', 'what', 'whathint', 'clear', 'cancel', 'send', 'sending', 'needtext',
+            'thanks', 'thankshelp', 'close', 'failed'];
+        foreach ($keys as $key) {
             $strings[$key] = get_string('proposal:js:' . $key, 'local_oksigeniamarandu');
         }
-        $PAGE->requires->js_init_code('window.MaranduProposalStrings = ' . json_encode($strings, JSON_HEX_TAG | JSON_HEX_AMP) . ';');
-        $PAGE->requires->js(new \moodle_url(
-            '/local/oksigeniamarandu/proposal/proposal.js',
-            ['v' => (string)get_config('local_oksigeniamarandu', 'version')]
-        ));
-        return true;
+        $version = ['v' => (string)get_config('local_oksigeniamarandu', 'version')];
+        $config = ['wwwroot' => $CFG->wwwroot, 'sesskey' => sesskey()];
+        return [
+            'js' => (new \moodle_url('/local/oksigeniamarandu/proposal/proposal.js', $version))->out(false),
+            'css' => (new \moodle_url('/local/oksigeniamarandu/proposal/proposal.css', $version))->out(false),
+            'strings' => $strings,
+            'config' => $config,
+            'data' => json_encode(['strings' => $strings, 'config' => $config], JSON_HEX_TAG | JSON_HEX_AMP),
+        ];
     }
 
     /**

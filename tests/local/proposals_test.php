@@ -170,6 +170,25 @@ final class proposals_test extends \advanced_testcase {
     }
 
     /**
+     * For a page that prints itself without the header of Moodle: the script and the styles to link, and the data to
+     * print (texts, site and key of the session); nothing for a guest.
+     */
+    public function test_assets(): void {
+        global $CFG;
+        $this->resetAfterTest();
+        $this->setUser($this->getDataGenerator()->create_user());
+        $assets = api::proposal_assets();
+        $this->assertStringContainsString('/local/oksigeniamarandu/proposal/proposal.js?v=', $assets['js']);
+        $this->assertStringContainsString('/local/oksigeniamarandu/proposal/proposal.css?v=', $assets['css']);
+        $data = json_decode($assets['data'], true);
+        $this->assertSame([$CFG->wwwroot, sesskey()], [$data['config']['wwwroot'], $data['config']['sesskey']]);
+        $this->assertSame(get_string('proposal:js:title', 'local_oksigeniamarandu'), $data['strings']['title']);
+        $this->assertStringNotContainsString('</', $assets['data']);
+        $this->setGuestUser();
+        $this->assertNull(api::proposal_assets());
+    }
+
+    /**
      * With a provider of text generation (OpenAI, answering from a fixture): the proposal in a line and its tool.
      */
     public function test_summarise(): void {

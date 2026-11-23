@@ -7441,6 +7441,11 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
 
 /* «Propose an improvement» (proposal/proposal.js): the layer over any page of the site, with the picture of the screen
    to mark on and what the person would change. */
+.mrdp-capa,
+.mrdp-capa * {
+    box-sizing: border-box;
+}
+
 .mrdp-capa {
     position: fixed;
     inset: 0;

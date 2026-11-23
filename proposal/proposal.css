@@ -1,0 +1,160 @@
+/* «Propose an improvement» on a page that prints itself without the header of Moodle (api::proposal_assets()): the same
+   rules as in styles.css, which Moodle pages already have, and plain buttons for a page without Bootstrap. */
+.mrdp-capa,
+.mrdp-capa * {
+    box-sizing: border-box;
+}
+
+.mrdp-capa {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 32, 0.55);
+}
+
+.mrdp-hoja {
+    width: 100%;
+    max-width: 980px;
+    max-height: 100%;
+    overflow: auto;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem;
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-body-color, #1d2125);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+}
+
+.mrdp-cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mrdp-cab h2,
+.mrdp-gracias {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.mrdp-cerrar {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+.mrdp-pista,
+.mrdp-espera {
+    margin: 0.5rem 0 0.75rem;
+    color: var(--bs-secondary-color, #5f6b76);
+}
+
+.mrdp-escena {
+    position: relative;
+    margin: 0 auto 1rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.mrdp-foto {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.mrdp-marcas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.mrdp-etiqueta {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-weight: 600;
+}
+
+.mrdp-texto {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    background: var(--bs-body-bg, #fff);
+    color: inherit;
+    font: inherit;
+}
+
+.mrdp-pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+}
+
+.mrdp-pie .btn {
+    min-height: 2.75rem;
+}
+
+.mrdp-borrar {
+    margin-inline-end: auto;
+}
+
+.mrdp-estado {
+    flex: 1 1 12rem;
+    margin: 0;
+    color: var(--bs-secondary-color, #5f6b76);
+}
+
+.mrdp-enviando .mrdp-hoja {
+    cursor: progress;
+}
+
+.mrdp-capa .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mrdp-capa .btn-primary {
+    background: #0f6cbf;
+    color: #fff;
+}
+
+.mrdp-capa .btn-secondary {
+    background: #ced4da;
+    color: #1d2125;
+}
+
+.mrdp-capa .btn-outline-secondary {
+    border-color: #6a737b;
+    background: transparent;
+    color: inherit;
+}
+
+.mrdp-capa .btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}

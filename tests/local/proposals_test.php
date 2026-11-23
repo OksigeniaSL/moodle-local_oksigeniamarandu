@@ -54,11 +54,19 @@ final class proposals_test extends \advanced_testcase {
         global $DB;
         $this->resetAfterTest();
         $user = $this->getDataGenerator()->create_user();
-        $id = proposals::save((int)$user->id, 'local_oksigeniamarandu', 'chat', 'https://example.org/local/oksigeniamarandu/chat.php',
-            "  Que se vea la semana entera.\r\n ", 'data:image/jpeg;base64,' . $this->jpeg());
+        $id = proposals::save(
+            (int)$user->id,
+            'local_oksigeniamarandu',
+            'chat',
+            'https://example.org/local/oksigeniamarandu/chat.php',
+            "  Que se vea la semana entera.\r\n ",
+            'data:image/jpeg;base64,' . $this->jpeg()
+        );
         $record = $DB->get_record(proposals::TABLE, ['id' => $id]);
-        $this->assertSame(['new', 'Que se vea la semana entera.', 'chat', proposals::release('local_oksigeniamarandu')],
-            [$record->status, $record->body, $record->screen, $record->toolrelease]);
+        $this->assertSame(
+            ['new', 'Que se vea la semana entera.', 'chat', proposals::release('local_oksigeniamarandu')],
+            [$record->status, $record->body, $record->screen, $record->toolrelease]
+        );
         $this->assertSame('captura.jpg', proposals::image_file($id)->get_filename());
         $this->assertStringContainsString('/local_oksigeniamarandu/proposal/' . $id . '/captura.jpg', proposals::image_url($id)->out());
         $this->assertCount(1, \core\task\manager::get_adhoc_tasks('\local_oksigeniamarandu\task\proposal_received'));
@@ -120,8 +128,10 @@ final class proposals_test extends \advanced_testcase {
         $id = proposals::save((int)$author->id, 'local_oksigeniamarandu', 'chat', 'https://example.org/x', 'Más grande', $this->jpeg());
         $dir = make_request_directory();
         [$one] = array_map(fn($record) => proposals::export($record, $dir), proposals::list());
-        $this->assertSame([$id, 'Ana Ejemplo', 'local_oksigeniamarandu', 'chat', 'https://example.org/x', 'Más grande', 'new'],
-            [$one['id'], $one['who'], $one['tool'], $one['screen'], $one['url'], $one['text'], $one['status']]);
+        $this->assertSame(
+            [$id, 'Ana Ejemplo', 'local_oksigeniamarandu', 'chat', 'https://example.org/x', 'Más grande', 'new'],
+            [$one['id'], $one['who'], $one['tool'], $one['screen'], $one['url'], $one['text'], $one['status']]
+        );
         $this->assertFileExists($one['picture']);
         $this->assertSame($dir . '/propuesta-' . $id . '.jpg', $one['picture']);
 

@@ -532,6 +532,17 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122900, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122901) {
+        // The approved message each message sent from the conversations was: Chatwoot does not keep it, and the page needs
+        // it to know that the family has to answer before the team can write freely.
+        $table = new xmldb_table('local_oksigeniamarandu_convmsg');
+        $field = new xmldb_field('template', XMLDB_TYPE_CHAR, '100', null, null, null, null, 'callresult');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026122901, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

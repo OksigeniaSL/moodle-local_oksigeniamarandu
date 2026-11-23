@@ -300,6 +300,7 @@
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="callresult" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="A call of the team written down as a note: answered or missed"/>
+        <FIELD NAME="template" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="The approved message it was, by its name in Meta: Chatwoot does not keep it"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

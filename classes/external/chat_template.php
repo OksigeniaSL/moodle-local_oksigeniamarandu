@@ -87,7 +87,7 @@ class chat_template extends chat_base {
             }
             return $sent;
         });
-        message::remember((int)($sent['id'] ?? 0), (int)$row->cwid, $viewer->userid);
+        message::remember((int)($sent['id'] ?? 0), (int)$row->cwid, $viewer->userid, '', (string)$template['name']);
         $row = mirror::refresh((int)$row->cwid) ?? $row;
         return [
             'message' => message::export($sent, $viewer, [(int)($sent['id'] ?? 0) => $viewer->userid]),

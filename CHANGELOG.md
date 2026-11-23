@@ -20,6 +20,10 @@
   them.
 - The review of a post of the channel says the hours of the small hours it has (from 0:00 to 5:59), such as an event
   of a calendar saved at 00:30 by mistake.
+- After an approved message sent from the conversations, the page waits for the family again when it is read later:
+  Chatwoot does not keep which approved message it was, and the page offered another one as if nothing had been sent
+  (a conversation taken up again with an approved message, and then no way on). Moodle keeps it now (field `template`
+  of `local_oksigeniamarandu_convmsg`). The waiting says that, meanwhile, only another approved message fits.
 ## 0.60.1 (2026-11-23)
 
 - The same as 0.60.0. The check of GitHub of the version could not put back its copy of the plugin over the

@@ -1300,8 +1300,10 @@ class api {
         }
         $loaded = true;
         $strings = [];
-        foreach (['title', 'taking', 'mark', 'nopicture', 'what', 'whathint', 'clear', 'cancel', 'send', 'sending', 'needtext',
-                'thanks', 'thankshelp', 'close', 'failed'] as $key) {
+        foreach (
+            ['title', 'taking', 'mark', 'nopicture', 'what', 'whathint', 'clear', 'cancel', 'send', 'sending', 'needtext',
+                'thanks', 'thankshelp', 'close', 'failed'] as $key
+        ) {
             $strings[$key] = get_string('proposal:js:' . $key, 'local_oksigeniamarandu');
         }
         $PAGE->requires->js_init_code('window.MaranduProposalStrings = ' . json_encode($strings, JSON_HEX_TAG | JSON_HEX_AMP) . ';');

@@ -371,7 +371,7 @@ class starter {
         $id = (int)($made['id'] ?? 0);
         $messageid = (int)($made['last_non_activity_message']['id'] ?? $made['messages'][0]['id'] ?? 0);
         if ($messageid) {
-            message::remember($messageid, $id, $viewer->userid);
+            message::remember($messageid, $id, $viewer->userid, '', (string)($template['name'] ?? ''));
         }
         $row = mirror::refresh($id);
         if (!$row) {

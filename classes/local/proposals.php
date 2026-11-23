@@ -342,8 +342,14 @@ class proposals {
      */
     public static function list(string $status = 'new', int $limit = 0): array {
         global $DB;
-        return array_values($DB->get_records(self::TABLE, $status !== '' ? ['status' => $status] : [], 'timecreated DESC, id DESC',
-            '*', 0, $limit));
+        return array_values($DB->get_records(
+            self::TABLE,
+            $status !== '' ? ['status' => $status] : [],
+            'timecreated DESC, id DESC',
+            '*',
+            0,
+            $limit
+        ));
     }
 
     /**

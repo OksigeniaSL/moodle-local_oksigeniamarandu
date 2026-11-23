@@ -445,6 +445,25 @@ final class chat_test extends \advanced_testcase {
     }
 
     /**
+     * An approved message sent from Moodle is still one when the conversation is read again: Chatwoot does not keep its
+     * name, and without it the page offered another approved message instead of waiting for the family.
+     */
+    public function test_template_kept(): void {
+        $user = $this->person('ana@example.com', 'Ana');
+        $viewer = viewer::for_user($user);
+        message::remember(70, 1, (int)$user->id, '', 'chat_info_pedida');
+        message::remember(71, 1, (int)$user->id);
+        $list = message::export_list([
+            ['id' => 70, 'message_type' => 1, 'content' => 'Hola, Omar. Les escribimos…', 'created_at' => 100,
+                'sender' => ['type' => 'user', 'id' => 2]],
+            ['id' => 71, 'message_type' => 1, 'content' => 'Otro', 'created_at' => 101, 'sender' => ['type' => 'user', 'id' => 2]],
+            ['id' => 72, 'message_type' => 1, 'content' => 'De Chatwoot', 'created_at' => 102, 'sender' => ['type' => 'user', 'id' => 2],
+                'additional_attributes' => ['template_params' => ['name' => 'chat_retomar']]],
+        ], $viewer);
+        $this->assertSame(['chat_info_pedida', '', 'chat_retomar'], array_column($list, 'template'));
+    }
+
+    /**
      * The approved messages are those of the inbox that are approved and not of a notice.
      */
     public function test_templates(): void {

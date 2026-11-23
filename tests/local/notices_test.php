@@ -117,8 +117,12 @@ final class notices_test extends \advanced_testcase {
         notices::declare_for_tests(['local_example' => ['menu_changed' => ['examples' => ['Ana']]]]);
         $this->assertSame([], notices::enabled('whatsapp'));
         $this->assertFalse(notices::chosen('whatsapp'));
-        // Only Marandu's own notice of the messages of the team, which follows that of the conversations, is written down.
-        $this->assertSame('local_oksigeniamarandu/team', get_config('local_oksigeniamarandu', 'followednotices'));
+        // Only Marandu's own notices that follow that of the conversations (the messages of the team and the proposals of
+        // improvement) are written down.
+        $this->assertSame(
+            'local_oksigeniamarandu/proposal,local_oksigeniamarandu/team',
+            get_config('local_oksigeniamarandu', 'followednotices')
+        );
 
         // One that follows a notice that is off is just written down.
         notices::declare_for_tests(self::DECLARED);

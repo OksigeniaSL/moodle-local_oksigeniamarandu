@@ -105,9 +105,16 @@ class message {
      * @param viewer $viewer Who looks.
      * @param array $authors Who wrote each message from Moodle, by its id: the id of the user.
      * @param array $calls The notes of a call written from Moodle, by its id: answered or missed.
+     * @param array $templates The approved messages sent from Moodle, by its id: the name of its template.
      * @return array As the contract of the page says.
      */
-    public static function export(array $message, viewer $viewer, array $authors = [], array $calls = []): array {
+    public static function export(
+        array $message,
+        viewer $viewer,
+        array $authors = [],
+        array $calls = [],
+        array $templates = []
+    ): array {
         $kind = self::kind($message);
         $text = (string)($message['content'] ?? '');
         $id = (int)($message['id'] ?? 0);
@@ -145,7 +152,8 @@ class message {
                 'size' => (int)($attachment['file_size'] ?? 0),
             ];
         }
-        $template = (string)($message['additional_attributes']['template_params']['name'] ?? '');
+        $template = (string)($message['additional_attributes']['template_params']['name'] ?? '')
+            ?: (string)($templates[(int)($message['id'] ?? 0)] ?? '');
         $status = (string)($message['status'] ?? '');
         $error = (string)($message['content_attributes']['external_error'] ?? '');
         return [
@@ -246,10 +254,11 @@ class message {
     public static function export_list(array $raw, viewer $viewer): array {
         $authors = self::authors(array_column($raw, 'id'));
         $calls = self::calls(array_column($raw, 'id'));
+        $templates = self::templates(array_column($raw, 'id'));
         $list = [];
         $last = ['', 0, ''];
         foreach ($raw as $one) {
-            $message = self::export($one, $viewer, $authors, $calls);
+            $message = self::export($one, $viewer, $authors, $calls, $templates);
             if ($message['kind'] === 'activity') {
                 [$message['text'], $what] = self::activity($message['text']);
                 $by = $message['text'];
@@ -410,11 +419,34 @@ class message {
      * @param int $userid Who wrote it.
      * @param string $call For a call written down: answered or missed.
      */
-    public static function remember(int $messageid, int $conversationid, int $userid, string $call = ''): void {
+    public static function remember(
+        int $messageid,
+        int $conversationid,
+        int $userid,
+        string $call = '',
+        string $template = ''
+    ): void {
         global $DB;
         if ($messageid && !$DB->record_exists(self::TABLE, ['cwmsgid' => $messageid])) {
             $DB->insert_record(self::TABLE, (object)['cwmsgid' => $messageid, 'convid' => $conversationid,
-                'userid' => $userid, 'timecreated' => time(), 'callresult' => in_array($call, self::CALLS, true) ? $call : null]);
+                'userid' => $userid, 'timecreated' => time(), 'callresult' => in_array($call, self::CALLS, true) ? $call : null,
+                'template' => $template !== '' ? \core_text::substr($template, 0, 100) : null]);
         }
+    }
+
+    /**
+     * Which of these messages were approved messages sent from Moodle, by their name: Chatwoot does not keep it.
+     *
+     * @param int[] $ids The ids of the messages.
+     * @return array By id of the message: the name of its template.
+     */
+    public static function templates(array $ids): array {
+        global $DB;
+        $ids = array_filter(array_map('intval', $ids));
+        if (!$ids) {
+            return [];
+        }
+        [$in, $params] = $DB->get_in_or_equal($ids);
+        return $DB->get_records_select_menu(self::TABLE, "cwmsgid $in AND template IS NOT NULL", $params, '', 'cwmsgid, template');
     }
 }

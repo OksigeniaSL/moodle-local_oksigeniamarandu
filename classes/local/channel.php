@@ -912,8 +912,11 @@ class channel {
      * @return string The line to add to the question, or empty.
      */
     public static function night_hours(array $content): string {
-        $text = implode("\n", array_map('strval', array_merge((array)($content['lines'] ?? []), (array)($content['text'] ?? []),
-            [(string)($content['title'] ?? '')])));
+        $text = implode("\n", array_map('strval', array_merge(
+            (array)($content['lines'] ?? []),
+            (array)($content['text'] ?? []),
+            [(string)($content['title'] ?? '')]
+        )));
         preg_match_all('/(?<![\d:])0?[0-5]:[0-5]\d(?!\d)/u', $text, $matches);
         $hours = array_values(array_unique($matches[0]));
         return $hours ? "\n\n" . get_string('channel:review:night', self::COMPONENT, implode(', ', $hours)) : '';

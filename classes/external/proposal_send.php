@@ -56,8 +56,13 @@ class proposal_send extends external_api {
      * @param string $image The picture.
      * @return array Its id.
      */
-    public static function execute(string $component, string $screen = '', string $url = '', string $text = '',
-            string $image = ''): array {
+    public static function execute(
+        string $component,
+        string $screen = '',
+        string $url = '',
+        string $text = '',
+        string $image = ''
+    ): array {
         global $USER;
         $params = self::validate_parameters(self::execute_parameters(), ['component' => $component, 'screen' => $screen,
             'url' => $url, 'text' => $text, 'image' => $image]);

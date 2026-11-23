@@ -3995,6 +3995,10 @@
     flex: 1 1 auto;
     width: auto;
 }
+/* «Propose an improvement», on its own line under the notices and the help. */
+#mrd-chat .mrd-rail-pie .mrd-rail-mejora {
+    flex-basis: 100%;
+}
 #mrd-chat .mrd-pop-ayuda {
     position: fixed;
     bottom: 120px;

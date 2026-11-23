@@ -202,7 +202,7 @@ class rich {
     private static function card_file(string $url): ?string {
         global $CFG;
         $rest = rawurldecode(substr($url, strlen($CFG->wwwroot)));
-        $pattern = '~^/pluginfile\.php(?:/|\?file=/)(\d+)/local_oksigeniamarandu/(card|classwork)/(\d+)/([^/?#&]+)~';
+        $pattern = '~^/pluginfile\.php(?:/|\?file=/)(\d+)/local_oksigeniamarandu/(card|classwork|proposal)/(\d+)/([^/?#&]+)~';
         if (!preg_match($pattern, $rest, $parts)) {
             return null;
         }

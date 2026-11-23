@@ -667,6 +667,11 @@ if ($current) {
     }
 }
 
+// «Propose an improvement» of this page, the piece the tools of the site share.
+$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
+    'local_oksigeniamarandu',
+    get_string('channel:title', 'local_oksigeniamarandu')
+));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/channel', $context);
 // The PNG copies of the logos drawn in SVG, for the cards: the browser of whoever administers makes them.

@@ -65,6 +65,15 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'uncapped' => true,
             'follows' => 'chat',
         ],
+        // A proposal of improvement of a tool, with the picture of its screen, to the people the site chose to receive them:
+        // only by Telegram; switched on wherever the notice of the conversations is.
+        'proposal' => [
+            'examples' => ['Oksigenia Meals: que se vea el menú de toda la semana de una vez'],
+            'perweek' => 0,
+            'channels' => ['telegram'],
+            'uncapped' => true,
+            'follows' => 'chat',
+        ],
         // A post of the channel of Telegram, for whoever publishes it in the channel of WhatsApp too: on WhatsApp, inside the
         // 24 hours, the post itself (its video or its image with its text) ready to forward, and this notice with the link
         // to its page after it; outside them, the template with its button; on Telegram, a card with the button. It
@@ -135,9 +144,19 @@ function local_oksigeniamarandu_oksigenia_work(int $userid): array {
  * @return bool False if it is not a card.
  */
 function local_oksigeniamarandu_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
-    $areas = [\local_oksigeniamarandu\local\cards::AREA, \local_oksigeniamarandu\local\classwork::AREA];
+    global $USER;
+    $areas = [\local_oksigeniamarandu\local\cards::AREA, \local_oksigeniamarandu\local\classwork::AREA,
+        \local_oksigeniamarandu\local\proposals::AREA];
     if ($context->contextlevel != CONTEXT_SYSTEM || !in_array($filearea, $areas, true) || count($args) < 2) {
         return false;
+    }
+    if ($filearea === \local_oksigeniamarandu\local\proposals::AREA) {
+        // The picture of a proposal: only for whoever reads them.
+        require_login();
+        if (!\local_oksigeniamarandu\local\proposals::can_read((int)$USER->id)) {
+            return false;
+        }
+        $options['cacheability'] = 'private';
     }
     $itemid = (int)array_shift($args);
     $file = get_file_storage()->get_file($context->id, 'local_oksigeniamarandu', $filearea, $itemid, '/', array_pop($args));

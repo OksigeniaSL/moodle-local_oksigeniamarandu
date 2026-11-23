@@ -237,6 +237,11 @@ require([], function() {
 JS
 );
 
+// «Propose an improvement» of this page, the piece the tools of the site share.
+$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
+    'local_oksigeniamarandu',
+    get_string('notices:title', 'local_oksigeniamarandu')
+));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/notices', $context);
 echo $OUTPUT->footer();

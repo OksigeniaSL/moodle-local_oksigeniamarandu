@@ -54,6 +54,11 @@ $PAGE->add_header_action($OUTPUT->render_from_template(
     ['links' => panel::links('limits')]
 ));
 
+// «Propose an improvement» of this page, the piece the tools of the site share.
+$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
+    'local_oksigeniamarandu',
+    get_string('limits:title', 'local_oksigeniamarandu')
+));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/limits', [
     'lead' => get_string($money ? 'limits:lead' : 'limits:lead_tg', $component),

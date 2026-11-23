@@ -68,4 +68,17 @@ $capabilities = [
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => ['manager' => CAP_ALLOW],
     ],
+    // Propose an improvement of a tool, with a picture of its screen: where a tool shows the button, to every account.
+    'local/oksigeniamarandu:propose' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => ['user' => CAP_ALLOW],
+    ],
+    // Read the proposals and close them, besides the people chosen to receive them.
+    'local/oksigeniamarandu:proposals' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => ['manager' => CAP_ALLOW],
+    ],
 ];

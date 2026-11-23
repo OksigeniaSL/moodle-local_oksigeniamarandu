@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.61.0 (2026-11-23)
+
+- «Propose an improvement», a piece every tool of the site can use: a button opens a layer with a picture of what the
+  person sees of the page, drawn in the browser (nothing outside the page), where they mark with a finger or the mouse
+  what they would change and say how. It is kept in the site with who, when, the tool and its version, the screen and
+  its address (table `local_oksigeniamarandu_proposal`, the picture in the file area `proposal`, only for whoever
+  reads them). The text generation of the site, if there is one, puts it in a line and says which tool it is about;
+  the people the site chose hear of it by Telegram with the picture (notice «Proposals of improvement», following that
+  of the conversations). They read and close them on their own page (`proposals.php`), or from the command line:
+  `cli/proposals.php --pending --json --files=DIR`, `--done=ID --note="…"` and `--people=` to choose who receives
+  them. A tool puts the button with `api::proposal_button($component, $screen)`, or loads the piece with
+  `api::proposal_js()` and marks any element with `data-marandu-proposal="<component>"` and `data-screen`. In the
+  conversations it is at the foot of the rail, and on the pages of Marandu, by «The panel». The drawing of the page is
+  html2canvas 1.4.1 (MIT), loaded only when someone asks for it.
+- The rule of marketing keeps the exceptions of the organisation: a notice switched on by hand for WhatsApp while Meta
+  counts it as marketing stays on, also when its template moves or goes to Meta again; switched off by hand, it is no
+  exception any more. The update keeps as exceptions those on now while in marketing. `cli/setup.php --status` says
+  them.
+- The review of a post of the channel says the hours of the small hours it has (from 0:00 to 5:59), such as an event
+  of a calendar saved at 00:30 by mistake.
+
 ## 0.60.0 (2026-11-23)
 
 - «Propose an answer» in the conversations of the team: a button beside the saved answers writes a draft of the answer

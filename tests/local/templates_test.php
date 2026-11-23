@@ -179,6 +179,16 @@ final class templates_test extends \advanced_testcase {
         $this->assertSame([], notices::marketing_off());
         templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING');
         $this->assertContains($key, notices::enabled('whatsapp'));
+        $this->assertArrayHasKey($key, notices::marketing_kept());
+        // Also when it moves again: before, a move switched it off once more.
+        templates::update_from_meta($name, 'en', 'APPROVED', 'UTILITY');
+        templates::update_from_meta($name, 'en', 'APPROVED', 'MARKETING');
+        $this->assertContains($key, notices::enabled('whatsapp'));
+        // Switched off by hand, it is no exception any more; on again by hand, it is.
+        notices::set($key, 'whatsapp', false);
+        $this->assertSame([], notices::marketing_kept());
+        notices::set($key, 'whatsapp', true);
+        $this->assertArrayHasKey($key, notices::marketing_kept());
 
         // An organisation that lets marketing go: nothing changes.
         set_config('marketingoff', 0, 'local_oksigeniamarandu');

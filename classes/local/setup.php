@@ -169,7 +169,8 @@ class setup {
         }
         $off = notices::marketing_off();
         $lines[] = 'Marketing by WhatsApp: ' . (get_config('local_oksigeniamarandu', 'marketingoff') ? 'not' : 'yes') .
-            ($off ? '; stopped when Meta moved them: ' . implode(', ', array_keys($off)) : '');
+            ($off ? '; stopped when Meta moved them: ' . implode(', ', array_keys($off)) : '') .
+            (notices::marketing_kept() ? '; kept on by hand: ' . implode(', ', array_keys(notices::marketing_kept())) : '');
         $lines[] = self::whatsapp_channel();
         return $lines;
     }

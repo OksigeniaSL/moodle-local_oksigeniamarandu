@@ -126,6 +126,8 @@ $config = [
     'sesskey' => sesskey(),
     'pollms' => 4000,
     'inapp' => core_useragent::is_moodle_app(),
+    // «Propose an improvement», the piece the tools of the site share, at the foot of the rail.
+    'proposal' => !core_useragent::is_moodle_app() && \local_oksigeniamarandu\api::proposal_js(),
     'me' => [
         'userid' => (int)$USER->id,
         'agentid' => (int)$viewer->agent['id'],

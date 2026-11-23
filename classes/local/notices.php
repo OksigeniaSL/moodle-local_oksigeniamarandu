@@ -414,13 +414,16 @@ class notices {
         if (!isset(self::SETTING[$channel]) || !isset(self::all()[$key]) || !self::allows(self::all()[$key], $channel)) {
             return;
         }
-        if ($channel === 'whatsapp' && $on) {
-            // Switched on by hand, a notice Meta counts as marketing is an exception the organisation wants: it stays.
+        if ($channel === 'whatsapp') {
+            // Switched on by hand, a notice Meta counts as marketing is an exception the organisation wants: it stays,
+            // also when its template goes to Meta again. Switched off by hand, it is no exception any more.
             $off = self::marketing_off();
-            if (isset($off[$key])) {
+            if ($on && isset($off[$key])) {
                 unset($off[$key]);
                 set_config('marketingoffnotices', json_encode($off), 'local_oksigeniamarandu');
             }
+            [$component, $notice] = explode('/', $key, 2);
+            self::keep($key, $on && templates::is_marketing($component, $notice));
         }
         self::turn($key, $channel, $on);
     }
@@ -452,6 +455,36 @@ class notices {
     }
 
     /**
+     * The notices someone switched on by hand for WhatsApp while Meta counted them as marketing: the exceptions of the
+     * organisation, which the rule of marketing never switches off again.
+     *
+     * @return int[] Since when, by "component/notice".
+     */
+    public static function marketing_kept(): array {
+        $kept = json_decode((string)get_config('local_oksigeniamarandu', 'marketingkeptnotices'), true);
+        return is_array($kept) ? array_map('intval', $kept) : [];
+    }
+
+    /**
+     * Keeps a notice as an exception of the rule of marketing, or forgets it.
+     *
+     * @param string $key "component/notice".
+     * @param bool $kept Whether it is one.
+     */
+    public static function keep(string $key, bool $kept): void {
+        $list = self::marketing_kept();
+        if ($kept === isset($list[$key])) {
+            return;
+        }
+        if ($kept) {
+            $list[$key] = time();
+        } else {
+            unset($list[$key]);
+        }
+        set_config('marketingkeptnotices', $list ? json_encode($list) : '', 'local_oksigeniamarandu');
+    }
+
+    /**
      * The template of a notice changed its category: one Meta counts as marketing stops going by WhatsApp, since it costs
      * several times a utility one and many of them add up (setting marketingoff; the other channels go on), and one that
      * stopped so goes again when a text of it comes back as utility. Whoever switches it on by hand keeps it.
@@ -465,6 +498,10 @@ class notices {
             return;
         }
         $key = $component . '/' . $notice;
+        if (isset(self::marketing_kept()[$key])) {
+            // An exception of the organisation: it goes on, whatever Meta says.
+            return;
+        }
         $marketing = templates::is_marketing($component, $notice);
         $off = self::marketing_off();
         if ($marketing && !isset($off[$key]) && in_array($key, self::keys(self::SETTING['whatsapp']), true)) {

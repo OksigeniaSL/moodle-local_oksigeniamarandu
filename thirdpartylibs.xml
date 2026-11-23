@@ -24,4 +24,15 @@
       <copyright>2016 The Nunito Sans Project Authors</copyright>
     </copyrights>
   </library>
+  <library>
+    <location>proposal/html2canvas.min.js</location>
+    <name>html2canvas</name>
+    <description>Draws in the browser a picture of what a person sees of a page, for «Propose an improvement»</description>
+    <version>1.4.1</version>
+    <license>MIT</license>
+    <repository>https://github.com/niklasvh/html2canvas</repository>
+    <copyrights>
+      <copyright>2012 Niklas von Hertzen</copyright>
+    </copyrights>
+  </library>
 </libraries>

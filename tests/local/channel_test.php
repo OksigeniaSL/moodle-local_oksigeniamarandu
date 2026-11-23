@@ -276,6 +276,16 @@ final class channel_test extends \advanced_testcase {
     }
 
     /**
+     * An hour of the small hours in a post is said to whoever reviews it; the hours of the day are not.
+     */
+    public function test_night_hours(): void {
+        $this->assertSame('', channel::night_hours(['lines' => ['Lunes 23, 09:00 · Excursión', 'Martes 24, 15:30 · Charla']]));
+        $line = channel::night_hours(['lines' => ['Lunes 23, 09:00 · Excursión', 'Martes 24, 00:30 · Pinocho', 'Jueves, 5:45 · Salida']]);
+        $this->assertSame("\n\n" . get_string('channel:review:night', 'local_oksigeniamarandu', '00:30, 5:45'), $line);
+        $this->assertSame('', channel::night_hours(['title' => 'Del 10:00 al 12:00', 'text' => ['Plaza 16:05']]));
+    }
+
+    /**
      * A post that changes while it waits for review: its old review goes before the new one, so that whoever reviews has
      * only the one of now; if Telegram does not let the bot delete it, the old question says the new one is below.
      */

@@ -89,6 +89,7 @@
         enviar: '<path d="M4 11.8L20 4.5l-5.8 15.5-2.9-6.3z"/><path d="M11.3 13.7L20 4.5"/>',
         guardadas: '<path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-3.8L6 21V4.5a1 1 0 0 1 1-1z"/><path d="M9.5 8h5M9.5 11.5h3.5"/>',
         proponer: '<path d="M4 17.5V20h2.5L17.8 8.7a1.8 1.8 0 0 0-2.5-2.5z"/><path d="M13.8 7.7l2.5 2.5"/><path d="M12 20h8"/>',
+        bombilla: '<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/>',
         arroba: '<circle cx="12" cy="12" r="3.8"/><path d="M15.8 8.5v4.4a2.6 2.6 0 0 0 5.2 0V12a9 9 0 1 0-3.6 7.2"/>',
         nota: '<path d="M5 4h14v10.5L13.5 20H5z"/><path d="M13.5 20v-5.5H19"/><path d="M8.5 8.5h7M8.5 12h4"/>',
         check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
@@ -1751,7 +1752,10 @@
                 esc(s('noticestitle')) + '</span></button>' : '') +
                 '<button type="button" class="mrd-rail-b" data-a="pop" data-v="ayuda" title="' + esc(s('helptitle')) + '" aria-expanded="' + (st.pop === 'ayuda') + '">' +
                 ico('ayuda') +
-                '<span>' + esc(s('helptitle')) + '</span></button>' + (st.pop === 'avisos' ? popNotices() : '') + (st.pop === 'ayuda' ? popHelp() : '') + '</div>';
+                '<span>' + esc(s('helptitle')) + '</span></button>' + (cfg.proposal ? '<button type="button" class="mrd-rail-b mrd-rail-mejora" ' +
+                'data-marandu-proposal="local_oksigeniamarandu" data-screen="' + esc(s('chatscreen')) + '" title="' + esc(s('proposal')) + '">' + ico('bombilla') + '<span>' +
+                esc(s('proposal')) + '</span></button>' : '') +
+                (st.pop === 'avisos' ? popNotices() : '') + (st.pop === 'ayuda' ? popHelp() : '') + '</div>';
             h += '<div class="mrd-yo">' + avAgent({ name: me.name, firstname: me.firstname, me: true }, 'mrd-m') +
                 '<div class="mrd-yo-t"><b>' + esc(me.name || '') + '</b>' + (READONLY ? '<small><span>' + esc(s('readonlyshort')) + '</span></small>'
                 : sig) + '</div>' +

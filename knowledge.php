@@ -78,6 +78,11 @@ $PAGE->add_header_action($OUTPUT->render_from_template(
     ['links' => panel::links('knowledge')]
 ));
 
+// «Propose an improvement» of this page, the piece the tools of the site share.
+$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
+    'local_oksigeniamarandu',
+    get_string('knowledge:title', 'local_oksigeniamarandu')
+));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/knowledge', [
     'lead' => get_string('knowledge:lead', $component),

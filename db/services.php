@@ -80,6 +80,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_proposal_send' => [
+        'classname' => \local_oksigeniamarandu\external\proposal_send::class,
+        'description' => 'A proposal of improvement of a tool, with the picture of its screen.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:propose',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_flag' => [
         'classname' => \local_oksigeniamarandu\external\chat_flag::class,
         'description' => 'A small choice of a person on the page of the conversations: the tour seen, the sound, the notices.',

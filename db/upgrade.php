@@ -515,6 +515,23 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122500, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122900) {
+        // Proposals of improvement, with a picture of the screen.
+        if (!$dbman->table_exists('local_oksigeniamarandu_proposal')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_oksigeniamarandu_proposal');
+        }
+        // The exceptions of the rule of marketing: what is on for WhatsApp while Meta counts it as marketing was switched on
+        // by hand (the rule had switched it off), and is kept so from now on.
+        $off = \local_oksigeniamarandu\local\notices::marketing_off();
+        foreach (\local_oksigeniamarandu\local\notices::enabled('whatsapp') as $key) {
+            [$component, $notice] = explode('/', $key, 2) + [1 => ''];
+            if (!isset($off[$key]) && \local_oksigeniamarandu\local\templates::is_marketing($component, $notice)) {
+                \local_oksigeniamarandu\local\notices::keep($key, true);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026122900, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

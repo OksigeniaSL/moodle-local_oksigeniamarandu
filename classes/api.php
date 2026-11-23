@@ -1281,6 +1281,58 @@ class api {
     }
 
     /**
+     * Loads on this page «Propose an improvement», the piece the tools of the site share: any element with
+     * data-marandu-proposal="<component>" (and data-screen="<screen>", as the tool names it) opens it, and the script
+     * window.MaranduProposal.open({component, screen}) too. The person marks on a picture of what they see what they
+     * would change and says how; the people the site chose hear of it by Telegram, and cli/proposals.php gives them.
+     * Only for an account that may propose; for others it loads nothing.
+     *
+     * @return bool Whether it is on this page.
+     */
+    public static function proposal_js(): bool {
+        global $PAGE;
+        static $loaded = false;
+        if (!isloggedin() || isguestuser() || !has_capability('local/oksigeniamarandu:propose', \context_system::instance())) {
+            return false;
+        }
+        if ($loaded) {
+            return true;
+        }
+        $loaded = true;
+        $strings = [];
+        foreach (['title', 'taking', 'mark', 'nopicture', 'what', 'whathint', 'clear', 'cancel', 'send', 'sending', 'needtext',
+                'thanks', 'thankshelp', 'close', 'failed'] as $key) {
+            $strings[$key] = get_string('proposal:js:' . $key, 'local_oksigeniamarandu');
+        }
+        $PAGE->requires->js_init_code('window.MaranduProposalStrings = ' . json_encode($strings, JSON_HEX_TAG | JSON_HEX_AMP) . ';');
+        $PAGE->requires->js(new \moodle_url(
+            '/local/oksigeniamarandu/proposal/proposal.js',
+            ['v' => (string)get_config('local_oksigeniamarandu', 'version')]
+        ));
+        return true;
+    }
+
+    /**
+     * The button «Propose an improvement» for a screen of a tool, with what it needs loaded on the page.
+     *
+     * @param string $component The tool, such as local_oksigeniameals.
+     * @param string $screen The screen, as the tool names it (such as «the week of a diner»).
+     * @param string $class More classes for the button.
+     * @return string Its HTML; empty for an account that may not propose.
+     */
+    public static function proposal_button(string $component, string $screen = '', string $class = ''): string {
+        if (!self::proposal_js()) {
+            return '';
+        }
+        return \html_writer::tag('button', get_string('proposal:button', 'local_oksigeniamarandu'), [
+            'type' => 'button',
+            'class' => trim('btn btn-outline-secondary ' . $class),
+            'data-marandu-proposal' => clean_param($component, PARAM_COMPONENT),
+            'data-screen' => clean_param($screen, PARAM_TEXT),
+        ]);
+    }
+
+    /**
      * An account of the site that passes to another person (in many centres, the account of whoever leaves goes to who
      * comes): the new person does not inherit anything of Marandu from the old one. The numbers and chats joined to the
      * account stop getting its notices, and what the conversations kept of that person goes: what they read, their

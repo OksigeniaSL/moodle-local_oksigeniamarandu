@@ -1,0 +1,71 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+{{!
+    @template local_oksigeniamarandu/proposals
+
+    The proposals of improvement: each one with the picture of the screen and its marks, who, when and where, and a
+    way to close it with what was done.
+
+    Context variables required for this template:
+    * lead - What the page is.
+    * items - Each proposal: id, tool, screen, from, text, summary, guessed, url, image, done, donenote.
+    * none - Whether there is none.
+    * formurl - Where a proposal is closed.
+    * sesskey - The key of the session.
+    * all - Whether the done ones are shown too.
+    * allurl - The page with the done ones too.
+
+    Example context (json):
+    {
+        "lead": "What the people of the site would change.",
+        "items": [{"id": 3, "tool": "Oksigenia Meals 0.115.0", "screen": "La semana", "from": "From Ana, on Monday",
+            "text": "The whole week in sight.", "summary": "Whole week in sight", "guessed": "", "url": "#",
+            "image": "", "done": false, "donenote": ""}],
+        "none": false,
+        "formurl": "#",
+        "sesskey": "abc",
+        "all": false,
+        "allurl": "#"
+    }
+}}
+<div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-proposals">
+    <section>
+        <p class="mrd-lead">{{lead}}</p>
+        {{#none}}<p class="mrd-estado">{{#str}} proposals:none, local_oksigeniamarandu {{/str}}</p>{{/none}}
+        {{#items}}
+        <article class="mrd-part mrd-propuesta-item{{#done}} mrd-hecha{{/done}}" id="p{{id}}">
+            <div class="mrd-cab"><h2>{{tool}}{{#screen}} · {{screen}}{{/screen}}</h2>{{#done}}<span class="mrd-sello">{{#str}} proposals:done, local_oksigeniamarandu {{/str}}</span>{{/done}}</div>
+            <p class="mrd-pie">{{from}}{{#url}} · <a href="{{url}}">{{#str}} proposals:open, local_oksigeniamarandu {{/str}}</a>{{/url}}</p>
+            {{#summary}}<p class="mrd-resumen">{{summary}}</p>{{/summary}}
+            {{#guessed}}<p class="mrd-pie">{{guessed}}</p>{{/guessed}}
+            <p class="mrd-texto-propuesta">{{text}}</p>
+            {{#image}}<a href="{{image}}" class="mrd-captura"><img src="{{image}}" alt="{{tool}}{{#screen}} · {{screen}}{{/screen}}" loading="lazy"></a>{{/image}}
+            {{#done}}<p class="mrd-pie">{{donenote}}</p>{{/done}}
+            {{^done}}
+            <form method="post" action="{{formurl}}" class="mrd-cerrar-propuesta">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="action" value="done">
+                <input type="hidden" name="id" value="{{id}}">
+                <label for="mrd-nota-{{id}}">{{#str}} proposals:note, local_oksigeniamarandu {{/str}}</label>
+                <input type="text" id="mrd-nota-{{id}}" name="note" maxlength="4000">
+                <button type="submit" class="btn btn-primary">{{#str}} proposals:done, local_oksigeniamarandu {{/str}}</button>
+            </form>
+            {{/done}}
+        </article>
+        {{/items}}
+        {{^all}}<p><a href="{{allurl}}">{{#str}} proposals:showdone, local_oksigeniamarandu {{/str}}</a></p>{{/all}}
+    </section>
+</div>

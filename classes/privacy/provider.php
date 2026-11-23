@@ -45,6 +45,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\history;
+use local_oksigeniamarandu\local\proposals;
 use local_oksigeniamarandu\local\telegram;
 use local_oksigeniamarandu\local\wachannel;
 
@@ -157,6 +158,13 @@ class provider implements
             'label' => 'privacy:metadata:bulk:label',
             'timecreated' => 'privacy:metadata:bulk:timecreated',
         ], 'privacy:metadata:bulk');
+        $collection->add_database_table(proposals::TABLE, [
+            'userid' => 'privacy:metadata:proposal:userid',
+            'body' => 'privacy:metadata:proposal:body',
+            'pageurl' => 'privacy:metadata:proposal:pageurl',
+            'doneby' => 'privacy:metadata:proposal:doneby',
+            'timecreated' => 'privacy:metadata:proposal:timecreated',
+        ], 'privacy:metadata:proposal');
         $collection->add_database_table(reminders::TABLE, [
             'userid' => 'privacy:metadata:convrem:userid',
             'cwid' => 'privacy:metadata:convrem:cwid',
@@ -216,6 +224,7 @@ class provider implements
             || $DB->record_exists(team::MESSAGES, ['userid' => $userid])
             || $DB->record_exists(team::READS, ['userid' => $userid])
             || $DB->record_exists_select(team::CONVS, 'usera = ? OR userb = ?', [$userid, $userid])
+            || $DB->record_exists_select(proposals::TABLE, 'userid = ? OR doneby = ?', [$userid, $userid])
         ) {
             $contextlist->add_system_context();
         }
@@ -246,6 +255,8 @@ class provider implements
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . team::READS . '}', []);
         $userlist->add_from_sql('usera', 'SELECT usera FROM {' . team::CONVS . '} WHERE usera > 0', []);
         $userlist->add_from_sql('userb', 'SELECT userb FROM {' . team::CONVS . '} WHERE userb > 0', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . proposals::TABLE . '}', []);
+        $userlist->add_from_sql('doneby', 'SELECT doneby FROM {' . proposals::TABLE . '} WHERE doneby > 0', []);
     }
 
     /**
@@ -330,6 +341,10 @@ class provider implements
                 return ['conversation' => (int)$one->convid, 'kind' => $one->kind, 'text' => (string)$one->text,
                     'time' => transform::datetime($one->timecreated)];
             }, $DB->get_records_select(team::MESSAGES, "userid = ? AND kind IN ('text', 'conv')", [$userid], 'id'))),
+            'proposals' => array_values(array_map(function ($one) {
+                return ['tool' => $one->component, 'screen' => (string)$one->screen, 'url' => (string)$one->pageurl,
+                    'text' => $one->body, 'status' => $one->status, 'time' => transform::datetime($one->timecreated)];
+            }, $DB->get_records(proposals::TABLE, ['userid' => $userid], 'id'))),
         ];
         if ($numbers || $reviewed || $whatsapp || array_filter($conversations)) {
             writer::with_context($context)->export_data(
@@ -404,6 +419,8 @@ class provider implements
         $DB->delete_records(team::READS);
         $DB->delete_records(team::MESSAGES);
         $DB->delete_records(team::CONVS);
+        get_file_storage()->delete_area_files($context->id, 'local_oksigeniamarandu', proposals::AREA);
+        $DB->delete_records(proposals::TABLE);
     }
 
     /**
@@ -460,6 +477,17 @@ class provider implements
         $DB->set_field(mirror::TABLE, 'passedby', 0, ['passedby' => $userid]);
         // The messages of the team: their conversations with another person, whole, and what they wrote or read.
         team::delete_user($userid);
+        // Their proposals of improvement go, with their pictures; those they closed stay, without who closed them.
+        foreach ($DB->get_fieldset_select(proposals::TABLE, 'id', 'userid = ?', [$userid]) as $proposalid) {
+            get_file_storage()->delete_area_files(
+                \context_system::instance()->id,
+                'local_oksigeniamarandu',
+                proposals::AREA,
+                (int)$proposalid
+            );
+        }
+        $DB->delete_records(proposals::TABLE, ['userid' => $userid]);
+        $DB->set_field(proposals::TABLE, 'doneby', null, ['doneby' => $userid]);
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {
                 $DB->delete_records(consent::LOG, ['contactid' => $link->contactid]);

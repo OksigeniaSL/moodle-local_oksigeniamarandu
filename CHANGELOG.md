@@ -20,6 +20,10 @@
   them.
 - The review of a post of the channel says the hours of the small hours it has (from 0:00 to 5:59), such as an event
   of a calendar saved at 00:30 by mistake.
+## 0.60.1 (2026-11-23)
+
+- The same as 0.60.0. The check of GitHub of the version could not put back its copy of the plugin over the
+  files of git that git now writes read-only; it gives them write permission first.
 
 ## 0.60.0 (2026-11-23)
 

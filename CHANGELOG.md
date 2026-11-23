@@ -20,6 +20,11 @@
 - A post of the channel that changes while it waits for review takes the place of its old review: the two old
   messages are deleted before the new review goes, or, older than Telegram lets a bot delete, the old question says
   that the new one is below. Before, each change left one more review in the chat of whoever reviews.
+- The guides of the staff in PDF, made again on the screen of today: «Attend» (20 pages) adds what happened before a
+  person came (the note of the assistant of the centre, where it passed the conversation, whoever of the team already
+  talks with the family), «It did not arrive», writing down a call, the saved answers and the hours of each department;
+  «Coordinate» (9 pages) adds who opens the conversations and what each one sees, and the hours and closed days of
+  each department.
 
 ## 0.59.0 (2026-11-23)
 

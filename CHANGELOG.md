@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.61.1 (2026-11-23)
+
+- The same as 0.61.0, with the description of a parameter that was missing, and html2canvas left out of the search of
+  secrets (`.gitleaks.toml`): its minified tables of data look like keys.
+
 ## 0.61.0 (2026-11-23)
 
 - «Propose an improvement», a piece every tool of the site can use: a button opens a layer with a picture of what the

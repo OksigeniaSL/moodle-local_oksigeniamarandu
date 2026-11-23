@@ -1,0 +1,9 @@
+# Gitleaks: the default rules, and the third-party libraries left out (their minified tables of data look like keys).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Third-party libraries, as thirdpartylibs.xml lists them"
+paths = [
+  '''proposal/html2canvas\.min\.js''',
+]

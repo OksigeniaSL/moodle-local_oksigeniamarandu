@@ -418,6 +418,7 @@ class message {
      * @param int $conversationid Its conversation.
      * @param int $userid Who wrote it.
      * @param string $call For a call written down: answered or missed.
+     * @param string $template For an approved message, the name of its template in Meta.
      */
     public static function remember(
         int $messageid,

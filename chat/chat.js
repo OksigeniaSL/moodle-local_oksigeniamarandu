@@ -23,7 +23,8 @@
         spend: 'local_oksigeniamarandu_chat_spend',
         flag: 'local_oksigeniamarandu_chat_flag',
         start: 'local_oksigeniamarandu_chat_start',
-        call: 'local_oksigeniamarandu_chat_call'
+        call: 'local_oksigeniamarandu_chat_call',
+        draft: 'local_oksigeniamarandu_chat_draft'
     };
 
     /* ---------------------------------------------------------------------------------------------------------------
@@ -87,6 +88,7 @@
         clip: '<path d="M20.5 11.2l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/>',
         enviar: '<path d="M4 11.8L20 4.5l-5.8 15.5-2.9-6.3z"/><path d="M11.3 13.7L20 4.5"/>',
         guardadas: '<path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-3.8L6 21V4.5a1 1 0 0 1 1-1z"/><path d="M9.5 8h5M9.5 11.5h3.5"/>',
+        proponer: '<path d="M4 17.5V20h2.5L17.8 8.7a1.8 1.8 0 0 0-2.5-2.5z"/><path d="M13.8 7.7l2.5 2.5"/><path d="M12 20h8"/>',
         arroba: '<circle cx="12" cy="12" r="3.8"/><path d="M15.8 8.5v4.4a2.6 2.6 0 0 0 5.2 0V12a9 9 0 1 0-3.6 7.2"/>',
         nota: '<path d="M5 4h14v10.5L13.5 20H5z"/><path d="M13.5 20v-5.5H19"/><path d="M8.5 8.5h7M8.5 12h4"/>',
         check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
@@ -5146,7 +5148,128 @@
             var newer = newerOf(c);
             return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, st.unfold[c.id] ? 1 : 0, onlyReading(c) ? 1 : 0,
                 optoutBlocked(c.contact && c.contact.phone, st.fichaFor === c.id && st.ficha ? st.ficha.optout : null) ? 1 : 0, (st.extras.templates || []).length, st.pop,
-                newer ? newer.id : 0].join('|');
+                newer ? newer.id : 0, draftSig(c)].join('|');
+        }
+        /* -------- «Propose an answer»: a draft the person reads, changes and sends; it never goes by itself -------- */
+        function draftUi(c) {
+            return st.draftUi && c && st.draftUi.conv === c.id ? st.draftUi : null;
+        }
+        function draftSig(c) {
+            var ui = draftUi(c);
+            return ui ? (ui.busy ? 'b' : '') + (ui.slow ? 's' : '') + (ui.shown ? 'v' : '') : '';
+        }
+        function draftButton(c) {
+            if (!st.extras.draft || READONLY) {
+                return '';
+            }
+            var ui = draftUi(c), busy = !!(ui && ui.busy);
+            return '<button type="button" class="mrd-herr-b mrd-proponer' + (busy ? ' mrd-ocupado' : '') + '" data-a="draft" title="' +
+                esc(s('drafthint')) + '"' + (busy ? ' disabled aria-busy="true"' : '') + '>' + ico('proponer') + '<span class="mrd-t">' +
+                esc(busy ? (ui.slow ? s('draftslow') : s('drafting')) : s('draft')) + '</span></button>';
+        }
+        function draftBand(c) {
+            var ui = draftUi(c);
+            if (!ui || !ui.shown || ui.busy) {
+                return '';
+            }
+            return '<div class="mrd-propuesta" role="status">' + ico('proponer') + '<span>' + esc(s('draftband')) + '</span>' +
+                '<span class="mrd-propuesta-b"><button type="button" class="mrd-btn mrd-chico" data-a="draftagain">' + esc(s('draftagain')) +
+                '</button><button type="button" class="mrd-btn mrd-chico" data-a="draftundo">' + esc(s('draftundo')) + '</button></span></div>';
+        }
+        function popPolicy() {
+            return '<div class="mrd-pop mrd-pop-ia" role="dialog" aria-label="' + esc(s('draftpolicytitle')) + '"><h5>' + esc(s('draftpolicytitle')) +
+                '</h5><div class="mrd-pop-ia-texto">' + (st.draftPolicy || '') + '</div><div class="mrd-pop-ia-b">' +
+                '<button type="button" class="mrd-btn mrd-chico" data-a="draftdecline">' + esc(s('draftdecline')) + '</button>' +
+                '<button type="button" class="mrd-btn mrd-chico mrd-primario" data-a="draftaccept">' + esc(s('draftaccept')) + '</button></div></div>';
+        }
+        function requestDraft(accept) {
+            var c = conv(st.open), ed = el.chat.querySelector('.mrd-editor');
+            if (!c || (st.draftUi && st.draftUi.busy)) {
+                return;
+            }
+            var before = draftUi(c), hint = ed ? editorText(ed, false) : '', prev = ed ? ed.innerHTML : '';
+            if (before && before.shown) {
+                // «Another one»: what the person had before the first proposal, and the same hint.
+                hint = before.hint;
+                prev = before.prev;
+            }
+            var id = c.id;
+            st.draftUi = { conv: id, busy: true, slow: false, shown: false, hint: hint, prev: prev };
+            st.pop = null;
+            renderComposer(true);
+            var slowT = setTimeout(function () {
+                if (st.draftUi && st.draftUi.conv === id && st.draftUi.busy) {
+                    st.draftUi.slow = true;
+                    renderComposer(true);
+                }
+            }, 12000);
+            var done = function (text) {
+                var ui = st.draftUi;
+                if (text === null) {
+                    st.draftUi = null;
+                } else {
+                    ui.busy = false;
+                    ui.slow = false;
+                    ui.shown = true;
+                }
+                if (st.open !== id) {
+                    if (text !== null) {
+                        (st.drafts[id] || (st.drafts[id] = {})).reply = esc(text);
+                    }
+                    return;
+                }
+                renderComposer(true);
+                var box = el.chat.querySelector('.mrd-editor');
+                if (box && text !== null) {
+                    box.textContent = text;
+                    saveDraft();
+                    box.focus();
+                    caretToEnd(box);
+                }
+            };
+            tr.call(M.draft, { conversation: id, hint: hint, accept: !!accept }).then(function (r) {
+                clearTimeout(slowT);
+                if (!st.draftUi || st.draftUi.conv !== id) {
+                    return r;
+                }
+                if (r.status === 'ok') {
+                    st.extras.draftpolicy = true;
+                    done(r.text);
+                } else if (r.status === 'policy') {
+                    st.draftPolicy = r.policy;
+                    done(null);
+                    if (st.open === id) {
+                        st.pop = 'ia';
+                        renderComposer(true);
+                    }
+                } else {
+                    done(null);
+                    toast(r.status === 'unavailable' ? s('draftunavailable') : s('draftfailed'), true);
+                }
+                return r;
+            }).catch(function () {
+                clearTimeout(slowT);
+                if (st.draftUi && st.draftUi.conv === id) {
+                    done(null);
+                }
+                toast(s('draftfailed'), true);
+            });
+        }
+        function undoDraft() {
+            var c = conv(st.open), ui = draftUi(c), ed = el.chat.querySelector('.mrd-editor');
+            if (!ui) {
+                return;
+            }
+            if (ed) {
+                ed.innerHTML = ui.prev;
+            }
+            st.draftUi = null;
+            renderComposer(true);
+            var box = el.chat.querySelector('.mrd-editor');
+            if (box) {
+                box.focus();
+                caretToEnd(box);
+            }
         }
         function saveDraft() {
             var ed = el.chat.querySelector('.mrd-editor');
@@ -5309,18 +5432,20 @@
                 h += '<div class="mrd-escribir-cab"><button type="button" class="mrd-pestana' + (note ? '' : ' mrd-on') + '" data-a="mode" data-v="reply"' +
                     (canReply(c) ? '' : ' hidden') + '>' + esc(s('tabreply')) + '</button><button type="button" class="mrd-pestana mrd-nota-p' +
                     (note ? ' mrd-on' : '') + '" data-a="mode" data-v="note">' + esc(s('tabnote')) + '</button>' + (note ? '' : plazoHtml(c)) + '</div>' +
-                    '<div class="mrd-caja' + (note ? ' mrd-nota-c' : '') + '">' + (note ? '<div class="mrd-aviso-nota">' + ico('nota') + esc(s('notehiddenbox')) +
-                    '</div>' : '') + '<div class="mrd-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="' + esc(ph) +
+                    (note ? '' : draftBand(c)) + '<div class="mrd-caja' + (note ? ' mrd-nota-c' : '') + (!note && draftUi(c) && draftUi(c).busy ? ' mrd-redactando' : '') +
+                    '">' + (note ? '<div class="mrd-aviso-nota">' + ico('nota') + esc(s('notehiddenbox')) +
+                    '</div>' : '') + '<div class="mrd-editor" contenteditable="' + (!note && draftUi(c) && draftUi(c).busy ? 'false" aria-busy="true' : 'true') +
+                    '" role="textbox" aria-multiline="true" aria-label="' + esc(ph) +
                     '" data-vacio="' + esc(ph) + '">' + draftOf(state) + '</div>' + chosenFileHtml() + '<div class="mrd-herr">' +
                     '<button type="button" class="mrd-herr-b" data-a="attach">' + ico('clip') + '<span class="mrd-t">' + esc(s('attach')) +
                     '</span></button><input type="file" class="mrd-archivo" hidden>' +
                     (note ? '<button type="button" class="mrd-herr-b' + (st.pop === 'mencion' ? ' mrd-on' : '') + '" data-a="pop" data-v="mencion">' +
                     ico('arroba') + '<span class="mrd-t">' + esc(s('mention')) + '</span></button>'
                         : '<button type="button" class="mrd-herr-b' + (st.pop === 'guardadas' ? ' mrd-on' : '') + '" data-a="pop" data-v="guardadas">' +
-                    ico('guardadas') + '<span class="mrd-t">' + esc(s('canned')) + '</span></button>') +
+                    ico('guardadas') + '<span class="mrd-t">' + esc(s('canned')) + '</span></button>' + draftButton(c)) +
                     '<button type="button" class="mrd-btn mrd-primario" data-a="send">' + (note ? ico('nota') + esc(s('savenote')) : ico('enviar') + esc(s('send'))) +
                     '</button></div></div>';
-                h += st.pop === 'guardadas' ? popCanned(c) : st.pop === 'mencion' ? popMention() : '';
+                h += st.pop === 'guardadas' ? popCanned(c) : st.pop === 'mencion' ? popMention() : st.pop === 'ia' && !note ? popPolicy() : '';
                 box2.innerHTML = h;
                 var ed = box2.querySelector('.mrd-editor');
                 if (ed.innerHTML === '<br>') {
@@ -6894,6 +7019,9 @@
             if (st.drafts[c.id]) {
                 st.drafts[c.id][st.mode] = '';
             }
+            if (!note && draftUi(c)) {
+                st.draftUi = null;
+            }
             st.pop = null;
             refreshWritePop();
             if (!note) {
@@ -8334,6 +8462,27 @@
                     break;
                 case 'canned':
                     chooseCanned(+v);
+                    break;
+                case 'draft':
+                    if (st.extras.draftpolicy || st.draftPolicy === undefined) {
+                        requestDraft(false);
+                    } else {
+                        st.pop = st.pop === 'ia' ? null : 'ia';
+                        renderComposer(true);
+                    }
+                    break;
+                case 'draftagain':
+                    requestDraft(false);
+                    break;
+                case 'draftundo':
+                    undoDraft();
+                    break;
+                case 'draftaccept':
+                    requestDraft(true);
+                    break;
+                case 'draftdecline':
+                    st.pop = null;
+                    renderComposer(true);
                     break;
                 case 'mention':
                     chooseMention(+v);

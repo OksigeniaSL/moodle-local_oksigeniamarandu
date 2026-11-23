@@ -72,6 +72,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_draft' => [
+        'classname' => \local_oksigeniamarandu\external\chat_draft::class,
+        'description' => 'A draft of the answer to a conversation, for the person to read, change and send.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_flag' => [
         'classname' => \local_oksigeniamarandu\external\chat_flag::class,
         'description' => 'A small choice of a person on the page of the conversations: the tour seen, the sound, the notices.',

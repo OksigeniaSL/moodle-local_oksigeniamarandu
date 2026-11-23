@@ -1,0 +1,71 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+{{!
+    @template local_oksigeniamarandu/knowledge
+
+    What the organisation knows and says, for «Propose an answer»: a box for the whole organisation and one for each
+    department. Each box keeps itself when one leaves it.
+
+    Context variables required for this template:
+    * lead - What it is for.
+    * state - Whether the site can propose answers now, in a sentence.
+    * on - Whether it can.
+    * formurl - Where each box is kept.
+    * sesskey - The key of the session.
+    * max - The most characters of a box.
+    * parts - Each box: id (0 for the whole organisation), name, help, text, count, saved.
+
+    Example context (json):
+    {
+        "lead": "What the team would tell any family, written once.",
+        "state": "The site can propose answers.",
+        "on": true,
+        "formurl": "#",
+        "sesskey": "abc",
+        "max": 20000,
+        "parts": [
+            {"id": 0, "name": "The whole organisation", "help": "Its tone and its links.", "text": "We answer briefly.",
+                "count": "18 of 20000 characters", "saved": true},
+            {"id": 3, "name": "Admissions", "help": "Only for Admissions.", "text": "", "count": "0 of 20000 characters",
+                "saved": false}
+        ]
+    }
+}}
+<div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-knowledge">
+    <section>
+        <p class="mrd-lead">{{lead}}</p>
+        <p class="mrd-estado{{#on}} mrd-on{{/on}}" role="status">{{state}}</p>
+        {{#parts}}
+        <form method="post" action="{{formurl}}" class="mrd-part mrd-saber" id="mrd-k{{id}}">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="part" value="{{id}}">
+            <div class="mrd-cab"><h2><label for="mrd-k{{id}}-text">{{name}}</label></h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+            <p class="mrd-pie">{{help}}</p>
+            <textarea id="mrd-k{{id}}-text" name="text" rows="12" maxlength="{{max}}" spellcheck="true">{{text}}</textarea>
+            <div class="mrd-saber-pie"><span>{{count}}</span><button type="submit" class="btn btn-primary">{{#str}} knowledge:save, local_oksigeniamarandu {{/str}}</button></div>
+        </form>
+        {{/parts}}
+    </section>
+</div>
+{{#js}}
+// Each box keeps itself when one leaves it after changing it.
+document.querySelectorAll('.local-oksigeniamarandu-knowledge textarea').forEach(function(box) {
+    box.addEventListener('change', function() {
+        box.form.submit();
+    });
+});
+{{/js}}

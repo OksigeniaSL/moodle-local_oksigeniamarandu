@@ -1835,6 +1835,78 @@
     margin-inline-start: auto;
     flex: none;
 }
+/* «Propose an answer»: the band over the box while what is in it is a proposal, the box held while it is written, and
+   the policy of the site the first time. */
+#mrd-chat .mrd-propuesta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+    font-size: 13.5px;
+}
+#mrd-chat .mrd-propuesta > span:first-of-type {
+    flex: 1 1 220px;
+}
+#mrd-chat .mrd-propuesta-b {
+    display: flex;
+    gap: 6px;
+    margin-inline-start: auto;
+}
+#mrd-chat .mrd-caja.mrd-redactando .mrd-editor {
+    opacity: 0.55;
+    cursor: progress;
+}
+#mrd-chat .mrd-herr-b.mrd-proponer.mrd-ocupado {
+    cursor: progress;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-herr-b.mrd-proponer.mrd-ocupado .mrd-i {
+    animation: mrd-proponer 1.2s ease-in-out infinite alternate;
+}
+@keyframes mrd-proponer {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-2px) rotate(-8deg);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    #mrd-chat .mrd-herr-b.mrd-proponer.mrd-ocupado .mrd-i {
+        animation: none;
+    }
+}
+#mrd-chat .mrd-pop-ia {
+    inset-inline-start: 20px;
+    bottom: calc(100% - 6px);
+    /* stylelint-disable-next-line csstree/validator */
+    width: min(520px, calc(100% - 40px));
+    padding: 12px 14px;
+}
+#mrd-chat .mrd-pop-ia-texto {
+    max-height: 260px;
+    overflow: auto;
+    margin: 0 8px 10px;
+    font-size: 13.5px;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-pop-ia-texto p {
+    margin: 0 0 8px;
+}
+#mrd-chat .mrd-pop-ia-texto h4 {
+    font-size: 14px;
+    margin: 0 0 6px;
+}
+#mrd-chat .mrd-pop-ia-b {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
 #mrd-chat .mrd-solo-leer {
     display: flex;
     gap: 10px;
@@ -3127,6 +3199,13 @@
     #mrd-chat .mrd-pop-escribir {
         inset-inline: 8px;
         width: auto;
+    }
+    #mrd-chat .mrd-pop-ia {
+        inset-inline: 8px;
+        width: auto;
+    }
+    #mrd-chat .mrd-propuesta .mrd-btn {
+        min-height: 44px;
     }
     #mrd-chat .mrd-pop-lista {
         max-height: 40vh;

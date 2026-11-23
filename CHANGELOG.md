@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.60.0 (2026-11-23)
+
+- «Propose an answer» in the conversations of the team: a button beside the saved answers writes a draft of the answer
+  with the text generation of the site (the AI subsystem of Moodle, whichever provider the site has switched on). The
+  draft takes the last messages of the conversation, what is known of whoever writes (the family records, the marks of
+  the team and what other plugins say) and what the organisation wrote down for every answer and for each department.
+  What the person already wrote in the box goes as a hint. The draft lands in the box with a band that says it is a
+  proposal, with «Another one» and «Back to what I had»; the person reads it, changes it and sends it: it never goes by
+  itself. Only inside the 24 hours, when one can write freely; without a provider, the button is not there. The first
+  time, the policy of the site on AI, as Moodle asks of each person. A slow provider says so after a while, and one that
+  fails says it and leaves the box as it was.
+- What the organisation knows: a page of its own (one box for the whole organisation and one for each department, each
+  kept when one leaves it), or `cli/chat.php --knowledge=<file>` and `--team-knowledge="Department=<file>; …"`.
+  `--status` says whether the site can propose answers and how long each knowledge is.
+- Other plugins add what they know of whoever writes with the callback
+  `<component>_oksigeniamarandu_chat_context(string $phone, int $userid): array`, plain lines, only what that user may
+  see.
+- A post of the channel that changes while it waits for review takes the place of its old review: the two old
+  messages are deleted before the new review goes, or, older than Telegram lets a bot delete, the old question says
+  that the new one is below. Before, each change left one more review in the chat of whoever reviews.
+
 ## 0.59.0 (2026-11-23)
 
 - The values of a notice can be a function of the language, `fn(string $lang): array`, in `api::notify()`,

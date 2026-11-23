@@ -222,6 +222,7 @@ $string['channel:review:nofit'] = 'solo si se libera un hueco antes de que pase 
 $string['channel:review:now'] = 'en cuanto digas que sí';
 $string['channel:review:publish'] = 'Publicar';
 $string['channel:review:published'] = '{$a->name} dijo que sí: sale {$a->when}.';
+$string['channel:review:replaced'] = 'Esta publicación cambió después de llegar para revisar: la nueva está más abajo.';
 $string['channel:review:skip'] = 'Saltar';
 $string['channel:review:skipped'] = '{$a->name} lo saltó: no sale.';
 $string['channel:review:soon'] = 'en un momento';
@@ -275,6 +276,33 @@ $string['chat:board:notyours'] = 'Ese aviso del tablón no es tuyo.';
 $string['chat:call:answered'] = 'Llamada por teléfono: contestó.';
 $string['chat:call:missed'] = 'Llamada por teléfono: no contestó.';
 $string['chat:closedwordsdefault'] = 'Cerrado,Festivo';
+$string['chat:draft:about'] = 'Lo que se sabe de quien escribe';
+$string['chat:draft:attachment'] = '(un archivo)';
+$string['chat:draft:child'] = 'Hijo: {$a}';
+$string['chat:draft:conversation'] = 'La conversación, del mensaje más antiguo al más reciente';
+$string['chat:draft:end'] = 'Ahora escribe solo la respuesta:';
+$string['chat:draft:family'] = 'Familia: {$a}';
+$string['chat:draft:hint'] = 'Lo que quiere decir la persona del equipo: {$a}';
+$string['chat:draft:knowledge'] = 'Lo que sabe y dice el centro';
+$string['chat:draft:marks'] = 'Marcado por el equipo como: {$a}';
+$string['chat:draft:name'] = 'Nombre en el chat: {$a}';
+$string['chat:draft:nomessages'] = '(todavía no hay mensajes)';
+$string['chat:draft:prompt'] = 'Redacta la respuesta que {$a->team} de {$a->site} va a mandar en esta conversación de mensajería. Una persona del equipo la leerá y la cambiará antes de enviarla.
+
+Reglas:
+- Devuelve solo el texto del mensaje, listo para enviar: sin comillas, sin títulos y sin firma (el chat añade la firma).
+- Escribe en el idioma en que escribe la otra persona.
+- Breve y claro, con frases cortas, como se escribe en un chat.
+- Contesta a lo que preguntan los últimos mensajes de quien escribe, con lo que dicen el conocimiento del centro, lo que se sabe de quien escribe y la conversación.
+- Si falta un dato, no lo inventes: di que el equipo lo consulta y responde por aquí.
+- No prometas plazas, fechas, precios ni excepciones que no estén escritos aquí.
+- Si el conocimiento del centro dice cómo hablar, habla así.';
+$string['chat:draft:teamknowledge'] = 'Lo que sabe y dice {$a}';
+$string['chat:draft:theteam'] = 'El equipo';
+$string['chat:draft:who:bot'] = 'Mensaje automático';
+$string['chat:draft:who:incoming'] = 'Quien escribe';
+$string['chat:draft:who:note'] = 'Nota interna del equipo (no se cuenta tal cual)';
+$string['chat:draft:who:outgoing'] = 'El equipo';
 $string['chat:fail:cannot'] = 'Ese número no puede recibirlo: no tiene WhatsApp o lo tiene muy antiguo.';
 $string['chat:fail:closed'] = 'Han pasado más de 24 horas desde que escribió: hace falta un mensaje aprobado.';
 $string['chat:fail:held'] = 'WhatsApp lo ha retenido para no saturar a esta persona con mensajes.';
@@ -505,6 +533,18 @@ $string['chatui:desktopready'] = 'Listo: te avisaremos cuando te escriban.';
 $string['chatui:desktoptitle'] = 'En este ordenador';
 $string['chatui:desktopturnoff'] = 'Apagar';
 $string['chatui:desktopyes'] = 'Sí';
+$string['chatui:draft'] = 'Proponer respuesta';
+$string['chatui:draftaccept'] = 'Aceptar y seguir';
+$string['chatui:draftagain'] = 'Otra';
+$string['chatui:draftband'] = 'Respuesta propuesta: léela y cambia lo que haga falta antes de enviarla.';
+$string['chatui:draftdecline'] = 'Ahora no';
+$string['chatui:draftfailed'] = 'No ha llegado la propuesta. Escribe tú la respuesta o prueba otra vez dentro de un rato.';
+$string['chatui:drafthint'] = 'Si escribes antes unas palabras, la propuesta las sigue.';
+$string['chatui:drafting'] = 'Preparando una propuesta…';
+$string['chatui:draftpolicytitle'] = 'Antes de la primera propuesta';
+$string['chatui:draftslow'] = 'Está tardando más de lo normal…';
+$string['chatui:draftunavailable'] = 'El sitio no puede proponer respuestas ahora.';
+$string['chatui:draftundo'] = 'Volver a lo que tenía';
 $string['chatui:eqalready'] = 'Ya tienes conversación';
 $string['chatui:eqbanddm'] = 'No la ve nadie más del equipo ni ninguna familia.';
 $string['chatui:eqbanddmb'] = 'Conversación privada entre {$a} y tú.';
@@ -1173,6 +1213,15 @@ $string['error:unexpected'] = 'Meta ha respondido algo que esta versión no enti
 $string['event:classworksent'] = 'Trabajo de clase mandado al canal';
 $string['history:attachment'] = 'Adjunto que no se ha conservado';
 $string['join:greeting'] = 'Hola, queremos recibir por aquí los avisos {$a}.';
+$string['knowledge:all'] = 'Toda la organización';
+$string['knowledge:allhelp'] = 'Su tono, cómo firma, sus enlaces y lo que el equipo le diría a cualquiera. Va con cada propuesta.';
+$string['knowledge:count'] = '{$a->n} de {$a->max} caracteres';
+$string['knowledge:lead'] = 'Lo que el equipo le diría a cualquiera que escribe, escrito una vez, para «Proponer respuesta» en las conversaciones. Nada de esto sale solo: solo ayuda a redactar una propuesta, que una persona lee, cambia y envía.';
+$string['knowledge:off'] = 'El sitio todavía no puede proponer respuestas: le falta un proveedor de IA con la generación de texto encendida (Administración del sitio › IA).';
+$string['knowledge:on'] = 'El sitio puede proponer respuestas, con la generación de texto de su proveedor de IA.';
+$string['knowledge:save'] = 'Guardar';
+$string['knowledge:teamhelp'] = 'Solo para las conversaciones de {$a}, además de lo de toda la organización.';
+$string['knowledge:title'] = 'Lo que sabe la organización';
 $string['limits:lead'] = 'Para que nunca llegue una sorpresa: ni en la factura ni a las once de la noche. Las horas de silencio y el tope por persona valen para WhatsApp y para Telegram.';
 $string['limits:lead_tg'] = 'Para que nunca llegue un aviso a las once de la noche. Valen para todos los canales.';
 $string['limits:money'] = 'El gasto del mes';

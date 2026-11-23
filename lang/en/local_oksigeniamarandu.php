@@ -222,6 +222,7 @@ $string['channel:review:nofit'] = 'only if a slot frees up before its time passe
 $string['channel:review:now'] = 'as soon as you say yes';
 $string['channel:review:publish'] = 'Post';
 $string['channel:review:published'] = '{$a->name} said yes: it goes {$a->when}.';
+$string['channel:review:replaced'] = 'This post changed after it came for review: the new one is below.';
 $string['channel:review:skip'] = 'Skip';
 $string['channel:review:skipped'] = '{$a->name} skipped it: it does not go.';
 $string['channel:review:soon'] = 'in a moment';
@@ -275,6 +276,33 @@ $string['chat:board:notyours'] = 'That notice of the board is not yours.';
 $string['chat:call:answered'] = 'Phone call: they answered.';
 $string['chat:call:missed'] = 'Phone call: no answer.';
 $string['chat:closedwordsdefault'] = 'Closed,Bank holiday,Public holiday';
+$string['chat:draft:about'] = 'What is known of whoever writes';
+$string['chat:draft:attachment'] = '(a file)';
+$string['chat:draft:child'] = 'Child: {$a}';
+$string['chat:draft:conversation'] = 'The conversation, from the oldest message to the newest';
+$string['chat:draft:end'] = 'Now write only the answer:';
+$string['chat:draft:family'] = 'Family: {$a}';
+$string['chat:draft:hint'] = 'What the person of the team wants to say: {$a}';
+$string['chat:draft:knowledge'] = 'What the centre knows and says';
+$string['chat:draft:marks'] = 'Marked by the team as: {$a}';
+$string['chat:draft:name'] = 'Name in the chat: {$a}';
+$string['chat:draft:nomessages'] = '(no messages yet)';
+$string['chat:draft:prompt'] = 'Write the answer that {$a->team} of {$a->site} is going to send in this messaging conversation. A person of the team will read it and change it before sending it.
+
+Rules:
+- Give only the text of the message, ready to send: no quotes, no headings and no signature (the chat adds the signature).
+- Write in the language the other person writes in.
+- Short and clear, with short sentences, as one writes in a chat.
+- Answer what the last messages of whoever writes ask, with what the knowledge of the centre, what is known of whoever writes and the conversation say.
+- If something is missing, do not make it up: say that the team will check it and answer here.
+- Do not promise places, dates, prices or exceptions that are not written here.
+- If the knowledge of the centre says how to speak, speak that way.';
+$string['chat:draft:teamknowledge'] = 'What {$a} knows and says';
+$string['chat:draft:theteam'] = 'The team';
+$string['chat:draft:who:bot'] = 'Automatic message';
+$string['chat:draft:who:incoming'] = 'Whoever writes';
+$string['chat:draft:who:note'] = 'Internal note of the team (not to be told as it is)';
+$string['chat:draft:who:outgoing'] = 'The team';
 $string['chat:fail:cannot'] = 'That number cannot receive it: it has no WhatsApp, or a very old one.';
 $string['chat:fail:closed'] = 'More than 24 hours have passed since they wrote: it needs an approved message.';
 $string['chat:fail:held'] = 'WhatsApp held it back so as not to flood this person with messages.';
@@ -505,6 +533,18 @@ $string['chatui:desktopready'] = 'Done: we will tell you when someone writes.';
 $string['chatui:desktoptitle'] = 'On this computer';
 $string['chatui:desktopturnoff'] = 'Turn off';
 $string['chatui:desktopyes'] = 'Yes';
+$string['chatui:draft'] = 'Propose an answer';
+$string['chatui:draftaccept'] = 'Accept and continue';
+$string['chatui:draftagain'] = 'Another one';
+$string['chatui:draftband'] = 'Proposed answer: read it and change what you need before sending it.';
+$string['chatui:draftdecline'] = 'Not now';
+$string['chatui:draftfailed'] = 'The proposal did not come. Write the answer yourself, or try again in a while.';
+$string['chatui:drafthint'] = 'If you write a few words first, the proposal follows them.';
+$string['chatui:drafting'] = 'Preparing a proposal…';
+$string['chatui:draftpolicytitle'] = 'Before the first proposal';
+$string['chatui:draftslow'] = 'It is taking longer than usual…';
+$string['chatui:draftunavailable'] = 'The site cannot propose answers now.';
+$string['chatui:draftundo'] = 'Back to what I had';
 $string['chatui:eqalready'] = 'You already have one';
 $string['chatui:eqbanddm'] = 'Nobody else on the team sees it, and no family does.';
 $string['chatui:eqbanddmb'] = 'Private conversation between {$a} and you.';
@@ -1173,6 +1213,15 @@ $string['error:unexpected'] = 'Meta answered something this version does not und
 $string['event:classworksent'] = 'Work of a class sent to the channel';
 $string['history:attachment'] = 'Attachment that was not kept';
 $string['join:greeting'] = 'Hello, we would like to get the notices of {$a} here.';
+$string['knowledge:all'] = 'The whole organisation';
+$string['knowledge:allhelp'] = 'Its tone, how it signs, its links and what the team would tell anybody. It goes with every proposal.';
+$string['knowledge:count'] = '{$a->n} of {$a->max} characters';
+$string['knowledge:lead'] = 'What the team would tell anyone who writes, written once, for «Propose an answer» in the conversations. Nothing of it is sent by itself: it only helps to write a proposal, which a person reads, changes and sends.';
+$string['knowledge:off'] = 'The site cannot propose answers yet: it needs a provider of AI with text generation switched on (Site administration › AI).';
+$string['knowledge:on'] = 'The site can propose answers, with the text generation of its provider of AI.';
+$string['knowledge:save'] = 'Save';
+$string['knowledge:teamhelp'] = 'Only for the conversations of {$a}, besides that of the whole organisation.';
+$string['knowledge:title'] = 'What the organisation knows';
 $string['limits:lead'] = 'So that nothing comes as a surprise: neither in the bill nor at eleven at night. The quiet hours and the limit by person hold for WhatsApp and for Telegram.';
 $string['limits:lead_tg'] = 'So that no notice arrives at eleven at night. They hold for every channel.';
 $string['limits:money'] = 'The money of a month';

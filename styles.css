@@ -7406,3 +7406,35 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
         --mrd-rv-soft: rgba(224, 163, 58, 0.22);
     }
 }
+
+/* What the organisation knows, for «Propose an answer»: a box for the whole organisation and one for each department. */
+.local-oksigeniamarandu-knowledge .mrd-estado {
+    margin: 0 0 1.25rem;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-knowledge .mrd-saber {
+    margin-bottom: 1.25rem;
+}
+
+.local-oksigeniamarandu-knowledge .mrd-saber textarea {
+    display: block;
+    width: 100%;
+    min-height: 14rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--mrd-line);
+    border-radius: 0.625rem;
+    background: var(--mrd-bg);
+    color: inherit;
+    font: inherit;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.local-oksigeniamarandu-knowledge .mrd-saber-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.625rem;
+}

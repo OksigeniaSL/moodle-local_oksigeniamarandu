@@ -66,8 +66,11 @@ class chat_extras extends chat_base {
         foreach (directory::teams() as $team) {
             $teams[] = $team + ['mine' => in_array($team['id'], $viewer->teams)];
         }
+        // «Propose an answer», when the site has text generation and the person can write.
+        $draft = !$viewer->readonly && \local_oksigeniamarandu\local\chat\draft::available();
         return ['canned' => directory::canned(), 'templates' => templates::usable(), 'pending' => templates::pending(),
-            'people' => $people, 'teams' => $teams];
+            'people' => $people, 'teams' => $teams, 'draft' => $draft,
+            'draftpolicy' => $draft && \local_oksigeniamarandu\local\chat\draft::policy_accepted($viewer->userid)];
     }
 
     /**
@@ -130,6 +133,8 @@ class chat_extras extends chat_base {
                 'internal' => new external_value(PARAM_BOOL, 'Whether it is not in the menu of the families'),
                 'mine' => new external_value(PARAM_BOOL, 'Whether whoever asks is in it'),
             ])),
+            'draft' => new external_value(PARAM_BOOL, 'Whether the person can ask for a proposed answer'),
+            'draftpolicy' => new external_value(PARAM_BOOL, 'Whether they already accepted the policy of the site on AI'),
         ]);
     }
 }

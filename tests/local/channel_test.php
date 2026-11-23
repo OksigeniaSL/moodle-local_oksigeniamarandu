@@ -276,6 +276,38 @@ final class channel_test extends \advanced_testcase {
     }
 
     /**
+     * A post that changes while it waits for review: its old review goes before the new one, so that whoever reviews has
+     * only the one of now; if Telegram does not let the bot delete it, the old question says the new one is below.
+     */
+    public function test_changed_review_replaces_the_old(): void {
+        global $DB;
+        $content = ['title' => 'Jornada de puertas abiertas', 'url' => new \moodle_url('/local/example/visit.php')];
+        $id = api::channel_post('local_example', 'open_day', $content, self::WEDNESDAY - HOURSECS, false, 'day-1');
+        $bot = $this->bot();
+        $this->assertSame(1, channel::process($bot, self::WEDNESDAY)['reviewed']);
+        $old = json_decode($DB->get_field(channel::TABLE, 'reviews', ['id' => $id]), true)['555'];
+
+        $changed = ['title' => 'Jornada de puertas abiertas, a las 18:00'] + $content;
+        $this->assertSame($id, api::channel_post('local_example', 'open_day', $changed, self::WEDNESDAY - HOURSECS, false, 'day-1'));
+        $bot = $this->bot();
+        $this->assertSame(1, channel::process($bot, self::WEDNESDAY + MINSECS)['reviewed']);
+        $this->assertSame([$old[1], $old[0]], array_column($bot->of('deleteMessage'), 'message_id'));
+        $this->assertCount(1, $bot->of('sendMessage'));
+        $new = json_decode($DB->get_field(channel::TABLE, 'reviews', ['id' => $id]), true)['555'];
+        $this->assertNotSame($old, $new);
+
+        // Older than 48 hours: Telegram refuses to delete it, and the old question says it.
+        $changed = ['title' => 'Jornada, a las 19:00'] + $content;
+        $this->assertSame($id, api::channel_post('local_example', 'open_day', $changed, self::WEDNESDAY - HOURSECS, false, 'day-1'));
+        $bot = $this->bot();
+        $bot->answers['deleteMessage'] = ['error' => [400, "Bad Request: message can't be deleted for everyone"]];
+        $this->assertSame(1, channel::process($bot, self::WEDNESDAY + 2 * MINSECS)['reviewed']);
+        $edited = $bot->of('editMessageText');
+        $replaced = get_string('channel:review:replaced', 'local_oksigeniamarandu');
+        $this->assertSame([$new[1], $replaced], [$edited[0]['message_id'], $edited[0]['text']]);
+    }
+
+    /**
      * Out of the hours of review nothing reaches whoever reviews, and out of those of the channel nothing is posted; what
      * is urgent goes at any hour, with sound.
      */

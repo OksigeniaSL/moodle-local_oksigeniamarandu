@@ -375,8 +375,9 @@ class channel {
                     unset($update['content']);
                 }
                 // Changed after it was reviewed or sent to review: it is reviewed again, and the old buttons do nothing.
+                // What each reviewer got of it stays until the new review goes, which takes its place (process()).
                 if ($changed && ($waiting->status === 'review' || $policy === 'review')) {
-                    $update += ['status' => 'review', 'timereview' => null, 'reviews' => null, 'decidedby' => null,
+                    $update += ['status' => 'review', 'timereview' => null, 'decidedby' => null,
                         'timedecided' => null, 'token' => self::new_token()];
                 }
                 $DB->update_record(self::TABLE, (object)$update);
@@ -514,6 +515,8 @@ class channel {
             if (cards::pending($post)) {
                 continue;
             }
+            // A post that changed while it waited: its old review goes, so that each reviewer has only the one of now.
+            self::drop_reviews($api, $post);
             $sent = [];
             foreach ($reviewers as $address) {
                 try {
@@ -899,6 +902,36 @@ class channel {
             !$post->urgent
         );
         return [(int)$preview, (int)$question];
+    }
+
+    /**
+     * Takes away what each reviewer got of a post before it changed: the two messages, or, if Telegram no longer lets the
+     * bot delete them (after 48 hours), the question says that the new one is below.
+     *
+     * @param telegram_api $api The bot.
+     * @param \stdClass $post The post.
+     */
+    private static function drop_reviews(telegram_api $api, \stdClass $post): void {
+        $reviews = json_decode((string)($post->reviews ?? ''), true);
+        foreach (is_array($reviews) ? $reviews : [] as $chat => $ids) {
+            foreach (array_reverse(array_map('intval', (array)$ids)) as $i => $id) {
+                if (!$id) {
+                    continue;
+                }
+                try {
+                    $api->delete_message((string)$chat, $id);
+                } catch (api_exception $e) {
+                    if ($i === 0) {
+                        // The question, still there with its buttons: they do nothing now, and it says so.
+                        try {
+                            $api->edit_text((string)$chat, $id, get_string('channel:review:replaced', self::COMPONENT));
+                        } catch (api_exception $e) {
+                            debugging('Marandu: an old review of the channel was not changed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**

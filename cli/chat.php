@@ -31,6 +31,7 @@ require_once($CFG->libdir . '/clilib.php');
 use local_oksigeniamarandu\local\chat\access;
 use local_oksigeniamarandu\local\chat\connection;
 use local_oksigeniamarandu\local\chat\directory;
+use local_oksigeniamarandu\local\chat\draft;
 use local_oksigeniamarandu\local\chat\hours;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\team_hours;
@@ -45,6 +46,8 @@ use local_oksigeniamarandu\local\chat\team_hours;
     'calendar' => null,
     'closed-words' => null,
     'team-hours' => null,
+    'knowledge' => null,
+    'team-knowledge' => null,
     'colors' => null,
     'stages' => null,
     'team-names' => null,
@@ -93,6 +96,11 @@ Options:
                        16:00-18:00; 9-14 and 24:00 are fine). The days not written are closed. Example:
                        \"Canteen=mon-fri 7:30-15:30; Admissions=mon-fri 9:00-14:00,16:00-18:00;
                        Office=mon-thu 8:00-14:00, fri 8:00-13:00\"
+--knowledge=FILE       What the organisation knows and says, for «Propose an answer»: its tone, its links, what it
+                       says after a visit. A text file (Markdown is fine), «-» for the standard input; empty clears it.
+                       Nothing of it is sent until a person asks for a proposal, and the person sends the answer.
+--team-knowledge=LIST  The same for some departments, each «department=file», separated by «;» (the department by its
+                       name or its number); «department=» clears that one. The others keep theirs.
 --colors=COLOURS       The colours of the organisation for the page, comma separated (#rrggbb).
 --stages=JSON          The stages of the organisation, youngest first: a list of {label, color, dark, code, match,
                        show}; code is the stage the record of families guesses from a group (such as PRI), match a
@@ -221,6 +229,33 @@ try {
             mtrace('  ' . ($teams[$teamid]['name'] ?? $teamid) . ': ' . team_hours::describe($week));
         }
     }
+    if ($options['knowledge'] !== null) {
+        $file = $options['knowledge'] === true ? '' : trim((string)$options['knowledge']);
+        $text = '';
+        if ($file !== '') {
+            $text = $file === '-' ? stream_get_contents(STDIN) : (is_readable($file) ? file_get_contents($file) : false);
+            if ($text === false) {
+                cli_error('--knowledge: cannot read ' . $file);
+            }
+        }
+        mtrace('Knowledge of the organisation: ' . draft::set_knowledge((string)$text) . ' characters');
+    }
+    if ($options['team-knowledge'] !== null) {
+        $teams = directory::teams();
+        foreach (array_filter(array_map('trim', explode(';', (string)$options['team-knowledge'])), 'strlen') as $part) {
+            [$name, $file] = array_map('trim', explode('=', $part, 2)) + [1 => ''];
+            $teamid = team_hours::find($name, $teams);
+            if ($teamid === null) {
+                cli_error('--team-knowledge: no department ' . $name);
+            }
+            $text = $file === '' ? '' : (is_readable($file) ? file_get_contents($file) : false);
+            if ($text === false) {
+                cli_error('--team-knowledge: cannot read ' . $file);
+            }
+            mtrace('Knowledge of ' . $teams[$teamid]['name'] . ': ' . draft::set_team_knowledge($teamid, (string)$text) .
+                ' characters');
+        }
+    }
     if ($options['colors'] !== null) {
         set_config('chatcolors', trim($options['colors']), $component);
     }
@@ -342,6 +377,16 @@ try {
             mtrace('  ' . $team['name'] . ': ' . (isset($own[$teamid]) ? $hours->describe() : 'as the inbox') .
                 '; closed days ahead: ' . $ahead['closed'] . ($special ? '; other hours: ' . implode(', ', $special) : ''));
         }
+        // «Propose an answer»: whether the site can, and what it knows.
+        $teamknowledge = draft::team_knowledge();
+        $teamsbyid = directory::teams();
+        mtrace('Propose an answer: ' . (draft::available() ? 'on (text generation of the site)' :
+            'off (no provider of the site with text generation)') . '; knowledge of the organisation: ' .
+            \core_text::strlen(draft::knowledge()) . ' characters' . ($teamknowledge ? '; of ' . implode(', ', array_map(
+                fn($teamid, $text) => ($teamsbyid[$teamid]['name'] ?? $teamid) . ' ' . \core_text::strlen($text),
+                array_keys($teamknowledge),
+                $teamknowledge
+            )) : ''));
         mtrace('Index: ' . $GLOBALS['DB']->count_records(mirror::TABLE) . ' conversations; last pass ' .
             (empty($config->chatsynced) ? 'never' : userdate((int)$config->chatsynced)));
         $approved = \local_oksigeniamarandu\local\chat\templates::usable();

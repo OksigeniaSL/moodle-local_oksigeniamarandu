@@ -29,7 +29,8 @@ class templates {
      * The approved messages of the inboxes.
      *
      * @return array Each with name, language, category, body, params (key, example and label), header, footer, buttons, the
-     *               inbox it belongs to and whether it is one of those to start a conversation with (they go first).
+     *               inbox it belongs to, whether it is one of those to start a conversation with (they go first) and write,
+     *               the gap where whoever sends it writes the message itself, or empty if it comes written.
      */
     public static function all(): array {
         $list = [];
@@ -51,6 +52,7 @@ class templates {
             foreach ($list[$key]['params'] as $n => $param) {
                 $list[$key]['params'][$n]['label'] = trim((string)($gaps[$param['key']] ?? ''));
             }
+            $list[$key]['write'] = self::written($one, (string)($info[$one['name']]['write'] ?? ''));
             $order = array_search($one['name'], $first, true);
             $list[$key]['start'] = $order !== false;
             $list[$key]['order'] = $order === false ? count($first) : $order;
@@ -59,6 +61,34 @@ class templates {
             return [$a['order'], $a['name'], $a['language']] <=> [$b['order'], $b['name'], $b['language']];
         });
         return array_values($list);
+    }
+
+    /** From how many letters the example of a gap is a message and not a datum. */
+    private const WRITTEN = 40;
+
+    /**
+     * The gap of an approved message where whoever sends it writes the message itself, with their own words: the one the
+     * organisation says (write, in what it says of each message) or else the one with the longest example, when it is long
+     * as a sentence and not as a name, a day or a subject.
+     *
+     * @param array $template The message, as read() gives it.
+     * @param string $said The gap the organisation says, or empty.
+     * @return string The gap, or empty if the message comes written.
+     */
+    public static function written(array $template, string $said = ''): string {
+        $gap = '';
+        $longest = self::WRITTEN - 1;
+        foreach ($template['params'] as $param) {
+            if ($said !== '' && $param['key'] === $said) {
+                return $said;
+            }
+            $length = \core_text::strlen(trim($param['example']));
+            if ($length > $longest) {
+                $gap = $param['key'];
+                $longest = $length;
+            }
+        }
+        return $gap;
     }
 
     /**
@@ -103,8 +133,8 @@ class templates {
 
     /**
      * What the organisation calls each approved message and what it says it does (setting chattemplatesinfo, a JSON
-     * object by name with title, description and gaps, what goes in each gap by its key), for the cards the team
-     * chooses from.
+     * object by name with title, description, gaps, what goes in each gap by its key, and write, the gap where the message
+     * itself is written), for the cards the team chooses from.
      *
      * @return array By name.
      */

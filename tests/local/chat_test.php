@@ -22,6 +22,7 @@ use local_oksigeniamarandu\external\chat_agenda;
 use local_oksigeniamarandu\external\chat_board;
 use local_oksigeniamarandu\external\chat_call;
 use local_oksigeniamarandu\external\chat_contact;
+use local_oksigeniamarandu\external\chat_extras;
 use local_oksigeniamarandu\external\chat_find;
 use local_oksigeniamarandu\external\chat_flag;
 use local_oksigeniamarandu\external\chat_poll;
@@ -490,6 +491,32 @@ final class chat_test extends \advanced_testcase {
         $message = templates::message($all[0], ['1' => 'Pedro']);
         $this->assertSame(['Hola, Pedro: seguimos con su consulta.', 'chat_retomar'], [$message['content'],
             $message['template_params']['name']]);
+    }
+
+    /**
+     * The gap where whoever sends an approved message writes it: the one the organisation says, or the one whose example is
+     * as long as a sentence; a message whose gaps are a name, a day or a subject comes written.
+     */
+    public function test_written(): void {
+        $template = function (array $examples) {
+            $params = [];
+            foreach ($examples as $i => $example) {
+                $params[] = ['key' => (string)($i + 1), 'example' => $example];
+            }
+            return ['params' => $params];
+        };
+        $long = 'the bus of the north leaves at 7:40 from the square';
+        $this->assertSame('3', templates::written($template(['Laura', 'the school bus', $long])));
+        $this->assertSame('', templates::written($template(['Laura', 'a place in the first year of primary'])));
+        $this->assertSame('2', templates::written($template([$long, $long . ' and arrives at 8:20'])));
+        $this->assertSame('2', templates::written($template(['Laura', 'the bus', $long]), '2'));
+        $this->assertSame('3', templates::written($template(['Laura', 'the bus', $long]), '9'));
+        $this->assertSame('', templates::written($template([])));
+        set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['write' => '1']]), 'local_oksigeniamarandu');
+        $this->assertSame('1', templates::all()[0]['write']);
+        $this->setUser($this->person('ana@example.com', 'Ana'));
+        $extras = external_api::clean_returnvalue(chat_extras::execute_returns(), chat_extras::execute());
+        $this->assertSame('1', $extras['templates'][0]['write']);
     }
 
     /**

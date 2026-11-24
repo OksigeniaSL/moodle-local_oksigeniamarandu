@@ -5179,9 +5179,9 @@
             return lastTemplateWaiting(c) || (st.justStarted === c.id && !st.pickAgain) ? 'waiting' : 'pick';
         }
         function composerSig(c) {
-            var newer = newerOf(c);
-            return [st.open, composerState(c), c.assignee ? 1 : 0, c.section, st.tpl, st.unfold[c.id] ? 1 : 0, onlyReading(c) ? 1 : 0,
-                optoutBlocked(c.contact && c.contact.phone, st.fichaFor === c.id && st.ficha ? st.ficha.optout : null) ? 1 : 0, (st.extras.templates || []).length, st.pop,
+            var newer = newerOf(c), state = composerState(c);
+            return [st.open, state, c.assignee ? 1 : 0, c.section, st.tpl, st.unfold[c.id] ? 1 : 0, onlyReading(c) ? 1 : 0,
+                optoutBlocked(c.contact && c.contact.phone, st.fichaFor === c.id && st.ficha ? st.ficha.optout : null) ? 1 : 0, state === 'pick' ? tplSigs() : '', st.pop,
                 newer ? newer.id : 0, draftSig(c)].join('|');
         }
         /* -------- «Propose an answer»: a draft the person reads, changes and sends; it never goes by itself -------- */
@@ -5499,10 +5499,7 @@
             if (state === 'preview' && tpls[st.tpl]) {
                 st.gapsTpl = tpls[st.tpl].name;
                 box2.innerHTML = previewHtml(c, tpls[st.tpl]);
-                var first = box2.querySelector('.mrd-hueco');
-                if (first && !touchy()) {
-                    first.focus();
-                }
+                focusGap(box2);
                 return;
             }
             var lastIn = c.lastincoming ? c.lastincoming * 1000 : 0;
@@ -5540,11 +5537,9 @@
                     var ka = !!tpls[a].start === !lastIn ? 0 : 1, kb = !!tpls[b].start === !lastIn ? 0 : 1;
                     return ka - kb || byPrice(tpls[a], tpls[b]) || a - b;
                 });
-                h += (order.length ? '<div class="mrd-plantillas">' + order.map(function (i) {
-                    var t = tpls[i];
-                    return '<button type="button" class="mrd-plantilla" data-a="tpl" data-v="' + i + '"' + (held ? ' disabled' : '') + '><b>' + ico('mensaje') + esc(tplTitle(t)) +
-                        (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span>' + catPill(t) + '</button>';
-                }).join('') + '</div>' : '') + free.map(function (i) {
+                h += (order.length ? tplGroups(order.map(function (i) {
+                    return tpls[i];
+                }), 'tpl', c, held) : '') + free.map(function (i) {
                     var t = tpls[i];
                     return '<button type="button" class="mrd-libre" data-a="tpl" data-v="' + i + '"' + (held ? ' disabled' : '') + '>' + ico('lapiz') + '<span>' +
                         esc(order.length ? s('freenone') : '') + ' <b>' + esc(s('freewrite')) + (showLang ? ' · ' + esc(t.language) : '') + '</b></span>' +
@@ -5587,6 +5582,10 @@
             var rest = String(t.body || '').replace(/\{\{\s*[\w.]+\s*\}\}/g, '').replace(/\s+/g, ' ').trim();
             var only = Object.keys(keys)[0];
             return Object.keys(keys).length === 1 && !/name|nombre|nom\b/i.test(only) && !greets(t, only) && !(t.buttons || []).length && rest.length < 90;
+        }
+        // The gap of an approved message where whoever sends it writes the message itself; empty if it comes written.
+        function tplWrite(t) {
+            return t.write || (isFreeTpl(t) ? (t.params[0] || {}).key || '' : '');
         }
         function sharedPrefix() {
             var names = (st.extras.templates || []).map(function (t) {
@@ -5700,16 +5699,20 @@
             });
         }
         function previewHtml(c, t) {
-            var params = {};
+            var params = {}, mine = tplWrite(t);
             (t.params || []).forEach(function (p) {
                 params[p.key] = p;
             });
             var body = esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
                 var p = params[k] || { key: k, example: '' };
-                var label = gapLabel(p, t);
-                return '<span class="mrd-hueco" contenteditable="true" role="textbox" data-k="' + esc(k) + '" data-nombre="' + esc(label) +
-                    '" data-ejemplo="' + esc(isCallTpl(t) ? label : p.example || label) + '" aria-label="' + esc(s('gap', label)) +
-                    '">' + esc(tplValue(p, c, t)) + '</span>';
+                var label = gapLabel(p, t), own = k === mine;
+                return '<span class="mrd-hueco' + (own ? ' mrd-hueco-mensaje' : '') + '" contenteditable="true" role="textbox" data-k="' + esc(k) +
+                    '" data-nombre="' + esc(own ? s('tplwritehere') : label) +
+                    '" data-falta="' + esc(label) + '" data-ejemplo="' + esc(own ? s('tplwritehere') : isCallTpl(t) ? label : p.example || label) +
+                    '" aria-label="' + esc(s('gap', label)) + '"' + (own ? ' aria-multiline="true"' : '') + '>' + esc(tplValue(p, c, t)) + '</span>';
+            }).replace(/(<span class="mrd-hueco mrd-hueco-mensaje"[^>]*>[^<]*<\/span>)([.,;:!?…)»]+)/g, function (m, gap, mark) {
+                // The stop after the box of the message would open the next line on its own: it goes out, not in sight.
+                return gap + '<span class="mrd-tras">' + mark + '</span>';
             }).replace(/(<span class="mrd-hueco"[^>]*>[^<]*<\/span>)([.,;:!?…)»]+)/g, function (m, gap, mark) {
                 // A gap and the stop after it go together: the line never starts with the stop.
                 return '<span class="mrd-hueco-y">' + gap + mark + '</span>';
@@ -7175,6 +7178,32 @@
             addMessagesLocal(m);
             deliver(m);
         }
+        // What a gap has, in one line: WhatsApp takes no line breaks inside a gap, so a text pasted or dropped with them
+        // loses them without a word.
+        function gapText(g) {
+            return String(g.innerText !== undefined ? g.innerText : g.textContent).replace(/[\s\u00a0]+/g, ' ').trim();
+        }
+        // The next gap with nothing in it, after another one if it is given and then from the first; null with none.
+        function emptyGap(from) {
+            var gaps = Array.prototype.slice.call(el.chat.querySelectorAll('.mrd-hueco')), at = from ? gaps.indexOf(from) + 1 : 0;
+            return gaps.slice(at).concat(gaps.slice(0, at)).filter(function (g) {
+                return g !== from && !gapText(g);
+            })[0] || null;
+        }
+        // Where the keys go with an approved message just chosen: the message, when it is for whoever sends it to write (with
+        // the keyboard of the phone too, as in any chat); if not, the first gap with nothing, or the first one.
+        function focusGap(area) {
+            var own = area && area.querySelector('.mrd-hueco-mensaje');
+            if (own) {
+                placeCaret(own, -1);
+                own.scrollIntoView({ block: 'nearest' });
+                return;
+            }
+            var gap = area && (area.querySelector('.mrd-hueco:empty') || area.querySelector('.mrd-hueco'));
+            if (gap && !touchy()) {
+                gap.focus();
+            }
+        }
         // What is still missing, by its name: «Missing: what for».
         function gapsText(missing) {
             return missing.length ? s('gapsmissing', joinList(missing)) : s('yellowhelp');
@@ -7186,8 +7215,8 @@
                 var k = g.getAttribute('data-k');
                 if (!seen[k]) {
                     seen[k] = true;
-                    if (!g.textContent.replace(/\u00a0/g, ' ').trim()) {
-                        missing.push(g.getAttribute('data-nombre') || k);
+                    if (!gapText(g)) {
+                        missing.push(g.getAttribute('data-falta') || k);
                     }
                 }
             });
@@ -7203,7 +7232,11 @@
         function gapValues() {
             var gaps = el.chat.querySelectorAll('.mrd-hueco'), params = [], missing = false, seen = {};
             Array.prototype.forEach.call(gaps, function (g) {
-                var v = g.textContent.replace(/\u00a0/g, ' ').trim(), k = g.getAttribute('data-k');
+                var v = gapText(g), k = g.getAttribute('data-k'), mark = g.nextElementSibling;
+                // The message already brings its stop after the gap: whoever writes theirs does not get two.
+                if (mark && mark.classList.contains('mrd-tras') && mark.textContent.charAt(0) === '.') {
+                    v = v.replace(/([^.])\.$/, '$1');
+                }
                 g.classList.toggle('mrd-falta', !v);
                 if (!v) {
                     missing = true;
@@ -7282,10 +7315,57 @@
                 b.setAttribute('aria-pressed', String(!!st.nueva));
             }
         }
+        /* The approved messages, the saved answers and the people are asked for again now and then and on opening «New»: a
+           page left open all day shows what changed since. The answer takes the place of what there was, and what is chosen
+           goes by its name, since its place in the list may be another. */
+        var extrasAt = 0, extrasBusy = false;
+        function tplSigs() {
+            return JSON.stringify(st.extras.templates || []);
+        }
+        function refreshExtras(age) {
+            if (extrasBusy || Date.now() - extrasAt < age) {
+                return;
+            }
+            extrasBusy = true;
+            tr.call(M.extras, {}).then(function (x) {
+                extrasBusy = false;
+                if (x) {
+                    extrasAt = Date.now();
+                    takeExtras(x);
+                }
+            }).catch(function () {
+                extrasBusy = false;
+            });
+        }
+        function takeExtras(x) {
+            var before = tplSigs(), had = st.extras.templates || [];
+            var moved = function (i) {
+                var t = had[i];
+                return !t ? -1 : (st.extras.templates || []).findIndex(function (o) {
+                    return o.name === t.name && o.language === t.language;
+                });
+            };
+            st.extras = Object.assign(st.extras, x);
+            if (tplSigs() === before) {
+                return;
+            }
+            st.tpl = moved(st.tpl);
+            if (st.nueva) {
+                var kept = st.nueva.tpl < 0;
+                st.nueva.tpl = moved(st.nueva.tpl);
+                // Whoever is filling one in keeps it as it is, unless it is gone.
+                if (st.nueva.pick && (kept || st.nueva.tpl < 0)) {
+                    renderNew();
+                }
+            } else if (conv(st.open)) {
+                renderComposer();
+            }
+        }
         function openNew() {
             if (READONLY) {
                 return;
             }
+            refreshExtras(60000);
             closePops();
             saveDraft();
             st.nueva = { q: '', found: null, needprefix: false, searching: false, pick: null, team: defaultTeam(), tpl: -1, allteams: false,
@@ -7502,28 +7582,48 @@
             return tplPrice(a) - tplPrice(b) || (String(a.category).toUpperCase() === 'UTILITY' ? -1 : 0) -
                 (String(b.category).toUpperCase() === 'UTILITY' ? -1 : 0);
         }
-        function newTplCards() {
-            var tpls = st.extras.templates || [], c = newConvLike(), langs = {};
-            tpls.forEach(function (t) {
+        /* The cards of the approved messages, in two groups told apart at a glance: the ones where whoever sends them writes
+           the message (their card has a box to write in) and the ones that come written (their card has the text, whole). */
+        function tplGroups(list, action, c, held) {
+            var all = st.extras.templates || [], langs = {};
+            all.forEach(function (t) {
                 langs[t.language] = true;
             });
             var showLang = Object.keys(langs).length > 1;
-            var nv = st.nueva, held = !!(nv && nv.pick && optoutBlocked(nv.pick.phone, nv.ficha && nv.ficha.optout));
             var card = function (t) {
-                return '<button type="button" class="mrd-plantilla" data-a="newtpl" data-v="' + (st.extras.templates || []).indexOf(t) + '"' +
-                    (held ? ' disabled' : '') + '><b>' + ico('mensaje') + esc(tplTitle(t)) +
-                    (showLang ? ' · ' + esc(t.language) : '') + '</b><span>' + esc(t.description || tplPlain(t, c)) + '</span>' + catPill(t) + '</button>';
+                var own = !!tplWrite(t);
+                return '<button type="button" class="mrd-plantilla' + (own ? ' mrd-escribes' : '') + '" data-a="' + action + '" data-v="' + all.indexOf(t) + '"' +
+                    (held ? ' disabled' : '') + '><b>' + ico(own ? 'lapiz' : 'mensaje') + esc(tplTitle(t)) +
+                    (showLang ? ' · ' + esc(t.language) : '') + '</b>' + (t.description ? '<span class="mrd-para">' + esc(t.description) + '</span>' : '') +
+                    (own ? '<span class="mrd-finge">' + esc(s('tplwritehere')) + '</span>' : '<span class="mrd-dice">' + tplSaid(t, c) + '</span>') +
+                    catPill(t) + '</button>';
             };
-            var first = tpls.filter(function (t) {
-                return t.start;
-            }).sort(byPrice), rest = tpls.filter(function (t) {
-                return !t.start;
-            }).sort(byPrice);
-            if (first.length && rest.length) {
-                return '<h4 class="mrd-nueva-grupo">' + esc(s('newfirstones')) + '</h4><div class="mrd-plantillas">' + first.map(card).join('') + '</div>' +
-                    '<h4 class="mrd-nueva-grupo">' + esc(s('newothers')) + '</h4><div class="mrd-plantillas">' + rest.map(card).join('') + '</div>';
-            }
-            return '<div class="mrd-plantillas">' + tpls.slice().sort(byPrice).map(card).join('') + '</div>';
+            var group = function (cls, icon, title, help, some) {
+                return some.length ? '<div class="mrd-tpl-grupo ' + cls + '"><h4>' + ico(icon) + '<span>' + esc(title) + ' <small>' + esc(help) + '</small></span></h4>' +
+                    '<div class="mrd-tpl-cartas">' + some.map(card).join('') + '</div></div>' : '';
+            };
+            return '<div class="mrd-plantillas">' + group('mrd-tpl-tuyas', 'lapiz', s('tplgroupwrite'), s('tplgroupwritehelp'), list.filter(tplWrite)) +
+                group('mrd-tpl-hechas', 'mensaje', s('tplgroupready'), s('tplgroupreadyhelp'), list.filter(function (t) {
+                    return !tplWrite(t);
+                })) + '</div>';
+        }
+        // The text of an approved message as it goes out, with the name of each gap nobody has filled yet.
+        function tplSaid(t, c) {
+            var params = {};
+            (t.params || []).forEach(function (p) {
+                params[p.key] = p;
+            });
+            return esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
+                var p = params[k] || { key: k }, v = tplValue(p, c, t);
+                return v ? esc(v) : '<i>' + esc(gapLabel(p, t)) + '</i>';
+            });
+        }
+        function newTplCards() {
+            var nv = st.nueva, held = !!(nv && nv.pick && optoutBlocked(nv.pick.phone, nv.ficha && nv.ficha.optout));
+            var list = (st.extras.templates || []).slice().sort(function (a, b) {
+                return (a.start ? 0 : 1) - (b.start ? 0 : 1) || byPrice(a, b);
+            });
+            return tplGroups(list, 'newtpl', newConvLike(), held);
         }
         function renderNew() {
             var n = st.nueva, tpls = st.extras.templates || [];
@@ -7842,10 +7942,7 @@
                     if (nv) {
                         nv.tpl = +v;
                         renderNew();
-                        var gap = el.chat.querySelector('.mrd-hueco:empty') || el.chat.querySelector('.mrd-hueco');
-                        if (gap && !touchy()) {
-                            gap.focus();
-                        }
+                        focusGap(el.chat);
                     }
                     break;
                 case 'newtplback':
@@ -7889,9 +7986,7 @@
                     endTour();
                     break;
                 case 'gapnext':
-                    var gap = Array.prototype.filter.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
-                        return !g.textContent.replace(/\u00a0/g, ' ').trim();
-                    })[0];
+                    var gap = emptyGap(null);
                     if (gap) {
                         gap.scrollIntoView({ block: 'center', behavior: 'smooth' });
                         placeCaret(gap, -1);
@@ -8810,6 +8905,13 @@
                 updateGaps();
             }
         });
+        // The keyboards of the phones that send no «Enter» key.
+        box.addEventListener('beforeinput', function (e) {
+            if ((e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') && e.target.classList &&
+                e.target.classList.contains('mrd-hueco')) {
+                e.preventDefault();
+            }
+        });
         box.addEventListener('paste', function (e) {
             var t = e.target.closest && e.target.closest('.mrd-editor, .mrd-hueco');
             if (!t) {
@@ -8880,7 +8982,16 @@
                 return;
             }
             if (t.classList && t.classList.contains('mrd-hueco') && e.key === 'Enter') {
+                // No line breaks in a gap: Enter goes to what is still missing, and with nothing missing, to the button.
                 e.preventDefault();
+                if (!e.isComposing) {
+                    var nextGap = emptyGap(t), goBtn = el.chat.querySelector('.mrd-previa-pie .mrd-btn');
+                    if (nextGap) {
+                        placeCaret(nextGap, -1);
+                    } else if (goBtn) {
+                        goBtn.focus();
+                    }
+                }
                 return;
             }
             // Between the team: Enter sends, as with the families; Shift+Enter, a new line.
@@ -8988,17 +9099,10 @@
             }
         }, 30000);
         setInterval(function () {
-            if (!st.ready || document.hidden) {
-                return;
+            if (st.ready && !document.hidden) {
+                refreshExtras(0);
             }
-            tr.call(M.extras, {}).then(function (x) {
-                if (x) {
-                    st.extras = Object.assign(st.extras, x);
-                }
-            }).catch(function () {
-                return null;
-            });
-        }, 600000);
+        }, 300000);
 
         /* ---------------------------------------------------------------------------------------------------------------
            Start
@@ -9019,6 +9123,7 @@
             ]).then(function (res) {
                 if (res[0]) {
                     st.extras = Object.assign(st.extras, res[0]);
+                    extrasAt = Date.now();
                 }
                 var r = res[1] || {};
                 if (r.now) {

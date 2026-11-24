@@ -113,7 +113,9 @@ Options:
 --start-templates=NAMES The approved messages to write first to someone who never wrote, in their order, comma
                        separated: they go first when a person starts a conversation.
 --templates-info=JSON  What each approved message is called and does, for the cards: an object by name with title,
-                       description and, optionally, gaps, what goes in each gap by its key ({\"2\": \"the reason\"}).
+                       description and, optionally, gaps, what goes in each gap by its key ({\"2\": \"the reason\"}),
+                       and write, the key of the gap where the message itself is written (without it, the one with the
+                       longest example, when it is as long as a sentence).
 --access-role[=ROLE]   Only the people of the account open the chat: gives them this role of the site (its short
                        name; without it, the role of the plugin, made if missing), from now on also to whoever joins
                        the account, and takes the capability away from the role of every authenticated user.

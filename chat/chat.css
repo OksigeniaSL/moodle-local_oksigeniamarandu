@@ -2134,11 +2134,41 @@
     color: var(--tinta-2);
 }
 #mrd-chat .mrd-plantillas {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 8px;
-    max-height: 40vh;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 46vh;
     overflow: auto;
+}
+/* The approved messages in two groups: those with a box to write in, and those that come written, with their text. */
+#mrd-chat .mrd-tpl-grupo h4 {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-tpl-grupo h4 .mrd-i {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    margin-top: 2px;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-tpl-grupo h4 small {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-tpl-cartas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 8px;
+}
+#mrd-chat .mrd-tpl-tuyas .mrd-tpl-cartas {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 }
 #mrd-chat .mrd-plantillas .mrd-plantilla {
     border: 1.5px solid var(--linea-2);
@@ -2168,10 +2198,68 @@
 #mrd-chat .mrd-plantillas .mrd-plantilla span {
     font-size: 13px;
     color: var(--tinta-2);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block;
+    overflow-wrap: anywhere;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes {
+    border-color: var(--acento-texto);
+    background: var(--acento-suave);
+}
+/* Its title and its price on one line, and the box below. */
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes {
+    flex-flow: row wrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: 4px 8px;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes b {
+    flex: 1 1 0;
+    min-width: 0;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes .mrd-cat {
+    order: 1;
+    margin: 0;
+    align-self: center;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes .mrd-para {
+    order: 2;
+    flex: 0 0 100%;
+    margin: 0 0 4px;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes .mrd-finge {
+    order: 3;
+    flex: 0 0 100%;
+    margin: 0;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla .mrd-finge {
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 10px;
+    background: var(--hoja);
+    color: var(--tinta-3);
+    font-size: 14px;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes:hover .mrd-finge,
+#mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes:focus-visible .mrd-finge {
+    border-color: var(--acento-texto);
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla .mrd-dice {
+    padding: 8px 11px;
+    border-radius: 12px;
+    border-end-end-radius: 4px;
+    background: var(--burbuja-nos);
+    color: var(--tinta);
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla .mrd-dice i {
+    font-style: normal;
+    border-bottom: 1.5px dotted var(--nota-tinta);
+    background: var(--nota);
+    border-radius: 3px;
+    padding: 0 3px;
+}
+#mrd-chat .mrd-plantillas .mrd-plantilla .mrd-para {
+    margin-bottom: 4px;
 }
 #mrd-chat .mrd-retomar-pie {
     display: flex;
@@ -3257,10 +3345,14 @@
         min-height: 44px;
     }
     #mrd-chat .mrd-plantillas {
-        grid-template-columns: minmax(0, 1fr);
-        max-height: 34vh;
+        max-height: 46vh;
     }
-    #mrd-chat .mrd-plantillas .mrd-plantilla span {
+    #mrd-chat .mrd-tpl-cartas,
+    #mrd-chat .mrd-tpl-tuyas .mrd-tpl-cartas {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #mrd-chat .mrd-plantillas .mrd-plantilla .mrd-para,
+    #mrd-chat .mrd-plantillas .mrd-plantilla .mrd-dice {
         display: none;
     }
     #mrd-chat .mrd-plantillas .mrd-plantilla {
@@ -3407,16 +3499,12 @@
     font-weight: 800;
     margin: 8px 0 0;
 }
-#mrd-chat .mrd-nueva-grupo,
 #mrd-chat .mrd-nueva-rotulo {
     font-size: 12px;
     font-weight: 800;
     color: var(--tinta-3);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-}
-#mrd-chat .mrd-nueva-grupo {
-    margin: 4px 0 0;
 }
 #mrd-chat .mrd-nueva-buscar {
     height: 46px;
@@ -3605,6 +3693,36 @@
 #mrd-chat .mrd-btn.mrd-primario[aria-disabled="true"] {
     opacity: 0.55;
 }
+/* The gap where whoever sends it writes the message: a box as wide as the bubble, as the one of any chat. */
+#mrd-chat .mrd-hueco.mrd-hueco-mensaje,
+#mrd-chat .mrd-hueco.mrd-hueco-mensaje:empty {
+    display: block;
+    min-height: 92px;
+    margin: 6px 0;
+    padding: 9px 12px;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 10px;
+    background: var(--hoja);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+#mrd-chat .mrd-tras {
+    display: none;
+}
+#mrd-chat .mrd-hueco.mrd-hueco-mensaje:focus {
+    border-color: var(--acento-texto);
+    background: var(--hoja);
+    box-shadow: 0 0 0 3px var(--acento-anillo);
+}
+#mrd-chat .mrd-hueco.mrd-hueco-mensaje.mrd-falta {
+    border-color: var(--rojo-texto);
+}
+#mrd-chat .mrd-hueco.mrd-hueco-mensaje:empty::before,
+#mrd-chat .mrd-hueco.mrd-hueco-mensaje:empty:focus::before {
+    color: var(--tinta-3);
+    font-style: normal;
+    font-weight: 400;
+}
 #mrd-chat .mrd-huecos-estado.mrd-faltan {
     color: var(--ambar-texto);
     font-weight: 700;
@@ -3668,7 +3786,7 @@
         justify-content: flex-end;
     }
     #mrd-chat .mrd-nueva .mrd-plantillas .mrd-plantilla span {
-        display: -webkit-box;
+        display: block;
     }
 }
 
@@ -5368,7 +5486,7 @@
     #mrd-chat .mrd-cat .mrd-cat-unos {
         display: none;
     }
-    #mrd-chat .mrd-nueva .mrd-plantillas .mrd-plantilla {
+    #mrd-chat .mrd-nueva .mrd-plantillas .mrd-plantilla:not(.mrd-escribes) {
         flex-direction: column;
         align-items: stretch;
     }

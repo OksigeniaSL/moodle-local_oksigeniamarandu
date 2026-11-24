@@ -117,6 +117,8 @@ class chat_extras extends chat_base {
                 'start' => new external_value(PARAM_BOOL, 'Whether it is one to write first to someone who never wrote'),
                 'title' => new external_value(PARAM_TEXT, 'What the organisation calls it, or empty', VALUE_DEFAULT, ''),
                 'description' => new external_value(PARAM_TEXT, 'What it does, or empty', VALUE_DEFAULT, ''),
+                'write' => new external_value(PARAM_RAW, 'The gap where whoever sends it writes the message, or empty if it ' .
+                    'comes written', VALUE_DEFAULT, ''),
             ])),
             'pending' => new external_value(PARAM_INT, 'How many messages of the team Meta has not decided yet'),
             'people' => new external_multiple_structure(new external_single_structure([

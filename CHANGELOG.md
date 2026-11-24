@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.63.0 (2026-11-24)
+
+- «New conversation» (and writing to someone after the 24 hours) tells the approved messages apart at a glance: the ones
+  where whoever sends them writes the message, with a box to write in on their card, and the ones that come written, with
+  their text whole. Choosing one of the first leaves the caret in the message, in a box as the one of any chat, also on a
+  phone; a text pasted with line breaks loses them without a word, Enter goes to what is still missing and then to the
+  button, and a stop at the end is not repeated. Which gap is the message, the organisation says (`write`, in
+  `--templates-info`), or else it is the one whose example is as long as a sentence.
+- The approved messages, the saved answers and the people are asked for again on opening «New» and every five minutes: a
+  page left open shows the cards as they are now.
+- The picture of «Propose an improvement»: what a closed `<details>` hides no longer shows, no shadows painted inside the
+  boxes, the icons made with a mask as they are, and the SVG images with no size of their own.
+
 ## 0.62.1 (2026-11-24)
 
 - «Propose an improvement» takes its picture on the pages with colours of today: html2canvas stopped at the first

@@ -109,7 +109,7 @@
         if (!brush) {
             var canvas = document.createElement('canvas');
             canvas.width = canvas.height = 1;
-            brush = canvas.getContext('2d');
+            brush = canvas.getContext('2d', { willReadFrequently: true });
         }
         brush.fillStyle = '#000000';
         brush.fillStyle = solid;
@@ -128,33 +128,146 @@
         return plains[value];
     }
 
-    // The copy of the page html2canvas is about to draw, with what it cannot draw changed: those colours, as rgba(), and
-    // the shadow of a box with round corners, which it paints inside the box too and goes away. Only in the copy, and
-    // through the styles of each element (no style sheet, for the pages with a policy that allows none).
+    // A picture as another element would show it, as a data: address of the size of the box; null if it cannot be drawn.
+    function painted(width, height, paint) {
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(width * 2));
+        canvas.height = Math.max(1, Math.round(height * 2));
+        try {
+            var ctx = canvas.getContext('2d');
+            paint(ctx, canvas.width, canvas.height);
+            return canvas.toDataURL('image/png');
+        } catch (e) {
+            return null;
+        }
+    }
+    // An image, loaded; null if it does not load (it never keeps the person waiting for more than a moment).
+    function loadedImage(src) {
+        return new Promise(function (resolve) {
+            var image = new Image();
+            image.onload = function () {
+                resolve(image);
+            };
+            image.onerror = function () {
+                resolve(null);
+            };
+            setTimeout(function () {
+                resolve(null);
+            }, 3000);
+            image.src = src;
+        });
+    }
+    // The address of the first image of a property such as mask-image; empty if it is none or a gradient.
+    function imageUrl(value) {
+        var found = /^url\((["']?)(.*?)\1\)/.exec(value || '');
+        return found ? found[2] : '';
+    }
+    // An icon made with a mask (its colour is the background, its shape the mask): html2canvas paints the whole square.
+    function plainMask(node, style, url) {
+        var box = node.getBoundingClientRect();
+        var size = style.getPropertyValue('mask-size') || style.getPropertyValue('-webkit-mask-size');
+        var colour = style.backgroundColor;
+        return loadedImage(url).then(function (image) {
+            var picture = image && box.width && box.height ? painted(box.width, box.height, function (ctx, w, h) {
+                var iw = image.naturalWidth || w;
+                var ih = image.naturalHeight || h;
+                var px = /^([\d.]+)px(?: ([\d.]+)px)?/.exec(size || '');
+                var fit = size === 'cover' ? Math.max(w / iw, h / ih) : Math.min(w / iw, h / ih);
+                var dw = px ? px[1] * 2 : iw * fit;
+                var dh = px ? (px[2] || px[1] * ih / iw) * 2 : ih * fit;
+                ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+                ctx.globalCompositeOperation = 'source-in';
+                ctx.fillStyle = colour;
+                ctx.fillRect(0, 0, w, h);
+            }) : null;
+            put(node, 'mask-image', 'none');
+            put(node, '-webkit-mask-image', 'none');
+            put(node, 'background-color', 'transparent');
+            put(node, 'background-image', picture ? 'url("' + picture + '")' : 'none');
+            put(node, 'background-size', '100% 100%');
+            put(node, 'background-position', '0 0');
+        });
+    }
+    // An image that is an SVG with no size of its own: html2canvas finds it empty and leaves it out.
+    function plainImage(node) {
+        var box = node.getBoundingClientRect();
+        if (!box.width || !box.height) {
+            return null;
+        }
+        var src = node.currentSrc || node.src;
+        return loadedImage(src).then(function (image) {
+            var picture = image ? painted(box.width, box.height, function (ctx, w, h) {
+                // With no size of its own, the browser gives it one of its shape: whole and centred, as «contain».
+                var fit = image.naturalWidth && image.naturalHeight ? Math.min(w / image.naturalWidth, h / image.naturalHeight) : 0;
+                var dw = fit ? image.naturalWidth * fit : w;
+                var dh = fit ? image.naturalHeight * fit : h;
+                ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+            }) : null;
+            if (!picture) {
+                return null;
+            }
+            node.removeAttribute('srcset');
+            put(node, 'width', box.width + 'px');
+            put(node, 'height', box.height + 'px');
+            node.src = picture;
+            return node.decode ? node.decode().catch(function () {
+                return null;
+            }) : null;
+        });
+    }
+    function put(node, property, value) {
+        node.style.setProperty('transition', 'none', 'important');
+        node.style.setProperty(property, value, 'important');
+    }
+
+    // The copy of the page html2canvas is about to draw, with what it cannot draw changed: those colours, as rgba(); the
+    // shadows, which it paints inside the boxes too and go away; what a closed <details> hides, which it draws; the icons
+    // made with a mask and the SVG images with no size. Only in the copy, and through the styles of each element (no style
+    // sheet, for the pages with a policy that allows none).
     function drawable(copy) {
         var nodes = copy.querySelectorAll('*');
         var found = [];
+        var later = [];
         var i;
         var j;
         for (i = 0; i < nodes.length; i++) {
             if (nodes[i].ownerSVGElement || !nodes[i].style) {
                 continue;
             }
+            var parent = nodes[i].parentNode;
+            if (parent && parent.nodeName === 'DETAILS' && !parent.open && nodes[i].nodeName !== 'SUMMARY') {
+                // Its colours too, below: html2canvas reads them before it sees that it does not show.
+                found.push([nodes[i], 'display', 'none']);
+            }
+            if (nodes[i].nodeName === 'SUMMARY') {
+                // Its little triangle would come out as the number of a list.
+                found.push([nodes[i], 'list-style', 'none']);
+            }
             var style = copy.defaultView.getComputedStyle(nodes[i]);
             for (j = 0; j < COLOURED.length; j++) {
                 var value = style.getPropertyValue(COLOURED[j]);
-                if (COLOURED[j] === 'box-shadow' && value !== 'none' && parseFloat(style.borderTopLeftRadius)) {
-                    found.push([nodes[i], COLOURED[j], 'none']);
+                if (COLOURED[j] === 'box-shadow') {
+                    if (value && value !== 'none') {
+                        found.push([nodes[i], 'box-shadow', 'none']);
+                    }
                 } else if (value && value.search(MODERN) !== -1) {
                     found.push([nodes[i], COLOURED[j], value.replace(MODERN, plainColour)]);
                 }
             }
+            var mask = imageUrl(style.getPropertyValue('mask-image') || style.getPropertyValue('-webkit-mask-image'));
+            if (mask) {
+                later.push([plainMask, nodes[i], style, mask]);
+            } else if (nodes[i].nodeName === 'IMG' && /\.svg(?:[?#]|$)|^data:image\/svg/i.test(nodes[i].currentSrc || nodes[i].src)) {
+                later.push([plainImage, nodes[i]]);
+            }
         }
         // All read before any is written, or a colour that passes on to the children would be read already changed.
         for (i = 0; i < found.length; i++) {
-            found[i][0].style.setProperty('transition', 'none', 'important');
-            found[i][0].style.setProperty(found[i][1], found[i][2], 'important');
+            put(found[i][0], found[i][1], found[i][2]);
         }
+        return Promise.all(later.map(function (one) {
+            return one[0](one[1], one[2], one[3]);
+        }));
     }
 
     // What the person sees, as a canvas; null if the browser cannot draw it.

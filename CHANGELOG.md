@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.63.2 (2026-11-24)
+
+- What an approved message is for goes beside its title when it fits, and the second group of messages shows sooner.
+
 ## 0.63.1 (2026-11-24)
 
 - In the message of an approved one, Enter stays where it is and the page says why: pressed twice, as to leave a blank line,

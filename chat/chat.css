@@ -2253,7 +2253,7 @@
     align-self: center;
 }
 #mrd-chat .mrd-plantillas .mrd-plantilla .mrd-tit .mrd-para {
-    flex: 1 1 270px;
+    flex: 1 1 auto;
     min-width: 0;
 }
 #mrd-chat .mrd-plantillas .mrd-plantilla.mrd-escribes .mrd-tit {

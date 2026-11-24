@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.64.0 (2026-11-24)
+
+- A message for a family can go out later: beside «Send», the day (those the department works) and the hour, with the next
+  opening first. It goes as if its author sent it then, with their signature, once. It does not go by itself if the family
+  writes first, if by then the 24 hours are over (it may be an approved message, at any hour), or more than an hour late:
+  it waits, says why, and its author hears of it. What waits is above the box: send it now, change it or take it back.
+- An approved message can be kept without offering it (`hidden`, in `--templates-info`).
+- A message without an answer from Chatwoot is looked for in the conversation before it is tried again.
+
 ## 0.63.3 (2026-11-24)
 
 - In the version for the channel of WhatsApp, a link that its plugin marked for Telegram (`d=telegram`) says WhatsApp, so

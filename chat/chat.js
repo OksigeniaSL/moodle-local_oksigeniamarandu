@@ -4661,14 +4661,32 @@
         }
         /* -------- A message for later: the day and the hour, with the opening of the department as the first one -------- */
         function schedStart(c) {
-            var k = dayKey(nowMs()), hh = hoursConv(c), at = hh.on ? hh.nextOpening(nowMs()) : 0;
             if (st.sched && st.sched.conv === c.id) {
                 return;
             }
-            if (!at) {
-                at = hh.remAt(shiftKey(k, 1));
-            }
+            var at = schedQuick(c)[0];
             st.sched = { conv: c.id, key: dayKey(at), min: minutesOf(at) };
+        }
+        // The moments offered first: later today, if the department is open, and the next openings; one can write freely only
+        // until the 24 hours are over, so those past them go last, for an approved message.
+        function schedQuick(c) {
+            var hh = hoursConv(c), today = dayKey(nowMs()), list = [], k = today, half = 1800000;
+            var soon = Math.ceil((nowMs() + 2700000) / half) * half;
+            if (!hh.on || (hh.openAt(soon) && dayKey(soon) === today)) {
+                list.push(soon);
+            }
+            for (var i = 0; i < 21 && list.length < 3; i++, k = shiftKey(k, 1)) {
+                var o = hh.remAt(k);
+                if (hh.openDay(k) && o > nowMs() + 90000 && list.indexOf(o) < 0) {
+                    list.push(o);
+                }
+            }
+            return list.sort(function (a, b) {
+                var late = function (ms) {
+                    return c.replyuntil && composerState(c) !== 'preview' && ms >= c.replyuntil * 1000 ? 1 : 0;
+                };
+                return late(a) - late(b) || a - b;
+            });
         }
         // Minutes since midnight of a moment, in the time zone of the site.
         function minutesOf(ms) {
@@ -4702,14 +4720,7 @@
                 schedStart(c);
                 chosen = st.sched;
             }
-            var quick = [], k = today;
-            for (var i = 0; i < 14 && quick.length < 3; i++, k = shiftKey(k, 1)) {
-                var o = hh.remAt(k);
-                if (hh.openDay(k) && o > nowMs() + 90000) {
-                    quick.push(o);
-                }
-            }
-            var chips = quick.map(function (ms) {
+            var chips = schedQuick(c).map(function (ms) {
                 var on = dayKey(ms) === chosen.key && minutesOf(ms) === chosen.min;
                 return '<button type="button" class="mrd-chip' + (on ? ' mrd-on' : '') + '" data-a="schedquick" data-v="' + ms + '" aria-pressed="' + on + '">' +
                     esc(cap(whenPhrase(ms))) + '</button>';
@@ -6178,6 +6189,9 @@
                 box2.insertAdjacentHTML('beforeend', popPassConv());
             } else if (st.pop === 'programar' && conv(st.open)) {
                 box2.insertAdjacentHTML('beforeend', popSchedule(conv(st.open)));
+            }
+            if (st.pop === 'programar' && box2.classList.contains('mrd-con-previa')) {
+                box2.querySelector('.mrd-pop').scrollIntoView({ block: 'nearest' });
             }
             var later = box2.querySelector('[data-v="programar"]');
             if (later) {

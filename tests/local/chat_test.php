@@ -250,7 +250,8 @@ final class chat_test extends \advanced_testcase {
                             $this->messages[$m[1]][] = $message;
                         }
                         if ($this->down !== null) {
-                            throw new \local_oksigeniamarandu\local\api_exception('error:chatwoot', $this->down[0]);
+                            $error = \local_oksigeniamarandu\local\api_exception::class;
+                            throw new $error('error:chatwoot', $this->down[0], null, 'No such number');
                         }
                         return $message;
                     }
@@ -1074,7 +1075,10 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame([], $said());
         $held = scheduled::of(1, (int)$ana->id)[0];
         $this->assertSame(['held', 'wrote'], [$held['status'], $held['reason']]);
-        $this->assertSame('Laura Martín wrote before the message you left: look at it and send it.', $sink->get_messages()[0]->subject);
+        $this->assertSame(
+            'Laura Martín wrote before the message you left: look at it and send it.',
+            $sink->get_messages()[0]->subject
+        );
         // Sent now by Luis, with his signature, and off the list.
         $luis = viewer::for_user($this->person('luis@example.com', 'Luis'));
         $DB->set_field(mirror::TABLE, 'teamid', 11, ['cwid' => 1]);
@@ -1114,8 +1118,17 @@ final class chat_test extends \advanced_testcase {
         scheduled::add($viewer, $row, $now + HOURSECS, 'Rechazado', null, [], $now);
         $this->client->down = [422, false];
         $this->assertSame(0, scheduled::due($now + HOURSECS));
-        $this->assertSame('refused', scheduled::of(3, (int)$ana->id)[0]['reason']);
+        $refused = scheduled::of(3, (int)$ana->id)[0];
+        $this->assertSame(['refused', ''], [$refused['reason'], $refused['why']]);
+        $this->assertSame('No such number', $DB->get_field(scheduled::TABLE, 'why', ['id' => $refused['id']]));
         $this->client->down = null;
+        scheduled::remove($row, $refused['id']);
+        // The approved message it was is not offered any more: why, in plain words.
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, '', $template, ['1' => 'Laura'], $now);
+        set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['hidden' => true]]), 'local_oksigeniamarandu');
+        $this->assertSame(0, scheduled::due($now + HOURSECS));
+        $this->assertStringContainsString('no longer there', scheduled::of(3, (int)$ana->id)[0]['why']);
+        scheduled::remove($row, $id);
 
         // A message kept without offering it.
         set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['hidden' => true]]), 'local_oksigeniamarandu');

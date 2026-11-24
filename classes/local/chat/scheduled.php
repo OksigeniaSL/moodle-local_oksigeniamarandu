@@ -84,7 +84,7 @@ class scheduled {
         }
         $id = (int)$DB->insert_record(self::TABLE, (object)['cwid' => (int)$row->cwid, 'userid' => $viewer->userid,
             'sendat' => $at, 'body' => $template === null ? $text : json_encode($values, JSON_UNESCAPED_UNICODE),
-            'template' => $template === null ? null : $template['name'], 'language' => $template === null ? null : $template['language'],
+            'template' => $template['name'] ?? null, 'language' => $template['language'] ?? null,
             'status' => 'waiting', 'reason' => '', 'timecreated' => $now, 'timemodified' => $now, 'timedone' => 0]);
         self::moved((int)$row->cwid);
         return $id;
@@ -129,7 +129,8 @@ class scheduled {
         } catch (\moodle_exception $e) {
             // Without a certain answer it may have gone out: the person looks before sending it again.
             $code = $e instanceof api_exception ? (int)$e->a : 400;
-            self::state($one, 'held', $code >= 400 && $code < 500 ? 'refused' : 'unsure', $now);
+            $sure = $code >= 400 && $code < 500;
+            self::state($one, 'held', $sure ? 'refused' : 'unsure', $now, $sure ? self::why($e) : '');
             throw $e;
         }
         self::done($one, $now);
@@ -250,12 +251,12 @@ class scheduled {
         } catch (api_exception $e) {
             $code = (int)$e->a;
             if ($code >= 400 && $code < 500) {
-                self::hold($one, 'refused', $row, $now);
+                self::hold($one, 'refused', $row, $now, self::why($e));
             }
             // Anything else has no certain answer: the next pass looks for it before trying again.
             return false;
         } catch (\moodle_exception $e) {
-            self::hold($one, 'refused', $row, $now);
+            self::hold($one, 'refused', $row, $now, self::why($e));
             return false;
         }
         self::done($one, $now);
@@ -308,7 +309,8 @@ class scheduled {
         foreach (array_reverse($answer['payload'] ?? []) as $message) {
             if (
                 (int)($message['message_type'] ?? -1) === 1 && empty($message['private']) &&
-                (string)($message['content'] ?? '') === $content && (int)($message['created_at'] ?? 0) >= (int)$one->timemodified - MINSECS
+                (string)($message['content'] ?? '') === $content &&
+                (int)($message['created_at'] ?? 0) >= (int)$one->timemodified - MINSECS
             ) {
                 return (int)($message['id'] ?? 0);
             }
@@ -350,9 +352,10 @@ class scheduled {
      * @param string $reason wrote, window, late, access, refused or unsure.
      * @param \stdClass|null $row The conversation.
      * @param int $now The time.
+     * @param string $why What was said when it was refused, as the code of a text of the plugin or a text.
      */
-    protected static function hold(\stdClass $one, string $reason, ?\stdClass $row, int $now): void {
-        self::state($one, 'held', $reason, $now);
+    protected static function hold(\stdClass $one, string $reason, ?\stdClass $row, int $now, string $why = ''): void {
+        self::state($one, 'held', $reason, $now, $why);
         if (!$row) {
             return;
         }
@@ -367,12 +370,26 @@ class scheduled {
      * @param string $status Its state.
      * @param string $reason Why.
      * @param int $now The time.
+     * @param string $why What was said when it was refused.
      */
-    protected static function state(\stdClass $one, string $status, string $reason, int $now): void {
+    protected static function state(\stdClass $one, string $status, string $reason, int $now, string $why = ''): void {
         global $DB;
         $DB->update_record(self::TABLE, (object)['id' => $one->id, 'status' => $status, 'reason' => $reason,
-            'timemodified' => $now]);
+            'why' => $why === '' ? null : \core_text::substr($why, 0, 255), 'timemodified' => $now]);
         self::moved((int)$one->cwid);
+    }
+
+    /**
+     * What an error says to whoever wrote the message: the code of a text of the plugin, or what Chatwoot said.
+     *
+     * @param \moodle_exception $e The error.
+     * @return string
+     */
+    protected static function why(\moodle_exception $e): string {
+        if ($e->module === 'local_oksigeniamarandu' && $e->errorcode !== 'error:chatwoot') {
+            return $e->errorcode;
+        }
+        return (string)$e->debuginfo;
     }
 
     /**
@@ -410,6 +427,18 @@ class scheduled {
     }
 
     /**
+     * What was said when a message was refused, for whoever wrote it: what this plugin says. What Chatwoot says, in its own
+     * language and for whoever manages it, stays in the table.
+     *
+     * @param string $why As it is kept.
+     * @return string
+     */
+    protected static function said(string $why): string {
+        return strpos($why, 'chat:') === 0 && get_string_manager()->string_exists($why, 'local_oksigeniamarandu')
+            ? get_string($why, 'local_oksigeniamarandu') : '';
+    }
+
+    /**
      * The messages as the page shows them.
      *
      * @param \stdClass[] $rows The rows.
@@ -436,7 +465,8 @@ class scheduled {
             }
             $list[] = ['id' => (int)$one->id, 'at' => (int)$one->sendat, 'text' => $text, 'by' => $users[$one->userid],
                 'mine' => (int)$one->userid === $userid, 'status' => (string)$one->status, 'reason' => (string)$one->reason,
-                'approved' => $one->template !== null, 'title' => $title, 'body' => (string)$one->body,
+                'why' => self::said((string)($one->why ?? '')), 'approved' => $one->template !== null, 'title' => $title,
+                'body' => (string)$one->body,
                 'template' => (string)$one->template, 'language' => (string)$one->language] +
                 ($with ? ['cwid' => (int)$one->cwid] : []);
         }

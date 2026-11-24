@@ -148,6 +148,7 @@ abstract class chat_base extends external_api {
                 'status' => new external_value(PARAM_ALPHA, 'waiting, sending or held'),
                 'reason' => new external_value(PARAM_ALPHA, 'Why it does not go by itself: wrote, window, late, access, refused ' .
                     'or unsure; empty if it goes'),
+                'why' => new external_value(PARAM_TEXT, 'What was said when it was refused'),
                 'approved' => new external_value(PARAM_BOOL, 'Whether it is an approved message'),
                 'title' => new external_value(PARAM_TEXT, 'What the approved message is called'),
                 'body' => new external_value(PARAM_RAW, 'What was written, or the gaps of the approved message as JSON'),

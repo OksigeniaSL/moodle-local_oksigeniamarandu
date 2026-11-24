@@ -86,6 +86,77 @@
         return loading;
     }
 
+    // The colours html2canvas does not know (it stops at the first one): the browser gives color-mix() already worked out
+    // as color(srgb …), and oklch(), oklab(), lab() and lch() as they are.
+    var MODERN = /\b(?:color|color-mix|oklch|oklab|lab|lch|hwb|light-dark)\((?:[^()]|\([^()]*\))*\)/g;
+    var COLOURED = ['color', 'background-color', 'background-image', 'border-top-color', 'border-right-color',
+        'border-bottom-color', 'border-left-color', 'box-shadow', 'text-shadow', 'text-decoration-color',
+        '-webkit-text-stroke-color'];
+    var plains = {};
+    var brush = null;
+
+    // One of those colours as rgba(), worked out by the browser itself. The opacity goes apart: a pixel that is almost
+    // transparent keeps little of its colour.
+    function plainColour(value) {
+        if (plains[value]) {
+            return plains[value];
+        }
+        var alpha = 1;
+        var solid = value.replace(/\s*\/\s*([\d.]+)(%?)\s*\)$/, function (all, number, percent) {
+            alpha = parseFloat(number) / (percent ? 100 : 1);
+            return ')';
+        });
+        if (!brush) {
+            var canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 1;
+            brush = canvas.getContext('2d');
+        }
+        brush.fillStyle = '#000000';
+        brush.fillStyle = solid;
+        var first = brush.fillStyle;
+        brush.fillStyle = '#ffffff';
+        brush.fillStyle = solid;
+        if (first !== brush.fillStyle) {
+            // The browser does not know it either: better no colour than no picture.
+            plains[value] = 'rgba(0, 0, 0, 0)';
+            return plains[value];
+        }
+        brush.clearRect(0, 0, 1, 1);
+        brush.fillRect(0, 0, 1, 1);
+        var dot = brush.getImageData(0, 0, 1, 1).data;
+        plains[value] = 'rgba(' + dot[0] + ', ' + dot[1] + ', ' + dot[2] + ', ' + alpha * dot[3] / 255 + ')';
+        return plains[value];
+    }
+
+    // The copy of the page html2canvas is about to draw, with what it cannot draw changed: those colours, as rgba(), and
+    // the shadow of a box with round corners, which it paints inside the box too and goes away. Only in the copy, and
+    // through the styles of each element (no style sheet, for the pages with a policy that allows none).
+    function drawable(copy) {
+        var nodes = copy.querySelectorAll('*');
+        var found = [];
+        var i;
+        var j;
+        for (i = 0; i < nodes.length; i++) {
+            if (nodes[i].ownerSVGElement || !nodes[i].style) {
+                continue;
+            }
+            var style = copy.defaultView.getComputedStyle(nodes[i]);
+            for (j = 0; j < COLOURED.length; j++) {
+                var value = style.getPropertyValue(COLOURED[j]);
+                if (COLOURED[j] === 'box-shadow' && value !== 'none' && parseFloat(style.borderTopLeftRadius)) {
+                    found.push([nodes[i], COLOURED[j], 'none']);
+                } else if (value && value.search(MODERN) !== -1) {
+                    found.push([nodes[i], COLOURED[j], value.replace(MODERN, plainColour)]);
+                }
+            }
+        }
+        // All read before any is written, or a colour that passes on to the children would be read already changed.
+        for (i = 0; i < found.length; i++) {
+            found[i][0].style.setProperty('transition', 'none', 'important');
+            found[i][0].style.setProperty(found[i][1], found[i][2], 'important');
+        }
+    }
+
     // What the person sees, as a canvas; null if the browser cannot draw it.
     function picture() {
         var doc = document.documentElement;
@@ -100,7 +171,8 @@
                 scale: Math.min(root.devicePixelRatio || 1, 1.5),
                 useCORS: true,
                 logging: false,
-                backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
+                backgroundColor: (getComputedStyle(document.body).backgroundColor || '#ffffff').replace(MODERN, plainColour),
+                onclone: drawable,
                 ignoreElements: function (node) {
                     return !!(node.hasAttribute && node.hasAttribute(SKIP));
                 }

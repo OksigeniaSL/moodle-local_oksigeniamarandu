@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.62.1 (2026-11-24)
+
+- «Propose an improvement» takes its picture on the pages with colours of today: html2canvas stopped at the first
+  `color-mix()`, `oklch()` or `lab()` and the proposal went without a picture. The copy it draws has them as `rgba()` now,
+  and not the shadows of the boxes with round corners, which it painted inside the box too.
+
 ## 0.62.0 (2026-11-24)
 
 - «Nothing to answer. All up to date» is only said of what is up to date. The page of the conversations (the list, the

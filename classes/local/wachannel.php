@@ -349,7 +349,8 @@ class wachannel {
             return null;
         }
         $DB->execute('UPDATE {' . self::TABLE . '} SET clicks = clicks + 1 WHERE id = ?', [$wa->id]);
-        return isset($content['utm']) && !$content['utm'] ? $url : links::utm($url, $post->kind, 'whatsapp');
+        return isset($content['utm']) && !$content['utm'] ? $url :
+            links::utm(links::for_whatsapp($url), $post->kind, 'whatsapp');
     }
 
     /**

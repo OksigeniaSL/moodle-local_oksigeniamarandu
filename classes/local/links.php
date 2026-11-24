@@ -66,6 +66,19 @@ class links {
     }
 
     /**
+     * A link made for the channel of Telegram, for the one of WhatsApp: what its query says is «telegram», such as the door a
+     * plugin counts (d=telegram), says «whatsapp». The rest stays letter by letter.
+     *
+     * @param string $url The link.
+     * @return string
+     */
+    public static function for_whatsapp(string $url): string {
+        [$address, $fragment] = array_pad(explode('#', $url, 2), 2, null);
+        $address = preg_replace('~([?&][^=&]+=)telegram(?=&|$)~', '${1}whatsapp', $address) ?? $address;
+        return $address . ($fragment === null ? '' : '#' . $fragment);
+    }
+
+    /**
      * Whether the site has a shortener.
      *
      * @return bool

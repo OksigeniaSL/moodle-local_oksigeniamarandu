@@ -327,6 +327,27 @@ final class wachannel_test extends \advanced_testcase {
     }
 
     /**
+     * What its plugin marked for Telegram says WhatsApp in the version for WhatsApp, unless the link must go as it is.
+     */
+    public function test_link_marked_for_telegram(): void {
+        global $DB;
+        wachannel::set_enabled(true);
+        set_config('utm', 1, 'local_oksigeniamarandu');
+        $post = $this->publish($this->bot());
+        $wa = $DB->get_record(wachannel::TABLE, ['postid' => $post->id], '*', MUST_EXIST);
+        $content = ['title' => 'El libro del mes', 'url' => 'https://example.org/libro?id=telegram4&d=telegram#telegram'];
+        $DB->set_field(channel::TABLE, 'content', json_encode($content), ['id' => $post->id]);
+        $this->assertSame(
+            'https://example.org/libro?id=telegram4&d=whatsapp&utm_source=whatsapp&utm_medium=channel' .
+                '&utm_campaign=book#telegram',
+            wachannel::click($wa->token)
+        );
+        $this->assertStringContainsString('&d=telegram&', channel::click($post->token));
+        $DB->set_field(channel::TABLE, 'content', json_encode($content + ['utm' => false]), ['id' => $post->id]);
+        $this->assertSame($content['url'], wachannel::click($wa->token));
+    }
+
+    /**
      * The link of a post in WhatsApp goes through the shortener of the site, as in Telegram: with the link of Marandu.
      */
     public function test_shortened_link(): void {

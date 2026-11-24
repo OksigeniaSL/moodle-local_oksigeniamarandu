@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.63.3 (2026-11-24)
+
+- In the version for the channel of WhatsApp, a link that its plugin marked for Telegram (`d=telegram`) says WhatsApp, so
+  each plugin counts from where each person came.
+
 ## 0.63.2 (2026-11-24)
 
 - What an approved message is for goes beside its title when it fits, and the second group of messages shows sooner.

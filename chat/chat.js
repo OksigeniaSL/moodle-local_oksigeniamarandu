@@ -5442,6 +5442,15 @@
             st.composerSig = sig;
             var state = composerState(c), name = contactFirst(c), h = '';
             var newer = newerOf(c);
+            var areas = [box2, hiloEl()].filter(Boolean), areaState = function (cls) {
+                areas.forEach(function (area) {
+                    area.classList.remove('mrd-eligiendo', 'mrd-con-previa');
+                    if (cls) {
+                        area.classList.add(cls);
+                    }
+                });
+            };
+            areaState('');
             if (newer && !READONLY) {
                 // Whoever came to an old one answers in the one of now, never here.
                 box2.innerHTML = '<div class="mrd-solo-leer mrd-vieja-pie">' + ico('reloj') + '<span>' + esc(s('oldconvfoot')) + '</span>' +
@@ -5498,6 +5507,7 @@
             var tpls = st.extras.templates || [];
             if (state === 'preview' && tpls[st.tpl]) {
                 st.gapsTpl = tpls[st.tpl].name;
+                areaState('mrd-con-previa');
                 box2.innerHTML = previewHtml(c, tpls[st.tpl]);
                 focusGap(box2);
                 return;
@@ -5511,6 +5521,7 @@
                     '</button></div>';
                 return;
             }
+            areaState(tpls.length ? 'mrd-eligiendo' : '');
             h = '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
                 '<p>' + esc(lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p>' +
                 (tpls.length ? '<p class="mrd-paga">' + ico('gs-euro') + '<span>' + esc(s('payline')) + ' <strong>' + esc(s('paylinewho')) + '</strong>' +
@@ -5637,6 +5648,10 @@
             }
             return /^\d+$/.test(key) ? s('gapnumber', key) : key.replace(/[_.]+/g, ' ');
         }
+        // The name of a gap inside its sentence: after «el», «del» or «a las» its own article would read twice («el el día»).
+        function gapHere(label, before) {
+            return /(?:^|[\s(«])(?:el|la|los|las|del|al|the)\s*$/i.test(before) ? String(label).replace(/^(?:el|la|los|las|the)\s+/i, '') : label;
+        }
         /* What a gap brings already filled, and can be changed: the name after a greeting, and the day of the family's
            last message where the gap is that day (as the server marks it, or as its name or the words before it say). */
         function tplValue(p, c, t) {
@@ -5698,18 +5713,52 @@
                 return params[k] !== undefined ? params[k] : m;
             });
         }
+        /* What is half written in an approved message stays, as the draft of any answer: by the person it is for, whatever
+           the way out of it was (choosing another message, another conversation, Escape). The message itself goes along to
+           any other card where it is written; what went in the other gaps, only to its own. It goes away when it is sent. */
+        function keptKey(c) {
+            return c && c.id ? 'c' + c.id : 'p' + ((c && c.contact && c.contact.phone) || '');
+        }
+        function keptOf(c) {
+            st.kept = st.kept || {};
+            return st.kept[keptKey(c)] || null;
+        }
+        function keepGaps() {
+            var tpls = st.extras.templates || [], c = st.nueva ? newConvLike() : conv(st.open), t = tpls[st.nueva ? st.nueva.tpl : st.tpl];
+            if (!c || !t || (st.nueva && !st.nueva.pick)) {
+                return;
+            }
+            var mine = tplWrite(t), name = t.name + '|' + t.language, kept = keptOf(c) || { own: '', gaps: {} };
+            kept.gaps[name] = {};
+            Array.prototype.forEach.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
+                var k = g.getAttribute('data-k');
+                if (k === mine) {
+                    kept.own = gapText(g);
+                } else {
+                    kept.gaps[name][k] = gapText(g);
+                }
+            });
+            st.kept[keptKey(c)] = kept;
+        }
+        function gapStart(p, c, t) {
+            var kept = keptOf(c), said = kept && kept.gaps[t.name + '|' + t.language];
+            if (kept && p.key === tplWrite(t)) {
+                return kept.own;
+            }
+            return said && p.key in said ? said[p.key] : tplValue(p, c, t);
+        }
         function previewHtml(c, t) {
             var params = {}, mine = tplWrite(t);
             (t.params || []).forEach(function (p) {
                 params[p.key] = p;
             });
-            var body = esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
+            var body = esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k, at, whole) {
                 var p = params[k] || { key: k, example: '' };
-                var label = gapLabel(p, t), own = k === mine;
+                var label = gapLabel(p, t), own = k === mine, here = gapHere(label, whole.slice(0, at));
                 return '<span class="mrd-hueco' + (own ? ' mrd-hueco-mensaje' : '') + '" contenteditable="true" role="textbox" data-k="' + esc(k) +
-                    '" data-nombre="' + esc(own ? s('tplwritehere') : label) +
-                    '" data-falta="' + esc(label) + '" data-ejemplo="' + esc(own ? s('tplwritehere') : isCallTpl(t) ? label : p.example || label) +
-                    '" aria-label="' + esc(s('gap', label)) + '"' + (own ? ' aria-multiline="true"' : '') + '>' + esc(tplValue(p, c, t)) + '</span>';
+                    '" data-nombre="' + esc(own ? s('tplwritehere') : here) +
+                    '" data-falta="' + esc(label) + '" data-ejemplo="' + esc(own ? s('tplwritehere') : isCallTpl(t) ? here : p.example || here) +
+                    '" aria-label="' + esc(s('gap', label)) + '"' + (own ? ' aria-multiline="true"' : '') + '>' + esc(gapStart(p, c, t)) + '</span>';
             }).replace(/(<span class="mrd-hueco mrd-hueco-mensaje"[^>]*>[^<]*<\/span>)([.,;:!?…)»]+)/g, function (m, gap, mark) {
                 // The stop after the box of the message would open the next line on its own: it goes out, not in sight.
                 return gap + '<span class="mrd-tras">' + mark + '</span>';
@@ -5721,7 +5770,7 @@
                 return '<span>' + esc(b && b.text !== undefined ? b.text : b) + '</span>';
             }).join('');
             var empty = (t.params || []).filter(function (p, i, all) {
-                return !tplValue(p, c, t) && all.map(function (x) {
+                return !gapStart(p, c, t) && all.map(function (x) {
                     return x.key;
                 }).indexOf(p.key) === i;
             }).map(function (p) {
@@ -5732,6 +5781,7 @@
                 '<div class="mrd-msg mrd-nos mrd-plantilla">' + (t.header ? '<span class="mrd-cabecera-wa">' + esc(t.header) + '</span>' : '') +
                 '<p>' + body + '</p>' + (t.footer ? '<span class="mrd-pie-wa">' + esc(t.footer) + '</span>' : '') +
                 (btns ? '<div class="mrd-botones-wa">' + btns + '</div>' : '') + '</div>' +
+                (mine ? '<p class="mrd-una-linea" role="status"></p>' : '') +
                 '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty.length + '">' +
                 ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty.length ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
                 esc(gapsText(empty)) + '</small>' + (catPill(t) ? '<small class="mrd-cuesta">' + catPill(t) + '<span>' + esc(s('paidby')) + '</span></small>' : '') +
@@ -7178,8 +7228,34 @@
             addMessagesLocal(m);
             deliver(m);
         }
-        // What a gap has, in one line: WhatsApp takes no line breaks inside a gap, so a text pasted or dropped with them
-        // loses them without a word.
+        /* A text with several lines, in one, as it would be written in one: the items of a list go with a semicolon and the
+           paragraphs with a stop, where they bring none; a line cut by its width, with a space. */
+        function oneLine(text) {
+            var out = '', blank = false, was = false;
+            String(text).split(/\r\n|[\r\n\u2028\u2029]/).forEach(function (line) {
+                var item = /^\s*(?:[-–—•*·]|\d{1,2}[.)])\s+/.test(line);
+                var said = line.replace(/^\s*[-–—•*·]\s+/, '').replace(/[\s\u00a0]+/g, ' ').trim();
+                if (!said) {
+                    blank = !!out;
+                    return;
+                }
+                if (out) {
+                    out += (/[.,:;!?…]$/.test(out) ? '' : item ? ';' : blank || was ? '.' : '') + ' ';
+                }
+                out += said;
+                blank = false;
+                was = item;
+            });
+            return out;
+        }
+        // Whoever leaves a line or pastes several hears that it goes out as one paragraph.
+        function sayOneLine() {
+            var note = el.chat.querySelector('.mrd-una-linea');
+            if (note) {
+                note.textContent = s('tploneline');
+            }
+        }
+        // What a gap has, in one line: WhatsApp takes no line breaks inside a gap.
         function gapText(g) {
             return String(g.innerText !== undefined ? g.innerText : g.textContent).replace(/[\s\u00a0]+/g, ' ').trim();
         }
@@ -7211,6 +7287,7 @@
         // After each key in a gap: what is left, next to the button that sends.
         function updateGaps() {
             var seen = {}, missing = [];
+            keepGaps();
             Array.prototype.forEach.call(el.chat.querySelectorAll('.mrd-hueco'), function (g) {
                 var k = g.getAttribute('data-k');
                 if (!seen[k]) {
@@ -7235,7 +7312,7 @@
                 var v = gapText(g), k = g.getAttribute('data-k'), mark = g.nextElementSibling;
                 // The message already brings its stop after the gap: whoever writes theirs does not get two.
                 if (mark && mark.classList.contains('mrd-tras') && mark.textContent.charAt(0) === '.') {
-                    v = v.replace(/([^.])\.$/, '$1');
+                    v = v.replace(/([^.,:;])[.,:;]$/, '$1');
                 }
                 g.classList.toggle('mrd-falta', !v);
                 if (!v) {
@@ -7276,6 +7353,7 @@
                 if (r && r.conversation) {
                     mergeConv(r.conversation);
                 }
+                delete (st.kept || {})[keptKey(c)];
                 if (st.open === id) {
                     st.tpl = -1;
                     st.pickAgain = false;
@@ -7589,23 +7667,41 @@
             all.forEach(function (t) {
                 langs[t.language] = true;
             });
-            var showLang = Object.keys(langs).length > 1;
-            var card = function (t) {
-                var own = !!tplWrite(t);
+            var showLang = Object.keys(langs).length > 1, kept = keptOf(c);
+            var card = function (t, pill) {
+                var own = !!tplWrite(t), said = own && kept ? kept.own : '';
                 return '<button type="button" class="mrd-plantilla' + (own ? ' mrd-escribes' : '') + '" data-a="' + action + '" data-v="' + all.indexOf(t) + '"' +
-                    (held ? ' disabled' : '') + '><b>' + ico(own ? 'lapiz' : 'mensaje') + esc(tplTitle(t)) +
-                    (showLang ? ' · ' + esc(t.language) : '') + '</b>' + (t.description ? '<span class="mrd-para">' + esc(t.description) + '</span>' : '') +
-                    (own ? '<span class="mrd-finge">' + esc(s('tplwritehere')) + '</span>' : '<span class="mrd-dice">' + tplSaid(t, c) + '</span>') +
-                    catPill(t) + '</button>';
+                    (held ? ' disabled' : '') + '><span class="mrd-tit' + (pill ? ' mrd-con-precio' : '') + '"><b>' + ico(own ? 'lapiz' : 'mensaje') + esc(tplTitle(t)) +
+                    (showLang ? ' · ' + esc(t.language) : '') + '</b>' + pill +
+                    (t.description || own ? '<span class="mrd-para">' + (t.description ? esc(t.description) : tplLead(t, c)) + '</span>' : '') + '</span>' +
+                    (own ? '<span class="mrd-finge' + (said ? ' mrd-a-medias' : '') + '">' + esc(said || s('tplwritehere')) + '</span>'
+                        : '<span class="mrd-dice">' + tplSaid(t, c) + '</span>') + '</button>';
             };
+            // The price, once for the group: the one of most of its cards. Whichever costs something else says its own.
             var group = function (cls, icon, title, help, some) {
-                return some.length ? '<div class="mrd-tpl-grupo ' + cls + '"><h4>' + ico(icon) + '<span>' + esc(title) + ' <small>' + esc(help) + '</small></span></h4>' +
-                    '<div class="mrd-tpl-cartas">' + some.map(card).join('') + '</div></div>' : '';
+                var pills = some.map(catPill), times = function (x) {
+                    return pills.filter(function (y) {
+                        return y === x;
+                    }).length;
+                };
+                var most = pills.slice().sort(function (a, b) {
+                    return times(b) - times(a);
+                })[0] || '', one = times(most) > 1 && pills.indexOf('') < 0, all1 = one && times(most) === pills.length;
+                return some.length ? '<div class="mrd-tpl-grupo ' + cls + '"><h4>' + ico(icon) + '<b>' + esc(title) + '</b>' +
+                    (one ? '<span class="mrd-cada">' + most + (all1 ? ' <span class="mrd-cada-t">' + esc(s('tpleach')) + '</span>' : '') + '</span>' : '') + '<small>' + esc(help) + '</small></h4>' +
+                    '<div class="mrd-tpl-cartas">' + some.map(function (t, i) {
+                        return card(t, one && pills[i] === most ? '' : pills[i]);
+                    }).join('') + '</div></div>' : '';
             };
             return '<div class="mrd-plantillas">' + group('mrd-tpl-tuyas', 'lapiz', s('tplgroupwrite'), s('tplgroupwritehelp'), list.filter(tplWrite)) +
                 group('mrd-tpl-hechas', 'mensaje', s('tplgroupready'), s('tplgroupreadyhelp'), list.filter(function (t) {
                     return !tplWrite(t);
                 })) + '</div>';
+        }
+        // What an approved message says before what one writes: what tells it apart when the organisation says nothing of it.
+        function tplLead(t, c) {
+            var gap = tplWrite(t), at = String(t.body || '').search(new RegExp('\\{\\{\\s*' + gap.replace(/[.]/g, '\\.') + '\\s*\\}\\}'));
+            return tplSaid({ body: String(t.body || '').slice(0, Math.max(at, 0)).trim(), params: t.params, name: t.name, language: t.language }, c);
         }
         // The text of an approved message as it goes out, with the name of each gap nobody has filled yet.
         function tplSaid(t, c) {
@@ -7613,9 +7709,9 @@
             (t.params || []).forEach(function (p) {
                 params[p.key] = p;
             });
-            return esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k) {
+            return esc(t.body || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, function (m, k, at, whole) {
                 var p = params[k] || { key: k }, v = tplValue(p, c, t);
-                return v ? esc(v) : '<i>' + esc(gapLabel(p, t)) + '</i>';
+                return v ? esc(v) : '<i>' + esc(gapHere(gapLabel(p, t), whole.slice(0, at))) + '</i>';
             });
         }
         function newTplCards() {
@@ -7681,6 +7777,9 @@
                     return;
                 }
                 mergeConv(r.conversation);
+                if (r.status === 'started') {
+                    delete (st.kept || {})[keptKey(newConvLike())];
+                }
                 st.nueva = null;
                 restoreFicha();
                 markNewButton();
@@ -8910,6 +9009,7 @@
             if ((e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') && e.target.classList &&
                 e.target.classList.contains('mrd-hueco')) {
                 e.preventDefault();
+                sayOneLine();
             }
         });
         box.addEventListener('paste', function (e) {
@@ -8919,7 +9019,15 @@
             }
             e.preventDefault();
             var text = (e.clipboardData || root.clipboardData).getData('text/plain') || '';
-            insertText(t.classList.contains('mrd-hueco') ? text.replace(/\s+/g, ' ') : text);
+            if (t.classList.contains('mrd-hueco')) {
+                var lines = /\S\s*[\r\n\u2028\u2029]\s*\S/.test(text);
+                insertText(lines ? oneLine(text) : text.replace(/\s+/g, ' '));
+                if (lines) {
+                    sayOneLine();
+                }
+                return;
+            }
+            insertText(text);
         });
         box.addEventListener('keydown', function (e) {
             var t = e.target;
@@ -8982,14 +9090,16 @@
                 return;
             }
             if (t.classList && t.classList.contains('mrd-hueco') && e.key === 'Enter') {
-                // No line breaks in a gap: Enter goes to what is still missing, and with nothing missing, to the button.
+                // No line breaks in a gap. From a short one, Enter goes to what is still missing. In the message it stays where
+                // it is and says why: whoever leaves a blank line presses it twice, and that cannot send it half written. So
+                // it never goes to the button either.
                 e.preventDefault();
                 if (!e.isComposing) {
-                    var nextGap = emptyGap(t), goBtn = el.chat.querySelector('.mrd-previa-pie .mrd-btn');
-                    if (nextGap) {
+                    var own = t.classList.contains('mrd-hueco-mensaje'), nextGap = own ? null : emptyGap(t);
+                    if (own) {
+                        sayOneLine();
+                    } else if (nextGap) {
                         placeCaret(nextGap, -1);
-                    } else if (goBtn) {
-                        goBtn.focus();
                     }
                 }
                 return;

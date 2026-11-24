@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.63.1 (2026-11-24)
+
+- In the message of an approved one, Enter stays where it is and the page says why: pressed twice, as to leave a blank line,
+  it sent the message half written. From the other gaps it goes to what is still missing, and never to the button. A text
+  pasted in several lines is joined with its punctuation, and the page says that it goes out as one paragraph.
+- What is half written stays, for each person, until it is sent: with another message, another conversation or Escape.
+- Writing after the 24 hours scrolls as a whole, with the text of each message also on a phone and the internal note always
+  in sight; the price goes once for each group, and whichever costs something else says its own.
+- The name of a gap reads within its sentence («a las hora», not «a las la hora»).
+
 ## 0.63.0 (2026-11-24)
 
 - «New conversation» (and writing to someone after the 24 hours) tells the approved messages apart at a glance: the ones

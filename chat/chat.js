@@ -661,7 +661,7 @@
             })(), otrosNow: false,
             hf: { mine: false, team: 0, period: '' }, hits: {}, capa: 'lista', fichaOpen: false, drafts: {}, dark: false,
             bg: { mode: (cfg.backgrounds && cfg.backgrounds.mode) || 'family', fixed: (cfg.backgrounds && cfg.backgrounds.fixed) || 'cuaderno' },
-            ready: false, failed: 0, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0,
+            ready: false, failed: 0, lastGood: 0, unchecked: null, expired: false, composerSig: '', busy: {}, nueva: null, justStarted: 0,
             // Passing on, second step: the department chosen and a line for it. What was just passed on or resolved, to
             // undo it. The conversations whose approved messages were unfolded to write. Where the search looked. The
             // sends decided on this page, on top of what was decided.
@@ -1558,15 +1558,44 @@
         function failToast(e) {
             toast(s('toasterror', (e && e.message) || (e && e.errorcode) || ''), true);
         }
+        /* -------- Nothing and not known are not the same: the copy of the conversations may be old, or this page may not
+           be getting answers. Then no figure of zero says «nothing», and the band on top says since when. -------- */
+        function unknownSince() {
+            // In milliseconds; 0 if never read; null if what the page shows is up to date.
+            if (st.failed >= 2 && st.lastGood) {
+                return st.unchecked === null ? st.lastGood : Math.min(st.unchecked, st.lastGood);
+            }
+            return st.unchecked;
+        }
+        // The page got an answer: when, and what the server knows of its copy.
+        function asked(r) {
+            st.lastGood = nowMs();
+            st.unchecked = r && r.unchecked ? (r.uncheckedsince || 0) * 1000 : null;
+        }
+        function nothingText() {
+            return unknownSince() === null ? s('nothingtoreply') : s('unchecked');
+        }
+        function uncheckedText() {
+            var since = unknownSince();
+            return since ? s('uncheckedsince', whenPhrase(since)) : s('uncheckednever');
+        }
+        // What lasts is a row above everything, never over the buttons; what passes soon floats.
+        function redInFlow(on) {
+            el.red.classList.toggle('mrd-red-larga', on);
+            el.red.parentNode.classList.toggle('mrd-sin-comprobar', on);
+        }
         function showRed(kind) {
             if (!kind) {
                 el.red.hidden = true;
+                redInFlow(false);
                 return;
             }
             el.red.hidden = false;
             el.red.innerHTML = kind === 'expired'
                 ? ico('alerta') + '<span>' + esc(s('sessionexpired')) + '</span><button type="button" data-a="reload">' + esc(s('signin')) + '</button>'
-                : ico('alerta') + '<span>' + esc(s('offline')) + '</span>';
+                : ico('alerta') + '<span>' + esc(kind === 'unchecked' ? uncheckedText()
+                    : s('offline') + (unknownSince() === null ? '' : ' ' + uncheckedText())) + '</span>';
+            redInFlow(kind !== 'expired' && unknownSince() !== null);
         }
         function openViewer(url, name) {
             el.visor.hidden = false;
@@ -1624,7 +1653,7 @@
             var n = t.reply !== undefined ? t.reply : countLocal('team:' + t.id);
             var u = t.unassigned || 0;
             if (!n) {
-                return { n: 0, lines: [s('nothingtoreply')] };
+                return { n: 0, lines: [nothingText()] };
             }
             var lines = [s('toreply', n)];
             if (u) {
@@ -1674,7 +1703,7 @@
                 h += '<div class="mrd-buenos"><b>' + ico('luna') + esc(s('closednow')) + '</b>' +
                     esc(opens > 0 ? s('opensat', whenPhrase(opens)) : s('closedhelp')) + '</div>';
             }
-            h += trayButton('mine', 'yo', s('mine'), [counts.mine ? s('toreply', counts.mine) : s('nothingtoreply')], counts.mine, true);
+            h += trayButton('mine', 'yo', s('mine'), [counts.mine ? s('toreply', counts.mine) : nothingText()], counts.mine, true);
             h += trayButton('unassigned', 'nadie', s('unassigned'), unLines, counts.unassigned, true);
             if (mine.length) {
                 h += '<div class="mrd-rotulo">' + esc(mine.length === 1 ? s('yourteam') : s('yourteams')) + '</div><div class="mrd-rotulo-sep"></div>';
@@ -1700,7 +1729,7 @@
                 h += '<button type="button" class="mrd-bandeja mrd-plegar' + (pendOthers ? ' mrd-con-pend' +
                     (pendOthers.indexOf('mrd-larga') >= 0 ? ' mrd-con-larga' : '') : '') + '" data-a="otros" aria-expanded="' + opened + '">' +
                     ico(opened ? 'abajo' : 'der') + '<span class="mrd-t">' + esc(s('otherteams')) + '<small>' +
-                    esc(nOthers ? s('toreply', nOthers) : s('nothingtoreply')) + '</small></span><span class="mrd-n' +
+                    esc(nOthers ? s('toreply', nOthers) : nothingText()) + '</small></span><span class="mrd-n' +
                     (nOthers ? pendOthers : ' mrd-cero') + '">' + nOthers + '</span></button>';
                 if (opened) {
                     var menu = others.filter(function (t) {
@@ -1720,7 +1749,7 @@
                     }
                     if (noteam) {
                         var nn = countLocal('noteam');
-                        h += trayButton('noteam', 'bandeja', s('noteam'), [nn ? s('toreply', nn) : s('nothingtoreply')], nn);
+                        h += trayButton('noteam', 'bandeja', s('noteam'), [nn ? s('toreply', nn) : nothingText()], nn);
                     }
                     h += '</div>';
                 }
@@ -1891,7 +1920,7 @@
             var reply = allConvs().filter(function (c) {
                 return c.section === 'reply' && inInbox(c, st.inbox);
             }).length;
-            var r = reply ? s('toreply', reply) : s('nothingtoreply');
+            var r = reply ? s('toreply', reply) : nothingText();
             if (st.inbox === 'mine') {
                 return s('minesub', r);
             }
@@ -2173,7 +2202,8 @@
             } else if (rest.length) {
                 h += '<div class="mrd-grupo-t">' + esc(s('grouptoreply')) + ' <span>' + rest.length + '</span></div>' + rest.map(item(false)).join('');
             } else {
-                h += '<div class="mrd-grupo-t mrd-suave">' + esc(s('alldone')) + '</div>';
+                h += unknownSince() === null ? '<div class="mrd-grupo-t mrd-suave">' + esc(s('alldone')) + '</div>'
+                    : '<div class="mrd-grupo-t mrd-sin-saber">' + ico('alerta') + '<span>' + esc(uncheckedText()) + '</span></div>';
             }
             if (waiting.length) {
                 h += '<div class="mrd-grupo-t mrd-suave">' + esc(s('groupwaiting')) + ' <span>' + waiting.length + '</span></div>' +
@@ -4095,7 +4125,7 @@
                 var first = list[0], long = first && waitMs(first) >= 4 * 3600000;
                 return '<div class="mrd-inicio-t"><div class="mrd-inicio-t1">' + ico(icon) + '<b>' + esc(title) + '</b></div>' +
                     '<p class="mrd-inicio-n">' + (list.length ? '<span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' + list.length + '</span> ' +
-                        esc(s('toreplyword')) : esc(s('nothingtoreply'))) + '</p>' +
+                        esc(s('toreplyword')) : esc(nothingText())) + '</p>' +
                     (first ? '<p class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(s('homelongest', waitText(first))) + '</p>' : '') +
                     (first ? '<button type="button" class="mrd-btn mrd-chico' + (key === 'mine' ? ' mrd-primario' : '') + '" data-a="conv" data-v="' + first.id + '">' +
                         esc(button) + '</button>' : '<button type="button" class="mrd-btn mrd-chico" data-a="inbox" data-v="' + key + '">' + esc(s('homesee')) + '</button>') +
@@ -4180,7 +4210,7 @@
             }).sort(byWait);
             var p;
             if (!reply.length) {
-                p = esc(s('homecentrenone'));
+                p = esc(unknownSince() === null ? s('homecentrenone') : uncheckedText());
             } else {
                 var mineIds = myTeamIds(), anyMine = Object.keys(mineIds).length > 0, inMine = reply.filter(function (c) {
                     return !!mineIds[c.teamid];
@@ -4249,7 +4279,7 @@
                     '<span class="mrd-inicio-dep-n">' + esc(r.id ? teamName(r.id) : s('noteam')) +
                     (now ? '<small class="mrd-inicio-dep-h' + (now.open ? '' : ' mrd-cerrado') + '">' + (now.open ? '' : ico('luna')) + esc(now.text) +
                         '</small>' : '') + '</span>' +
-                    '<span class="mrd-inicio-dep-c">' + (first ? '<span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' + r.list.length + '</span>' : '0') +
+                    '<span class="mrd-inicio-dep-c">' + (first ? '<span class="mrd-cifra' + (long ? ' mrd-larga' : '') + '">' + r.list.length + '</span>' : unknownSince() === null ? '0' : '—') +
                     '</span>' + (first ? '<span class="mrd-inicio-espera ' + waitTier(first) + '">' + ico('reloj') + esc(waitText(first)) + '</span>' : '<span></span>') +
                     '<span class="mrd-inicio-dep-q">' + esc(r.people.join(' · ')) + '</span>' + ico('der', 'mrd-inicio-dep-ir') + '</button>';
             }).join('');
@@ -6687,8 +6717,9 @@
             var args = { since: st.cursor, conversation: id, after: id ? lastRealId() : 0 };
             tr.call(M.poll, args).then(function (r) {
                 st.failed = 0;
-                showRed(null);
+                asked(r);
                 applyPoll(r || {}, id);
+                showRed(st.unchecked === null ? null : 'unchecked');
             }).catch(function (e) {
                 st.failed++;
                 var code = e && e.errorcode;
@@ -6697,6 +6728,10 @@
                     showRed('expired');
                 } else if (st.failed >= 2) {
                     showRed('offline');
+                    if (st.failed === 2 && st.ready) {
+                        // What said «nothing» says from now on that it is not known.
+                        refreshAfterData();
+                    }
                 }
             }).then(function () {
                 polling = false;
@@ -8990,6 +9025,7 @@
                     skew = r.now * 1000 - Date.now();
                 }
                 st.inboxes = r.inboxes || null;
+                asked(r);
                 (r.conversations || []).forEach(mergeConv);
                 st.cursor = r.cursor !== undefined ? r.cursor : 0;
                 if (r.board) {
@@ -9041,6 +9077,7 @@
                     openRoom('c' + wantTeam);
                 }
                 // Without a conversation in the address, the start: what is yours and what waits, before any conversation.
+                showRed(st.unchecked === null ? null : 'unchecked');
                 schedule(interval());
             }).catch(function (e) {
                 var body = el.lista.querySelector('.mrd-lista-cuerpo');

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.62.0 (2026-11-24)
+
+- «Nothing to answer. All up to date» is only said of what is up to date. The page of the conversations (the list, the
+  trays, the start) and the card of «Your work» say «Not checked since…» when the copy of the conversations is more than
+  ten minutes old, when a message of a family waits in the site because Chatwoot did not take it, and when the page itself
+  gets no answers; with conversations that do wait, both things. The card no longer goes when Chatwoot cannot even be asked
+  who is who: it stays and says it.
+- The copy was called up to date when it was not: after more than an hour without Chatwoot, the pass of the page brought
+  only the last hour and left a hole (it goes back to the last good pass now), and an answer that was not a list, such as a
+  page of maintenance, counted as no conversations (it is an error now).
+
 ## 0.61.2 (2026-11-23)
 
 - «Propose an improvement» on a page that prints itself without the header of Moodle, with a policy of content that

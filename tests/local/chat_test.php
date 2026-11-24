@@ -119,6 +119,9 @@ final class chat_test extends \advanced_testcase {
             /** @var array|null The people of each department, by department, instead of the usual. */
             public $teammembers = null;
 
+            /** @var bool Whether it answers something that is not a list of conversations, as a page of maintenance. */
+            public $odd = false;
+
             /**
              * Answers as the account would.
              *
@@ -175,7 +178,7 @@ final class chat_test extends \advanced_testcase {
                     return ['payload' => ['messages' => $data['page'] > 1 ? [] : $found]];
                 }
                 if ($path === '/conversations' && $method === 'GET') {
-                    return ['data' => ['payload' => array_values($this->conversations)]];
+                    return $this->odd ? [] : ['data' => ['payload' => array_values($this->conversations)]];
                 }
                 if (preg_match('~^/contacts/(\d+)$~', $path, $m) && $method === 'PUT') {
                     // Chatwoot merges the custom attributes it is given with those it has.
@@ -628,6 +631,105 @@ final class chat_test extends \advanced_testcase {
         $this->assertSame('urgent', $card['alerts'][0]['level']);
         $this->assertStringContainsString('Laura Martín', $card['alerts'][0]['text']);
         $this->assertNull(chat\workcard::for_user((int)$this->person('nadie@example.com', 'Nadie')->id));
+    }
+
+    /**
+     * «Nothing to answer» is only said of a copy that is up to date: an old one, or one that never came, says since when
+     * it is not known, on «Your work» and on the page; with conversations that do wait, it says both.
+     */
+    public function test_stale_copy_says_so(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $DB->set_field(mirror::TABLE, 'waitsince', 0);
+        $nothing = get_string('chat:work:nothing', 'local_oksigeniamarandu');
+        $card = chat\workcard::for_user((int)$ana->id);
+        // Out of hours, it also says when it opens.
+        $this->assertStringStartsWith($nothing, $card['status']);
+        $this->assertSame([], $card['alerts']);
+        $this->assertNull(mirror::unknown_since());
+
+        $old = time() - mirror::STALE - MINSECS;
+        set_config('chatsynced', $old, 'local_oksigeniamarandu');
+        $this->assertSame($old, mirror::unknown_since());
+        $card = chat\workcard::for_user((int)$ana->id);
+        $this->assertStringNotContainsString($nothing, $card['status']);
+        $this->assertCount(1, $card['alerts']);
+        $DB->set_field(mirror::TABLE, 'waitsince', time() - MINSECS, ['cwid' => 1]);
+        $card = chat\workcard::for_user((int)$ana->id);
+        $this->assertStringContainsString('Not checked since', $card['status']);
+        $this->assertCount(2, $card['alerts'], 'Who waits, besides that it is not all known');
+
+        // Never read: not known at all.
+        unset_config('chatsynced', 'local_oksigeniamarandu');
+        $this->assertSame(0, mirror::unknown_since());
+
+        // The page hears it with each answer.
+        set_config('chatsynced', $old, 'local_oksigeniamarandu');
+        $this->client->odd = true;
+        $this->setUser($ana);
+        $answer = \core_external\external_api::clean_returnvalue(
+            \local_oksigeniamarandu\external\chat_poll::execute_returns(),
+            \local_oksigeniamarandu\external\chat_poll::execute()
+        );
+        $this->assertDebuggingCalled();
+        $this->assertSame([true, $old], [$answer['unchecked'], $answer['uncheckedsince']]);
+        $this->client->odd = false;
+        $answer = \local_oksigeniamarandu\external\chat_poll::execute();
+        $this->assertFalse($answer['unchecked']);
+    }
+
+    /**
+     * An answer that is not a list (a page of maintenance, with its 200) does not count as having asked.
+     */
+    public function test_odd_answer_is_not_up_to_date(): void {
+        set_config('chatsynced', 1000, 'local_oksigeniamarandu');
+        $this->client->odd = true;
+        try {
+            mirror::sync();
+            $this->fail('An answer without its list is not an answer');
+        } catch (\moodle_exception $e) {
+            $this->assertEquals(1000, get_config('local_oksigeniamarandu', 'chatsynced'));
+        }
+    }
+
+    /**
+     * After hours without Chatwoot, the pass of the page brings everything since the last good one, not only the last
+     * hour: before, it called the copy up to date with a hole in it.
+     */
+    public function test_page_pass_covers_the_gap(): void {
+        $now = time();
+        set_config('chatsynced', $now - 5 * HOURSECS, 'local_oksigeniamarandu');
+        $this->client->calls = [];
+        $this->assertTrue(mirror::sync_from_page());
+        $lists = array_values(array_filter($this->client->calls, fn($call) => $call[0] === 'GET' && $call[1] === '/conversations'));
+        $this->assertGreaterThanOrEqual(5 * HOURSECS, $lists[0][2]['updated_within']);
+    }
+
+    /**
+     * A message of a family that Chatwoot has not taken yet (it waits in the site to be passed on) is not in the copy,
+     * however fresh the copy is; the marks of delivered and read that wait do not count.
+     */
+    public function test_message_not_passed_on(): void {
+        global $DB;
+        mirror::sync();
+        set_config('forwardurl', 'https://chat.example.com/webhooks/whatsapp/1', 'local_oksigeniamarandu');
+        $queue = function (array $value, int $ago) use ($DB): void {
+            $task = new \local_oksigeniamarandu\task\forward_webhook();
+            $task->set_custom_data((object)['body' => json_encode(['entry' => [['changes' => [['field' => 'messages',
+                'value' => $value]]]]]), 'signature' => 'x']);
+            $id = \core\task\manager::queue_adhoc_task($task);
+            $DB->set_field('task_adhoc', 'timecreated', time() - $ago, ['id' => $id]);
+        };
+        $queue(['statuses' => [['id' => 'wamid.1', 'status' => 'read']]], HOURSECS);
+        $this->assertNull(mirror::unknown_since());
+        $queue(['messages' => [['id' => 'wamid.2', 'type' => 'text']]], MINSECS);
+        $this->assertNull(mirror::unknown_since());
+        $queue(['messages' => [['id' => 'wamid.3', 'type' => 'text']]], HOURSECS);
+        $this->assertEqualsWithDelta(time() - HOURSECS, mirror::unknown_since(), 5);
+        // Passed on to somewhere else: nothing to do with the copy of the conversations.
+        set_config('forwardurl', 'https://other.example.org/hook', 'local_oksigeniamarandu');
+        $this->assertNull(mirror::unknown_since());
     }
 
     /**

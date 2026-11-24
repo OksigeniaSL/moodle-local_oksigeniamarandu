@@ -2818,6 +2818,49 @@
 #mrd-chat .mrd-red .mrd-i {
     color: var(--ambar-texto);
 }
+/* Not known whether somebody waits: the band, with its sentence whole, and the line where «all up to date» would be. */
+#mrd-chat.mrd-sin-comprobar {
+    grid-template-rows: auto minmax(0, 1fr);
+}
+#mrd-chat.mrd-sin-comprobar .mrd-franja {
+    height: 3px;
+    align-self: start;
+}
+#mrd-chat .mrd-red-larga {
+    position: relative;
+    top: auto;
+    inset-inline-start: auto;
+    transform: none;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: stretch;
+    width: auto;
+    max-width: none;
+    margin-top: 3px;
+    justify-content: center;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 8px 14px;
+}
+#mrd-chat .mrd-red-larga .mrd-i {
+    flex: none;
+}
+@media (max-width: 760px) {
+    #mrd-chat.mrd-sin-comprobar {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+}
+#mrd-chat .mrd-sin-saber {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-sin-saber .mrd-i {
+    flex: none;
+    color: var(--ambar-texto);
+}
 #mrd-chat .mrd-red button {
     color: var(--acento-texto);
     font-weight: 800;

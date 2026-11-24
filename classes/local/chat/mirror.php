@@ -35,8 +35,8 @@ class mirror {
     /** How long the page waits between two passes of its own when the webhook of Chatwoot does not come. */
     public const PAGE_PASS = 5;
 
-    /** The furthest back a pass from the page goes; older changes are for the task. */
-    public const PAGE_WINDOW = HOURSECS;
+    /** How old the index can be and still be called up to date: the task passes every minute. */
+    public const STALE = 10 * MINSECS;
 
     /** The furthest back the first pass goes. */
     public const FIRST_WINDOW = 31 * DAYSECS;
@@ -69,7 +69,11 @@ class mirror {
                 'updated_within' => max(60, $window),
                 'page' => $page,
             ]);
-            $payload = $answer['data']['payload'] ?? [];
+            $payload = $answer['data']['payload'] ?? null;
+            if (!is_array($payload)) {
+                // Not a list (a page of maintenance, with its 200): nothing was asked, so the index is not up to date.
+                throw new \local_oksigeniamarandu\local\api_exception('error:chatwoot', '—', null, 'no list of conversations');
+            }
             foreach ($payload as $conversation) {
                 if ($inboxes && !in_array((int)($conversation['inbox_id'] ?? 0), $inboxes)) {
                     continue;
@@ -120,8 +124,31 @@ class mirror {
     }
 
     /**
+     * Since when what waits in the conversations is not known: the last good pass, if it is old, or the oldest message of a
+     * family that Chatwoot has not taken yet, which waits in the site to be passed on. Whoever says «nothing to answer»
+     * asks this first: nothing and not known are not the same.
+     *
+     * @param int|null $now The time, for the tests.
+     * @return int|null When; 0 if it was never read; null if the index is up to date.
+     */
+    public static function unknown_since(?int $now = null): ?int {
+        $now = $now ?? time();
+        $last = (int)get_config('local_oksigeniamarandu', 'chatsynced');
+        if (!$last) {
+            return 0;
+        }
+        $since = $now - $last > self::STALE ? $last : null;
+        $held = \local_oksigeniamarandu\local\forward::held_since((string)get_config('local_oksigeniamarandu', 'chatwooturl'));
+        if ($held !== null && $now - $held > self::STALE / 2) {
+            $since = $since === null ? $held : min($since, $held);
+        }
+        return $since;
+    }
+
+    /**
      * A pass from the page, if the last one is a few seconds old and nobody else is doing it; less often while the
-     * webhook of Chatwoot comes.
+     * webhook of Chatwoot comes. It goes back to the last good pass, however long ago it was: with less, the index would be
+     * called up to date with a hole in it. The first pass ever is for the task.
      *
      * @return bool Whether it made one.
      */
@@ -129,7 +156,7 @@ class mirror {
         $now = time();
         $last = (int)get_config('local_oksigeniamarandu', 'chatsynced');
         $hooked = (int)get_config('local_oksigeniamarandu', 'chatwebhookat') > $now - 10 * MINSECS;
-        if ($now - $last < ($hooked ? MINSECS : self::PAGE_PASS)) {
+        if (!$last || $now - $last < ($hooked ? MINSECS : self::PAGE_PASS)) {
             return false;
         }
         $lock = \core\lock\lock_config::get_lock_factory('local_oksigeniamarandu_chat')->get_lock('sync', 0);
@@ -137,7 +164,7 @@ class mirror {
             return false;
         }
         try {
-            self::sync(self::PAGE_WINDOW, $now);
+            self::sync(self::FIRST_WINDOW, $now);
         } finally {
             $lock->release();
         }

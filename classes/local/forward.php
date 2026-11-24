@@ -63,6 +63,40 @@ class forward {
     }
 
     /**
+     * The oldest message of a person that waits to be passed on to a Chatwoot, because it did not take it; the marks of
+     * delivered and read that wait do not count.
+     *
+     * @param string $chatwoot The address of the Chatwoot.
+     * @return int|null When it came; null if none waits, or the site passes things on to somewhere else.
+     */
+    public static function held_since(string $chatwoot): ?int {
+        global $DB;
+        $host = parse_url(self::url(), PHP_URL_HOST);
+        if (!$host || $host !== parse_url($chatwoot, PHP_URL_HOST)) {
+            return null;
+        }
+        $tasks = $DB->get_records(
+            'task_adhoc',
+            ['classname' => '\\' . forward_webhook::class],
+            'timecreated ASC, id ASC',
+            'id, customdata, timecreated',
+            0,
+            200
+        );
+        foreach ($tasks as $task) {
+            $body = json_decode((string)(json_decode((string)$task->customdata)->body ?? ''), true);
+            foreach ((array)($body['entry'] ?? []) as $entry) {
+                foreach ((array)($entry['changes'] ?? []) as $change) {
+                    if (!empty($change['value']['messages'])) {
+                        return (int)$task->timecreated;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Posts the body to an address, as Meta would.
      *
      * @param string $url The address.

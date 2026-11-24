@@ -52,10 +52,11 @@ class workcard {
             $site = hours::of_site($now);
             $mytimes = hours::of_viewer($viewer, $now);
         } catch (\moodle_exception $e) {
-            return null;
+            return self::unasked($userid, $now ?? time());
         }
         $now = $now ?? time();
         $page = new \moodle_url('/local/oksigeniamarandu/chat.php');
+        $unknown = mirror::unknown_since($now);
         [$where, $params] = $viewer->where();
         $rows = $DB->get_records_sql("SELECT c.* FROM {" . mirror::TABLE . "} c
                                        WHERE $where AND c.status <> 'resolved' AND c.status <> 'snoozed' AND c.waitsince > 0
@@ -78,7 +79,9 @@ class workcard {
         if ($unassigned) {
             $figures[] = get_string('chat:work:unassigned', self::COMPONENT, count($unassigned));
         }
-        if (!$figures) {
+        if ($unknown !== null) {
+            $figures[] = self::unchecked($unknown, $now);
+        } else if (!$figures) {
             $figures[] = get_string('chat:work:nothing', self::COMPONENT);
         }
         // Out of hours: all the departments of the person, and when the first opens.
@@ -88,7 +91,7 @@ class workcard {
             $figures[] = get_string('chat:work:closed', self::COMPONENT, reset($mytimes)->say_when($opens, $now));
         }
 
-        $alerts = [];
+        $alerts = $unknown !== null ? [self::alert($page, $unknown, $now)] : [];
         // How long each one has waited, in the hours of its department.
         $waited = function ($row) use ($byteam, $site, $now) {
             return ($byteam[(int)$row->teamid] ?? $site)->waited((int)$row->waitsince, $now);
@@ -155,5 +158,74 @@ class workcard {
                     'url' => (new \moodle_url($page, ['b' => 'unassigned']))->out(false)],
             ],
         ];
+    }
+
+    /**
+     * The card when not even who is who could be asked: the door stays, and says it, for whoever has used the
+     * conversations. Without it, the card would go as if there were nothing.
+     *
+     * @param int $userid The user.
+     * @param int $now The time.
+     * @return array|null
+     */
+    protected static function unasked(int $userid, int $now): ?array {
+        global $DB;
+        if (
+            !has_capability('local/oksigeniamarandu:chat', \context_system::instance(), $userid)
+            || !$DB->record_exists(viewer::SEEN, ['userid' => $userid])
+        ) {
+            return null;
+        }
+        $page = new \moodle_url('/local/oksigeniamarandu/chat.php');
+        $since = mirror::unknown_since($now) ?? (int)get_config('local_oksigeniamarandu', 'chatsynced');
+        return [
+            'key' => self::COMPONENT . '-chat',
+            'title' => get_string('chat:work:title', self::COMPONENT),
+            'url' => $page->out(false),
+            'status' => self::unchecked($since, $now),
+            'alerts' => [self::alert($page, $since, $now)],
+            'actions' => [],
+        ];
+    }
+
+    /**
+     * That it is not known whether somebody waits, and since when.
+     *
+     * @param int $since Since when; 0 if it was never read.
+     * @param int $now The time.
+     * @return string
+     */
+    protected static function unchecked(int $since, int $now): string {
+        return $since ? get_string('chat:work:unchecked', self::COMPONENT, self::moment($since, $now))
+            : get_string('chat:work:uncheckednever', self::COMPONENT);
+    }
+
+    /**
+     * The line of that, among what is to be sorted out today.
+     *
+     * @param \moodle_url $page The page of the conversations.
+     * @param int $since Since when; 0 if it was never read.
+     * @param int $now The time.
+     * @return array
+     */
+    protected static function alert(\moodle_url $page, int $since, int $now): array {
+        return ['text' => $since ? get_string('chat:work:uncheckedline', self::COMPONENT, self::moment($since, $now))
+            : get_string('chat:work:uncheckedlinenever', self::COMPONENT), 'url' => $page->out(false), 'level' => 'today'];
+    }
+
+    /**
+     * A moment as one says it: the time, if it was today; the day too, if not.
+     *
+     * @param int $time The moment.
+     * @param int $now The time.
+     * @return string
+     */
+    protected static function moment(int $time, int $now): string {
+        $today = userdate($time, '%Y%j') === userdate($now, '%Y%j');
+        return get_string(
+            $today ? 'chat:work:sincetime' : 'chat:work:sinceday',
+            self::COMPONENT,
+            userdate($time, get_string($today ? 'strftimetime24' : 'strftimedatetimeshort', 'langconfig'))
+        );
     }
 }

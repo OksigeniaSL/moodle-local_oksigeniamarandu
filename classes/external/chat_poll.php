@@ -96,6 +96,7 @@ class chat_poll extends chat_base {
                 $wparams + ['today' => $today] + $alsoparams
             );
         }
+        $unknown = mirror::unknown_since($now);
         $seen = $viewer->seen();
         $messages = [];
         $readby = [];
@@ -126,6 +127,8 @@ class chat_poll extends chat_base {
             'readby' => $readby,
             'board' => \local_oksigeniamarandu\local\chat\board::counts($viewer->userid),
             'team' => \local_oksigeniamarandu\local\chat\team::counts($viewer),
+            'unchecked' => $unknown !== null,
+            'uncheckedsince' => (int)$unknown,
         ];
     }
 
@@ -215,6 +218,8 @@ class chat_poll extends chat_base {
         ]);
         return new external_single_structure([
             'now' => new external_value(PARAM_INT, 'The time of the server'),
+            'unchecked' => new external_value(PARAM_BOOL, 'Whether it is not known now if somebody waits'),
+            'uncheckedsince' => new external_value(PARAM_INT, 'Since when; 0 if the index was never read'),
             'cursor' => new external_value(PARAM_INT, 'What to pass as since next time'),
             'inboxes' => new external_single_structure([
                 'mine' => $tray,

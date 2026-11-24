@@ -93,16 +93,17 @@ class templates {
 
     /**
      * The approved messages the team may send: without those Meta counts as marketing, unless the organisation lets them
-     * go (setting marketingoff), since each costs several times a utility one.
+     * go (setting marketingoff), since each costs several times a utility one, and without those the organisation keeps
+     * without offering them (hidden, in the description of each).
      *
      * @return array As all() gives them.
      */
     public static function usable(): array {
-        if (!get_config('local_oksigeniamarandu', 'marketingoff')) {
-            return self::all();
-        }
-        return array_values(array_filter(self::all(), function ($template) {
-            return strtoupper((string)$template['category']) !== 'MARKETING';
+        $all = !get_config('local_oksigeniamarandu', 'marketingoff');
+        $info = self::info();
+        return array_values(array_filter(self::all(), function ($template) use ($all, $info) {
+            return ($all || strtoupper((string)$template['category']) !== 'MARKETING') &&
+                empty($info[$template['name']]['hidden']);
         }));
     }
 

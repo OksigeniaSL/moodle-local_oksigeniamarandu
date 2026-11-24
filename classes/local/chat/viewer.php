@@ -50,6 +50,9 @@ class viewer {
     /** @var array|null The reminders this person waits for, once read. */
     protected $reminders = null;
 
+    /** @var array|null What goes out later, by conversation, once read. */
+    protected $scheduled = null;
+
     /**
      * The person.
      *
@@ -271,6 +274,7 @@ class viewer {
             'lastactivity' => (int)$row->lastactivity,
             'rev' => (int)$row->timemodified,
             'remind' => $remind,
+            'scheduled' => $this->scheduled()[(int)$row->cwid] ?? [],
             'failedat' => $failedat,
             'failcode' => $failure['code'],
             'failreason' => $failure['text'],
@@ -287,6 +291,25 @@ class viewer {
             $this->reminders = $this->userid ? reminders::of_user($this->userid) : [];
         }
         return $this->reminders;
+    }
+
+    /**
+     * What goes out later, by conversation (read once).
+     *
+     * @return array
+     */
+    public function scheduled(): array {
+        if ($this->scheduled === null) {
+            $this->scheduled = scheduled::by_conversation($this->userid);
+        }
+        return $this->scheduled;
+    }
+
+    /**
+     * Forgets what goes out later, after it changes.
+     */
+    public function forget_scheduled(): void {
+        $this->scheduled = null;
     }
 
     /**

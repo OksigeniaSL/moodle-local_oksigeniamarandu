@@ -37,6 +37,7 @@ use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\hours;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\scheduled;
 use local_oksigeniamarandu\local\chat\starter;
 use local_oksigeniamarandu\local\chat\templates;
 use local_oksigeniamarandu\local\chat\viewer;
@@ -122,6 +123,9 @@ final class chat_test extends \advanced_testcase {
 
             /** @var bool Whether it answers something that is not a list of conversations, as a page of maintenance. */
             public $odd = false;
+
+            /** @var array|null When a message is written it fails: [code of the answer, whether it went out anyway]. */
+            public $down = null;
 
             /**
              * Answers as the account would.
@@ -242,7 +246,13 @@ final class chat_test extends \advanced_testcase {
                     if ($method === 'POST') {
                         $message = ['id' => 500 + count($this->calls), 'content' => $data['content'], 'message_type' => 1,
                             'private' => $data['private'], 'created_at' => time(), 'sender' => ['type' => 'user', 'id' => 2]];
-                        $this->messages[$m[1]][] = $message;
+                        if ($this->down === null || $this->down[1]) {
+                            $this->messages[$m[1]][] = $message;
+                        }
+                        if ($this->down !== null) {
+                            $error = \local_oksigeniamarandu\local\api_exception::class;
+                            throw new $error('error:chatwoot', $this->down[0], null, 'No such number');
+                        }
                         return $message;
                     }
                     return ['payload' => $this->messages[$m[1]] ?? []];
@@ -998,6 +1008,132 @@ final class chat_test extends \advanced_testcase {
 
         $this->expectException(\invalid_parameter_exception::class);
         chat\reminders::set($viewer, $row, '2026-11-16', '', $hours, self::MONDAY_NOON);
+    }
+
+    /**
+     * A message that goes out later: at its hour, signed by whoever wrote it, and once; not by itself when the family writes
+     * first, when the 24 hours are over or long after its hour; looked for before trying again when nobody knows whether it
+     * went; taken back or sent now by whoever has the conversation.
+     */
+    public function test_scheduled(): void {
+        global $DB;
+        mirror::sync();
+        $ana = $this->person('ana@example.com', 'Ana');
+        $viewer = viewer::for_user($ana);
+        $now = time();
+        $row = $DB->get_record(mirror::TABLE, ['cwid' => 1]);
+        $said = function (): array {
+            return array_values(array_filter($this->client->calls, function ($call) {
+                return $call[0] === 'POST' && preg_match('~/messages$~', $call[1]);
+            }));
+        };
+
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, "  Mañana  les llamamos \n", null, [], $now);
+        $viewer->forget_scheduled();
+        $list = $viewer->export($row, [], $now)['scheduled'];
+        $this->assertSame([$id, $now + HOURSECS, 'Mañana  les llamamos', true, 'waiting', ''], [$list[0]['id'], $list[0]['at'],
+            $list[0]['text'], $list[0]['mine'], $list[0]['status'], $list[0]['reason']]);
+        $this->assertSame(0, scheduled::due($now + 30 * MINSECS));
+        $this->assertSame(1, scheduled::due($now + HOURSECS));
+        $this->assertStringEndsWith("\nMañana  les llamamos", $said()[0][2]['content']);
+        $this->assertStringStartsWith('*Ana', $said()[0][2]['content']);
+        $this->assertSame([], scheduled::of(1, (int)$ana->id));
+        // Once.
+        $this->assertSame(0, scheduled::due($now + HOURSECS + 60));
+        $this->assertCount(1, $said());
+
+        // Too far, past or empty; and not to write freely once the 24 hours will be over, only an approved message.
+        foreach ([[$now, 'x'], [$now + 61 * DAYSECS, 'x'], [$now + HOURSECS, '  ']] as [$at, $text]) {
+            try {
+                scheduled::add($viewer, $row, $at, $text, null, [], $now);
+                $this->fail('It should not be written');
+            } catch (\invalid_parameter_exception $e) {
+                $this->assertNotEmpty($e->getMessage());
+            }
+        }
+        try {
+            scheduled::add($viewer, $row, $now + DAYSECS, 'Al día siguiente', null, [], $now);
+            $this->fail('The 24 hours are over');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('chat:schedwindow', $e->errorcode);
+        }
+        $template = templates::find('chat_retomar', 'es');
+        $late = scheduled::add($viewer, $row, $now + 2 * DAYSECS, '', $template, ['1' => 'Laura'], $now);
+        $this->assertSame('Hola, Laura: seguimos con su consulta.', scheduled::of(1, (int)$ana->id)[0]['text']);
+        $this->client->calls = [];
+        $this->assertSame(1, scheduled::due($now + 2 * DAYSECS));
+        $this->assertSame('chat_retomar', $said()[0][2]['template_params']['name']);
+        $this->assertGreaterThan(0, (int)$DB->get_field(scheduled::TABLE, 'timedone', ['id' => $late]));
+
+        // The family writes first: it waits for whoever wrote it, who hears of it, and the others go.
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, 'Les llamo luego', null, [], $now);
+        $this->client->messages[1][] = $this->message(90, 0, 'Ya no hace falta', $now + 60);
+        mirror::refresh(1);
+        $sink = $this->redirectMessages();
+        $this->client->calls = [];
+        $this->assertSame(0, scheduled::due($now + HOURSECS));
+        $this->assertSame([], $said());
+        $held = scheduled::of(1, (int)$ana->id)[0];
+        $this->assertSame(['held', 'wrote'], [$held['status'], $held['reason']]);
+        $this->assertSame(
+            'Laura Martín wrote before the message you left: look at it and send it.',
+            $sink->get_messages()[0]->subject
+        );
+        // Sent now by Luis, with his signature, and off the list.
+        $luis = viewer::for_user($this->person('luis@example.com', 'Luis'));
+        $DB->set_field(mirror::TABLE, 'teamid', 11, ['cwid' => 1]);
+        $row = $DB->get_record(mirror::TABLE, ['cwid' => 1]);
+        scheduled::now($luis, $row, $id, $now + HOURSECS + 60);
+        $this->assertStringStartsWith('*Luis', $said()[0][2]['content']);
+        $this->assertSame([], scheduled::of(1, (int)$ana->id));
+
+        // Long after its hour it does not go.
+        $row = $DB->get_record(mirror::TABLE, ['cwid' => 3]);
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, 'Tarde', null, [], $now);
+        $this->assertSame(0, scheduled::due($now + 4 * HOURSECS));
+        $this->assertSame('late', scheduled::of(3, (int)$ana->id)[0]['reason']);
+        $this->assertTrue(scheduled::remove($row, $id));
+        $this->assertFalse(scheduled::remove($row, $id));
+
+        // No answer: it may have gone out. In the conversation, it is done; not there, it is tried again.
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, 'Sin respuesta', null, [], $now);
+        $this->client->down = [0, true];
+        $this->assertSame(0, scheduled::due($now + HOURSECS));
+        $this->assertSame('sending', scheduled::of(3, (int)$ana->id)[0]['status']);
+        $this->assertFalse(scheduled::remove($row, $id));
+        // As if it had been tried when the message was written in Chatwoot.
+        $DB->set_field(scheduled::TABLE, 'timemodified', $now, ['id' => $id]);
+        $this->client->down = null;
+        $this->client->calls = [];
+        $this->assertSame(1, scheduled::due($now + HOURSECS + 60));
+        $this->assertSame([], $said());
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, 'Con error', null, [], $now);
+        $this->client->down = [502, false];
+        $this->assertSame(0, scheduled::due($now + HOURSECS));
+        $this->client->down = null;
+        $this->client->calls = [];
+        $this->assertSame(1, scheduled::due($now + HOURSECS + 60));
+        $this->assertCount(1, $said());
+        // Chatwoot says no: it stays, with why.
+        scheduled::add($viewer, $row, $now + HOURSECS, 'Rechazado', null, [], $now);
+        $this->client->down = [422, false];
+        $this->assertSame(0, scheduled::due($now + HOURSECS));
+        $refused = scheduled::of(3, (int)$ana->id)[0];
+        $this->assertSame(['refused', ''], [$refused['reason'], $refused['why']]);
+        $this->assertSame('No such number', $DB->get_field(scheduled::TABLE, 'why', ['id' => $refused['id']]));
+        $this->client->down = null;
+        scheduled::remove($row, $refused['id']);
+        // The approved message it was is not offered any more: why, in plain words.
+        $id = scheduled::add($viewer, $row, $now + HOURSECS, '', $template, ['1' => 'Laura'], $now);
+        set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['hidden' => true]]), 'local_oksigeniamarandu');
+        $this->assertSame(0, scheduled::due($now + HOURSECS));
+        $this->assertStringContainsString('no longer there', scheduled::of(3, (int)$ana->id)[0]['why']);
+        scheduled::remove($row, $id);
+
+        // A message kept without offering it.
+        set_config('chattemplatesinfo', json_encode(['chat_retomar' => ['hidden' => true]]), 'local_oksigeniamarandu');
+        $this->assertSame([], templates::usable());
+        $this->assertCount(1, templates::all());
     }
 
     /**

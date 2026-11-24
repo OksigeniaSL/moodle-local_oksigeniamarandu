@@ -20,10 +20,9 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
-use local_oksigeniamarandu\local\chat\chatwoot;
-use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\sender;
 use local_oksigeniamarandu\local\chat\templates;
 
 /**
@@ -71,23 +70,8 @@ class chat_template extends chat_base {
         if (!$template) {
             throw new \moodle_exception('chat:notemplate', 'local_oksigeniamarandu');
         }
-        $values = [];
-        foreach ($params['params'] as $param) {
-            $values[$param['key']] = trim(preg_replace('/\s+/', ' ', $param['value']));
-        }
-        foreach ($template['params'] as $gap) {
-            if (($values[$gap['key']] ?? '') === '') {
-                throw new \moodle_exception('chat:templategap', 'local_oksigeniamarandu');
-            }
-        }
-        $sent = directory::as_person($viewer, function (chatwoot $client) use ($row, $template, $values, $viewer) {
-            $sent = $client->call('POST', '/conversations/' . $row->cwid . '/messages', templates::message($template, $values));
-            if (!$row->assigneeid) {
-                $client->call('POST', '/conversations/' . $row->cwid . '/assignments', ['assignee_id' => $viewer->agent['id']]);
-            }
-            return $sent;
-        });
-        message::remember((int)($sent['id'] ?? 0), (int)$row->cwid, $viewer->userid, '', (string)$template['name']);
+        $values = self::values($template, $params['params']);
+        $sent = sender::template($viewer, $row, $template, $values);
         $row = mirror::refresh((int)$row->cwid) ?? $row;
         return [
             'message' => message::export($sent, $viewer, [(int)($sent['id'] ?? 0) => $viewer->userid]),

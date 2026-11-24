@@ -17,6 +17,7 @@
         find: 'local_oksigeniamarandu_chat_find',
         resolved: 'local_oksigeniamarandu_chat_resolved',
         remind: 'local_oksigeniamarandu_chat_remind',
+        schedule: 'local_oksigeniamarandu_chat_schedule',
         agenda: 'local_oksigeniamarandu_chat_agenda',
         board: 'local_oksigeniamarandu_chat_board',
         team: 'local_oksigeniamarandu_chat_team',
@@ -134,6 +135,8 @@
         libro: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/>' +
             '<path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
         lapiz: '<path d="M4 20h4L19.2 8.8a2.3 2.3 0 0 0-3.3-3.3L4.5 16.7z"/><path d="M14 7.5l3 3"/>',
+        calendario: '<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
+        prog: '<circle cx="11" cy="13" r="7.5"/><path d="M11 9v4h3.2"/><path d="M15.5 3.5h5v5"/><path d="M20.5 3.5L16 8"/>',
         alerta: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17v.01"/>',
         'gs-wa': '<path d="M4.5 19.5l1.2-3.6A7.8 7.8 0 1 1 8.8 19z"/><path d="M9 9.2c.2 2.6 2.2 4.6 4.8 4.8l.9-1.2 1.6.8-.4 1.5c-3.6.4-7.4-3.4-7-7l1.5-.4.8 1.6z"/>',
         'gs-tg': '<path d="M20.5 4.5L3.5 11l5.5 2 2 6 3-4 4.5 3.5z"/><path d="M9 13l8-6"/>',
@@ -317,7 +320,7 @@
         function nowMs() {
             return Date.now() + skew;
         }
-        var fParts, fTime, fWeekday, fDayMonth, fShort, fYear, fMonth;
+        var fParts, fTime, fWeekday, fDayMonth, fShort, fWeekShort, fYear, fMonth;
         function makeFormats(tz) {
             var base = tz ? { timeZone: tz } : {};
             var o = function (x) {
@@ -329,6 +332,7 @@
             fWeekday = new Intl.DateTimeFormat(LANG, o({ weekday: 'long' }));
             fDayMonth = new Intl.DateTimeFormat(LANG, o({ day: 'numeric', month: 'long' }));
             fShort = new Intl.DateTimeFormat(LANG, o({ day: 'numeric', month: 'short' }));
+            fWeekShort = new Intl.DateTimeFormat(LANG, o({ weekday: 'short' }));
             fYear = new Intl.DateTimeFormat(LANG, o({ year: 'numeric' }));
             fMonth = new Intl.DateTimeFormat(LANG, o({ month: 'long', year: 'numeric' }));
         }
@@ -414,6 +418,12 @@
             var d = new Date(ms);
             var near = k < shiftKey(today, 7) && k > shiftKey(today, -7);
             return s('whenday', { day: near ? fWeekday.format(d) : fDayMonth.format(d), time: t });
+        }
+        // The same in the least room: «10:42», «tomorrow 8:00», «Mon 8:00», «9 Dec 8:00».
+        function shortWhen(ms) {
+            var k = dayKey(ms), today = dayKey(nowMs()), t = fmtTime(ms);
+            return k === today ? t : (k === shiftKey(today, 1) ? s('remtomorrowlow') :
+                k < shiftKey(today, 7) && k > today ? fWeekShort.format(new Date(ms)) : fShort.format(new Date(ms))) + ' ' + t;
         }
 
         /* -------- «Remind me»: the days a person can choose, and when each one starts -------- */
@@ -531,7 +541,7 @@
                 return w && w[0] > zonedMs(y, mo, d, 0, 0) ? w[0] : zonedMs(y, mo, d, 8, 0);
             }
             return { on: on, openAt: openAt, businessMs: businessMs, nextOpening: nextOpening, closingAt: closingAt,
-                isMorning: isMorning, arrivedAtNight: arrivedAtNight, openDay: openDay, remAt: remAt };
+                isMorning: isMorning, arrivedAtNight: arrivedAtNight, openDay: openDay, remAt: remAt, windows: windowsOfKey };
         }
         var SITE_HOURS = makeHours(hours);
         var TEAM_HOURS = {};
@@ -650,7 +660,7 @@
             inbox: 'mine', open: 0, msgs: [], loaded: false, more: false, older: false, readby: [],
             ficha: null, fichaFor: 0, fichaState: '', fichaKind: '', joined: '',
             mode: 'reply', pop: null, popIndex: 0, popFilter: '', search: '', tpl: -1, pickAgain: false,
-            rem: { day: '', reason: '' }, agenda: null, optoutOk: {}, board: null, boardOpen: 0, boardNew: null, boardEdit: null, boardRev: -1,
+            rem: { day: '', reason: '' }, sched: null, schedPick: 0, agenda: null, optoutOk: {}, board: null, boardOpen: 0, boardNew: null, boardEdit: null, boardRev: -1,
             boardDone: false, showResolved: false, resolved: '', resolvedMore: false, resolvedDays: 30, history: '', historyMore: false, otros: (function () {
                 try {
                     var v = root.localStorage.getItem('mrd-chat-otros');
@@ -2069,6 +2079,14 @@
                 } else if (c.replyuntil && c.replyuntil * 1000 - nowMs() < 4 * 3600000) {
                     tags.push('<span class="mrd-etq mrd-espera">' + esc(s('windowleft', leftText(c.replyuntil * 1000 - nowMs()))) + '</span>');
                 }
+            }
+            if (c.scheduled && c.scheduled.length) {
+                var stopped = c.scheduled.some(function (x) {
+                    return x.status === 'held';
+                });
+                tags.push('<span class="mrd-etq mrd-etq-prog' + (stopped ? ' mrd-parado' : '') + '" title="' +
+                    esc(stopped ? s('schedlook') : s('schedline', whenPhrase(c.scheduled[0].at * 1000))) + '">' + ico(stopped ? 'alerta' : 'prog') +
+                    esc(stopped ? s('schedlook') : shortWhen(c.scheduled[0].at * 1000)) + '</span>');
             }
             if (ct.changed && ct.changed.text && (!ct.changed.until || ct.changed.until * 1000 > nowMs())) {
                 tags.push('<span class="mrd-etq mrd-cambio">' + ico('check') + esc(ct.changed.text) + '</span>');
@@ -4648,6 +4666,403 @@
                 (same ? '' : '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="remsave"' + (at ? '' : ' disabled') + '>' +
                 esc(okText) + '</button>') + '</div>';
         }
+        /* -------- A message for later: the day and the hour, with the opening of the department as the first one -------- */
+        // Minutes since midnight of a moment, in the time zone of the site.
+        function minutesOf(ms) {
+            var k = dayKey(ms);
+            return Math.round((ms - zonedMs(Math.floor(k / 10000), Math.floor(k / 100) % 100, k % 100, 0, 0)) / 60000);
+        }
+        function schedAtOf(k, min) {
+            return zonedMs(Math.floor(k / 10000), Math.floor(k / 100) % 100, k % 100, Math.floor(min / 60), min % 60);
+        }
+        function schedAt(c) {
+            return st.sched && st.sched.conv === c.id ? schedAtOf(st.sched.key, st.sched.min) : 0;
+        }
+        function schedButton(c, note) {
+            if (note || READONLY || !c || !c.id) {
+                return '';
+            }
+            return '<button type="button" class="mrd-btn mrd-prog-abrir' + (st.pop === 'programar' ? ' mrd-on' : '') +
+                '" data-a="pop" data-v="programar" aria-haspopup="dialog" aria-expanded="' + (st.pop === 'programar') + '" aria-label="' +
+                esc(s('schedopen')) + '" title="' + esc(s('schedopen')) + '">' + ico('prog') + '<span class="mrd-t">' + esc(s('schedshort')) + '</span></button>';
+        }
+        // Whether what is being scheduled is an approved message, and the moment chosen with what it stops.
+        function schedCheck(c) {
+            var approved = composerState(c) === 'preview', at = schedAt(c);
+            return { at: at, approved: approved, past: at <= nowMs() + 90000,
+                far: at > nowMs() + 60 * 86400000, closed: !approved && !!c.replyuntil && at >= c.replyuntil * 1000,
+                file: !approved && !!st.files[c.id] };
+        }
+        // The first hour of a day to send in: when the department opens; today, its next opening, or the next half hour
+        // while it is still open. 0 if there is none.
+        function schedFirst(hh, k) {
+            if (!hh.openDay(k)) {
+                return 0;
+            }
+            var soon = nowMs() + 90000;
+            if (k !== dayKey(nowMs())) {
+                return hh.remAt(k);
+            }
+            var half = 1800000, at = Math.ceil((nowMs() + 2700000) / half) * half, spans = schedSpans(hh, k).map(function (x) {
+                return [schedAtOf(k, x[0]), schedAtOf(k, x[1])];
+            });
+            var next = spans.filter(function (x) {
+                return x[0] > soon;
+            })[0];
+            return next ? next[0] : spans.some(function (x) {
+                return at >= x[0] && at < x[1];
+            }) ? at : 0;
+        }
+        // The next days it opens, each with its first hour.
+        function schedDays(c) {
+            var hh = hoursConv(c), days = [], k = dayKey(nowMs());
+            for (var i = 0; i < 21 && days.length < 4; i++, k = shiftKey(k, 1)) {
+                var first = schedFirst(hh, k);
+                if (first) {
+                    days.push([k, first]);
+                }
+            }
+            return days;
+        }
+        // It starts on the first of them one can still write freely in; if there is none, on the first.
+        function schedStart(c) {
+            if (st.sched && st.sched.conv === c.id) {
+                return;
+            }
+            var days = schedDays(c), free = days.filter(function (x) {
+                return composerState(c) === 'preview' || !c.replyuntil || x[1] < c.replyuntil * 1000;
+            })[0], one = free || days[0], at = one ? one[1] : hoursConv(c).remAt(shiftKey(dayKey(nowMs()), 1));
+            st.sched = { conv: c.id, key: dayKey(at), min: minutesOf(at) };
+        }
+        // The spans a day is open, in minutes; without hours of its own, a working day.
+        function schedSpans(hh, k) {
+            return hh.on ? hh.windows(k).map(function (x) {
+                return [minutesOf(x[0]), minutesOf(x[1]) || 1440];
+            }) : [[480, 1200]];
+        }
+        // A day as a leaf of the calendar, with its hour.
+        function schedLeaf(c, k, at, on, what, extra) {
+            var d = new Date(at), approved = composerState(c) === 'preview';
+            return '<button type="button" class="mrd-prog-dia' + (on ? ' mrd-on' : '') + (!approved && c.replyuntil && at >= c.replyuntil * 1000 ? ' mrd-tarde' : '') +
+                '" data-a="' + what + '" data-v="' + k + '" aria-pressed="' + on + '" aria-label="' + esc(cap(whenPhrase(at))) + '"' + (extra || '') + '><small>' +
+                esc(fWeekShort.format(d)) + '</small><b>' + k % 100 + '</b><span>' + esc(fmtTime(at)) + '</span></button>';
+        }
+        // The hours of the chosen day, as a ruler: what is open, what is past the 24 hours, and where the message goes.
+        function schedRuler(c, hh, chosen, check) {
+            var spans = schedSpans(hh, chosen.key), last = spans.length - 1;
+            // Today, from now on.
+            var lo = spans.length ? spans[0][0] : 480;
+            if (chosen.key === dayKey(nowMs())) {
+                lo = Math.max(lo, Math.ceil((minutesOf(nowMs()) + 2) / 15) * 15);
+            }
+            lo = Math.min(lo, chosen.min);
+            var hi = Math.max(spans.length ? spans[last][1] - 15 : 1200, chosen.min);
+            var limit = check.approved || !c.replyuntil ? 1441 : dayKey(c.replyuntil * 1000) > chosen.key ? 1441 :
+                dayKey(c.replyuntil * 1000) < chosen.key ? -1 : minutesOf(c.replyuntil * 1000);
+            var pos = function (m) {
+                return Math.round(Math.max(0, Math.min(1, (m - lo) / Math.max(15, hi - lo))) * 1000) / 10;
+            };
+            var bands = spans.map(function (x) {
+                return '<i class="mrd-prog-abierto" style="--de: ' + pos(x[0]) + '%; --a: ' + pos(x[1]) + '%"></i>';
+            }).join('') + (limit < hi ? '<i class="mrd-prog-tarde" style="--de: ' + pos(limit) + '%; --a: 100%"></i>' : '');
+            var marks = '', step = hi - lo > 420 ? 120 : 60;
+            for (var m = Math.ceil(lo / step) * step; m <= hi; m += step) {
+                marks += '<span style="--de: ' + pos(m) + '%">' + Math.floor(m / 60) + '</span>';
+            }
+            return '<div class="mrd-prog-dia-horas"><div class="mrd-prog-pista" aria-hidden="true">' + bands + '</div>' +
+                '<input type="range" class="mrd-prog-regla" min="' + lo + '" max="' + hi + '" step="15" value="' + chosen.min + '" aria-label="' + esc(s('schedhour')) +
+                '" aria-valuetext="' + esc(fmtTime(check.at)) + '"><div class="mrd-prog-marcas" aria-hidden="true">' + marks + '</div></div>';
+        }
+        // What is said of the moment chosen, and the button that does it: never one that cannot be pressed when there is
+        // something else to do.
+        function schedFoot(c, check) {
+            var pick = check.closed && !check.past && !check.far && !check.file && (st.extras.templates || []).length;
+            var note = check.past ? s('schedpast') : check.far ? s('schedfar') : check.closed ? s('schedclosed', whenPhrase(c.replyuntil * 1000))
+                : check.file ? s('schedfile') : '';
+            return (note ? '<p class="mrd-prog-nota" role="status">' + ico(check.closed ? 'reloj' : 'alerta') + '<span>' + esc(note) + '</span></p>'
+                : '<p class="mrd-rem-ayuda">' + esc(s('schedhelp')) + '</p>') +
+                (pick ? '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="schedpick">' + esc(s('schedchoosefor', whenPhrase(check.at))) + '</button>'
+                : '<button type="button" class="mrd-btn mrd-primario mrd-rem-ok" data-a="schedgo"' + (note ? ' disabled' : '') + '>' +
+                    ico('prog') + esc(s('schedgo', whenPhrase(check.at))) + '</button>');
+        }
+        function schedHour(c, hh, check) {
+            return '<b>' + esc(fmtTime(check.at)) + '</b>' + (hh.on && !hh.openAt(check.at) ? '<small>' + esc(s('schedshut')) + '</small>' : '');
+        }
+        function popSchedule(c) {
+            var hh = hoursConv(c), today = dayKey(nowMs());
+            schedStart(c);
+            var chosen = st.sched, days = schedDays(c);
+            var near = days.some(function (x) {
+                return x[0] === chosen.key;
+            });
+            var check = schedCheck(c), leaves = days.map(function (x) {
+                return schedLeaf(c, x[0], x[0] === chosen.key ? check.at : x[1], x[0] === chosen.key, 'schedday');
+            }).join('') + (near ? '<button type="button" class="mrd-prog-dia mrd-prog-otro" data-a="schedmore" aria-expanded="' + !!chosen.more + '">' + ico('calendario') +
+                '<span>' + esc(s('schedshort')) + '</span></button>' : schedLeaf(c, chosen.key, check.at, true, 'schedmore', ' aria-expanded="' + !!chosen.more + '"'));
+            var cal = '';
+            if (chosen.more) {
+                var start = weekStart(nowMs()), cells = '', heads = '';
+                for (var w = 0; w < 7; w++) {
+                    heads += '<span>' + esc(new Intl.DateTimeFormat(LANG, { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 10, 16 + w)))) + '</span>';
+                }
+                for (var n = 0; n < 35; n++) {
+                    var key = shiftKey(start, n), d = key % 100, ok = key >= today && hh.openDay(key) && schedAtOf(key, 1439) > nowMs() + 90000;
+                    cells += '<button type="button" class="mrd-rem-dia' + (key === chosen.key ? ' mrd-on' : '') + (key === today ? ' mrd-hoy' : '') + '" data-a="schedday" data-v="' +
+                        key + '"' + (ok ? '' : ' disabled') + ' aria-pressed="' + (key === chosen.key) + '" aria-label="' + esc(dayText(hh.remAt(key))) + '">' +
+                        esc(d === 1 || n === 0 ? fShort.format(new Date(hh.remAt(key))) : String(d)) + '</button>';
+                }
+                cal = '<div class="mrd-rem-cal"><div class="mrd-rem-sem">' + heads + '</div><div class="mrd-rem-dias">' + cells + '</div></div>';
+            }
+            // With the calendar open, only the day: choosing it closes it and the hour is back.
+            return '<div class="mrd-pop mrd-pop-programar" role="dialog" aria-label="' + esc(s('schedtitle')) + '"><h5>' + esc(s('schedtitle')) + '</h5>' +
+                '<div class="mrd-prog-dias" role="group" aria-label="' + esc(s('schedday')) + '">' + leaves + '</div>' + (cal ||
+                '<div class="mrd-prog-hora" role="group" aria-label="' + esc(s('schedhour')) + '"><button type="button" class="mrd-prog-paso" data-a="schedtime" data-v="-15" aria-label="' +
+                esc(s('schedearlier')) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button><span class="mrd-prog-cual">' + schedHour(c, hh, check) +
+                '</span><button type="button" class="mrd-prog-paso" data-a="schedtime" data-v="15" aria-label="' + esc(s('schedlater')) +
+                '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></button></div>' + schedRuler(c, hh, chosen, check) +
+                '<div class="mrd-prog-pie">' + schedFoot(c, check) + '</div>') + '</div>';
+        }
+        // The hour, dragged on the ruler: the sheet says it as it moves, without being drawn again.
+        function schedSlide(range) {
+            var c = conv(st.open), pop = range.closest('.mrd-pop-programar');
+            if (!c || !pop || !st.sched || st.sched.conv !== c.id) {
+                return;
+            }
+            st.sched.min = +range.value;
+            var hh = hoursConv(c), check = schedCheck(c), leaf = pop.querySelector('.mrd-prog-dia.mrd-on span');
+            range.setAttribute('aria-valuetext', fmtTime(check.at));
+            pop.querySelector('.mrd-prog-cual').innerHTML = schedHour(c, hh, check);
+            pop.querySelector('.mrd-prog-pie').innerHTML = schedFoot(c, check);
+            if (leaf) {
+                leaf.textContent = fmtTime(check.at);
+            }
+        }
+        function schedChoose(c, what, v) {
+            var now = st.sched && st.sched.conv === c.id ? st.sched : null;
+            if (!now) {
+                return;
+            }
+            if (what === 'schedday') {
+                var old = now.key;
+                now.key = +v;
+                now.more = false;
+                // Another day keeps its hour, or takes the first one of that day if it was the first of its own, or if it
+                // has passed.
+                var hh = hoursConv(c), was = schedFirst(hh, old), first = schedFirst(hh, now.key) || hh.remAt(now.key);
+                if (schedAtOf(now.key, now.min) <= nowMs() + 90000 || (was ? now.min === minutesOf(was) : true)) {
+                    now.min = minutesOf(first);
+                }
+            } else {
+                now.min = String(v).charAt(0) === '=' ? +String(v).slice(1) : Math.min(1425, Math.max(0, Math.round((now.min + (+v)) / 15) * 15));
+            }
+            refreshWritePop();
+            var again = el.chat.querySelector('.mrd-pop-programar [data-a="' + what + '"][data-v="' + v + '"]') ||
+                el.chat.querySelector('.mrd-pop-programar [data-a="schedmore"]');
+            if (again) {
+                again.focus({ preventScroll: true });
+            }
+        }
+        function scheduleIt(btn, c) {
+            var check = schedCheck(c), approved = check.approved, t = (st.extras.templates || [])[st.tpl];
+            var ed = el.chat.querySelector('.mrd-editor'), wire = '', params = [], name = '', language = '';
+            if (approved) {
+                params = gapValues();
+                if (!params || !t) {
+                    st.pop = null;
+                    refreshWritePop();
+                    return;
+                }
+                name = t.name;
+                language = t.language;
+            } else {
+                wire = editorText(ed, true);
+                if (!wire.trim()) {
+                    st.pop = null;
+                    refreshWritePop();
+                    if (ed) {
+                        ed.focus();
+                    }
+                    toast(s('schedempty'), true);
+                    return;
+                }
+            }
+            busy(btn, true);
+            tr.call(M.schedule, { conversation: c.id, action: 'add', id: 0, at: Math.round(check.at / 1000), text: wire, name: name, language: language, params: params })
+                .then(function (r) {
+                    if (r && r.conversation) {
+                        mergeConv(r.conversation);
+                    }
+                    st.pop = null;
+                    st.schedPick = 0;
+                    st.tpl = -1;
+                    st.sched = null;
+                    if (approved) {
+                        delete (st.kept || {})[keptKey(c)];
+                    } else {
+                        if (st.drafts[c.id]) {
+                            st.drafts[c.id].reply = '';
+                        }
+                        if (ed) {
+                            ed.innerHTML = '';
+                        }
+                    }
+                    toast(s('schedtoast', whenPhrase(check.at)));
+                    refreshAfterData();
+                    renderComposer(true);
+                    renderScheduled();
+                    if (hiloEl()) {
+                        stickToBottom(hiloEl());
+                    }
+                    pollSoon();
+                }).catch(function (e) {
+                    busy(btn, false);
+                    failToast(e);
+                });
+        }
+        // What waits to go out, at the end of the thread: a message still without its ink. When, what it says, whose, and
+        // what can be done with it.
+        function schedItem(c, x) {
+            var held = x.status === 'held', head, name = x.mine ? s('schedbyme') : s('schedby', x.by);
+            if (x.status === 'sending') {
+                head = s('schedsending');
+            } else if (held) {
+                head = x.reason === 'refused' && x.why ? s('schednotwhy', x.why) :
+                    s({ wrote: 'schedwrote', window: 'schedwindowed', late: 'schedlate', access: 'schedaccess', refused: 'schedrefused', unsure: 'schedunsure' }[x.reason] ||
+                    'schedrefused');
+            } else {
+                head = s('schedgoes', whenPhrase(x.at * 1000));
+            }
+            // Past the 24 hours, a free message can only go as an approved one.
+            var free = !x.approved && !canReply(c), acts = '';
+            var act = function (what, text, cls) {
+                return '<button type="button" class="mrd-btn mrd-chico' + (cls || '') + '" data-a="' + what + '" data-v="' + x.id + '">' + esc(text) + '</button>';
+            };
+            if (!READONLY && x.status !== 'sending') {
+                acts = '<div class="mrd-prog-b">' + (free ? act('schedchange', s('schedchoose'), held ? ' mrd-primario' : '')
+                    : act('schednow', s('schednow')) + act('schedchange', s('schedchange'))) + act('schedremove', s('schedremove'), ' mrd-quitar') + '</div>';
+            }
+            return '<li class="mrd-prog' + (held ? ' mrd-parado' : '') + (x.status === 'sending' ? ' mrd-saliendo' : '') + '" data-id="prog-' + x.id + '">' +
+                '<p class="mrd-prog-cab">' + ico(held ? 'alerta' : 'prog') + '<b>' + esc(head) + '</b></p>' +
+                (x.approved ? '<p class="mrd-prog-plantilla">' + esc(x.title || s('schedapproved')) + '</p>' : '') +
+                '<p class="mrd-prog-t">' + esc(x.text) + '</p><p class="mrd-prog-de">' + esc(name) +
+                (held ? ' · ' + esc(s('schedwas', whenPhrase(x.at * 1000))) : '') + '</p>' + acts + '</li>';
+        }
+        // What waits is always the last thing of the thread, also when a message comes or goes out.
+        function scheduledLast(hilo) {
+            var where = hilo.querySelector('.mrd-programados');
+            if (where && where !== hilo.lastElementChild) {
+                hilo.appendChild(where);
+            }
+        }
+        function renderScheduled() {
+            var hilo = hiloEl(), c = conv(st.open);
+            if (!hilo || !st.loaded) {
+                return;
+            }
+            var where = hilo.querySelector('.mrd-programados'), list = (c && c.scheduled) || [], h = list.map(function (x) {
+                return schedItem(c, x);
+            }).join('');
+            if (!h) {
+                if (where) {
+                    where.remove();
+                }
+                st.schedSig = '';
+                return;
+            }
+            if (where && h === st.schedSig) {
+                scheduledLast(hilo);
+                return;
+            }
+            var stick = atBottom(hilo);
+            if (!where) {
+                where = document.createElement('ul');
+                where.className = 'mrd-programados';
+                hilo.appendChild(where);
+            }
+            st.schedSig = h;
+            where.innerHTML = h;
+            scheduledLast(hilo);
+            if (stick) {
+                stickToBottom(hilo);
+            }
+        }
+        // Taken back, or sent now; «change» takes it back and leaves it in the box as it was written.
+        function schedDo(btn, c, what, id) {
+            var one = (c.scheduled || []).filter(function (x) {
+                return x.id === id;
+            })[0];
+            if (!one) {
+                return;
+            }
+            busy(btn, true);
+            tr.call(M.schedule, { conversation: c.id, action: what === 'schednow' ? 'now' : 'remove', id: id, at: 0, text: '', name: '', language: '', params: [] })
+                .then(function (r) {
+                    if (r && r.conversation) {
+                        mergeConv(r.conversation);
+                    }
+                    if (what === 'schedchange') {
+                        schedToBox(c, one);
+                    } else {
+                        toast(s(what === 'schednow' ? 'schedsent' : 'schedremoved'));
+                    }
+                    refreshAfterData();
+                    pollSoon();
+                }).catch(function (e) {
+                    busy(btn, false);
+                    failToast(e);
+                });
+        }
+        function schedToBox(c, one) {
+            var tpls = st.extras.templates || [], at = -1, values = {};
+            if (one.approved) {
+                tpls.forEach(function (t, i) {
+                    if (t.name === one.template && t.language === one.language) {
+                        at = i;
+                    }
+                });
+                try {
+                    values = JSON.parse(one.body) || {};
+                } catch (e) {
+                    values = {};
+                }
+                if (at >= 0) {
+                    var gaps = {}, key = one.template + '|' + one.language, mine = tplWrite(tpls[at]);
+                    gaps[key] = {};
+                    Object.keys(values).forEach(function (k) {
+                        gaps[key][k] = values[k];
+                    });
+                    st.kept = st.kept || {};
+                    st.kept[keptKey(c)] = { own: mine ? values[mine] || '' : '', gaps: gaps };
+                    st.schedPick = canReply(c) ? c.id : 0;
+                    st.tpl = at;
+                    st.mode = 'reply';
+                    renderComposer(true);
+                    return;
+                }
+                return;
+            }
+            st.drafts[c.id] = st.drafts[c.id] || {};
+            if (canReply(c)) {
+                // Whatever was half written stays, and what comes back goes first.
+                var left = st.drafts[c.id].reply && st.mode === 'reply' ? st.drafts[c.id].reply : '';
+                var ed = el.chat.querySelector('.mrd-editor');
+                st.mode = 'reply';
+                renderComposer(true);
+                ed = el.chat.querySelector('.mrd-editor');
+                if (ed) {
+                    var rest = editorText(ed, false).trim();
+                    ed.textContent = one.body + (rest ? '\n' + rest : '');
+                    caretToEnd(ed);
+                }
+                st.drafts[c.id].reply = left;
+            } else {
+                // The 24 hours are over: the words go to the box of an approved message.
+                st.kept = st.kept || {};
+                st.kept[keptKey(c)] = { own: one.body, gaps: {} };
+                st.unfold[c.id] = true;
+                renderComposer(true);
+            }
+        }
         /* Passing on, in two steps in the same menu: the department, then a line for it if one wants (it goes as an
            internal note) and the button that says what it does. Without a line it is passed on all the same. */
         function popTeams(c) {
@@ -5014,6 +5429,7 @@
             placeReadBy();
             placeUndo();
             fillDurations();
+            renderScheduled();
             if (stick) {
                 stickToBottom(hilo);
             } else {
@@ -5072,6 +5488,7 @@
                 h += msgHtml(m);
             });
             hilo.insertAdjacentHTML('beforeend', h);
+            scheduledLast(hilo);
             placeReadBy();
             placeUndo();
             fillDurations();
@@ -5170,8 +5587,12 @@
             if (st.mode === 'note') {
                 return 'note';
             }
-            if (canReply(c)) {
+            if (canReply(c) && st.schedPick !== c.id) {
                 return 'reply';
+            }
+            if (canReply(c)) {
+                // For an hour past the 24: an approved message, still with the box of writing to go back to.
+                return st.tpl >= 0 ? 'preview' : 'pick';
             }
             if (st.tpl >= 0) {
                 return 'preview';
@@ -5486,9 +5907,10 @@
                     ico('arroba') + '<span class="mrd-t">' + esc(s('mention')) + '</span></button>'
                         : '<button type="button" class="mrd-herr-b' + (st.pop === 'guardadas' ? ' mrd-on' : '') + '" data-a="pop" data-v="guardadas">' +
                     ico('guardadas') + '<span class="mrd-t">' + esc(s('canned')) + '</span></button>' + draftButton(c)) +
-                    '<button type="button" class="mrd-btn mrd-primario" data-a="send">' + (note ? ico('nota') + esc(s('savenote')) : ico('enviar') + esc(s('send'))) +
+                    schedButton(c, note) + '<button type="button" class="mrd-btn mrd-primario" data-a="send">' + (note ? ico('nota') + esc(s('savenote')) : ico('enviar') + esc(s('send'))) +
                     '</button></div></div>';
-                h += st.pop === 'guardadas' ? popCanned(c) : st.pop === 'mencion' ? popMention() : st.pop === 'ia' && !note ? popPolicy() : '';
+                h += st.pop === 'guardadas' ? popCanned(c) : st.pop === 'mencion' ? popMention() : st.pop === 'ia' && !note ? popPolicy()
+                    : st.pop === 'programar' && !note ? popSchedule(c) : '';
                 box2.innerHTML = h;
                 var ed = box2.querySelector('.mrd-editor');
                 if (ed.innerHTML === '<br>') {
@@ -5508,13 +5930,13 @@
             if (state === 'preview' && tpls[st.tpl]) {
                 st.gapsTpl = tpls[st.tpl].name;
                 areaState('mrd-con-previa');
-                box2.innerHTML = previewHtml(c, tpls[st.tpl]);
+                box2.innerHTML = previewHtml(c, tpls[st.tpl]) + (st.pop === 'programar' ? popSchedule(c) : '');
                 focusGap(box2);
                 return;
             }
             var lastIn = c.lastincoming ? c.lastincoming * 1000 : 0;
             // Only to read (resolved, or our message the last one): the 24 hours in one line, unfolded only to write.
-            if (lastIn && !st.unfold[c.id] && onlyReading(c)) {
+            if (lastIn && !st.unfold[c.id] && st.schedPick !== c.id && onlyReading(c)) {
                 box2.innerHTML = '<div class="mrd-24-plegada">' + ico('reloj') + '<span><b>' + esc(s('foldedover')) + '</b> ' +
                     esc(s('foldedtail')) + '</span><button type="button" class="mrd-btn mrd-chico" data-a="unfold" aria-expanded="false">' + esc(s('foldedwrite')) +
                     ico('abajo') + '</button><button type="button" class="mrd-24-nota" data-a="mode" data-v="note">' + ico('nota') + esc(s('tabnote')) +
@@ -5522,8 +5944,15 @@
                 return;
             }
             areaState(tpls.length ? 'mrd-eligiendo' : '');
-            h = '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
-                '<p>' + esc(lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p>' +
+            if (st.schedPick === c.id) {
+                h = '<div class="mrd-retomar-pie mrd-prog-volver"><button type="button" data-a="schedback">' + ico('izq') + esc(s('schedback')) + '</button></div>';
+            } else {
+                h = '';
+            }
+            h += '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(st.schedPick === c.id ? s('schedpicktitle')
+                : lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
+                '<p>' + esc(st.schedPick === c.id ? s('schedpickhelp', whenPhrase(schedAt(c)))
+                : lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p>' +
                 (tpls.length ? '<p class="mrd-paga">' + ico('gs-euro') + '<span>' + esc(s('payline')) + ' <strong>' + esc(s('paylinewho')) + '</strong>' +
                     esc(s('paylinetail')) + '</span></p>' : '') + '</div></div>';
             var said = st.fichaFor === c.id && st.ficha ? st.ficha.optout : null, held = optoutBlocked(c.contact && c.contact.phone, said);
@@ -5783,7 +6212,7 @@
                 (btns ? '<div class="mrd-botones-wa">' + btns + '</div>' : '') + '</div>' +
                 (mine ? '<p class="mrd-una-linea" role="status"></p>' : '') +
                 '<div class="mrd-previa-pie"><button type="button" class="mrd-btn mrd-primario" data-a="tplsend" aria-disabled="' + !!empty.length + '">' +
-                ico('enviar') + esc(s('sendtemplate')) + '</button><small class="mrd-huecos-estado' + (empty.length ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
+                ico('enviar') + esc(s('sendtemplate')) + '</button>' + (c.id && !st.nueva ? schedButton(c, false) : '') + '<small class="mrd-huecos-estado' + (empty.length ? ' mrd-faltan' : '') + '" data-a="gapnext">' +
                 esc(gapsText(empty)) + '</small>' + (catPill(t) ? '<small class="mrd-cuesta">' + catPill(t) + '<span>' + esc(s('paidby')) + '</span></small>' : '') +
                 '</div></div>';
         }
@@ -5867,6 +6296,16 @@
                 box2.insertAdjacentHTML('beforeend', popMention());
             } else if (st.pop === 'eqpasar' && st.room && !conv(st.open)) {
                 box2.insertAdjacentHTML('beforeend', popPassConv());
+            } else if (st.pop === 'programar' && conv(st.open)) {
+                box2.insertAdjacentHTML('beforeend', popSchedule(conv(st.open)));
+            }
+            if (st.pop === 'programar' && box2.classList.contains('mrd-con-previa')) {
+                box2.querySelector('.mrd-pop').scrollIntoView({ block: 'nearest' });
+            }
+            var later = box2.querySelector('[data-v="programar"]');
+            if (later) {
+                later.classList.toggle('mrd-on', st.pop === 'programar');
+                later.setAttribute('aria-expanded', String(st.pop === 'programar'));
             }
             var pass = box2.querySelector('[data-v="eqpasar"]');
             if (pass) {
@@ -6588,6 +7027,8 @@
                 st.pop = null;
                 st.call = { line: '', offer: 0 };
                 st.tpl = -1;
+                st.schedPick = 0;
+                st.sched = null;
                 st.pickAgain = false;
                 st.joined = '';
                 renderChat();
@@ -6741,6 +7182,7 @@
                 renderHead();
                 renderBands();
                 placeCallOffer();
+                renderScheduled();
                 renderComposer();
                 if (c.contact && st.fichaKind && c.contact.kind !== st.fichaKind && st.fichaState === 'ok') {
                     loadFicha(st.open);
@@ -7066,6 +7508,7 @@
             hilo.insertAdjacentHTML('beforeend', '<div class="mrd-sistema mrd-sistema-local mrd-con-deshacer">' + ico(u.kind === 'team' ? 'flecha' : 'check') +
                 '<span>' + esc(u.kind === 'team' ? s('passedline', { who: me.firstname || firstName(me), from: teamName(u.from), to: teamName(u.to) })
                 : s('resolvedline', me.firstname || firstName(me))) + ' · ' + esc(fmtTime(u.at)) + '</span>' + btn + '</div>');
+            scheduledLast(hilo);
         }
 
         /* -------- Sending -------- */
@@ -7146,6 +7589,7 @@
             var h = (!days.length || +days[days.length - 1].getAttribute('data-day') !== k)
                 ? '<span class="mrd-dia" data-day="' + k + '">' + esc(dayLabel(m.at * 1000)) + '</span>' : '';
             hilo.insertAdjacentHTML('beforeend', h + msgHtml(m));
+            scheduledLast(hilo);
             placeUndo();
             stickToBottom(hilo);
             hidePill();
@@ -7357,6 +7801,7 @@
                 if (st.open === id) {
                     st.tpl = -1;
                     st.pickAgain = false;
+                    st.schedPick = 0;
                     var m = msg || { id: 'tmp' + (++seq), kind: 'outgoing', text: shown, at: Math.floor(nowMs() / 1000), template: t.name,
                         signature: me.signature, status: 'sent', author: { name: me.name, me: true } };
                     if (!m.template) {
@@ -8468,6 +8913,52 @@
                     st.historyMore = false;
                     renderListBody();
                     break;
+                case 'schedday':
+                case 'schedtime':
+                    if (c) {
+                        schedChoose(c, a, v);
+                    }
+                    break;
+                case 'schedmore':
+                    if (c && st.sched) {
+                        st.sched.more = !st.sched.more;
+                        refreshWritePop();
+                        focusPop('.mrd-pop-programar [data-a="schedmore"]');
+                    }
+                    break;
+                case 'schedgo':
+                    if (c) {
+                        scheduleIt(t, c);
+                    }
+                    break;
+                case 'schedpick':
+                    if (c) {
+                        saveDraft();
+                        var typed = el.chat.querySelector('.mrd-editor');
+                        typed = typed ? editorText(typed, false).trim() : '';
+                        if (typed) {
+                            st.kept = st.kept || {};
+                            st.kept[keptKey(c)] = { own: typed, gaps: (keptOf(c) || {}).gaps || {} };
+                        }
+                        st.pop = null;
+                        st.schedPick = c.id;
+                        st.tpl = -1;
+                        renderComposer(true);
+                        focusPop('.mrd-escribir .mrd-plantilla, .mrd-escribir .mrd-libre');
+                    }
+                    break;
+                case 'schedback':
+                    st.schedPick = 0;
+                    st.tpl = -1;
+                    renderComposer(true);
+                    break;
+                case 'schednow':
+                case 'schedremove':
+                case 'schedchange':
+                    if (c && !READONLY) {
+                        schedDo(t, c, a, +v);
+                    }
+                    break;
                 case 'remday':
                     st.rem.day = v;
                     renderHead();
@@ -8582,6 +9073,9 @@
                         refreshWritePop();
                         focusPop(st.pop ? '.mrd-pop-eqpasar input' : '');
                     } else {
+                        if (v === 'programar' && st.pop && c) {
+                            schedStart(c);
+                        }
                         refreshWritePop();
                         var ed0 = el.chat.querySelector('.mrd-editor');
                         if (ed0 && st.pop && !touchy()) {
@@ -8894,6 +9388,10 @@
         });
         box.addEventListener('input', function (e) {
             var t = e.target;
+            if (t.classList && t.classList.contains('mrd-prog-regla')) {
+                schedSlide(t);
+                return;
+            }
             if (t.classList && t.classList.contains('eq-escribe')) {
                 var typed = t.innerText.replace(/\u00a0/g, ' ');
                 if (st.boardNew) {

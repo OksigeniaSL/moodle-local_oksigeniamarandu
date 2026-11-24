@@ -139,12 +139,49 @@ abstract class chat_base extends external_api {
                 'at' => new external_value(PARAM_INT, 'When it comes back'),
                 'reason' => new external_value(PARAM_TEXT, 'What for'),
             ], 'The day whoever looks asked to have it back', VALUE_OPTIONAL),
+            'scheduled' => new external_multiple_structure(new external_single_structure([
+                'id' => new external_value(PARAM_INT, 'The message'),
+                'at' => new external_value(PARAM_INT, 'When it goes'),
+                'text' => new external_value(PARAM_RAW, 'What it says'),
+                'by' => new external_value(PARAM_TEXT, 'Who wrote it'),
+                'mine' => new external_value(PARAM_BOOL, 'Whether it was whoever looks'),
+                'status' => new external_value(PARAM_ALPHA, 'waiting, sending or held'),
+                'reason' => new external_value(PARAM_ALPHA, 'Why it does not go by itself: wrote, window, late, access, refused ' .
+                    'or unsure; empty if it goes'),
+                'why' => new external_value(PARAM_TEXT, 'What was said when it was refused'),
+                'approved' => new external_value(PARAM_BOOL, 'Whether it is an approved message'),
+                'title' => new external_value(PARAM_TEXT, 'What the approved message is called'),
+                'body' => new external_value(PARAM_RAW, 'What was written, or the gaps of the approved message as JSON'),
+                'template' => new external_value(PARAM_RAW, 'The approved message'),
+                'language' => new external_value(PARAM_RAW, 'Its language'),
+            ]), 'What goes out later, in their order', VALUE_DEFAULT, []),
             'lastactivity' => new external_value(PARAM_INT, 'Its last movement'),
             'rev' => new external_value(PARAM_INT, 'When its row changed: an answer with an older one is out of date'),
             'failedat' => new external_value(PARAM_INT, 'When the last message of the team did not arrive, or 0', VALUE_DEFAULT, 0),
             'failcode' => new external_value(PARAM_INT, 'The code of Meta for it, or 0', VALUE_DEFAULT, 0),
             'failreason' => new external_value(PARAM_TEXT, 'Why it did not arrive, in plain words, or empty', VALUE_DEFAULT, ''),
         ]);
+    }
+
+    /**
+     * What goes in the gaps of an approved message, on one line each.
+     *
+     * @param array $template The message.
+     * @param array $params Its gaps, each with key and value.
+     * @return array By gap.
+     * @throws \moodle_exception If one is empty.
+     */
+    protected static function values(array $template, array $params): array {
+        $values = [];
+        foreach ($params as $param) {
+            $values[$param['key']] = trim(preg_replace('/\s+/', ' ', $param['value']));
+        }
+        foreach ($template['params'] as $gap) {
+            if (($values[$gap['key']] ?? '') === '') {
+                throw new \moodle_exception('chat:templategap', 'local_oksigeniamarandu');
+            }
+        }
+        return $values;
     }
 
     /**

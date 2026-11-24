@@ -41,6 +41,7 @@ use local_oksigeniamarandu\local\chat\team;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\reminders;
+use local_oksigeniamarandu\local\chat\scheduled;
 use local_oksigeniamarandu\local\chat\viewer;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
@@ -171,6 +172,12 @@ class provider implements
             'remindat' => 'privacy:metadata:convrem:remindat',
             'reason' => 'privacy:metadata:convrem:reason',
         ], 'privacy:metadata:convrem');
+        $collection->add_database_table(scheduled::TABLE, [
+            'userid' => 'privacy:metadata:convsched:userid',
+            'cwid' => 'privacy:metadata:convsched:cwid',
+            'sendat' => 'privacy:metadata:convsched:sendat',
+            'body' => 'privacy:metadata:convsched:body',
+        ], 'privacy:metadata:convsched');
         $collection->add_database_table(message::TABLE, [
             'userid' => 'privacy:metadata:convmsg:userid',
             'cwmsgid' => 'privacy:metadata:convmsg:cwmsgid',
@@ -215,6 +222,7 @@ class provider implements
             || $DB->record_exists(wachannel::TABLE, ['doneby' => $userid])
             || $DB->record_exists(viewer::SEEN, ['userid' => $userid])
             || $DB->record_exists(reminders::TABLE, ['userid' => $userid])
+            || $DB->record_exists(scheduled::TABLE, ['userid' => $userid])
             || $DB->record_exists(board::TABLE, ['authorid' => $userid])
             || $DB->record_exists(board::TO, ['userid' => $userid])
             || $DB->record_exists(bulk::TABLE, ['userid' => $userid])
@@ -245,6 +253,7 @@ class provider implements
         $userlist->add_from_sql('doneby', 'SELECT doneby FROM {' . wachannel::TABLE . '} WHERE doneby IS NOT NULL', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . viewer::SEEN . '}', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . reminders::TABLE . '}', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . scheduled::TABLE . '}', []);
         $userlist->add_from_sql('authorid', 'SELECT authorid FROM {' . board::TABLE . '}', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . board::TO . '}', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . bulk::TABLE . '}', []);
@@ -333,6 +342,9 @@ class provider implements
             'reminders' => array_values(array_map(function ($one) {
                 return ['conversation' => (int)$one->cwid, 'day' => transform::datetime($one->remindat), 'reason' => $one->reason];
             }, $DB->get_records(reminders::TABLE, ['userid' => $userid], 'id'))),
+            'scheduled' => array_values(array_map(function ($one) {
+                return ['conversation' => (int)$one->cwid, 'time' => transform::datetime($one->sendat), 'text' => $one->body];
+            }, $DB->get_records(scheduled::TABLE, ['userid' => $userid], 'id'))),
             'sends' => array_values(array_map(function ($one) use ($userid) {
                 return ['label' => $one->label, 'status' => $one->status, 'asked' => (int)$one->userid === (int)$userid,
                     'time' => transform::datetime($one->timecreated)];
@@ -410,6 +422,7 @@ class provider implements
         $DB->set_field_select(wachannel::TABLE, 'doneby', null, 'doneby IS NOT NULL');
         $DB->delete_records(viewer::SEEN);
         $DB->delete_records(reminders::TABLE);
+        $DB->delete_records(scheduled::TABLE);
         $DB->delete_records(board::TO);
         $DB->delete_records(board::TABLE);
         $DB->delete_records(bulk::ITEMS);
@@ -464,6 +477,7 @@ class provider implements
         // In the conversations, the messages stay in Chatwoot; here goes what tells who read, wrote or passed.
         $DB->delete_records(viewer::SEEN, ['userid' => $userid]);
         $DB->delete_records(reminders::TABLE, ['userid' => $userid]);
+        $DB->delete_records(scheduled::TABLE, ['userid' => $userid]);
         // The board: what they put goes, with who saw it; and whether they saw the rest.
         foreach ($DB->get_fieldset_select(board::TABLE, 'id', 'authorid = ?', [$userid]) as $boardid) {
             $DB->delete_records(board::TO, ['boardid' => $boardid]);

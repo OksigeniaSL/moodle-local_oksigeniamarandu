@@ -7994,3 +7994,387 @@
         background: var(--linea-2);
     }
 }
+
+/* A message for later: the button beside «Send», its sheet (the day as a leaf, the hour on a ruler) and what waits at the
+   end of the thread. */
+#mrd-chat .mrd-prog-abrir {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+}
+#mrd-chat .mrd-prog-abrir.mrd-on {
+    background: var(--acento-suave);
+    border-color: var(--acento-anillo);
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-herr .mrd-prog-abrir {
+    margin-inline-start: auto;
+}
+#mrd-chat .mrd-herr .mrd-prog-abrir + .mrd-btn.mrd-primario {
+    margin-inline-start: 0;
+}
+#mrd-chat .mrd-pop-programar {
+    inset-inline-end: 20px;
+    bottom: calc(100% - 6px);
+    width: 350px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 225px);
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+#mrd-chat .mrd-pop-programar h5 {
+    margin: 0;
+}
+
+/* The next days it opens, as leaves; the last one, any other day. */
+#mrd-chat .mrd-prog-dias {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+#mrd-chat .mrd-prog-dia {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    min-height: 74px;
+    padding: 0 0 6px;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 10px;
+    background: var(--hoja);
+    color: var(--tinta);
+    overflow: hidden;
+}
+#mrd-chat .mrd-prog-dia small {
+    align-self: start;
+    width: 100%;
+    margin-bottom: 4px;
+    padding: 2px 0 3px;
+    border-bottom: 1.5px solid var(--linea-2);
+    background: var(--hoja-2);
+    color: var(--tinta-2);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+}
+#mrd-chat .mrd-prog-dia b {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-prog-dia span {
+    color: var(--tinta-2);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-prog-dia.mrd-tarde {
+    border-style: dashed;
+}
+#mrd-chat .mrd-prog-dia.mrd-on {
+    border-style: solid;
+    border-color: var(--acento-boton);
+    background: var(--acento-suave);
+    box-shadow: 0 0 0 1px var(--acento-boton);
+}
+#mrd-chat .mrd-prog-dia.mrd-on small {
+    border-color: var(--acento-boton);
+    background: var(--acento-boton);
+    color: #fff;
+}
+#mrd-chat .mrd-prog-dia.mrd-on span {
+    color: var(--acento-texto);
+    font-weight: 700;
+}
+#mrd-chat .mrd-prog-otro {
+    align-content: center;
+    gap: 5px;
+    padding: 4px 2px;
+    border-style: dotted;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-prog-otro span {
+    color: inherit;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+}
+#mrd-chat .mrd-prog-otro[aria-expanded="true"] {
+    border-style: solid;
+    border-color: var(--acento-texto);
+}
+
+/* The hour: said in large, moved on the ruler of the day. */
+#mrd-chat .mrd-prog-hora {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+#mrd-chat .mrd-prog-cual {
+    display: grid;
+    justify-items: center;
+}
+#mrd-chat .mrd-prog-cual b {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-prog-cual small {
+    color: var(--ambar-texto);
+    font-size: 12px;
+    font-weight: 700;
+}
+#mrd-chat .mrd-prog-paso {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 50%;
+    background: var(--hoja);
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-prog-paso svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+}
+#mrd-chat .mrd-prog-dia-horas {
+    position: relative;
+    padding-top: 9px;
+}
+
+/* What is open, under the thumb; what is past the 24 hours, hatched. The ends leave the half of the thumb. */
+#mrd-chat .mrd-prog-pista {
+    position: absolute;
+    inset-inline: 14px;
+    top: 17px;
+    height: 12px;
+    border-radius: 6px;
+    background: var(--linea);
+}
+#mrd-chat .mrd-prog-pista i {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--de);
+    width: calc(var(--a) - var(--de));
+    border-radius: 6px;
+}
+#mrd-chat .mrd-prog-abierto {
+    background: var(--acento-texto);
+    opacity: .35;
+}
+#mrd-chat .mrd-prog-tarde {
+    background: repeating-linear-gradient(135deg, var(--nota-borde) 0 4px, var(--hoja) 4px 8px);
+}
+#mrd-chat .mrd-prog-regla {
+    appearance: none;
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+#mrd-chat .mrd-prog-regla::-webkit-slider-runnable-track {
+    height: 28px;
+    background: transparent;
+}
+#mrd-chat .mrd-prog-regla::-moz-range-track {
+    height: 28px;
+    background: transparent;
+}
+#mrd-chat .mrd-prog-regla::-webkit-slider-thumb {
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border: 4px solid var(--hoja);
+    border-radius: 50%;
+    background: var(--acento-boton);
+    box-shadow: 0 1px 4px rgba(28, 26, 25, .45);
+}
+#mrd-chat .mrd-prog-regla::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: 4px solid var(--hoja);
+    border-radius: 50%;
+    background: var(--acento-boton);
+    box-shadow: 0 1px 4px rgba(28, 26, 25, .45);
+}
+#mrd-chat .mrd-prog-regla:focus-visible {
+    outline: 2px solid var(--acento-texto);
+    outline-offset: 3px;
+    border-radius: 14px;
+}
+#mrd-chat .mrd-prog-marcas {
+    position: relative;
+    height: 18px;
+    margin-inline: 14px;
+    color: var(--tinta-3);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-prog-marcas span {
+    position: absolute;
+    inset-inline-start: var(--de);
+    width: 24px;
+    margin-inline-start: -12px;
+    text-align: center;
+}
+#mrd-chat .mrd-prog-pie {
+    display: grid;
+    gap: 12px;
+}
+#mrd-chat .mrd-prog-nota {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--nota);
+    color: var(--ambar-texto);
+    font-size: 13px;
+}
+#mrd-chat .mrd-prog-nota .mrd-i {
+    flex: none;
+}
+#mrd-chat .mrd-rem-ok .mrd-i {
+    flex: none;
+}
+
+/* What waits: the bubble of a message of ours still without its ink, after everything else of the thread. */
+#mrd-chat .mrd-programados {
+    order: 9;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+}
+#mrd-chat .mrd-prog {
+    box-sizing: border-box;
+    /* stylelint-disable-next-line csstree/validator */
+    width: min(88%, 480px);
+    padding: 10px 12px;
+    border: 2px dashed var(--acento-texto);
+    border-radius: 14px;
+    background: var(--hoja);
+    color: var(--tinta);
+}
+#mrd-chat .mrd-prog.mrd-parado {
+    border-color: var(--ambar-texto);
+    background: var(--nota);
+}
+#mrd-chat .mrd-prog.mrd-saliendo {
+    border-style: solid;
+    opacity: .75;
+}
+#mrd-chat .mrd-prog p {
+    margin: 0;
+}
+#mrd-chat .mrd-prog-cab {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--acento-texto);
+    font-size: 14px;
+}
+#mrd-chat .mrd-prog-cab .mrd-i {
+    flex: none;
+    margin-top: 1px;
+}
+#mrd-chat .mrd-prog.mrd-parado .mrd-prog-cab {
+    color: var(--ambar-texto);
+}
+#mrd-chat .mrd-prog-plantilla {
+    margin-top: 6px;
+    color: var(--tinta-2);
+    font-size: 12px;
+    font-weight: 700;
+}
+#mrd-chat .mrd-prog .mrd-prog-t {
+    margin-top: 6px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+#mrd-chat .mrd-prog .mrd-prog-de {
+    margin-top: 4px;
+    color: var(--tinta-2);
+    font-size: 12px;
+}
+#mrd-chat .mrd-prog-b {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+#mrd-chat .mrd-etq.mrd-etq-prog {
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-etq.mrd-etq-prog.mrd-parado {
+    background: var(--nota);
+    color: var(--ambar-texto);
+}
+#mrd-chat .mrd-prog-volver {
+    margin: 0 0 8px;
+}
+
+@media (hover: hover) {
+    #mrd-chat .mrd-prog-dia:not(.mrd-on):hover,
+    #mrd-chat .mrd-prog-paso:hover {
+        border-color: var(--acento-texto);
+        background: var(--acento-suave);
+    }
+}
+
+/* With an approved message in sight the area scrolls: the sheet goes in it, below, instead of over it. */
+@media (min-width: 761px) {
+    #mrd-chat .mrd-con-previa .mrd-pop-programar {
+        position: static;
+        width: auto;
+        max-width: none;
+        max-height: none;
+        margin-top: 10px;
+        box-shadow: none;
+    }
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-pop-programar {
+        position: fixed;
+        inset: auto 12px 12px;
+        width: auto;
+        max-height: 82vh;
+    }
+    #mrd-chat .mrd-prog {
+        width: 94%;
+    }
+    #mrd-chat .mrd-prog-b .mrd-btn {
+        min-height: 40px;
+    }
+    #mrd-chat .mrd-prog-abrir .mrd-t {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+}

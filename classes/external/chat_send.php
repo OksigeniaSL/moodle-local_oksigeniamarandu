@@ -23,6 +23,7 @@ use local_oksigeniamarandu\local\chat\chatwoot;
 use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
+use local_oksigeniamarandu\local\chat\sender;
 
 /**
  * Writes in a conversation: an answer for the family, with the signature of whoever writes on top, or a note the
@@ -68,19 +69,19 @@ class chat_send extends chat_base {
         if (!$params['private'] && $row->lastincoming + DAYSECS <= time()) {
             throw new \moodle_exception('chat:windowclosed', 'local_oksigeniamarandu');
         }
-        $content = $params['private'] ? message::mentions($text) : '*' . message::signature($viewer) . "*\n" . $text;
-        $sent = directory::as_person($viewer, function (chatwoot $client) use ($row, $content, $params, $viewer) {
-            $sent = $client->call('POST', '/conversations/' . $row->cwid . '/messages', [
-                'content' => $content,
-                'message_type' => 'outgoing',
-                'private' => $params['private'],
-            ]);
-            if (!$params['private'] && !$row->assigneeid) {
-                $client->call('POST', '/conversations/' . $row->cwid . '/assignments', ['assignee_id' => $viewer->agent['id']]);
-            }
-            return $sent;
-        });
-        message::remember((int)($sent['id'] ?? 0), (int)$row->cwid, $viewer->userid);
+        if ($params['private']) {
+            $content = message::mentions($text);
+            $sent = directory::as_person($viewer, function (chatwoot $client) use ($row, $content) {
+                return $client->call('POST', '/conversations/' . $row->cwid . '/messages', [
+                    'content' => $content,
+                    'message_type' => 'outgoing',
+                    'private' => true,
+                ]);
+            });
+            message::remember((int)($sent['id'] ?? 0), (int)$row->cwid, $viewer->userid);
+        } else {
+            $sent = sender::text($viewer, $row, $text);
+        }
         $row = mirror::refresh((int)$row->cwid) ?? $row;
         return [
             'message' => message::export($sent, $viewer, [(int)($sent['id'] ?? 0) => $viewer->userid]),

@@ -54,6 +54,10 @@ class chat_sync extends \core\task\scheduled_task {
             } finally {
                 // The conversations whose day came, back to whoever asked: also when the list of Chatwoot failed,
                 // since each one is asked for by itself.
+                $sent = \local_oksigeniamarandu\local\chat\scheduled::due();
+                if ($sent) {
+                    mtrace('Messages sent at their hour: ' . $sent);
+                }
                 $back = \local_oksigeniamarandu\local\chat\reminders::due();
                 if ($back) {
                     mtrace('Conversations back on their day: ' . $back);

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/oksigeniamarandu/db" VERSION="20261024" COMMENT="XMLDB file for local_oksigeniamarandu"
+<XMLDB PATH="local/oksigeniamarandu/db" VERSION="2026122910" COMMENT="XMLDB file for local_oksigeniamarandu"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -290,6 +290,30 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid-convid" UNIQUE="true" FIELDS="userid, convid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_convsched" COMMENT="The messages of the team that go out later, at the hour a person chose">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="cwid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The number of the conversation in Chatwoot"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Who wrote it"/>
+        <FIELD NAME="sendat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="When it goes"/>
+        <FIELD NAME="body" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="What it says; for an approved message, what goes in its gaps, as JSON"/>
+        <FIELD NAME="template" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="The approved message, if it is one"/>
+        <FIELD NAME="language" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Its language"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="waiting" SEQUENCE="false" COMMENT="waiting, sending, held (it does not go by itself) or sent"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Why it does not go by itself: wrote, window, late, access, refused or unsure"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timedone" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When it went out; 0 while it is on the list"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="due" UNIQUE="false" FIELDS="timedone, status, sendat"/>
+        <INDEX NAME="cwid" UNIQUE="false" FIELDS="cwid, timedone"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_oksigeniamarandu_convmsg" COMMENT="Who wrote each message sent from Moodle">

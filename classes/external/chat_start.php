@@ -85,15 +85,7 @@ class chat_start extends chat_base {
         if ($params['team'] && !in_array($params['team'], array_column(directory::teams(), 'id'))) {
             throw new \moodle_exception('chat:start:noteam', 'local_oksigeniamarandu');
         }
-        $values = [];
-        foreach ($params['params'] as $param) {
-            $values[$param['key']] = trim(preg_replace('/\s+/', ' ', $param['value']));
-        }
-        foreach ($template['params'] as $gap) {
-            if (($values[$gap['key']] ?? '') === '') {
-                throw new \moodle_exception('chat:templategap', 'local_oksigeniamarandu');
-            }
-        }
+        $values = self::values($template, $params['params']);
         $result = starter::start($viewer, $number, trim($params['contactname']), $params['team'], $template, $values);
         $answer = ['status' => $result['status'], 'where' => (string)($result['where'] ?? '')];
         if (!empty($result['row'])) {

@@ -7994,3 +7994,192 @@
         background: var(--linea-2);
     }
 }
+
+/* A message for later: the button beside «Send», its sheet with the day and the hour, and what waits above the box. */
+#mrd-chat .mrd-prog-abrir {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+}
+#mrd-chat .mrd-prog-abrir.mrd-on {
+    background: var(--acento-suave);
+    border-color: var(--acento-anillo);
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-herr .mrd-prog-abrir {
+    margin-inline-start: auto;
+}
+#mrd-chat .mrd-herr .mrd-prog-abrir + .mrd-btn.mrd-primario {
+    margin-inline-start: 0;
+}
+#mrd-chat .mrd-pop-programar {
+    inset-inline-end: 20px;
+    bottom: calc(100% - 6px);
+    width: 330px;
+    max-width: calc(100vw - 24px);
+    /* stylelint-disable-next-line csstree/validator */
+    max-height: min(620px, 82vh);
+    overflow-y: auto;
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#mrd-chat .mrd-pop-programar h5 {
+    margin: 2px 0 0;
+}
+#mrd-chat .mrd-prog-hora {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+#mrd-chat .mrd-prog-hora b {
+    min-width: 84px;
+    text-align: center;
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+}
+#mrd-chat .mrd-prog-paso {
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid var(--linea-2);
+    border-radius: 50%;
+    background: var(--hoja);
+    color: var(--acento-texto);
+    font-size: 20px;
+    line-height: 1;
+}
+#mrd-chat .mrd-prog-horas {
+    justify-content: center;
+}
+#mrd-chat .mrd-prog-nota {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--nota);
+    color: var(--ambar-texto);
+    font-size: 13px;
+}
+#mrd-chat .mrd-prog-nota .mrd-i {
+    flex: none;
+}
+#mrd-chat .mrd-enlace {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+}
+#mrd-chat .mrd-programados {
+    display: none;
+}
+#mrd-chat .mrd-programados.mrd-con {
+    display: block;
+    max-height: 34vh;
+    overflow-y: auto;
+    padding: 8px 20px 0;
+}
+#mrd-chat .mrd-programados ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#mrd-chat .mrd-prog {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1.5px dashed var(--acento-anillo);
+    border-radius: 12px;
+    background: var(--acento-suave);
+}
+#mrd-chat .mrd-prog.mrd-parado {
+    border-color: var(--ambar-texto);
+    background: var(--nota);
+}
+#mrd-chat .mrd-prog.mrd-saliendo {
+    opacity: .7;
+}
+#mrd-chat .mrd-prog-i {
+    flex: none;
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-prog.mrd-parado .mrd-prog-i,
+#mrd-chat .mrd-prog.mrd-parado b {
+    color: var(--ambar-texto);
+}
+#mrd-chat .mrd-prog-c {
+    flex: 1;
+    min-width: 0;
+}
+#mrd-chat .mrd-prog-c b {
+    display: block;
+    font-size: 13.5px;
+}
+#mrd-chat .mrd-prog-c small {
+    color: var(--tinta-3);
+    font-size: 12px;
+}
+#mrd-chat .mrd-prog-c p {
+    margin: 3px 0 0;
+    font-size: 13.5px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+}
+#mrd-chat .mrd-prog-b {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    max-width: 260px;
+}
+#mrd-chat .mrd-etq.mrd-etq-prog {
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+}
+#mrd-chat .mrd-etq.mrd-etq-prog.mrd-parado {
+    background: var(--nota);
+    color: var(--ambar-texto);
+}
+#mrd-chat .mrd-prog-volver {
+    margin: 0 0 8px;
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-pop-programar {
+        position: fixed;
+        inset: auto 12px 12px;
+        width: auto;
+        max-height: 82vh;
+    }
+    #mrd-chat .mrd-programados.mrd-con {
+        padding: 8px 12px 0;
+    }
+    #mrd-chat .mrd-prog {
+        flex-wrap: wrap;
+    }
+    #mrd-chat .mrd-prog-b {
+        max-width: none;
+        width: 100%;
+        justify-content: flex-start;
+    }
+    #mrd-chat .mrd-prog-abrir .mrd-t {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+}

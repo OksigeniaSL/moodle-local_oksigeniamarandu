@@ -169,6 +169,14 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'local_oksigeniamarandu_chat_schedule' => [
+        'classname' => \local_oksigeniamarandu\external\chat_schedule::class,
+        'description' => 'Writes a message of the team to go out later, takes it back, or sends it now.',
+        'type' => 'write',
+        'capabilities' => 'local/oksigeniamarandu:chat',
+        'ajax' => true,
+        'loginrequired' => true,
+    ],
     'local_oksigeniamarandu_chat_extras' => [
         'classname' => \local_oksigeniamarandu\external\chat_extras::class,
         'description' => 'Saved answers, approved messages, people and departments of the conversations of the team.',

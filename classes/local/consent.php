@@ -245,6 +245,64 @@ class consent {
     }
 
     /**
+     * Somebody changed their number in WhatsApp, and WhatsApp says so: what they joined and what they said no to go with
+     * them, and their plugins hear the new number. The old one stands for nobody, because it may be somebody else's soon.
+     *
+     * @param string $from The old number, in digits.
+     * @param string $to The new one.
+     * @param string $detail The id of the message.
+     * @return bool Whether the site knew the old one.
+     */
+    public static function moved(string $from, string $to, string $detail): bool {
+        global $DB;
+        $old = $DB->get_record(self::CONTACTS, ['phone' => $from]);
+        if (!$old) {
+            return false;
+        }
+        $new = $DB->get_record(self::CONTACTS, ['phone' => $to]);
+        $links = $DB->get_records(self::LINKS, ['contactid' => $old->id], 'id ASC');
+        if (!$new) {
+            $DB->update_record(self::CONTACTS, (object)['id' => $old->id, 'phone' => $to, 'timemodified' => time()]);
+            $new = $old;
+        } else {
+            // They already wrote from the new one: the last thing they said, from one or the other, is what counts.
+            if (max((int)$old->consenttime, (int)$old->optouttime) > max((int)$new->consenttime, (int)$new->optouttime)) {
+                $DB->update_record(self::CONTACTS, (object)['id' => $new->id, 'status' => $old->status,
+                    'consenttime' => $old->consenttime, 'consentsource' => $old->consentsource,
+                    'optouttime' => $old->optouttime, 'timemodified' => time()]);
+            }
+            foreach ($links as $link) {
+                $same = ['component' => $link->component, 'area' => $link->area, 'itemid' => $link->itemid,
+                    'userid' => $link->userid, 'contactid' => $new->id];
+                if ($DB->record_exists(self::LINKS, $same)) {
+                    $DB->delete_records(self::LINKS, ['id' => $link->id]);
+                } else {
+                    $DB->set_field(self::LINKS, 'contactid', $new->id, ['id' => $link->id]);
+                }
+            }
+            foreach ($DB->get_records(self::OPTOUTS, ['contactid' => $old->id]) as $no) {
+                if (!$DB->record_exists(self::OPTOUTS, ['contactid' => $new->id, 'scope' => $no->scope])) {
+                    $DB->set_field(self::OPTOUTS, 'contactid', $new->id, ['id' => $no->id]);
+                } else {
+                    $DB->delete_records(self::OPTOUTS, ['id' => $no->id]);
+                }
+            }
+            $DB->set_field(queue::TABLE, 'contactid', $new->id, ['contactid' => $old->id, 'status' => 'queued']);
+            $DB->update_record(self::CONTACTS, (object)['id' => $old->id, 'status' => 'pending', 'timemodified' => time()]);
+        }
+        $DB->set_field(joinask::TABLE, 'phone', $to, ['phone' => $from]);
+        $DB->insert_record(self::LOG, (object)['contactid' => $new->id, 'action' => 'moved', 'source' => 'whatsapp',
+            'detail' => \core_text::substr($detail, 0, 255), 'timecreated' => time()]);
+        foreach ($links as $link) {
+            if ($link->component !== 'core') {
+                self::callback((string)$link->component, 'marandu_number_changed', [(int)$link->itemid, '+' . $from, '+' . $to,
+                    (string)$link->area]);
+            }
+        }
+        return true;
+    }
+
+    /**
      * Makes a number stand for the item it was asked about, once.
      *
      * @param \stdClass $contact The number.
@@ -559,7 +617,7 @@ class consent {
         $list = [];
         $rows = $DB->get_records_select(
             self::LOG,
-            "contactid = :contactid AND action IN ('optin', 'optout', 'permission', 'askedback')",
+            "contactid = :contactid AND action IN ('optin', 'optout', 'permission', 'askedback', 'moved')",
             ['contactid' => $contactid],
             'timecreated DESC, id DESC',
             '*',

@@ -50,6 +50,7 @@ use local_oksigeniamarandu\local\joinask;
 use local_oksigeniamarandu\local\proposals;
 use local_oksigeniamarandu\local\telegram;
 use local_oksigeniamarandu\local\wachannel;
+use local_oksigeniamarandu\local\waid;
 
 /**
  * The numbers, their consent and whom they stand for. A number is a user's when a link ties it to that user; numbers of
@@ -178,6 +179,10 @@ class provider implements
             'consentsource' => 'privacy:metadata:joinask:consentsource',
             'consentat' => 'privacy:metadata:joinask:consentat',
         ], 'privacy:metadata:joinask');
+        $collection->add_database_table(waid::TABLE, [
+            'waid' => 'privacy:metadata:waid:waid',
+            'phone' => 'privacy:metadata:waid:phone',
+        ], 'privacy:metadata:waid');
         $collection->add_database_table(scheduled::TABLE, [
             'userid' => 'privacy:metadata:convsched:userid',
             'cwid' => 'privacy:metadata:convsched:cwid',

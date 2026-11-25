@@ -596,6 +596,14 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122920, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122930) {
+        // Whose each identifier of WhatsApp is, for when it does not give the number.
+        if (!$dbman->table_exists('local_oksigeniamarandu_waid')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_oksigeniamarandu_waid');
+        }
+        upgrade_plugin_savepoint(true, 2026122930, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

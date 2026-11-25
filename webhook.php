@@ -33,6 +33,7 @@ require(__DIR__ . '/../../config.php');
 
 use local_oksigeniamarandu\local\forward;
 use local_oksigeniamarandu\local\inbound;
+use local_oksigeniamarandu\local\waid;
 
 $config = get_config('local_oksigeniamarandu');
 
@@ -65,10 +66,18 @@ if (!inbound::verify_signature($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '',
     die();
 }
 
-$payload = json_decode($raw, true);
+$signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
 $own = false;
 $ours = false;
 try {
+    // Whoever has a username may come without their number: if the site knows it, it goes back in its place, and the body is
+    // signed again for whoever it is passed on to.
+    $objects = json_decode($raw);
+    if ($objects instanceof \stdClass && waid::complete($objects, (string)($config->phonenumberid ?? ''))) {
+        $raw = json_encode($objects, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
+        $signature = 'sha256=' . hash_hmac('sha256', $raw, $secret);
+    }
+    $payload = json_decode($raw, true);
     if (is_array($payload)) {
         inbound::handle($payload, $own, $ours);
     }
@@ -77,7 +86,7 @@ try {
     // the site answered itself (opt-ins, opt-outs, the buttons of its questions) stays here: a bot there would answer too.
     // Nor what is of another number or account of the same app.
     if (!$own && $ours) {
-        forward::deliver($raw, $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '');
+        forward::deliver($raw, $signature);
     }
 }
 // Meta only needs to know it arrived; the replies go out later, in an ad hoc task.

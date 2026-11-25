@@ -8052,6 +8052,7 @@
             }
             return '<ul class="mrd-baja-rastro">' + steps.map(function (t) {
                 var what = t.action === 'asked' ? s(t.source === 'asked' ? 'trailasked' : t.source === 'failed' ? 'trailaskedfailed' : 'trailaskedthen', t.name)
+                    : t.action === 'moved' ? s('trailmoved')
                     : t.action === 'askedback' ? s('trailaskedback')
                     : t.action === 'permission' ? s('trailpermission') : t.action === 'optout' ? (t.scope === 'all' ? s('trailoutall') : s('trailoutscope', t.name))
                     : t.source === 'wrote' ? s('trailwrote') : s('trailin');

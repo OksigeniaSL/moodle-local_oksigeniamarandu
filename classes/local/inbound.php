@@ -148,6 +148,10 @@ class inbound {
         if ($phone === '') {
             return false;
         }
+        if (($message['type'] ?? '') === 'system') {
+            // What WhatsApp says of somebody, such as a new number (waid): nobody wrote.
+            return false;
+        }
         $name = $names[$from] ?? null;
         $wamid = (string)($message['id'] ?? '');
         consent::touch($phone, $name);

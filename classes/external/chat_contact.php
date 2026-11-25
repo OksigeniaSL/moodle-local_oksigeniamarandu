@@ -279,7 +279,7 @@ class chat_contact extends chat_base {
                     'since' => new external_value(PARAM_INT, 'Since when'),
                 ])),
                 'trail' => new external_multiple_structure(new external_single_structure([
-                    'action' => new external_value(PARAM_ALPHA, 'optin, optout, permission, asked or askedback'),
+                    'action' => new external_value(PARAM_ALPHA, 'optin, optout, permission, asked, askedback or moved'),
                     'source' => new external_value(PARAM_TEXT, 'Where it was asked'),
                     'scope' => new external_value(PARAM_RAW, 'all, or a plugin'),
                     'name' => new external_value(PARAM_TEXT, 'The name of the plugin, if any'),

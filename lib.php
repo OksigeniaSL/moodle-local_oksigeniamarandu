@@ -84,6 +84,17 @@ function local_oksigeniamarandu_oksigeniamarandu_notices(): array {
             'askedfor' => true,
             'uncapped' => true,
         ],
+        // The question of a number that a person gave somewhere else with their permission: yes or no, with a touch. It is the
+        // only notice that goes to who has not joined yet, and only once.
+        'join' => [
+            'examples' => ['del Colegio Ejemplo'],
+            'perweek' => 0,
+            'channels' => ['whatsapp'],
+            'options' => ['yes', 'no'],
+            'askedfor' => true,
+            'uncapped' => true,
+            'nolink' => true,
+        ],
         // A send to many that waits for approval, to whoever may approve it: «Approve» and «Reject» from Telegram itself.
         'bulk' => [
             'examples' => ['Inés: Invitación a la jornada de puertas abiertas, 142 por WhatsApp, 8,52 EUR'],

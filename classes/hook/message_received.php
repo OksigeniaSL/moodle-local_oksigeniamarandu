@@ -184,6 +184,16 @@ final class message_received {
     }
 
     /**
+     * Whether the team also gets this message in the conversations of Marandu, and answers it there: then a plugin that
+     * only sends notices has nothing to say, and Marandu leaves it to them.
+     *
+     * @return bool
+     */
+    public function is_attended(): bool {
+        return $this->channel === 'whatsapp' && \local_oksigeniamarandu\local\forward::attended();
+    }
+
+    /**
      * What Marandu answers to the person at once, plain text. The first plugin that answers is the one heard.
      *
      * @param string $reply The text.

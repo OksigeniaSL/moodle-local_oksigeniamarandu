@@ -108,6 +108,17 @@ final class consent_review_test extends \advanced_testcase {
         consent::optin_from_message('tg:602', api::invite('local_oksigeniameals', 9), 'join2');
         $id = $DB->get_field(consent::CONTACTS, 'id', ['phone' => 'tg:602']);
         $this->assertTrue($DB->record_exists(consent::OPTOUTS, ['contactid' => $id, 'scope' => 'local_oksigeniaeguahe']));
+
+        // The same after a no to everything: back only for the plugin of the code, and the word alone is for all of them.
+        consent::optin_from_message('tg:603', api::invite('local_oksigeniaeguahe', 7), 'join');
+        consent::optout('tg:603', 'keyword', 'no');
+        consent::optin_from_message('tg:603', api::invite('local_oksigeniameals', 9), 'join2');
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => 'tg:603']);
+        $this->assertSame('active', $contact->status);
+        $this->assertTrue(consent::out_of($contact, 'local_oksigeniaeguahe'));
+        $this->assertFalse(consent::out_of($contact, 'local_oksigeniameals'));
+        consent::optin_from_message('tg:603', null, 'join3');
+        $this->assertFalse(consent::out_of($contact, 'local_oksigeniaeguahe'));
     }
 
     /**
@@ -205,5 +216,52 @@ final class consent_review_test extends \advanced_testcase {
             'from' => ['id' => 602], 'message' => ['message_id' => 12, 'chat' => ['id' => 602, 'type' => 'private']]]]);
         $this->assertSame([], $this->heard);
         $this->assertSame('editMessageText', $answer['method'] ?? '');
+    }
+
+    /**
+     * Whoever notes an opt-out from a conversation may have a long name.
+     */
+    public function test_long_source(): void {
+        global $DB;
+        $contact = consent::get_or_create('34600000077');
+        $source = 'chat:María de los Desamparados';
+        $this->assertTrue(consent::set_optout($contact, 'all', true, $source));
+        $this->assertTrue(consent::set_optout($contact, 'all', false, $source));
+        $this->assertSame([$source, $source], array_column(consent::trail((int)$contact->id), 'source'));
+        $this->assertSame($source, $DB->get_field(consent::CONTACTS, 'consentsource', ['id' => $contact->id]));
+    }
+
+    /**
+     * With a conversation open with the team, «baja» is done and the team sees it; and nobody is asked to come back in the
+     * middle of it.
+     */
+    public function test_words_in_a_conversation(): void {
+        global $DB;
+        set_config('phonenumberid', '1110000000', 'local_oksigeniamarandu');
+        $body = function (string $text) {
+            return ['object' => 'whatsapp_business_account', 'entry' => [['changes' => [['field' => 'messages', 'value' => [
+                'metadata' => ['phone_number_id' => '1110000000'],
+                'messages' => [['from' => '34600000078', 'id' => 'wamid.' . $text, 'type' => 'text', 'text' => ['body' => $text],
+                    'timestamp' => (string)time()]],
+            ]]]]]];
+        };
+        $own = null;
+        inbound::handle($body('baja'), $own);
+        $this->assertTrue($own);
+        $conv = (int)$DB->insert_record('local_oksigeniamarandu_conv', (object)['cwid' => 6, 'phone' => '34600000078',
+            'name' => 'L', 'kind' => '', 'preview' => '', 'previewkind' => '', 'cwupdated' => '1', 'status' => 'open']);
+        inbound::handle($body('Baja.'), $own);
+        $this->assertFalse($own);
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => '34600000078']);
+        $this->assertSame('optedout', $contact->status);
+        $DB->set_field(consent::CONTACTS, 'optouttime', time() - 3 * DAYSECS, ['id' => $contact->id]);
+        $asked = function () use ($DB, $contact) {
+            return $DB->record_exists(consent::LOG, ['contactid' => $contact->id, 'action' => 'askedback']);
+        };
+        inbound::handle($body('hola'), $own);
+        $this->assertFalse($asked());
+        $DB->set_field('local_oksigeniamarandu_conv', 'status', 'resolved', ['id' => $conv]);
+        inbound::handle($body('hola2'), $own);
+        $this->assertTrue($asked());
     }
 }

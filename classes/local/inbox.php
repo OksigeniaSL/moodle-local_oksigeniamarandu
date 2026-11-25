@@ -50,6 +50,14 @@ class inbox {
             'takenby' => conversation::taken_by($messageid),
             'accounts' => self::accounts($digits),
         ];
+        $since = ($now ?? time()) - max(1, $days) * DAYSECS;
+        $asked = $digits === '' ? null : joinask::last_sent($digits, $since);
+        if ($asked) {
+            // The question to join is a notice too: whoever answers it with words goes to the plugin that asked.
+            $result['lastnotice'] = ['component' => (string)$asked->component, 'notice' => joinask::NOTICE,
+                'label' => notices::label(notices::get('local_oksigeniamarandu', joinask::NOTICE)),
+                'timesent' => (int)$asked->timeasked];
+        }
         $contact = $digits === '' ? false : $DB->get_record(consent::CONTACTS, ['phone' => $digits]);
         if (!$contact) {
             return $result;
@@ -77,7 +85,7 @@ class inbox {
         }
 
         [$in, $params] = $DB->get_in_or_equal(self::SENT, SQL_PARAMS_NAMED);
-        $params += ['contactid' => $contact->id, 'since' => ($now ?? time()) - max(1, $days) * DAYSECS];
+        $params += ['contactid' => $contact->id, 'since' => $since];
         $last = $DB->get_records_select(
             queue::TABLE,
             "contactid = :contactid AND status $in AND timesent >= :since",
@@ -87,8 +95,8 @@ class inbox {
             0,
             1
         );
-        if ($last) {
-            $last = reset($last);
+        $last = reset($last);
+        if ($last && (int)$last->timesent >= (int)($result['lastnotice']['timesent'] ?? 0)) {
             $notice = notices::get((string)$last->component, (string)$last->notice);
             $result['lastnotice'] = [
                 'component' => (string)$last->component,

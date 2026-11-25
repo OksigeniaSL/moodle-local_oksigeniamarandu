@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.65.0 (2026-11-25)
+
+- Joining by WhatsApp with one touch (`api::ask_to_join()`): whoever left their number and their permission in a page of a
+  plugin gets «You asked to receive notices from … by WhatsApp. Is that right?» with «Yes» and «No»; with yes they join, with the proof
+  of where and when they gave permission, and with no they are not asked again. Once per number and plugin, with a limit a
+  day (`joinaskday`, 150), and only where the site switched on the notice `join`, whose template has no link.
+- `api::item_channels()` also says, on WhatsApp, since when a number was asked and whether it said no.
+
 ## 0.64.1 (2026-11-25)
 
 - A post of the channel that was said no to comes back only if its day, its hours or its place changed, unless a person asks

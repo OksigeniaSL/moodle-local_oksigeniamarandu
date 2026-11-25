@@ -98,7 +98,8 @@ class conversation {
         // Whoever said no and writes again is asked, once in a while, whether they want the notices again: writing
         // takes back nothing by itself. What they write reaches their plugins anyway: saying no is to the notices, and
         // whoever writes gets an answer.
-        if (consent::offer_back($address)) {
+        // Not in the middle of a conversation with a person of the team: they see the «no» in the card, and ask if they want.
+        if (!chat\mirror::with_team($address) && consent::offer_back($address)) {
             \local_oksigeniamarandu\task\send_reply::queue_back($address);
         }
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $address]);

@@ -146,11 +146,12 @@ class consent {
             $adultids = family::adults($phone);
         }
         $contact = self::get_or_create($phone, $name);
-        $wasout = $contact->status === 'optedout' || $DB->record_exists(self::OPTOUTS, ['contactid' => $contact->id]);
+        // Joining with the code of a plugin takes back the «no» to that plugin only, not to the others.
+        $only = $link && $link->component !== 'core' ? (string)$link->component : '';
+        $was = self::optout_now($contact);
         self::set_status($contact, 'optin', 'keyword', $detail);
-        if ($link && $link->component !== 'core') {
-            // Joining with the code of a plugin takes back the «no» to that plugin only, not to the others.
-            $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id, 'scope' => $link->component]);
+        if ($only !== '') {
+            self::only_back($contact, $only, (bool)$was['all']);
         } else {
             $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id]);
         }
@@ -163,14 +164,102 @@ class consent {
             }
         }
         family::link((int)$contact->id, $adultids);
-        if ($wasout) {
+        if ($only !== '' && ($was['all'] || isset($was['scopes'][$only]))) {
+            self::tell($contact, false, 'keyword', '', $only);
+        } else if ($only === '' && ($was['all'] || $was['scopes'])) {
             self::tell($contact, false, 'keyword');
+        }
+        if ($code === null) {
+            // The word alone says yes to what this number was asked and did not answer, or had said no to.
+            joinask::word($contact, $detail);
         }
         // The plugin of the code hears that someone joined for it, and by which channel.
         if ($link && $link->component !== '' && $link->component !== 'core') {
             self::callback($link->component, 'marandu_joined', [(int)$link->itemid, (string)$contact->channel, time()]);
         }
         return 'optin';
+    }
+
+    /**
+     * A number joins for the items it was asked about with one touch: it is proved, because the touch comes from it.
+     *
+     * @param string $phone Digits with the country code.
+     * @param \stdClass[] $asks The questions, all of one plugin.
+     * @param string $detail The id of the message of the touch.
+     * @param string|null $name Profile name WhatsApp sent, if any.
+     */
+    public static function join_asked(string $phone, array $asks, string $detail, ?string $name): void {
+        global $DB;
+        $contact = self::get_or_create($phone, $name);
+        $component = (string)reset($asks)->component;
+        $was = self::optout_now($contact);
+        $contact->lastinbound = time();
+        self::set_status($contact, 'optin', 'button', $detail);
+        self::only_back($contact, $component, (bool)$was['all']);
+        foreach ($asks as $ask) {
+            self::link_asked($contact, $ask);
+        }
+        if ($was['all'] || isset($was['scopes'][$component])) {
+            self::tell($contact, false, 'button', '', $component);
+        }
+        self::joined_asked($contact, $asks);
+    }
+
+    /**
+     * A contact is back for one plugin only: its «no» to it goes and, if it had said no to everything, the other plugins it
+     * stands for something in keep theirs.
+     *
+     * @param \stdClass $contact The contact, active already.
+     * @param string $component The plugin.
+     * @param bool $all Whether it had said no to everything.
+     */
+    private static function only_back(\stdClass $contact, string $component, bool $all): void {
+        global $DB;
+        $DB->delete_records(self::OPTOUTS, ['contactid' => $contact->id, 'scope' => $component]);
+        if (!$all) {
+            return;
+        }
+        $others = $DB->get_fieldset_sql(
+            'SELECT DISTINCT component FROM {' . self::LINKS . "}
+              WHERE contactid = :contactid AND userid IS NULL AND component NOT IN ('core', :component)",
+            ['contactid' => $contact->id, 'component' => $component]
+        );
+        foreach ($others as $other) {
+            $no = ['contactid' => $contact->id, 'scope' => $other];
+            if (!$DB->record_exists(self::OPTOUTS, $no)) {
+                $DB->insert_record(self::OPTOUTS, (object)($no + ['source' => 'kept', 'timecreated' => time()]));
+            }
+        }
+    }
+
+    /**
+     * The plugins hear that a number joined for the items it was asked about.
+     *
+     * @param \stdClass $contact The number.
+     * @param \stdClass[] $asks The questions.
+     */
+    public static function joined_asked(\stdClass $contact, array $asks): void {
+        foreach ($asks as $ask) {
+            self::callback((string)$ask->component, 'marandu_joined', [(int)$ask->itemid, (string)$contact->channel, time()]);
+        }
+    }
+
+    /**
+     * Makes a number stand for the item it was asked about, once.
+     *
+     * @param \stdClass $contact The number.
+     * @param \stdClass $ask The question.
+     */
+    public static function link_asked(\stdClass $contact, \stdClass $ask): void {
+        global $DB;
+        $params = ['component' => $ask->component, 'area' => $ask->area, 'itemid' => $ask->itemid, 'contactid' => $contact->id];
+        if ($DB->record_exists(self::LINKS, $params)) {
+            return;
+        }
+        do {
+            $code = keywords::new_code();
+        } while ($DB->record_exists(self::LINKS, ['code' => $code]));
+        $DB->insert_record(self::LINKS, (object)($params + ['code' => $code, 'timeclaimed' => time(), 'timecreated' => time()]));
     }
 
     /**
@@ -223,7 +312,15 @@ class consent {
         if (!$contact) {
             return false;
         }
-        $last = array_values($DB->get_records(self::LOG, ['contactid' => $contact->id], 'id DESC', 'id, action', 0, 2));
+        $last = array_values($DB->get_records_select(
+            self::LOG,
+            "contactid = :contactid AND action IN ('optin', 'optout')",
+            ['contactid' => $contact->id],
+            'id DESC',
+            'id, action',
+            0,
+            2
+        ));
         return count($last) === 2 && $last[0]->action === 'optin' && $last[1]->action === 'optin';
     }
 
@@ -336,6 +433,52 @@ class consent {
         return true;
     }
 
+    /**
+     * Keeps, as proof, where and when a person gave permission before the touch that confirms it.
+     *
+     * @param string $phone The number.
+     * @param string $where Where, such as eguahe:family.
+     * @param int $when When.
+     * @param string $detail The id of the message of the touch.
+     */
+    public static function permission(string $phone, string $where, int $when, string $detail): void {
+        global $DB;
+        $contact = $DB->get_record(self::CONTACTS, ['phone' => $phone], 'id');
+        if ($contact) {
+            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'permission',
+                'source' => \core_text::substr($where, 0, 100), 'detail' => \core_text::substr($detail, 0, 255),
+                'timecreated' => $when ?: time()]);
+        }
+    }
+
+    /**
+     * A number that was asked to join and said no: nothing of that plugin, and the plugin hears of it.
+     *
+     * @param string $phone The number.
+     * @param \stdClass $ask The question, with its plugin and item.
+     * @param string $detail The id of the message.
+     * @param string|null $name Profile name, if WhatsApp sent it.
+     */
+    public static function declined(string $phone, \stdClass $ask, string $detail, ?string $name): void {
+        global $DB;
+        $contact = self::get_or_create($phone, $name);
+        $component = (string)$ask->component;
+        if (!self::out_of($contact, $component)) {
+            $DB->insert_record(self::OPTOUTS, (object)['contactid' => $contact->id,
+                'scope' => \core_text::substr($component, 0, 100), 'source' => 'asked', 'timecreated' => time()]);
+            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'optout', 'source' => 'asked',
+                'detail' => 'scope:' . $component, 'timecreated' => time()]);
+            // The number may already stand for other items of the plugin: they stop too, and they are told.
+            self::tell($contact, true, 'asked', '', $component);
+        }
+        $linked = $DB->record_exists(self::LINKS, ['contactid' => $contact->id, 'component' => $component,
+            'area' => $ask->area, 'itemid' => $ask->itemid]);
+        if (!$linked && $ask->status !== 'over') {
+            self::callback($component, 'marandu_optout', [(int)$ask->itemid, (string)$contact->channel, true, 'asked', time(),
+                $component]);
+        }
+    }
+
     /** What the buttons of «do you want the notices again?» send back. */
     public const BACK = ['yes' => 'mrdb:y', 'no' => 'mrdb:n'];
 
@@ -404,16 +547,26 @@ class consent {
     }
 
     /**
-     * What a contact asked and when, the newest first: joining, leaving, writing again.
+     * What a contact asked and when, the newest first: joining, leaving, the permission it gave before the touch that
+     * confirms it, and being asked whether it wants the notices again.
      *
      * @param int $contactid The contact.
      * @param int $max How many.
-     * @return array Each with action (optin or optout), source, scope (all or a plugin) and time.
+     * @return array Each with action (optin, optout, permission or askedback), source, scope (all or a plugin) and time.
      */
     public static function trail(int $contactid, int $max = 20): array {
         global $DB;
         $list = [];
-        foreach ($DB->get_records(self::LOG, ['contactid' => $contactid], 'timecreated DESC, id DESC', '*', 0, $max) as $row) {
+        $rows = $DB->get_records_select(
+            self::LOG,
+            "contactid = :contactid AND action IN ('optin', 'optout', 'permission', 'askedback')",
+            ['contactid' => $contactid],
+            'timecreated DESC, id DESC',
+            '*',
+            0,
+            $max
+        );
+        foreach ($rows as $row) {
             $scope = strpos((string)$row->detail, 'scope:') === 0 ? substr((string)$row->detail, 6) : 'all';
             $list[] = ['action' => (string)$row->action, 'source' => (string)$row->source, 'scope' => $scope,
                 'time' => (int)$row->timecreated];
@@ -438,6 +591,7 @@ class consent {
             }
             $forgotten += $DB->count_records(self::LINKS, ['component' => $component]);
             $DB->delete_records(self::LINKS, ['component' => $component]);
+            $DB->delete_records(joinask::TABLE, ['component' => $component]);
         }
         return $forgotten;
     }
@@ -471,6 +625,14 @@ class consent {
         );
         foreach ($links as $link) {
             if ($except !== '' && $link->component === $except && ($exceptitem === null || (int)$link->itemid === $exceptitem)) {
+                continue;
+            }
+            $kept = !$out && $scope === 'all' && $DB->record_exists(
+                self::OPTOUTS,
+                ['contactid' => $contact->id, 'scope' => $link->component]
+            );
+            if ($kept) {
+                // Back for the rest: to this plugin they keep their «no».
                 continue;
             }
             $args = [(int)$link->itemid, (string)$contact->channel, $out, $source, time(), $scope];

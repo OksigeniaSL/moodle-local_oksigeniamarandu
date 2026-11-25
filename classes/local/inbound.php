@@ -126,6 +126,7 @@ class inbound {
                         $code = isset($status['errors'][0]['code']) ? (int)$status['errors'][0]['code'] : null;
                         test_message::status($id, $what, $error);
                         queue::status($id, $what, $error, $code);
+                        joinask::status($id, $what, $error);
                     }
                 }
             }
@@ -151,7 +152,7 @@ class inbound {
         $wamid = (string)($message['id'] ?? '');
         consent::touch($phone, $name);
         test_message::inbound($phone);
-        if (answers::from_whatsapp($message, $phone)) {
+        if (answers::from_whatsapp($message, $phone) || joinask::from_whatsapp($message, $phone, $name)) {
             return true;
         }
         $pressed = (string)($message['interactive']['button_reply']['id'] ?? '');
@@ -179,6 +180,9 @@ class inbound {
             }
             return false;
         }
+        if (joinask::typed($phone, $text, $wamid, $name)) {
+            return true;
+        }
         $match = keywords::match($text);
         if ($match === null) {
             self::own($phone, 'text', trim($text), $message, $name);
@@ -191,7 +195,9 @@ class inbound {
             $reply = consent::optin_from_message($phone, $match['code'], $wamid, $name);
         }
         send_reply::queue($phone, $reply);
-        return true;
+        // With a conversation open with the team, the word may also be an answer to a person («¿alta o baja del comedor?»):
+        // it is done as always, and they see it.
+        return !chat\mirror::with_team($phone);
     }
 
     /**

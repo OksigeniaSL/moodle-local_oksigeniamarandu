@@ -78,7 +78,7 @@ class keywords {
 
     /**
      * What a message asks for: opt out (the whole message is an opt-out word), opt in (an opt-in word, maybe followed
-     * by a code), or nothing.
+     * by a code), or nothing: «Alta comedor» is a message like any other, for whoever answers the number.
      *
      * @param string $text What the family wrote.
      * @return array|null ['action' => 'optin', 'code' => string|null] or ['action' => 'optout'], or null.
@@ -88,12 +88,12 @@ class keywords {
         if (count($words) === 1 && in_array($words[0], self::list('optoutkeywords'), true)) {
             return ['action' => 'optout'];
         }
-        if (count($words) <= 2 && in_array($words[0], self::list('optinkeywords'), true)) {
-            return ['action' => 'optin', 'code' => $words[1] ?? null];
-        }
-        // A code of eight in two halves, as a letter may print it: «ALTA K7M2 Q9XA» or «ALTA K7M2-Q9XA».
-        if (count($words) === 3 && in_array($words[0], self::list('optinkeywords'), true) && strlen($words[1] . $words[2]) === 8) {
-            return ['action' => 'optin', 'code' => $words[1] . $words[2]];
+        // With a code of eight, maybe in two halves as a letter may print it: «ALTA K7M2 Q9XA» or «ALTA K7M2-Q9XA».
+        if (count($words) <= 3 && in_array($words[0], self::list('optinkeywords'), true)) {
+            $code = implode('', array_slice($words, 1));
+            if ($code === '' || self::looks_like_code($code)) {
+                return ['action' => 'optin', 'code' => $code === '' ? null : $code];
+            }
         }
         // A greeting with the code between brackets at its end, as the links write it: «Hola, somos la familia de Leo.
         // (K7M2Q9XA)».
@@ -103,6 +103,18 @@ class keywords {
             return ['action' => 'optin', 'code' => $parts[1] . $parts[2]];
         }
         return null;
+    }
+
+    /**
+     * Whether a word may be a code: eight characters, of the letters of the codes, or letters and figures (somebody who
+     * wrote a 0 where there was a Q, say, hears that the code does not work).
+     *
+     * @param string $word The word, normalised.
+     * @return bool
+     */
+    private static function looks_like_code(string $word): bool {
+        return strlen($word) === self::CODE_LENGTH
+            && (strspn($word, self::CODE_ALPHABET) === self::CODE_LENGTH || preg_match('/[0-9].*[A-Z]|[A-Z].*[0-9]/', $word));
     }
 
     /**

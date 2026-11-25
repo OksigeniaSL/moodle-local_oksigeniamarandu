@@ -48,6 +48,17 @@ class mirror {
     public const PAGES = 40;
 
     /**
+     * Whether a number has a conversation open with the team: not only with the bot, which has those that are pending.
+     *
+     * @param string $phone Digits with the country code.
+     * @return bool
+     */
+    public static function with_team(string $phone): bool {
+        global $DB;
+        return $phone !== '' && $DB->record_exists(self::TABLE, ['phone' => $phone, 'status' => 'open']);
+    }
+
+    /**
      * Brings the index up to date with what changed in Chatwoot since the last pass, with some overlap.
      *
      * @param int $max The furthest back it goes, in seconds.

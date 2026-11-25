@@ -24,6 +24,7 @@ use local_oksigeniamarandu\local\chat\family;
 use local_oksigeniamarandu\local\chat\held;
 use local_oksigeniamarandu\local\chat\marks;
 use local_oksigeniamarandu\local\consent;
+use local_oksigeniamarandu\local\joinask;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\starter;
 
@@ -159,7 +160,8 @@ class chat_contact extends chat_base {
         global $DB;
         $none = ['all' => 0, 'scopes' => [], 'trail' => []];
         $contact = $phone === '' ? null : $DB->get_record(consent::CONTACTS, ['phone' => $phone]);
-        if (!$contact) {
+        $asked = $phone === '' ? [] : joinask::asked_to($phone);
+        if (!$contact && !$asked) {
             return $none;
         }
         $name = function (string $scope): string {
@@ -168,14 +170,18 @@ class chat_contact extends chat_base {
             }
             return get_string_manager()->string_exists('marandu:label', $scope) ? get_string('marandu:label', $scope) : $scope;
         };
-        $now = consent::optout_now($contact);
+        $now = $contact ? consent::optout_now($contact) : $none;
         $scopes = [];
         foreach ($now['scopes'] as $scope => $since) {
             $scopes[] = ['scope' => (string)$scope, 'name' => $name((string)$scope), 'since' => $since];
         }
         $trail = array_map(function ($step) use ($name) {
             return $step + ['name' => $name($step['scope'])];
-        }, consent::trail((int)$contact->id, 8));
+        }, array_merge($contact ? consent::trail((int)$contact->id, 8) : [], $asked));
+        usort($trail, function ($a, $b) {
+            return $b['time'] <=> $a['time'];
+        });
+        $trail = array_slice($trail, 0, 8);
         return ['all' => $now['all'], 'scopes' => $scopes, 'trail' => $trail];
     }
 
@@ -273,7 +279,7 @@ class chat_contact extends chat_base {
                     'since' => new external_value(PARAM_INT, 'Since when'),
                 ])),
                 'trail' => new external_multiple_structure(new external_single_structure([
-                    'action' => new external_value(PARAM_ALPHA, 'optin or optout'),
+                    'action' => new external_value(PARAM_ALPHA, 'optin, optout, permission, asked or askedback'),
                     'source' => new external_value(PARAM_TEXT, 'Where it was asked'),
                     'scope' => new external_value(PARAM_RAW, 'all, or a plugin'),
                     'name' => new external_value(PARAM_TEXT, 'The name of the plugin, if any'),

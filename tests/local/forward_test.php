@@ -125,4 +125,25 @@ final class forward_test extends \advanced_testcase {
         $this->assertSame($url, clean_param($url, PARAM_URL));
         $this->assertSame('', clean_param('javascript:alert(1)', PARAM_URL));
     }
+
+    /**
+     * Whether the team reads what is written: only if it is passed on to the Chatwoot of the conversations.
+     */
+    public function test_attended(): void {
+        $this->assertFalse(forward::attended());
+        set_config('forwardurl', 'https://chat.example.com/webhooks/whatsapp/+34600000000', 'local_oksigeniamarandu');
+        $this->assertFalse(forward::attended());
+        set_config('chatwooturl', 'https://other.example.com', 'local_oksigeniamarandu');
+        set_config('chatwootaccount', 1, 'local_oksigeniamarandu');
+        set_config('chatwoottoken', \core\encryption::encrypt('fake'), 'local_oksigeniamarandu');
+        $this->assertFalse(forward::attended());
+        set_config('chatwooturl', 'https://chat.example.com', 'local_oksigeniamarandu');
+        $this->assertTrue(forward::attended());
+        $hook = function (string $channel) {
+            $written = ['local_example', 1, null, $channel, '+34600000001', 'text', 'Hi', time(), 'wamid.1', null];
+            return new \local_oksigeniamarandu\hook\message_received(...$written);
+        };
+        $this->assertTrue($hook('whatsapp')->is_attended());
+        $this->assertFalse($hook('telegram')->is_attended());
+    }
 }

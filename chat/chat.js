@@ -8051,7 +8051,9 @@
                 return '';
             }
             return '<ul class="mrd-baja-rastro">' + steps.map(function (t) {
-                var what = t.action === 'optout' ? (t.scope === 'all' ? s('trailoutall') : s('trailoutscope', t.name))
+                var what = t.action === 'asked' ? s(t.source === 'asked' ? 'trailasked' : t.source === 'failed' ? 'trailaskedfailed' : 'trailaskedthen', t.name)
+                    : t.action === 'askedback' ? s('trailaskedback')
+                    : t.action === 'permission' ? s('trailpermission') : t.action === 'optout' ? (t.scope === 'all' ? s('trailoutall') : s('trailoutscope', t.name))
                     : t.source === 'wrote' ? s('trailwrote') : s('trailin');
                 var by = /^chat:/.test(t.source) ? ' ' + s('trailbychat', t.source.slice(5)) : '';
                 return '<li><span>' + esc(dayText(t.time * 1000)) + '</span> · ' + esc(what + by) + '</li>';

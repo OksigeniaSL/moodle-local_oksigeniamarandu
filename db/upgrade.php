@@ -561,6 +561,31 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122911, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122913) {
+        // The numbers that were asked to join with one touch.
+        if (!$dbman->table_exists('local_oksigeniamarandu_joinask')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_oksigeniamarandu_joinask');
+        }
+        upgrade_plugin_savepoint(true, 2026122913, 'local', 'oksigeniamarandu');
+    }
+
+    if ($oldversion < 2026122915) {
+        // Who noted an opt-out from a conversation may have a long name, and it did not fit.
+        $table = new xmldb_table('local_oksigeniamarandu_consent');
+        $field = new xmldb_field('source', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null, 'action');
+        $dbman->change_field_precision($table, $field);
+        $table = new xmldb_table('local_oksigeniamarandu_contact');
+        $field = new xmldb_field('consentsource', XMLDB_TYPE_CHAR, '100', null, null, null, null, 'consenttime');
+        $dbman->change_field_precision($table, $field);
+        // The question to join does not use a code: the number that touches is proved.
+        $table = new xmldb_table('local_oksigeniamarandu_joinask');
+        $field = new xmldb_field('code');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026122915, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

@@ -1435,14 +1435,19 @@ final class chat_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $said['all']);
         $step = $said['trail'][0];
         $this->assertSame(['optout', 'chat:Ana', 'all'], [$step['action'], $step['source'], $step['scope']]);
-        // Another day, writing again leaves the «no» as it was and asks whether they want the notices back.
+        // Another day, writing again leaves the «no» as it was and asks whether they want the notices back, but not in the
+        // middle of a conversation with the team.
         $DB->set_field(
             \local_oksigeniamarandu\local\consent::CONTACTS,
             'optouttime',
             time() - 2 * DAYSECS,
             ['phone' => '34600000001']
         );
+        \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola', time(), 'wamid.Y', null);
+        $this->assertSame('optout', $file()['trail'][0]['action']);
+        $DB->set_field(mirror::TABLE, 'status', 'resolved', ['cwid' => 1]);
         \local_oksigeniamarandu\local\conversation::received('34600000001', 'text', 'Hola', time(), 'wamid.Z', null);
+        $DB->set_field(mirror::TABLE, 'status', 'open', ['cwid' => 1]);
         $said = $file();
         $this->assertGreaterThan(0, $said['all']);
         $this->assertSame(['askedback', 'wrote'], [$said['trail'][0]['action'], $said['trail'][0]['source']]);

@@ -177,6 +177,9 @@ class draft {
         $phone = (string)($row->phone ?? '');
         $family = $phone !== '' ? family::of_phone($phone) : null;
         if ($family) {
+            if (empty($family['verified'])) {
+                $lines[] = get_string('chat:draft:unchecked', self::COMPONENT);
+            }
             if (trim((string)$family['title']) !== '') {
                 $lines[] = get_string('chat:draft:family', self::COMPONENT, trim((string)$family['title']));
             }

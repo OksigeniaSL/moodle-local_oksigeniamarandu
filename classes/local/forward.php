@@ -41,6 +41,18 @@ class forward {
     }
 
     /**
+     * Whether a person of the team reads what is written to the number: the site passes it on to the Chatwoot of its
+     * conversations.
+     *
+     * @return bool
+     */
+    public static function attended(): bool {
+        $host = parse_url(self::url(), PHP_URL_HOST);
+        return $host && chat\chatwoot::is_configured()
+            && $host === parse_url((string)get_config('local_oksigeniamarandu', 'chatwooturl'), PHP_URL_HOST);
+    }
+
+    /**
      * Passes a body on to the address of the site; if it does not take it now, an ad hoc task tries again later.
      *
      * @param string $raw The body, exactly as Meta sent it.

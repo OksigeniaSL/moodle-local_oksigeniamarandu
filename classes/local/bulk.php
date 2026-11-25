@@ -150,7 +150,8 @@ class bulk {
      * How a send is.
      *
      * @param int $id The send.
-     * @return array status, decidedby (the name), timedecided, sent, and what the quote said.
+     * @return array status, decidedby (the name), timedecided, sent, what the quote said, and released (the items something
+     *               was queued for).
      */
     public static function state(int $id): array {
         global $DB;
@@ -169,6 +170,12 @@ class bulk {
             'skipped' => (int)$bulk->skipped,
             'cost' => (float)$bulk->cost,
             'currency' => (string)$bulk->currency,
+            'released' => array_map('intval', $DB->get_fieldset_select(
+                self::ITEMS,
+                'itemid',
+                'bulkid = ? AND queued > 0 ORDER BY id',
+                [$id]
+            )),
         ];
     }
 
@@ -268,6 +275,34 @@ class bulk {
     }
 
     /**
+     * Takes back a send that still waits, by its plugin: it is not true any more.
+     *
+     * @param string $component The plugin.
+     * @param int $id The send.
+     * @param string $reason Why.
+     * @return bool Whether it was taken back.
+     */
+    public static function withdraw(string $component, int $id, string $reason = ''): bool {
+        global $DB;
+        $lock = \core\lock\lock_config::get_lock_factory('local_oksigeniamarandu_bulk')->get_lock('bulk' . $id, 10);
+        if (!$lock) {
+            return false;
+        }
+        try {
+            $bulk = $DB->get_record(self::TABLE, ['id' => $id]);
+            if (!$bulk || $bulk->component !== $component || $bulk->status !== 'pending') {
+                return false;
+            }
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'cancelled', 'decidedby' => 0,
+                'timedecided' => time(), 'reason' => \core_text::substr(trim(strip_tags($reason)), 0, 255)]);
+        } finally {
+            $lock->release();
+        }
+        \local_oksigeniamarandu\api::close_question('local_oksigeniamarandu', self::REF . $id, 'expired');
+        return true;
+    }
+
+    /**
      * The sends that wait, and those decided lately, for the home of whoever sees everything.
      *
      * @param int $days How far back the decided ones go.
@@ -359,7 +394,7 @@ class bulk {
             case 'rejected':
                 return get_string($a->reason !== '' ? 'bulk:said:rejectedwhy' : 'bulk:said:rejected', self::COMPONENT, $a);
             default:
-                return get_string('bulk:said:cancelled', self::COMPONENT);
+                return get_string($a->reason !== '' ? 'bulk:said:withdrawn' : 'bulk:said:cancelled', self::COMPONENT, $a);
         }
     }
 
@@ -501,14 +536,30 @@ class bulk {
     private static function release(\stdClass $bulk): void {
         global $DB;
         $itemids = [];
-        foreach ($DB->get_recordset(self::ITEMS, ['bulkid' => $bulk->id], 'id ASC') as $item) {
+        $installed = \core_component::get_component_directory((string)$bulk->component) !== null;
+        foreach ($DB->get_records(self::ITEMS, ['bulkid' => $bulk->id], 'id ASC') as $item) {
             $url = trim((string)$item->url);
-            $itemids[] = (int)$item->itemid;
+            $params = (array)json_decode((string)$item->params, true);
+            // It may have waited for days: its plugin says whether it still goes, and with which values.
+            $now = $installed ? component_callback(
+                (string)$bulk->component,
+                'marandu_bulk_item',
+                [(int)$bulk->id, (string)$bulk->notice, (int)$item->itemid],
+                true
+            ) : true;
+            if ($now === false) {
+                continue;
+            }
+            if (is_array($now)) {
+                $params = array_key_exists('params', $now) ? array_values((array)$now['params']) : $params;
+                $new = $now['url'] ?? $url;
+                $url = $new instanceof \moodle_url ? $new->out(false) : trim((string)$new);
+            }
             try {
-                \local_oksigeniamarandu\api::notify(
+                $queued = \local_oksigeniamarandu\api::notify(
                     (string)$bulk->component,
                     (string)$bulk->notice,
-                    (array)json_decode((string)$item->params, true),
+                    $params,
                     $url === '' ? null : new \moodle_url($url),
                     (int)$item->itemid,
                     null,
@@ -519,6 +570,8 @@ class bulk {
                     (string)$item->lang,
                     (string)$bulk->onlyby
                 );
+                $DB->set_field(self::ITEMS, 'queued', $queued, ['id' => $item->id]);
+                $itemids[] = (int)$item->itemid;
             } catch (\coding_exception $e) {
                 debugging('Marandu: an item of a send did not go: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }

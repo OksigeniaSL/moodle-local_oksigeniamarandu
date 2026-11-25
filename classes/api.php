@@ -435,6 +435,19 @@ class api {
     }
 
     /**
+     * Takes back a send that still waits for its approval because it is not true any more, such as the invitation to an
+     * act that was called off: the plugin does it, no matter who asked for it. What already went is not taken back.
+     *
+     * @param string $component The plugin of the send.
+     * @param int $id The send.
+     * @param string $reason Why, in a few words, for whoever looks at it.
+     * @return bool Whether it was taken back.
+     */
+    public static function bulk_withdraw(string $component, int $id, string $reason = ''): bool {
+        return local\bulk::withdraw($component, $id, $reason);
+    }
+
+    /**
      * Takes back a send to many that still waits for approval.
      *
      * @param int $id The send.
@@ -699,6 +712,57 @@ class api {
             $userid === null ? $area : '',
             $ref
         );
+    }
+
+    /**
+     * By which channels a notice would reach an item now: somebody joined for it there, said no neither to everything nor
+     * to the plugin, the site has the notice switched on for that channel and the channel works; on WhatsApp, inside the
+     * 24 hours or with its template approved. A plugin that gets none has to say it another way, such as by mail.
+     *
+     * @param string $component The plugin.
+     * @param string $notice The notice.
+     * @param int $itemid The item.
+     * @param string $area The kind of item, if the plugin has more than one.
+     * @return string[] Some of whatsapp and telegram.
+     */
+    public static function item_reaches(string $component, string $notice, int $itemid, string $area = ''): array {
+        global $DB;
+        $declared = local\notices::get($component, $notice);
+        $contactids = $declared ? self::by_channels(self::joined($component, $itemid, null, self::area($area)), $declared) : [];
+        $reaches = [];
+        foreach ($contactids ? $DB->get_records_list(consent::CONTACTS, 'id', $contactids) : [] as $contact) {
+            $channel = telegram::is_chat((string)$contact->phone) ? 'telegram' : 'whatsapp';
+            if (!isset($reaches[$channel]) && queue::can_go($declared, $contact)) {
+                $reaches[$channel] = true;
+            }
+        }
+        return array_keys($reaches);
+    }
+
+    /**
+     * The longest each value of a notice may be: a longer one is cut, so a plugin with more to say says it another way.
+     *
+     * @param string $component The plugin.
+     * @param string $notice The notice.
+     * @return int Characters; 0 if the notice is not declared.
+     */
+    public static function value_limit(string $component, string $notice): int {
+        $declared = local\notices::get($component, $notice);
+        return $declared ? $declared->valuelimit : 0;
+    }
+
+    /**
+     * Takes out of the queue what has not gone yet for an item, because it is not true any more: an act that was called
+     * off, a family that is gone.
+     *
+     * @param string $component The plugin.
+     * @param int $itemid The item.
+     * @param string[] $notices Only these notices; all of the plugin if empty.
+     * @param string $area The kind of item, if the plugin has more than one.
+     * @return int How many will not go.
+     */
+    public static function notices_cancel(string $component, int $itemid, array $notices = [], string $area = ''): int {
+        return queue::cancel($component, $itemid, self::area($area), $notices);
     }
 
     /**
@@ -1156,6 +1220,7 @@ class api {
         $DB->delete_records_select(consent::LINKS, $where, $params);
         if ($userid === null) {
             local\joinask::close($component, $itemid, $params['area']);
+            queue::cancel($component, $itemid, $params['area']);
         }
         return $count;
     }
@@ -1182,6 +1247,7 @@ class api {
         $link = ['component' => $component, 'area' => $area, 'itemid' => $itemid, 'contactid' => $contactid];
         $count = $DB->count_records(consent::LINKS, $link);
         $DB->delete_records(consent::LINKS, $link);
+        queue::cancel($component, $itemid, $area, [], (int)$contactid);
         return $count;
     }
 
@@ -1221,6 +1287,7 @@ class api {
             }
         }
         local\joinask::move($component, $from, $to, $item['area']);
+        $DB->set_field(queue::TABLE, 'itemid', $to, $item + ['itemid' => $from, 'status' => 'queued']);
         return $gained;
     }
 
@@ -1622,8 +1689,8 @@ class api {
             );
         }
         // WhatsApp refuses values with new lines, tabs or long runs of spaces.
-        return array_map(function ($value) {
-            return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, 200);
+        return array_map(function ($value) use ($declared) {
+            return \core_text::substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string)$value))), 0, $declared->valuelimit);
         }, array_values($params));
     }
 

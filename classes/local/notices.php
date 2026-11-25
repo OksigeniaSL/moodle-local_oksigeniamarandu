@@ -119,6 +119,7 @@ class notices {
                     'channels' => self::channels_of((array)($definition['channels'] ?? [])),
                     'uncapped' => !empty($definition['uncapped']),
                     'nolink' => !empty($definition['nolink']),
+                    'valuelimit' => min(self::VALUE_MOST, max(self::VALUE, (int)($definition['valuelimit'] ?? 0))),
                 ];
             }
         }
@@ -336,6 +337,12 @@ class notices {
     public static function template_name(\stdClass $notice): string {
         return 'mrd_' . $notice->component . '_' . $notice->notice;
     }
+
+    /** How long each value of a notice may be, unless its declaration says (valuelimit). */
+    public const VALUE = 200;
+
+    /** The longest a value may be: the text of a template with its values takes 1024 characters. */
+    public const VALUE_MOST = 800;
 
     /** The setting with the notices switched on, by channel. */
     public const SETTING = ['whatsapp' => 'enablednotices', 'telegram' => 'telegramnotices'];

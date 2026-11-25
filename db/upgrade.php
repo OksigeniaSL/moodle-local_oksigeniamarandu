@@ -586,6 +586,16 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122915, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122920) {
+        // What of a send to many was queued for each of its items, when it was released.
+        $table = new xmldb_table('local_oksigeniamarandu_bulkitem');
+        $field = new xmldb_field('queued', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026122920, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

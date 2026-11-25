@@ -482,6 +482,7 @@
         <FIELD NAME="params" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The values of the notice, as JSON"/>
         <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="queued" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="How many numbers and chats it was queued for, once released"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

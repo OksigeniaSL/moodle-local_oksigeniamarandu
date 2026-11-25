@@ -72,6 +72,7 @@ $string['bulk:said:queued'] = 'It goes now';
 $string['bulk:said:rejected'] = 'Rejected by {$a->by}';
 $string['bulk:said:rejectedwhy'] = 'Rejected by {$a->by}: "{$a->reason}"';
 $string['bulk:said:waiting'] = 'Waiting for the approval of {$a}';
+$string['bulk:said:withdrawn'] = 'Taken back: {$a->reason}';
 $string['bulk:telegram:already'] = 'It was already decided, by {$a}.';
 $string['bulk:telegram:approved'] = 'Done: approved, it goes now.';
 $string['bulk:telegram:rejected'] = 'Done: rejected, it does not go.';

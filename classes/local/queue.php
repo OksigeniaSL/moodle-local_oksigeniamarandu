@@ -156,8 +156,12 @@ class queue {
         $spent = self::spent($now);
         $clients = ['whatsapp' => $api, 'telegram' => $telegram];
 
-        $counts['expired'] = $DB->count_records_select(self::TABLE, 'status = ? AND timeexpires < ?', ['queued', $now]);
-        $DB->set_field_select(self::TABLE, 'status', 'expired', 'status = ? AND timeexpires < ?', ['queued', $now]);
+        $gone = $DB->get_records_select(self::TABLE, 'status = ? AND timeexpires < ?', ['queued', $now], 'id ASC');
+        foreach ($gone as $row) {
+            $DB->set_field(self::TABLE, 'status', 'expired', ['id' => $row->id]);
+            self::tell_plugin($row, 'expired', 'expired');
+        }
+        $counts['expired'] = count($gone);
         // The questions that went out and whose time is over: their buttons die, and on Telegram the message says so.
         $over = $DB->get_records_select(self::TABLE, "ref IS NOT NULL AND timeclosed = 0 AND timeexpires < :now
             AND status IN ('sent', 'delivered', 'read')", ['now' => $now], 'id ASC', '*', 0, 50);
@@ -641,6 +645,9 @@ class queue {
         }
         // Only what changed: a question closed meanwhile stays closed.
         $DB->update_record(self::TABLE, (object)(['id' => $row->id] + $change));
+        if ($change['status'] === 'failed' && $row->status !== 'failed') {
+            self::tell_plugin($row, 'failed', (string)$change['error']);
+        }
     }
 
     /**
@@ -880,6 +887,98 @@ class queue {
         $DB->update_record(self::TABLE, (object)['id' => $row->id, 'status' => $row->status, 'kind' => $row->kind,
             'wamid' => $row->wamid, 'error' => $row->error, 'errorcode' => $row->errorcode, 'timesent' => $row->timesent,
             'timeretry' => null]);
+        self::tell_plugin($row, $status, (string)$row->error);
+    }
+
+    /**
+     * Takes out of the queue what has not gone yet for an item.
+     *
+     * @param string $component The plugin.
+     * @param int $itemid The item.
+     * @param string $area The kind of item.
+     * @param string[] $notices Only these notices; all of the plugin if empty.
+     * @param int $contactid Only for this number or chat; 0 for all of them.
+     * @return int How many will not go.
+     */
+    public static function cancel(string $component, int $itemid, string $area, array $notices = [], int $contactid = 0): int {
+        global $DB;
+        if (!$itemid) {
+            return 0;
+        }
+        $where = "status = 'queued' AND component = :component AND itemid = :itemid AND area = :area";
+        $params = ['component' => $component, 'itemid' => $itemid, 'area' => $area];
+        if ($notices) {
+            [$in, $more] = $DB->get_in_or_equal(array_map('strval', $notices), SQL_PARAMS_NAMED, 'n');
+            $where .= " AND notice $in";
+            $params += $more;
+        }
+        if ($contactid) {
+            $where .= ' AND contactid = :contactid';
+            $params['contactid'] = $contactid;
+        }
+        $rows = $DB->get_records_select(self::TABLE, $where, $params, 'id ASC');
+        foreach ($rows as $row) {
+            $DB->update_record(self::TABLE, (object)['id' => $row->id, 'status' => 'skipped', 'error' => 'cancelled',
+                'timeretry' => null]);
+            self::tell_plugin($row, 'cancelled', 'cancelled');
+        }
+        return count($rows);
+    }
+
+    /**
+     * Whether a notice would go to a number or chat: it is in, the site has it switched on for its channel and the channel
+     * works; on WhatsApp, inside the 24 hours or with its template.
+     *
+     * @param \stdClass $notice The notice.
+     * @param \stdClass $contact The number or chat.
+     * @param int|null $now The time, for the tests.
+     * @return bool
+     */
+    public static function can_go(\stdClass $notice, \stdClass $contact, ?int $now = null): bool {
+        global $DB;
+        $now = $now ?? time();
+        $channel = telegram::is_chat((string)$contact->phone) ? 'telegram' : 'whatsapp';
+        $on = $contact->status === 'active' && !consent::out_of($contact, (string)$notice->component)
+            && notices::allows($notice, $channel) && in_array($notice->key, notices::enabled($channel), true);
+        if (!$on || self::blocked($channel)) {
+            return false;
+        }
+        if ($channel === 'telegram') {
+            return telegram_api::is_configured();
+        }
+        if (!cloud_api::is_configured()) {
+            return false;
+        }
+        if (!empty($contact->lastinbound) && (int)$contact->lastinbound > $now - self::WINDOW) {
+            return true;
+        }
+        $template = $notice->freeonly ? null : templates::approved($notice, $contact->lang ?: null);
+        return $template && (strtolower((string)$template->category) !== 'marketing'
+            || !$DB->record_exists(consent::OPTOUTS, ['contactid' => $contact->id, 'scope' => self::MARKETING]));
+    }
+
+    /**
+     * The plugin of a notice hears what became of it, if it wants to: <plugin>_marandu_notice_done().
+     *
+     * @param \stdClass $row The notice, in the queue.
+     * @param string $status sent, failed, skipped, expired or cancelled.
+     * @param string $why Why it did not go.
+     */
+    private static function tell_plugin(\stdClass $row, string $status, string $why): void {
+        global $DB;
+        $itemid = (int)($row->itemid ?? 0);
+        if (!$itemid || \core_component::get_component_directory((string)$row->component) === null) {
+            return;
+        }
+        $phone = (string)$DB->get_field(consent::CONTACTS, 'phone', ['id' => $row->contactid]);
+        try {
+            component_callback((string)$row->component, 'marandu_notice_done', [(string)$row->notice, $itemid,
+                telegram::is_chat($phone) ? 'telegram' : 'whatsapp', $status, $why, (int)$row->timequeued,
+                (string)($row->area ?? '')]);
+        } catch (\Throwable $e) {
+            // A plugin that fails must not stop the queue.
+            debugging('Marandu: a plugin failed hearing of a notice: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**

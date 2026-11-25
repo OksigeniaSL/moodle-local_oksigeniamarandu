@@ -36,7 +36,7 @@ use local_oksigeniamarandu\local\telegram_api;
  */
 class send_reply extends \core\task\adhoc_task {
     /** The replies there are, as the end of their language strings. */
-    public const REPLIES = ['optin', 'optout', 'unknowncode', 'stillout'];
+    public const REPLIES = ['optin', 'optout', 'unknowncode', 'stillout', 'joinno'];
 
     /**
      * Queues a reply.

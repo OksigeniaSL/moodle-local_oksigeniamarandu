@@ -336,6 +336,45 @@ class consent {
         return true;
     }
 
+    /**
+     * Keeps, as proof, where and when a person gave permission before the touch that confirms it.
+     *
+     * @param string $phone The number.
+     * @param string $where Where, such as eguahe:family.
+     * @param int $when When.
+     * @param string $detail The id of the message of the touch.
+     */
+    public static function permission(string $phone, string $where, int $when, string $detail): void {
+        global $DB;
+        $contact = $DB->get_record(self::CONTACTS, ['phone' => $phone], 'id');
+        if ($contact) {
+            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'permission',
+                'source' => \core_text::substr($where, 0, 20), 'detail' => \core_text::substr($detail, 0, 255),
+                'timecreated' => $when ?: time()]);
+        }
+    }
+
+    /**
+     * A number that was asked to join and said no: nothing of that plugin, and the plugin hears of it.
+     *
+     * @param string $phone The number.
+     * @param \stdClass $ask The question, with its plugin and item.
+     * @param string $detail The id of the message.
+     * @param string|null $name Profile name, if WhatsApp sent it.
+     */
+    public static function declined(string $phone, \stdClass $ask, string $detail, ?string $name): void {
+        global $DB;
+        $contact = self::get_or_create($phone, $name);
+        if ($contact->status !== 'optedout' && !self::out_of($contact, (string)$ask->component)) {
+            $DB->insert_record(self::OPTOUTS, (object)['contactid' => $contact->id,
+                'scope' => \core_text::substr((string)$ask->component, 0, 100), 'source' => 'asked', 'timecreated' => time()]);
+            $DB->insert_record(self::LOG, (object)['contactid' => $contact->id, 'action' => 'optout', 'source' => 'asked',
+                'detail' => 'scope:' . $ask->component . ' ' . $detail, 'timecreated' => time()]);
+        }
+        self::callback((string)$ask->component, 'marandu_optout', [(int)$ask->itemid, (string)$contact->channel, true,
+            'asked', time(), (string)$ask->component]);
+    }
+
     /** What the buttons of «do you want the notices again?» send back. */
     public const BACK = ['yes' => 'mrdb:y', 'no' => 'mrdb:n'];
 
@@ -438,6 +477,7 @@ class consent {
             }
             $forgotten += $DB->count_records(self::LINKS, ['component' => $component]);
             $DB->delete_records(self::LINKS, ['component' => $component]);
+            $DB->delete_records(joinask::TABLE, ['component' => $component]);
         }
         return $forgotten;
     }

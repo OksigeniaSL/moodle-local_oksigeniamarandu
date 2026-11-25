@@ -250,7 +250,8 @@ class api {
      * @param string $area The kind of item, if the plugin has more than one; empty for its usual items.
      * @return array By channel, with name, joined, where, url and since: when the newest number or chat on that channel
      *     joined for the item (0 if none). A channel is as old as its newest chat: a check such as «joined a week ago»
-     *     on since holds for every chat a message would reach.
+     *     on since holds for every chat a message would reach. With ask_to_join(), also asked (when the question went and
+     *     waits for its answer, 0 if none) and declined (when they said no, 0 if not), on WhatsApp.
      */
     public static function item_channels(string $component, int $itemid, string $area = ''): array {
         return self::channel_list($component, $itemid, null, self::area($area));
@@ -307,6 +308,31 @@ class api {
                 ['trail' => consent::trail((int)$contact->id)];
         }
         return $list;
+    }
+
+    /**
+     * Asks a person who gave their number and their permission in a page of a plugin to join by WhatsApp with one touch: they
+     * get «you asked for our news here, is that right?» with «yes» and «no». With yes they have joined for the item (hook of
+     * marandu_joined) and the 24 hours are open; with no, marandu_optout says so and they are not asked again. Once per
+     * number and plugin, as the answer says. It is not asked of whoever joined already.
+     *
+     * @param string $component The plugin of the item, such as local_oksigeniaeguahe.
+     * @param int $itemid The item, such as a family.
+     * @param string $phone The number, as the person gave it, with the + or 00 of their country.
+     * @param int $when When they gave permission.
+     * @param string $where Where, such as eguahe:family.
+     * @param string $area The kind of item.
+     * @return string asked, waiting, joined, declined, invalid, limit or notready, as joinask::ask() says.
+     */
+    public static function ask_to_join(
+        string $component,
+        int $itemid,
+        string $phone,
+        int $when,
+        string $where,
+        string $area = ''
+    ): string {
+        return local\joinask::ask($component, $itemid, $phone, $when, $where, self::area($area));
     }
 
     /**
@@ -482,7 +508,7 @@ class api {
                 'since' => $contacts ? max(array_map(function ($one) {
                     return (int)$one->since;
                 }, $contacts)) : 0,
-            ];
+            ] + ($channel === 'whatsapp' && $userid === null ? local\joinask::state($component, $itemid, $area) : []);
         }
         return $list;
     }

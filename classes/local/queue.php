@@ -797,7 +797,7 @@ class queue {
            GROUP BY t.category",
             ['lang' => $GLOBALS['CFG']->lang, 'start' => $start->getTimestamp()]
         );
-        $cost = 0.0;
+        $cost = joinask::sent_since($start->getTimestamp()) * (float)(chat\templates::prices()['utility'] ?? 0);
         foreach ($rows as $row) {
             $cost += $row->sent * (float)($prices[strtolower((string)$row->category)] ?? self::cost());
         }

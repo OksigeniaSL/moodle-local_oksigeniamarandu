@@ -46,6 +46,7 @@ use local_oksigeniamarandu\local\chat\viewer;
 use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\history;
+use local_oksigeniamarandu\local\joinask;
 use local_oksigeniamarandu\local\proposals;
 use local_oksigeniamarandu\local\telegram;
 use local_oksigeniamarandu\local\wachannel;
@@ -172,6 +173,11 @@ class provider implements
             'remindat' => 'privacy:metadata:convrem:remindat',
             'reason' => 'privacy:metadata:convrem:reason',
         ], 'privacy:metadata:convrem');
+        $collection->add_database_table(joinask::TABLE, [
+            'phone' => 'privacy:metadata:joinask:phone',
+            'consentsource' => 'privacy:metadata:joinask:consentsource',
+            'consentat' => 'privacy:metadata:joinask:consentat',
+        ], 'privacy:metadata:joinask');
         $collection->add_database_table(scheduled::TABLE, [
             'userid' => 'privacy:metadata:convsched:userid',
             'cwid' => 'privacy:metadata:convsched:cwid',

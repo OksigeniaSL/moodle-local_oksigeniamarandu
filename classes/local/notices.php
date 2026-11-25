@@ -86,7 +86,7 @@ class notices {
      *
      * @return \stdClass[] Each with component, notice, key, examples, perweek, askedfor, options, follows (the notice
      *                     of the same plugin it takes over from, or empty), channels (those it can go by) and
-     *                     uncapped (outside the notices a day).
+     *                     uncapped (outside the notices a day) and nolink (its template has no link).
      */
     public static function all(): array {
         $all = [];
@@ -118,6 +118,7 @@ class notices {
                     'follows' => self::follows((string)($definition['follows'] ?? ''), $notice),
                     'channels' => self::channels_of((array)($definition['channels'] ?? [])),
                     'uncapped' => !empty($definition['uncapped']),
+                    'nolink' => !empty($definition['nolink']),
                 ];
             }
         }

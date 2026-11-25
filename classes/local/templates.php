@@ -74,6 +74,9 @@ class templates {
         $buttons = array_map(function ($option) use ($notice, $lang) {
             return ['type' => 'QUICK_REPLY', 'text' => notices::option_label($notice, $option, $lang)];
         }, $notice->options ?? []);
+        if (!empty($notice->nolink)) {
+            return self::built($notice, $lang, $name, $body, $buttons);
+        }
         $buttons[] = [
             'type' => 'URL',
             'text' => \core_text::substr(notices::text($notice, 'button', $lang), 0, 25),
@@ -81,6 +84,20 @@ class templates {
             // Meta takes the example of the end of the link, not the whole link.
             'example' => ['K7M2Q9XA'],
         ];
+        return self::built($notice, $lang, $name, $body, $buttons);
+    }
+
+    /**
+     * What goes to Meta, with its parts made.
+     *
+     * @param \stdClass $notice The notice.
+     * @param string $lang Moodle language.
+     * @param string|null $name Its name in Meta, if not the usual one.
+     * @param array $body Its text.
+     * @param array $buttons Its buttons.
+     * @return array
+     */
+    private static function built(\stdClass $notice, string $lang, ?string $name, array $body, array $buttons): array {
         return [
             'name' => $name ?? notices::template_name($notice),
             'language' => notices::metalang($lang),

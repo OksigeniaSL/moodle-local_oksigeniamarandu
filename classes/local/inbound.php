@@ -126,6 +126,7 @@ class inbound {
                         $code = isset($status['errors'][0]['code']) ? (int)$status['errors'][0]['code'] : null;
                         test_message::status($id, $what, $error);
                         queue::status($id, $what, $error, $code);
+                        joinask::status($id, $what, $error);
                     }
                 }
             }
@@ -151,7 +152,7 @@ class inbound {
         $wamid = (string)($message['id'] ?? '');
         consent::touch($phone, $name);
         test_message::inbound($phone);
-        if (answers::from_whatsapp($message, $phone)) {
+        if (answers::from_whatsapp($message, $phone) || joinask::from_whatsapp($message, $phone, $name)) {
             return true;
         }
         $pressed = (string)($message['interactive']['button_reply']['id'] ?? '');

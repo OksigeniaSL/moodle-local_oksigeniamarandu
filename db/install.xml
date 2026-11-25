@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/oksigeniamarandu/db" VERSION="2026122911" COMMENT="XMLDB file for local_oksigeniamarandu"
+<XMLDB PATH="local/oksigeniamarandu/db" VERSION="2026122913" COMMENT="XMLDB file for local_oksigeniamarandu"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -50,6 +50,33 @@
       <INDEXES>
         <INDEX NAME="code" UNIQUE="true" FIELDS="code"/>
         <INDEX NAME="componentareaitem" UNIQUE="false" FIELDS="component, area, itemid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_joinask" COMMENT="The numbers that were asked to join with one touch, with the permission that was given for it">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="The plugin that asked for it"/>
+        <FIELD NAME="area" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="What kind of item; empty for its usual items"/>
+        <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Item of that plugin, such as a family"/>
+        <FIELD NAME="phone" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false" COMMENT="The number, digits with the country code"/>
+        <FIELD NAME="code" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="The code of the link that the yes claims"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="asked" SEQUENCE="false" COMMENT="asked, yes, no or failed"/>
+        <FIELD NAME="consentsource" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Where the permission was given"/>
+        <FIELD NAME="consentat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="When the permission was given"/>
+        <FIELD NAME="wamid" TYPE="char" LENGTH="190" NOTNULL="false" SEQUENCE="false" COMMENT="The message of WhatsApp"/>
+        <FIELD NAME="error" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timeasked" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timeanswered" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="item" UNIQUE="false" FIELDS="component, area, itemid"/>
+        <INDEX NAME="phone" UNIQUE="false" FIELDS="phone, component"/>
+        <INDEX NAME="wamid" UNIQUE="false" FIELDS="wamid"/>
+        <INDEX NAME="timeasked" UNIQUE="false" FIELDS="timeasked"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_oksigeniamarandu_consent" COMMENT="Every opt-in and opt-out, kept as proof">

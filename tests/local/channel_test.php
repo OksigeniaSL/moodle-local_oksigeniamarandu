@@ -703,6 +703,60 @@ final class channel_test extends \advanced_testcase {
     }
 
     /**
+     * What was skipped comes back only if its day, its hours or its place changed, unless a person asks for it again: another
+     * name, another picture or no link are not a reason.
+     */
+    public function test_skipped_facts(): void {
+        global $DB;
+        $admin = (int)get_admin()->id;
+        $post = function (array $more = [], ?int $expires = 1800000000, bool $again = false): int {
+            return api::channel_post('local_example', 'open_day', $more + ['title' => 'Charla', 'url' => 'https://example.org/a',
+                'label' => 'Inscribirse', 'lines' => ['Miércoles 2', 'De 15:00 a 16:00', 'Biblioteca']], null, false, 'talk', $expires, $again);
+        };
+        $skip = function (int $id) use ($DB, $admin): void {
+            channel::decide($DB->get_record(channel::TABLE, ['id' => $id]), false, $admin);
+        };
+        $first = $post();
+        $skip($first);
+        $this->assertSame(0, $post(['title' => 'Charla de otoño']));
+        $this->assertSame(0, $post(['url' => '', 'label' => '']));
+        // Another place, another hour, or over at another time: again.
+        $second = $post(['lines' => ['Miércoles 2', 'De 15:00 a 16:00', 'Aula 4']]);
+        $this->assertGreaterThan(0, $second);
+        $skip($second);
+        $this->assertSame(0, $post(['lines' => ['Miércoles 2', 'De 15:00 a 16:00', 'Aula 4'], 'title' => 'Otra']));
+        $third = $post(['lines' => ['Miércoles 2', 'De 15:00 a 16:00', 'Aula 4']], 1800003600);
+        $this->assertGreaterThan(0, $third);
+        $skip($third);
+        // A person who asks for it has it proposed again.
+        $this->assertSame(0, $post(['lines' => ['Miércoles 2', 'De 15:00 a 16:00', 'Aula 4']], 1800003600));
+        $this->assertGreaterThan(0, $post(['lines' => ['Miércoles 2', 'De 15:00 a 16:00', 'Aula 4']], 1800003600, true));
+    }
+
+    /**
+     * A post that was accepted and has not gone out may be taken back: it does not go, and whoever reviews hears of it.
+     */
+    public function test_withdraw(): void {
+        global $DB;
+        $admin = (int)get_admin()->id;
+        $content = ['title' => 'Charla', 'lines' => ['Miércoles 2', 'Biblioteca']];
+        $id = api::channel_post('local_example', 'open_day', $content, self::WEDNESDAY + DAYSECS, false, 'talk2');
+        $bot = $this->bot();
+        channel::process($bot, self::WEDNESDAY);
+        channel::decide($DB->get_record(channel::TABLE, ['id' => $id]), true, $admin, $bot, self::WEDNESDAY);
+        $ready = $DB->get_record(channel::TABLE, ['id' => $id]);
+        $this->assertSame('ready', $ready->status);
+        $this->assertTrue(channel::decide($ready, false, $admin, $bot, self::WEDNESDAY + HOURSECS));
+        $this->assertSame('skipped', $DB->get_field(channel::TABLE, 'status', ['id' => $id]));
+        $edits = $bot->of('editMessageText');
+        $this->assertStringContainsString('took it back', end($edits)['text']);
+        $this->assertSame(0, channel::process($bot, self::WEDNESDAY + DAYSECS + HOURSECS)['published']);
+        // Not twice, nor what is already in the channel.
+        $this->assertFalse(channel::decide($ready, false, $admin, $bot, self::WEDNESDAY + 2 * HOURSECS));
+        $this->assertSame(0, api::channel_post('local_example', 'open_day', $content, self::WEDNESDAY + DAYSECS, false, 'talk2'));
+    }
+
+    /**
      * The channel as anyone may find it: only with a public name.
      */
     public function test_public_channel(): void {

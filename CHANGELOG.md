@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.64.1 (2026-11-25)
+
+- A post of the channel that was said no to comes back only if its day, its hours or its place changed, unless a person asks
+  for it (`$again`, in `api::channel_post()`): another name, another picture or no link are not a reason to be asked again.
+- A post that was accepted may be taken back, from the page of the channel, until it goes out.
+
 ## 0.64.0 (2026-11-24)
 
 - A message for a family can go out later: beside «Send», the day (those the department works) and the hour, with the next

@@ -323,6 +323,7 @@ class channel {
      * @param string $key What the plugin knows it by, up to 100 characters, to change it or take it back.
      * @param int|null $expires After this time it is no longer worth posting.
      * @param int|null $now The time, for the tests.
+     * @param bool $again Whether a person asks for it, though it was skipped.
      * @return int The id of the post; 0 if it does not go (no channel, the site switched the kind off, it is in the
      *             channel already, or it was skipped or could not go out and has not changed).
      * @throws \coding_exception If the kind is not declared or the content is not valid.
@@ -335,7 +336,8 @@ class channel {
         bool $urgent = false,
         string $key = '',
         ?int $expires = null,
-        ?int $now = null
+        ?int $now = null,
+        bool $again = false
     ): int {
         global $DB;
         $declared = self::kinds()[$component . '/' . $kind] ?? null;
@@ -387,10 +389,14 @@ class channel {
             if ($DB->record_exists(self::TABLE, $source + ['status' => 'published'])) {
                 return 0;
             }
-            // What was said no to, or could not go out, does not come back as it was: only if it changed.
-            $last = $DB->get_records(self::TABLE, $source, 'id DESC', 'id, status, content', 0, 1);
+            // What could not go out does not come back as it was: only if it changed. What a person said no to comes back only
+            // if its day, its hours or its place changed, unless someone asks for it again.
+            $last = $DB->get_records(self::TABLE, $source, 'id DESC', 'id, status, content, timeexpires', 0, 1);
             $last = $last ? reset($last) : null;
-            if ($last && in_array($last->status, ['skipped', 'failed'], true) && self::same($last->content, $fields['content'])) {
+            if ($last && $last->status === 'failed' && self::same($last->content, $fields['content'])) {
+                return 0;
+            }
+            if ($last && $last->status === 'skipped' && !$again && self::same_facts($last, $content, $expires)) {
                 return 0;
             }
         }
@@ -559,6 +565,10 @@ class channel {
             return (bool)$post->urgent;
         })), array_values($due));
         foreach ($ready as $post) {
+            if ($DB->get_field(self::TABLE, 'status', ['id' => $post->id]) !== 'ready') {
+                // Taken back while the ones before it went out.
+                continue;
+            }
             $post = cards::for_post($post);
             if (cards::pending($post)) {
                 continue;
@@ -615,7 +625,7 @@ class channel {
     /**
      * Whoever reviews a post said to post it or to skip it: it goes, or not, and the others see who said it.
      *
-     * @param \stdClass $post The post, waiting for its review.
+     * @param \stdClass $post The post, waiting for its review; or accepted and still to go, to take it back.
      * @param bool $publish Whether it goes.
      * @param int $userid Who said it.
      * @param telegram_api|null $api The bot, to tell whoever reviews.
@@ -625,7 +635,8 @@ class channel {
     public static function decide(\stdClass $post, bool $publish, int $userid, ?telegram_api $api = null, ?int $now = null): bool {
         global $DB;
         $post = $DB->get_record(self::TABLE, ['id' => $post->id]);
-        if (!$post || $post->status !== 'review') {
+        $ready = $post && !$publish && $post->status === 'ready';
+        if (!$post || ($post->status !== 'review' && !$ready)) {
             return false;
         }
         $now = $now ?? time();
@@ -639,7 +650,7 @@ class channel {
             $user = \core_user::get_user($userid);
             $a = (object)['name' => $user ? fullname($user) : '', 'when' => self::when($post, $now, true)];
             self::tell_reviewers($api, $post, get_string(
-                $publish ? 'channel:review:published' : 'channel:review:skipped',
+                $publish ? 'channel:review:published' : ($ready ? 'channel:review:withdrawn' : 'channel:review:skipped'),
                 self::COMPONENT,
                 $a
             ));
@@ -668,7 +679,10 @@ class channel {
         $stop = ['method' => 'answerCallbackQuery', 'callback_query_id' => (string)($query['id'] ?? '')];
         $post = $DB->get_record(self::TABLE, ['token' => $parts[1]]);
         $userid = array_search(telegram::address((string)$chat['id']), self::reviewers(), true);
-        if (!$post || $userid === false || self::decide($post, $parts[2] === 'pub', (int)$userid, $api)) {
+        if (
+            !$post || $userid === false || ($post->status === 'review' &&
+            self::decide($post, $parts[2] === 'pub', (int)$userid, $api))
+        ) {
             return $stop;
         }
         // Somebody decided first: the button stops waiting, and a line says so.
@@ -1030,6 +1044,23 @@ class channel {
             self::COMPONENT,
             userdate($time, get_string('strftimedaydatetime', 'langconfig'))
         );
+    }
+
+    /**
+     * Whether a post says the same when, where and until when as one that was skipped: its lines and when it is over. With no
+     * lines to compare, the whole of it.
+     *
+     * @param \stdClass $old The post that was skipped, with its content and when it was over.
+     * @param array $content The content now, checked.
+     * @param int|null $expires When it is over now.
+     * @return bool
+     */
+    private static function same_facts(\stdClass $old, array $content, ?int $expires): bool {
+        $before = json_decode($old->content, true) ?: [];
+        if (empty($before['lines']) && empty($content['lines'])) {
+            return self::same($old->content, json_encode($content));
+        }
+        return ($before['lines'] ?? []) === ($content['lines'] ?? []) && (int)$old->timeexpires === (int)$expires;
     }
 
     /**

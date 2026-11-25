@@ -137,7 +137,15 @@
         {{/review.0}}
         {{#ready.0}}
         <h3>{{#str}} channel:next, local_oksigeniamarandu {{/str}}</h3>
-        <ul class="mrd-posts">{{#ready}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}</small></span></li>{{/ready}}</ul>
+        <ul class="mrd-posts">{{#ready}}<li><span class="mrd-post"><strong>{{title}}</strong> <small>{{kind}} · {{when}}</small></span>
+            <details class="mrd-retirar"><summary>{{#str}} channel:next:remove, local_oksigeniamarandu {{/str}}</summary>
+                <form method="post" action="{{formurl}}">
+                    <input type="hidden" name="sesskey" value="{{sesskey}}">
+                    <input type="hidden" name="post" value="{{id}}">
+                    <span>{{#str}} channel:next:removeask, local_oksigeniamarandu {{/str}}</span>
+                    <button type="submit" name="action" value="skip" class="mrd-btn mrd-second">{{#str}} channel:next:removeyes, local_oksigeniamarandu {{/str}}</button>
+                </form>
+            </details></li>{{/ready}}</ul>
         {{/ready.0}}
         {{#published.0}}
         <h3 id="mrd-published">{{#str}} channel:published, local_oksigeniamarandu {{/str}}</h3>

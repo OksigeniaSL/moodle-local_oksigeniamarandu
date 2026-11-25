@@ -5414,6 +5414,29 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
     padding: 6px 14px;
 }
 
+/* A post accepted and still to go: taken back in two steps. */
+.local-oksigeniamarandu-channel .mrd-retirar summary {
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: var(--mrd-muted);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.local-oksigeniamarandu-channel .mrd-retirar[open] {
+    flex-basis: 100%;
+}
+
+.local-oksigeniamarandu-channel .mrd-retirar form {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--mrd-soft);
+}
+
 /* The page of the channel: the fields of the calendar and of the links, a label above each. */
 .local-oksigeniamarandu-channel .mrd-fields {
     display: grid;

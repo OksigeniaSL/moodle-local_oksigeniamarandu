@@ -864,6 +864,8 @@ class api {
      * @param bool $urgent Whether it goes at any hour, such as classes called off.
      * @param string $key What the plugin knows it by, to change it while it waits or take it back with channel_cancel().
      * @param int|null $expires After this time it is no longer worth posting, such as the day of the event.
+     * @param bool $again Whether a person asks for it: proposed again even if it had been skipped. Without it, what was skipped
+     *                    comes back only if its lines (when and where) or when it is over changed.
      * @return int The id of the post; 0 if it does not go (no channel, the site switched the kind off, or the same key is
      *             in the channel already).
      * @throws \coding_exception If the kind is not declared or the content is not valid.
@@ -875,9 +877,10 @@ class api {
         ?int $when = null,
         bool $urgent = false,
         string $key = '',
-        ?int $expires = null
+        ?int $expires = null,
+        bool $again = false
     ): int {
-        return local\channel::post($component, $kind, $content, $when, $urgent, $key, $expires);
+        return local\channel::post($component, $kind, $content, $when, $urgent, $key, $expires, null, $again);
     }
 
     /**

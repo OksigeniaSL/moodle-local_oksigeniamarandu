@@ -251,7 +251,9 @@ class api {
      * @return array By channel, with name, joined, where, url and since: when the newest number or chat on that channel
      *     joined for the item (0 if none). A channel is as old as its newest chat: a check such as «joined a week ago»
      *     on since holds for every chat a message would reach. With ask_to_join(), also asked (when the question went and
-     *     waits for its answer, 0 if none) and declined (when they said no, 0 if not), on WhatsApp.
+     *     waits for its answer, 0 if none) and declined (when they said no, 0 if not), on WhatsApp. implied: the permission
+     *     of the plugin the numbers were joined with (bulk_phones()) while none of them has written or answered; empty if
+     *     they joined by themselves.
      */
     public static function item_channels(string $component, int $itemid, string $area = ''): array {
         return self::channel_list($component, $itemid, null, self::area($area));
@@ -390,11 +392,46 @@ class api {
      * @param string $notice The notice it sends, declared by your plugin.
      * @param int[] $itemids The items.
      * @param string $area The kind of item, if your plugin has more than one.
+     * @param array $phones For items nobody joined for, their number (E.164) by item, as bulk_request() would take it:
+     *                      they count as WhatsApp, with what it costs, unless the number said no (bulk_phones()).
      * @return array whatsapp, whatsappfree, telegram, skipped, cost, currency, category, approval (bool) and approvers
      *               (names).
      */
-    public static function bulk_quote(string $component, string $notice, array $itemids, string $area = ''): array {
-        return local\bulk::quote($component, $notice, $itemids, self::area($area));
+    public static function bulk_quote(
+        string $component,
+        string $notice,
+        array $itemids,
+        string $area = '',
+        array $phones = []
+    ): array {
+        return local\bulk::quote($component, $notice, $itemids, self::area($area), $phones);
+    }
+
+    /**
+     * Whether a send to many takes, for items nobody joined for, a number to write to with the permission your plugin
+     * has (bulk_request(), phone and implied). The number joins for the item as implied, without any welcome: its «no»,
+     * any word of leaving or a «no» to a question to join stop it, and your plugin hears it by marandu_optout, as always.
+     * Its first message opens the 24 hours, as anybody's. What WhatsApp lets the line write to in a day, and its quality,
+     * decide when each one goes; nothing is lost while it waits (bulk_items()).
+     *
+     * @return bool
+     */
+    public static function bulk_phones(): bool {
+        return true;
+    }
+
+    /**
+     * What happened to each item of a send to many: whether it went, reached the phone or was read, by which channel,
+     * and why not. Read receipts come only from people who let WhatsApp send them.
+     *
+     * @param int $id The send.
+     * @return array Each with itemid, status (queued, waiting, sent, delivered, read, failed, nowhatsapp or skipped), time
+     *               (of that status), why (optout, declined, invalid, nomarketing, quiet, limit, quality, approval, expired,
+     *               rejected, cancelled, nobody, or the code of Meta when it failed), channel (whatsapp, telegram or empty)
+     *               and implied (written to by your permission, without the number having joined).
+     */
+    public static function bulk_items(int $id): array {
+        return local\bulk::items($id);
     }
 
     /**
@@ -406,7 +443,8 @@ class api {
      * @param string $component Your plugin.
      * @param string $notice The notice it sends, declared by your plugin.
      * @param array $items Each with itemid, params (the values of the notice), url (a moodle_url of this site, or null)
-     *                     and lang, as notify() takes them.
+     *                     and lang, as notify() takes them; for an item nobody joined for, also phone (E.164) and
+     *                     implied (your permission to write to it, such as eguahe:invite; bulk_phones()).
      * @param int $userid Who asks for it.
      * @param string $label What it is, for whoever approves it, such as «Invitation to the open day of 12 March».
      * @param string $area The kind of item, if your plugin has more than one.
@@ -494,12 +532,12 @@ class api {
             $where = 'l.userid = :userid AND ';
             $params['userid'] = $userid;
         }
-        $joined = $DB->get_records_sql("SELECT c.id, c.channel, c.phone,
+        $joined = $DB->get_records_sql("SELECT c.id, c.channel, c.phone, c.implied,
                                                MAX(COALESCE(l.timeclaimed, l.timecreated)) AS since
                                           FROM {" . consent::LINKS . "} l
                                           JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
                                          WHERE {$where}c.status = :active
-                                      GROUP BY c.id, c.channel, c.phone", $params);
+                                      GROUP BY c.id, c.channel, c.phone, c.implied", $params);
         $list = [];
         $code = null;
         foreach (self::channels() as $channel => $info) {
@@ -510,6 +548,9 @@ class api {
                 return $contact->channel === $channel;
             });
             $contact = reset($contacts);
+            $implied = array_filter(array_map(function ($one) {
+                return (string)$one->implied;
+            }, $contacts));
             $code = $code ?? self::invite($component, $itemid, $userid, $area);
             $list[$channel] = [
                 'name' => $info['name'],
@@ -525,6 +566,10 @@ class api {
                 'since' => $contacts ? max(array_map(function ($one) {
                     return (int)$one->since;
                 }, $contacts)) : 0,
+                // Joined by the permission of its plugin, such as eguahe:invite, while none of its numbers has written or
+                // answered; empty, joined by themselves.
+                'implied' => $userid === null && $contacts && count($implied) === count($contacts)
+                    ? (string)reset($implied) : '',
             ] + ($channel === 'whatsapp' && $userid === null ? local\joinask::state($component, $itemid, $area) : []);
         }
         return $list;

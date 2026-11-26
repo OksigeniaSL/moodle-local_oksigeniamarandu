@@ -536,7 +536,7 @@ class joinask {
      * @param string $answer yes or no.
      * @return string[]
      */
-    protected static function words(string $answer): array {
+    public static function words(string $answer): array {
         $strings = get_string_manager();
         $words = [];
         foreach (array_unique(array_merge(['en'], array_keys($strings->get_list_of_translations()))) as $lang) {
@@ -552,7 +552,7 @@ class joinask {
      * @param string $text The text.
      * @return string
      */
-    protected static function plain(string $text): string {
+    public static function plain(string $text): string {
         $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', \core_text::strtolower($text));
         return trim((string)$text);
     }

@@ -38,12 +38,18 @@ class spend_refresh extends \core\task\scheduled_task {
     }
 
     /**
-     * Reads the month; if Meta does not answer, the last reading stays.
+     * Reads the line (its quality and the people a day) and the month; if Meta does not answer, the last reading stays.
      */
     public function execute() {
         $wabaid = (string)get_config('local_oksigeniamarandu', 'wabaid');
         if ($wabaid === '' || !cloud_api::is_configured()) {
             return;
+        }
+        try {
+            $line = \local_oksigeniamarandu\local\implied::refresh($this->api());
+            mtrace('Marandu: the line, ' . ($line['quality'] ?: '?') . ', ' . $line['limit'] . ' people a day');
+        } catch (\Throwable $e) {
+            mtrace('Marandu: the line was not read: ' . $e->getMessage());
         }
         try {
             $month = spend::refresh($this->api(), $wabaid);

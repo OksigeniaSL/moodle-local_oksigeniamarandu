@@ -17,6 +17,7 @@
         <FIELD NAME="consentsource" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="How the last opt-in happened: keyword, page or admin"/>
         <FIELD NAME="optouttime" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When the last opt-out happened"/>
         <FIELD NAME="lastinbound" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Last message from this number: opens the 24-hour window"/>
+        <FIELD NAME="implied" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Joined by the permission a plugin has, without a touch of its own (eguahe:invite), until it writes or answers"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>
@@ -162,6 +163,7 @@
         <FIELD NAME="timeretry" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Not before this time, after an error that passes"/>
         <FIELD NAME="timesent" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When it went out, or when it failed"/>
         <FIELD NAME="timedelivered" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timeread" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When WhatsApp said it was read, if the person lets it say so"/>
         <FIELD NAME="timeclicked" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="timeclosed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When a question stopped taking answers: answered elsewhere, or past its time"/>
       </FIELDS>
@@ -498,6 +500,9 @@
         <FIELD NAME="url" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="lang" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="queued" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="How many numbers and chats it was queued for, once released"/>
+        <FIELD NAME="phone" TYPE="char" LENGTH="32" NOTNULL="false" SEQUENCE="false" COMMENT="A number to write to when the item has none joined, digits with the country code"/>
+        <FIELD NAME="implied" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="The permission the plugin has to write to that number (eguahe:invite)"/>
+        <FIELD NAME="skipped" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false" COMMENT="Why that number was not used: optout, declined, invalid or nomarketing"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

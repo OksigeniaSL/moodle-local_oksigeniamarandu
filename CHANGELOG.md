@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.68.0 (2026-11-26)
+
+- A send to many can also reach items nobody joined for, with the permission their plugin has (`api::bulk_phones()`): each
+  item may carry `phone` (E.164) and `implied` (such as `example:invite`), and `bulk_quote(..., $phones)` counts them as paid
+  WhatsApp, each number once. When the send goes, the number joins for the item as implied, with no welcome, unless it said
+  no (to everything, to that plugin, to the question to join or to marketing).
+- Its first «no» stops what those plugins send, which hear it by `marandu_optout`, with a short answer; any other message
+  opens the 24 hours and makes it as anybody who joined. `api::item_channels()` says `implied` until then.
+- `api::bulk_items()`: by item, whether it is queued, waiting (and why), sent, delivered, read, failed, without WhatsApp or
+  skipped, by which channel and whether it went by the permission.
+- Each hour the site reads from Meta the quality of its number and the people a day it may write first to
+  (`whatsapp_business_manager_messaging_limit`). The queue writes first to 80 % of them at most, counting the questions to
+  join; what does not fit waits. While the quality is not green, what goes to implied numbers waits, and whoever approves
+  the sends hears it once.
+
+## 0.67.0 (2026-11-25)
+
+- WhatsApp usernames: the site learns the phone behind each identifier, puts it back when a webhook lacks it, and moves what
+  a person joined and said no to when they change their number (`<plugin>_marandu_number_changed`).
+
+## 0.66.0 (2026-11-25)
+
+- What a plugin can know of its notices: `api::item_reaches()`, the callback `<plugin>_marandu_notice_done`,
+  `api::value_limit()`, `api::notices_cancel()`, `api::bulk_withdraw()` and the callback `<plugin>_marandu_bulk_item`.
+
 ## 0.65.0 (2026-11-25)
 
 - Joining by WhatsApp with one touch (`api::ask_to_join()`): whoever left their number and their permission in a page of a

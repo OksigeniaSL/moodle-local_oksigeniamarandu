@@ -84,6 +84,7 @@ $string['confirm:out:caption'] = 'تمّ: لن نرسل إليكم إشعارا�
 $string['confirm:out:detail'] = 'لن نرسل إليكم إشعارات هنا بعد الآن. شكرًا لإخبارنا.';
 $string['confirm:out:title'] = 'الباب يبقى مفتوحًا';
 $string['conversation:open'] = 'فتح';
+$string['implied:no'] = 'حسنًا، لن نراسلكم هنا بعد الآن.';
 $string['join:greeting'] = 'مرحبًا، نودّ أن تصلنا إشعارات {$a} هنا.';
 $string['join:nowords'] = 'لا, لا شكرا';
 $string['join:yeswords'] = 'نعم, أجل, نعم شكرا, صحيح';

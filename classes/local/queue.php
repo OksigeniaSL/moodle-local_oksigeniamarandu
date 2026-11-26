@@ -155,6 +155,8 @@ class queue {
         $urgent = notices::urgent();
         $spent = self::spent($now);
         $clients = ['whatsapp' => $api, 'telegram' => $telegram];
+        // The numbers written first to in the last 24 hours, read once the first template needs it.
+        $today = null;
 
         $gone = $DB->get_records_select(self::TABLE, 'status = ? AND timeexpires < ?', ['queued', $now], 'id ASC');
         foreach ($gone as $row) {
@@ -202,7 +204,7 @@ class queue {
             }
             $canwait = self::can_wait($row, $notice, $urgent);
             if ($quiet && $canwait) {
-                self::later($row, $now, self::LATER);
+                self::later($row, $now, self::LATER, 'quiet');
                 $counts['waiting']++;
                 continue;
             }
@@ -266,6 +268,19 @@ class queue {
                 $counts['skipped']++;
                 continue;
             }
+            if (!$free && !empty($contact->implied) && !implied::quality_ok()) {
+                // Meta takes the messages of the number worse: what goes to whoever did not join waits.
+                self::later($row, $now, HOURSECS, 'quality');
+                $counts['waiting']++;
+                continue;
+            }
+            $today = $today ?? ($free ? null : implied::written_today($now));
+            if (!$free && !implied::room($today, (string)$contact->phone)) {
+                // The people a day the line may write first to: the rest waits for room, it is not lost.
+                self::later($row, $now, HOURSECS, 'limit');
+                $counts['waiting']++;
+                continue;
+            }
             // What this template costs, by its category (a marketing one costs about three times a utility one).
             $rowcost = $template ? (float)(chat\templates::prices()[strtolower((string)$template->category)] ?? $cost) : 0.0;
             if (!$free && $cap > 0 && $spent + $rowcost > $cap + 0.00001) {
@@ -320,6 +335,9 @@ class queue {
                     ]);
                     self::finish($row, $now, 'sent', 'template', $wamid);
                     $spent += $rowcost;
+                    if ($today !== null) {
+                        $today[(string)$contact->phone] = true;
+                    }
                 }
                 $counts['sent']++;
                 self::unblock('whatsapp', $wasblocked);
@@ -637,6 +655,9 @@ class queue {
         if (in_array($status, ['delivered', 'read'], true)) {
             $change = ['status' => $status === 'read' || $row->status === 'read' ? 'read' : 'delivered',
                 'timedelivered' => $row->timedelivered ?: time()];
+            if ($status === 'read' && empty($row->timeread)) {
+                $change['timeread'] = time();
+            }
         } else if ($status === 'failed') {
             $change = ['status' => 'failed', 'error' => \core_text::substr($error === '' ? 'failed' : $error, 0, 255),
                 'errorcode' => $code];
@@ -672,10 +693,16 @@ class queue {
      * @param \stdClass $row The notice.
      * @param int $now The time.
      * @param int $seconds For how long.
+     * @param string $why Why, when the plugin may want to know: quiet, limit or quality.
      */
-    private static function later(\stdClass $row, int $now, int $seconds): void {
+    private static function later(\stdClass $row, int $now, int $seconds, string $why = ''): void {
         global $DB;
-        $DB->set_field(self::TABLE, 'timeretry', $now + $seconds, ['id' => $row->id]);
+        $change = ['id' => $row->id, 'timeretry' => $now + $seconds];
+        if ($why !== '') {
+            // Why it waits, for the plugin that asks (api::bulk_items()); what it sends later says what happened then.
+            $change['error'] = $why;
+        }
+        $DB->update_record(self::TABLE, (object)$change);
     }
 
     /**

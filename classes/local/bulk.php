@@ -57,15 +57,23 @@ class bulk {
      * @param string $notice The notice it sends.
      * @param int[] $itemids The items.
      * @param string $area The kind of item.
+     * @param array $phones For items nobody joined for, a number (E.164) by item, to write to with the permission of the
+     *                      plugin: they count as WhatsApp, unless the number said no.
      * @return array whatsapp (paid), whatsappfree (inside the 24 hours), telegram, skipped, cost, currency, category,
      *               approval and approvers.
      */
-    public static function quote(string $component, string $notice, array $itemids, string $area = ''): array {
+    public static function quote(
+        string $component,
+        string $notice,
+        array $itemids,
+        string $area = '',
+        array $phones = []
+    ): array {
         $declared = notices::get($component, $notice);
         if (!$declared) {
             throw new \coding_exception("The notice {$component}/{$notice} is not declared");
         }
-        $reach = self::reach($component, $declared, $itemids, $area);
+        $reach = self::reach($component, $declared, $itemids, $area, $phones);
         $category = self::category($declared);
         $price = prices::prices();
         $cost = round($reach['whatsapp'] * (float)($price[$category] ?? $price['marketing']), 2);
@@ -83,7 +91,9 @@ class bulk {
      *
      * @param string $component The plugin.
      * @param string $notice The notice it sends.
-     * @param array $items Each with itemid, params, url (a moodle_url or a URL of this site) and lang, as notify() takes them.
+     * @param array $items Each with itemid, params, url (a moodle_url or a URL of this site) and lang, as notify() takes them;
+     *                     and, for an item nobody joined for, phone (E.164) and implied (the permission of the plugin, such
+     *                     as eguahe:invite): the number joins as implied when the send goes, unless it said no.
      * @param int $userid Who asks for it.
      * @param string $label What it is, for whoever approves it: «Invitation to the open day of 12 March».
      * @param string $area The kind of item.
@@ -101,9 +111,15 @@ class bulk {
         if (!$items || count($items) > self::MAXITEMS) {
             throw new \coding_exception('A send takes from 1 to ' . self::MAXITEMS . ' items');
         }
+        $phones = [];
+        foreach ($items as $item) {
+            if (!empty($item['phone']) && !empty($item['implied'])) {
+                $phones[(int)($item['itemid'] ?? 0)] = (string)$item['phone'];
+            }
+        }
         $quote = self::quote($component, $notice, array_map(function ($item) {
             return (int)($item['itemid'] ?? 0);
-        }, $items), $area);
+        }, $items), $area, $phones);
         $now = time();
         $bulk = (object)[
             'component' => $component,
@@ -135,6 +151,10 @@ class bulk {
                 'params' => json_encode(array_values((array)($item['params'] ?? []))),
                 'url' => $url instanceof \moodle_url ? $url->out(false) : (string)$url,
                 'lang' => \core_text::substr((string)($item['lang'] ?? ''), 0, 30),
+                'phone' => isset($phones[(int)($item['itemid'] ?? 0)])
+                    ? \core_text::substr(trim((string)$item['phone']), 0, 32) : null,
+                'implied' => isset($phones[(int)($item['itemid'] ?? 0)])
+                    ? \core_text::substr(trim((string)$item['implied']), 0, 100) : null,
             ]);
         }
         $transaction->allow_commit();
@@ -300,6 +320,105 @@ class bulk {
         }
         \local_oksigeniamarandu\api::close_question('local_oksigeniamarandu', self::REF . $id, 'expired');
         return true;
+    }
+
+    /**
+     * What happened to each item of a send: whether it went, reached the phone or was read, by which channel, and why not.
+     * By item, the best its numbers and chats got.
+     *
+     * @param int $id The send.
+     * @return array Each with itemid, status (queued, waiting, sent, delivered, read, failed, nowhatsapp or skipped),
+     *               time (of that status; 0 if none), why (optout, declined, invalid, nomarketing, quiet, limit, quality,
+     *               approval, expired, rejected, cancelled, nobody or what Meta said), channel (whatsapp, telegram or
+     *               empty) and implied (written to by the permission of the plugin).
+     */
+    public static function items(int $id): array {
+        global $DB;
+        $bulk = $DB->get_record(self::TABLE, ['id' => $id], '*', MUST_EXIST);
+        $now = time();
+        $rank = ['skipped' => 0, 'failed' => 1, 'nowhatsapp' => 1, 'queued' => 2, 'waiting' => 3, 'sent' => 4,
+            'delivered' => 5, 'read' => 6];
+        $out = [];
+        foreach ($DB->get_records(self::ITEMS, ['bulkid' => $id], 'id ASC') as $item) {
+            $digits = $item->phone ? implied::digits((string)$item->phone) : null;
+            $best = ['itemid' => (int)$item->itemid, 'status' => 'skipped', 'time' => 0,
+                'why' => (string)($item->skipped ?: 'nobody'), 'channel' => '', 'implied' => false];
+            if ($bulk->status !== 'queued') {
+                $best['status'] = $bulk->status === 'pending' ? 'queued' : 'skipped';
+                $best['why'] = $bulk->status === 'pending' ? 'approval' : (string)$bulk->status;
+                $out[] = $best;
+                continue;
+            }
+            $rows = $DB->get_records_sql("SELECT q.*, c.phone
+                                            FROM {" . queue::TABLE . "} q
+                                            JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid
+                                           WHERE q.component = :component AND q.notice = :notice AND q.itemid = :itemid
+                                                 AND q.area = :area AND q.timequeued >= :since
+                                        ORDER BY q.id ASC", ['component' => $bulk->component, 'notice' => $bulk->notice,
+                'itemid' => $item->itemid, 'area' => (string)$bulk->area, 'since' => (int)$bulk->timedecided - 5]);
+            foreach ($rows as $row) {
+                $one = self::item_row($row, $now);
+                if ($rank[$one['status']] < $rank[$best['status']] && $best['channel'] !== '') {
+                    continue;
+                }
+                $best = ['itemid' => (int)$item->itemid] + $one + ['implied' => $digits !== null && $digits === $row->phone];
+            }
+            $out[] = $best;
+        }
+        return $out;
+    }
+
+    /**
+     * How one notice of a send is, as items() tells it.
+     *
+     * @param \stdClass $row The notice in the queue, with the phone of its contact.
+     * @param int $now The time.
+     * @return array status, time, why and channel.
+     */
+    private static function item_row(\stdClass $row, int $now): array {
+        $channel = telegram::is_chat((string)$row->phone) ? 'telegram' : 'whatsapp';
+        $code = $row->errorcode === null ? null : (int)$row->errorcode;
+        switch ($row->status) {
+            case 'queued':
+                $waits = (int)$row->timeretry > $now && in_array((string)$row->error, ['quiet', 'limit', 'quality'], true);
+                return ['status' => $waits ? 'waiting' : 'queued', 'time' => (int)$row->timequeued,
+                    'why' => $waits ? (string)$row->error : '', 'channel' => $channel];
+            case 'sent':
+                return ['status' => 'sent', 'time' => (int)$row->timesent, 'why' => '', 'channel' => $channel];
+            case 'delivered':
+                return ['status' => 'delivered', 'time' => (int)($row->timedelivered ?: $row->timesent), 'why' => '',
+                    'channel' => $channel];
+            case 'read':
+                return ['status' => 'read', 'time' => (int)($row->timeread ?: ($row->timedelivered ?: $row->timesent)),
+                    'why' => '', 'channel' => $channel];
+            case 'failed':
+                $none = $code !== null && in_array($code, implied::NOWHATSAPP, true);
+                return ['status' => $none ? 'nowhatsapp' : 'failed', 'time' => (int)$row->timesent,
+                    'why' => $code !== null ? (string)$code : (string)$row->error, 'channel' => $channel];
+            default:
+                return ['status' => 'skipped', 'time' => (int)($row->status === 'expired' ? $row->timeexpires : $row->timesent),
+                    'why' => $row->status === 'expired' ? 'expired' : (string)$row->error, 'channel' => $channel];
+        }
+    }
+
+    /**
+     * Whether an item has somebody joined by WhatsApp who takes its notices.
+     *
+     * @param string $component The plugin.
+     * @param string $area The kind of item.
+     * @param int $itemid The item.
+     * @return bool
+     */
+    private static function on_whatsapp(string $component, string $area, int $itemid): bool {
+        global $DB;
+        return $DB->record_exists_sql(
+            "SELECT 1
+                                         FROM {" . consent::LINKS . "} l
+                                         JOIN {" . consent::CONTACTS . "} c ON c.id = l.contactid
+                                        WHERE l.component = :component AND l.area = :area AND l.itemid = :itemid
+                                              AND l.userid IS NULL AND c.status = 'active' AND c.channel = 'whatsapp'",
+            ['component' => $component, 'area' => $area, 'itemid' => $itemid]
+        );
     }
 
     /**
@@ -470,9 +589,16 @@ class bulk {
      * @param \stdClass $declared The notice.
      * @param int[] $itemids The items.
      * @param string $area The kind of item.
+     * @param array $phones A number by item, for those nobody joined for (quote()).
      * @return array whatsapp, whatsappfree, telegram and skipped.
      */
-    private static function reach(string $component, \stdClass $declared, array $itemids, string $area): array {
+    private static function reach(
+        string $component,
+        \stdClass $declared,
+        array $itemids,
+        string $area,
+        array $phones = []
+    ): array {
         global $DB;
         $count = ['whatsapp' => 0, 'whatsappfree' => 0, 'telegram' => 0, 'skipped' => 0];
         $itemids = array_values(array_unique(array_map('intval', $itemids)));
@@ -484,6 +610,7 @@ class bulk {
             $on[$channel] = notices::allows($declared, $channel) && in_array($declared->key, notices::enabled($channel), true);
         }
         $reached = [];
+        $seen = [];
         foreach (array_chunk($itemids, 500) as $chunk) {
             [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'i');
             $rows = $DB->get_recordset_sql(
@@ -494,7 +621,6 @@ class bulk {
                         AND c.status = 'active'",
                 $params + ['component' => $component, 'area' => $area]
             );
-            $seen = [];
             foreach ($rows as $row) {
                 $contactid = (int)$row->id;
                 if (isset($seen[$contactid]) || empty($on[$row->channel]) || consent::out_of($row, $component)) {
@@ -511,6 +637,26 @@ class bulk {
                 }
             }
             $rows->close();
+        }
+        // The numbers given for items nobody joined for: each one once, unless it said no.
+        $numbers = [];
+        foreach ($on['whatsapp'] ? $phones : [] as $itemid => $phone) {
+            $itemid = (int)$itemid;
+            $digits = implied::digits((string)$phone);
+            if (isset($reached[$itemid]) || $digits === null || !in_array($itemid, $itemids, true)) {
+                continue;
+            }
+            $contact = $DB->get_record(consent::CONTACTS, ['phone' => $digits]);
+            if (implied::why_not($contact ?: null, $component) !== '') {
+                continue;
+            }
+            $reached[$itemid] = true;
+            if (isset($numbers[$digits]) || ($contact && isset($seen[(int)$contact->id]))) {
+                continue;
+            }
+            $numbers[$digits] = true;
+            $open = $contact && $contact->status === 'active' && (int)$contact->lastinbound > time() - queue::WINDOW;
+            $count[$open ? 'whatsappfree' : 'whatsapp']++;
         }
         $count['skipped'] = count($itemids) - count($reached);
         return $count;
@@ -537,8 +683,25 @@ class bulk {
         global $DB;
         $itemids = [];
         $installed = \core_component::get_component_directory((string)$bulk->component) !== null;
+        $declared = notices::get((string)$bulk->component, (string)$bulk->notice);
+        $bywhatsapp = $declared && $bulk->onlyby !== 'telegram' && notices::allows($declared, 'whatsapp')
+            && in_array($declared->key, notices::enabled('whatsapp'), true);
         foreach ($DB->get_records(self::ITEMS, ['bulkid' => $bulk->id], 'id ASC') as $item) {
             $url = trim((string)$item->url);
+            $phoned = !empty($item->phone) && !empty($item->implied);
+            if ($phoned && $bywhatsapp && !self::on_whatsapp((string)$bulk->component, (string)$bulk->area, (int)$item->itemid)) {
+                // Nobody joined for it: its number, with the permission of the plugin, unless it said no.
+                $why = implied::join(
+                    (string)$item->phone,
+                    (string)$bulk->component,
+                    (string)$bulk->area,
+                    (int)$item->itemid,
+                    (string)$item->implied
+                );
+                if ($why !== '') {
+                    $DB->set_field(self::ITEMS, 'skipped', $why, ['id' => $item->id]);
+                }
+            }
             $params = (array)json_decode((string)$item->params, true);
             // It may have waited for days: its plugin says whether it still goes, and with which values.
             $now = $installed ? component_callback(
@@ -564,7 +727,7 @@ class bulk {
                     (int)$item->itemid,
                     null,
                     false,
-                    2 * DAYSECS,
+                    $phoned ? implied::VALIDFOR : 2 * DAYSECS,
                     [],
                     (string)$bulk->area,
                     (string)$item->lang,
@@ -577,7 +740,6 @@ class bulk {
             }
         }
         // Who it reaches: the queue leaves out, when it sends, whoever said no to the plugin.
-        $declared = notices::get((string)$bulk->component, (string)$bulk->notice);
         $reach = $declared ? self::reach((string)$bulk->component, $declared, $itemids, (string)$bulk->area) : [];
         $sent = $bulk->onlyby === 'telegram' ? (int)($reach['telegram'] ?? 0)
             : (int)($reach['whatsapp'] ?? 0) + (int)($reach['whatsappfree'] ?? 0) + (int)($reach['telegram'] ?? 0);

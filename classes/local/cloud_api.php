@@ -302,6 +302,17 @@ class cloud_api {
     }
 
     /**
+     * How the number is taken: its quality and the people a day it may write first to, as Meta says now.
+     *
+     * @return array quality_rating (GREEN, YELLOW, RED or UNKNOWN) and whatsapp_business_manager_messaging_limit (TIER_2K…).
+     * @throws api_exception If Meta does not answer.
+     */
+    public function get_line(): array {
+        return $this->decode($this->request($this->url($this->phonenumberid .
+            '?fields=quality_rating,whatsapp_business_manager_messaging_limit')));
+    }
+
+    /**
      * Where Meta sends what reaches the number: the webhook of the number, of its account or of the app, the first one
      * that is set (by verify, «webhook_configuration»). Empty if Meta does not say.
      *

@@ -604,6 +604,33 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122930, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122940) {
+        // Writing to a number that has not joined, with the permission its plugin has: who it is, what it was sent with,
+        // and when it was read.
+        $fields = [
+            'local_oksigeniamarandu_contact' => [
+                new xmldb_field('implied', XMLDB_TYPE_CHAR, '100', null, null, null, null, 'lastinbound'),
+            ],
+            'local_oksigeniamarandu_queue' => [
+                new xmldb_field('timeread', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'timedelivered'),
+            ],
+            'local_oksigeniamarandu_bulkitem' => [
+                new xmldb_field('phone', XMLDB_TYPE_CHAR, '32', null, null, null, null, 'queued'),
+                new xmldb_field('implied', XMLDB_TYPE_CHAR, '100', null, null, null, null, 'phone'),
+                new xmldb_field('skipped', XMLDB_TYPE_CHAR, '30', null, null, null, null, 'implied'),
+            ],
+        ];
+        foreach ($fields as $name => $list) {
+            $table = new xmldb_table($name);
+            foreach ($list as $field) {
+                if (!$dbman->field_exists($table, $field)) {
+                    $dbman->add_field($table, $field);
+                }
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026122940, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

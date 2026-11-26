@@ -84,6 +84,7 @@ $string['confirm:out:caption'] = 'Pronto: não vamos mais mandar avisos por aqui
 $string['confirm:out:detail'] = 'Não vamos mais mandar avisos por aqui. Obrigado por nos avisarem.';
 $string['confirm:out:title'] = 'A porta continua aberta';
 $string['conversation:open'] = 'Abrir';
+$string['implied:no'] = 'Tudo bem, não vamos mais escrever para vocês por aqui.';
 $string['join:greeting'] = 'Olá, queremos receber os avisos {$a} por aqui.';
 $string['join:nowords'] = 'não, nao, não obrigado, não obrigada';
 $string['join:yeswords'] = 'sim, sim obrigado, sim obrigada, sim por favor, correto, está correto';

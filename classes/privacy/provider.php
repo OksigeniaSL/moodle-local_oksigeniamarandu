@@ -77,6 +77,7 @@ class provider implements
             'consenttime' => 'privacy:metadata:contact:consenttime',
             'optouttime' => 'privacy:metadata:contact:optouttime',
             'lastinbound' => 'privacy:metadata:contact:lastinbound',
+            'implied' => 'privacy:metadata:contact:implied',
         ], 'privacy:metadata:contact');
         $collection->add_database_table(consent::LINKS, [
             'userid' => 'privacy:metadata:link:userid',

@@ -95,6 +95,8 @@ class consent {
             return;
         }
         $contact->lastinbound = time();
+        // Whoever was joined by the permission of a plugin has now written: from now on, as anybody who joined.
+        $contact->implied = null;
         if ($name !== null && empty($contact->name)) {
             $contact->name = \core_text::substr(clean_param($name, PARAM_NOTAGS), 0, 255);
         }
@@ -735,6 +737,7 @@ class consent {
             $contact->lastinbound = $now;
         }
         $contact->timemodified = $now;
+        $contact->implied = null;
         $DB->update_record(self::CONTACTS, $contact);
         $DB->insert_record(self::LOG, (object)[
             'contactid' => $contact->id,

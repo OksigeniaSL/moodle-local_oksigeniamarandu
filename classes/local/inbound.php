@@ -154,6 +154,8 @@ class inbound {
         }
         $name = $names[$from] ?? null;
         $wamid = (string)($message['id'] ?? '');
+        // Joined by the permission of a plugin, before this message: its first «no» is the answer to what it got.
+        $implied = implied::of($phone);
         consent::touch($phone, $name);
         test_message::inbound($phone);
         if (answers::from_whatsapp($message, $phone) || joinask::from_whatsapp($message, $phone, $name)) {
@@ -186,6 +188,9 @@ class inbound {
         }
         if (joinask::typed($phone, $text, $wamid, $name)) {
             return true;
+        }
+        if (implied::said_no($phone, $implied, $text)) {
+            return !chat\mirror::with_team($phone);
         }
         $match = keywords::match($text);
         if ($match === null) {

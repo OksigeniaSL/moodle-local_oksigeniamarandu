@@ -169,7 +169,7 @@ class bulk {
         }
         $transaction->allow_commit();
         if ($bulk->status === 'queued') {
-            self::release($bulk);
+            self::release($bulk, true);
         } else {
             self::ask_approvers($bulk);
         }
@@ -339,8 +339,9 @@ class bulk {
      * @param int $id The send.
      * @return array Each with itemid, status (queued, waiting, sent, delivered, read, failed, nowhatsapp or skipped),
      *               time (of that status; 0 if none), why (optout, declined, invalid, nomarketing, quiet, limit, quality,
-     *               approval, expired, rejected, cancelled, nobody or what Meta said), channel (whatsapp, telegram or
-     *               empty) and implied (written to by the permission of the plugin).
+     *               approval, expired, rejected, cancelled, plugin (its plugin said it no longer goes), nobody or what
+     *               Meta said), channel (whatsapp, telegram or empty) and implied (written to by the permission of the
+     *               plugin).
      */
     public static function items(int $id): array {
         global $DB;
@@ -760,11 +761,14 @@ class bulk {
     }
 
     /**
-     * Queues every item of a send, by the usual queue.
+     * Queues every item of a send, by the usual queue. A send that waited for its approval asks its plugin first whether each
+     * item still goes; one that goes at once does not, since its plugin gave the items just now and may not have kept the
+     * send yet.
      *
      * @param \stdClass $bulk The send.
+     * @param bool $fresh Whether it goes at once, from request().
      */
-    private static function release(\stdClass $bulk): void {
+    private static function release(\stdClass $bulk, bool $fresh = false): void {
         global $DB;
         $itemids = [];
         $installed = \core_component::get_component_directory((string)$bulk->component) !== null;
@@ -773,6 +777,23 @@ class bulk {
             && in_array($declared->key, notices::enabled('whatsapp'), true);
         foreach ($DB->get_records(self::ITEMS, ['bulkid' => $bulk->id], 'id ASC') as $item) {
             $url = trim((string)$item->url);
+            $params = (array)json_decode((string)$item->params, true);
+            // It may have waited for days: its plugin says whether it still goes, and with which values.
+            $now = $installed && !$fresh ? component_callback(
+                (string)$bulk->component,
+                'marandu_bulk_item',
+                [(int)$bulk->id, (string)$bulk->notice, (int)$item->itemid],
+                true
+            ) : true;
+            if ($now === false) {
+                $DB->set_field(self::ITEMS, 'skipped', 'plugin', ['id' => $item->id]);
+                continue;
+            }
+            if (is_array($now)) {
+                $params = array_key_exists('params', $now) ? array_values((array)$now['params']) : $params;
+                $new = $now['url'] ?? $url;
+                $url = $new instanceof \moodle_url ? $new->out(false) : trim((string)$new);
+            }
             $phoned = !empty($item->phone) && !empty($item->implied);
             if ($phoned && $bywhatsapp && !self::on_whatsapp((string)$bulk->component, (string)$bulk->area, (int)$item->itemid)) {
                 // Nobody joined for it: its number, with the permission of the plugin, unless it said no.
@@ -786,22 +807,6 @@ class bulk {
                 if ($why !== '') {
                     $DB->set_field(self::ITEMS, 'skipped', $why, ['id' => $item->id]);
                 }
-            }
-            $params = (array)json_decode((string)$item->params, true);
-            // It may have waited for days: its plugin says whether it still goes, and with which values.
-            $now = $installed ? component_callback(
-                (string)$bulk->component,
-                'marandu_bulk_item',
-                [(int)$bulk->id, (string)$bulk->notice, (int)$item->itemid],
-                true
-            ) : true;
-            if ($now === false) {
-                continue;
-            }
-            if (is_array($now)) {
-                $params = array_key_exists('params', $now) ? array_values((array)$now['params']) : $params;
-                $new = $now['url'] ?? $url;
-                $url = $new instanceof \moodle_url ? $new->out(false) : trim((string)$new);
             }
             try {
                 $queued = \local_oksigeniamarandu\api::notify(

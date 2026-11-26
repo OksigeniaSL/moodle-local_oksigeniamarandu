@@ -254,8 +254,17 @@ final class implied_test extends \advanced_testcase {
      * A sample of one item goes at once, also in the quiet hours; the rest waits for them; a sample is one item.
      */
     public function test_sample(): void {
+        global $DB;
+        require_once(__DIR__ . '/../fixtures/listening_plugin.php');
+        require_once(__DIR__ . '/../fixtures/listening_plugin_lib.php');
+        listening_plugin::forget();
         set_config('quietdays', '0,1,2,3,4,5,6', self::C);
         $asker = $this->getDataGenerator()->create_user();
+        // A send that goes at once does not ask its plugin whether each item still goes: the plugin gave them just now and
+        // may not have kept the send yet, as a plugin that looks for it by its id would.
+        listening_plugin::$item = function () {
+            return false;
+        };
         $sample = api::bulk_request(self::C, self::N, [$this->item(2, '+34600000002')], (int)$asker->id, 'Muestra', '', true);
         $rest = api::bulk_request(self::C, self::N, [$this->item(3, '+34600000003')], (int)$asker->id, 'Charla');
         $api = $this->api();
@@ -264,6 +273,23 @@ final class implied_test extends \advanced_testcase {
         $this->assertSame('sent', api::bulk_items($sample['id'])[0]['status']);
         $waits = api::bulk_items($rest['id'])[0];
         $this->assertSame(['waiting', 'quiet'], [$waits['status'], $waits['why']]);
+
+        // One that waited for its approval asks: an item its plugin drops is not written to, and its number is not joined.
+        set_config('bulkthreshold', '0.01', self::C);
+        $boss = $this->getDataGenerator()->create_user();
+        $role = $this->getDataGenerator()->create_role();
+        assign_capability('local/oksigeniamarandu:bulkapprove', CAP_ALLOW, $role, \context_system::instance());
+        role_assign($role, $boss->id, \context_system::instance());
+        $sink = $this->redirectMessages();
+        $later = api::bulk_request(self::C, self::N, [$this->item(4, '+34600000004')], (int)$asker->id, 'Charla 2');
+        $this->assertSame('pending', $later['status']);
+        $this->assertTrue(bulk::decide($later['id'], true, (int)$boss->id));
+        $sink->close();
+        $said = api::bulk_items($later['id'])[0];
+        $this->assertSame(['skipped', 'plugin'], [$said['status'], $said['why']]);
+        $this->assertFalse($DB->record_exists(consent::CONTACTS, ['phone' => '34600000004', 'status' => 'active']));
+        listening_plugin::forget();
+
         $this->expectException(\coding_exception::class);
         api::bulk_request(self::C, self::N, [$this->item(4), $this->item(5)], (int)$asker->id, 'Muestra', '', true);
     }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.68.4 (2026-11-26)
+
+- A send that goes at once (a sample, or one under the limit of approval) no longer asks its plugin whether each item
+  still goes (`marandu_bulk_item`): the plugin gave the items just now and may not have kept the send yet, and a plugin
+  that looks for it by its id said no. Only a send that waited for its approval asks.
+- An item its plugin drops is not written to and its number is not joined by the permission of the plugin; it says so in
+  `api::bulk_items()` (`skipped`, why `plugin`).
+
 ## 0.68.3 (2026-11-26)
 
 - «Propose an improvement» draws what enters with an animation as it is seen, not in its first, faded frame: in the copy

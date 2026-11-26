@@ -231,6 +231,27 @@
         for (var k = 0; k < inside.length; k++) {
             inside[k].parentNode.removeChild(inside[k]);
         }
+        // What enters with an animation starts it again in the copy and would be drawn in its first frame, faded: every
+        // animation jumps to its end, keeping what it leaves there (fill-mode), and nothing changes by transition. Before
+        // anything is read. A sheet reaches the ::before and ::after too, where the page allows one; the style of each
+        // element, where it does not.
+        var still = copy.createElement('style');
+        still.textContent = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; ' +
+            'transition: none !important; }';
+        (copy.head || copy.documentElement).appendChild(still);
+        var all = copy.querySelectorAll('*');
+        var moving = [];
+        for (k = 0; k < all.length; k++) {
+            var name = all[k].style ? copy.defaultView.getComputedStyle(all[k]).getPropertyValue('animation-name') : '';
+            if (name && name !== 'none') {
+                moving.push(all[k]);
+            }
+        }
+        for (k = 0; k < moving.length; k++) {
+            moving[k].style.setProperty('animation-duration', '0s', 'important');
+            moving[k].style.setProperty('animation-delay', '0s', 'important');
+            moving[k].style.setProperty('transition', 'none', 'important');
+        }
         var nodes = copy.querySelectorAll('*');
         var found = [];
         var later = [];

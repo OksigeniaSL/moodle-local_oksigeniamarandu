@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.68.3 (2026-11-26)
+
+- «Propose an improvement» draws what enters with an animation as it is seen, not in its first, faded frame: in the copy
+  html2canvas draws, every animation jumps to its end, also where the page allows no style sheet.
+
 ## 0.68.2 (2026-11-26)
 
 - «Propose an improvement» takes the picture of pages with switches drawn with `::before` or `::after` (html2canvas put

@@ -58,3 +58,17 @@ function local_oksigeniamarandu_marandu_notice_done(
 function local_oksigeniamarandu_marandu_bulk_item(int $bulkid, string $notice, int $itemid): bool|array {
     return listening_plugin::$item ? (listening_plugin::$item)($itemid) : true;
 }
+
+/**
+ * Hears an answer to one of its sends, and thanks for it.
+ *
+ * @param int $bulkid The send.
+ * @param int $itemid The item.
+ * @param string $answer no.
+ * @param int $time When.
+ * @return string|null
+ */
+function local_oksigeniamarandu_marandu_bulk_answer(int $bulkid, int $itemid, string $answer, int $time): ?string {
+    listening_plugin::$answers[] = [$bulkid, $itemid, $answer];
+    return 'Thanks for telling us.';
+}

@@ -208,37 +208,64 @@ final class implied_test extends \advanced_testcase {
     }
 
     /**
-     * Its first «no» stops what its plugin sends, with a short answer; any other message makes it as anybody who joined;
-     * the «no» of somebody who joined by themselves is only a message.
+     * A «no» to an invitation is «we cannot come»: its plugin hears it with the send and the item, thanks, and the
+     * number keeps getting messages. Only the first thing after the send counts, from whoever joined or not; a «no» to
+     * something else is a message; only the words of leaving stop the messages.
      */
-    public function test_no_and_writing(): void {
+    public function test_no_is_an_answer(): void {
         global $DB;
-        $this->assertSame('', implied::join('+34600000002', self::C, '', 2, self::WHY));
-        $this->assertSame('', implied::join('+34600000007', self::C, '', 7, self::WHY));
+        require_once(__DIR__ . '/../fixtures/listening_plugin.php');
+        require_once(__DIR__ . '/../fixtures/listening_plugin_lib.php');
+        listening_plugin::forget();
         consent::optin_from_message('34600000001', api::invite(self::C, 1), 'join');
+        $DB->set_field(consent::CONTACTS, 'lastinbound', time() - 3 * DAYSECS, []);
+        $asker = $this->getDataGenerator()->create_user();
+        $items = [$this->item(1), $this->item(2, '+34600000002')];
+        $send = api::bulk_request(self::C, self::N, $items, (int)$asker->id, 'Charla');
+        queue::process($this->api());
 
         inbound::handle($this->payload('34600000002', 'No'));
+        inbound::handle($this->payload('34600000001', 'We cannot come!'));
+        $this->assertSame([[$send['id'], 2, 'no'], [$send['id'], 1, 'no']], listening_plugin::$answers);
+        $this->assertFalse($DB->record_exists(consent::OPTOUTS, []));
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => '34600000002']);
-        $this->assertSame('implied:no', $DB->get_field(consent::OPTOUTS, 'source', ['contactid' => $contact->id,
-            'scope' => self::C]));
+        $this->assertSame('active', $contact->status);
         $this->assertEmpty($contact->implied);
-        $this->assertCount(1, \core\task\manager::get_adhoc_tasks('\\local_oksigeniamarandu\\task\\send_reply'));
-        $this->assertSame('', api::item_channels(self::C, 2)['whatsapp']['implied']);
+        $this->assertCount(2, \core\task\manager::get_adhoc_tasks('\\local_oksigeniamarandu\\task\\send_reply'));
 
-        inbound::handle($this->payload('34600000007', 'Hola, ¿a qué hora es?'));
-        $other = $DB->get_record(consent::CONTACTS, ['phone' => '34600000007']);
-        $this->assertSame(['active', null], [$other->status, $other->implied]);
-        $this->assertFalse($DB->record_exists(consent::OPTOUTS, ['contactid' => $other->id]));
-        // Once it wrote, its «no» is a message like any other.
-        inbound::handle($this->payload('34600000007', 'no'));
-        $this->assertFalse($DB->record_exists(consent::OPTOUTS, ['contactid' => $other->id]));
+        // A second «no» is a message like any other.
+        inbound::handle($this->payload('34600000002', 'no'));
+        $this->assertCount(2, listening_plugin::$answers);
 
-        inbound::handle($this->payload('34600000001', 'No'));
-        $joined = $DB->get_record(consent::CONTACTS, ['phone' => '34600000001']);
-        $this->assertFalse($DB->record_exists(consent::OPTOUTS, ['contactid' => $joined->id]));
+        // A «no» after a notice that was not a send to many, neither.
+        $this->assertSame('', implied::join('+34600000007', self::C, '', 7, self::WHY));
+        api::notify(self::C, self::N, ['Centro', 'Aviso'], null, 7);
+        queue::process($this->api());
+        inbound::handle($this->payload('34600000007', 'No'));
+        $this->assertCount(2, listening_plugin::$answers);
 
-        // A number that said no is not joined again by the permission.
-        $this->assertSame('optout', implied::join('+34600000002', self::C, '', 9, self::WHY));
+        // BAJA does stop them.
+        inbound::handle($this->payload('34600000002', 'BAJA'));
+        $this->assertSame('optedout', $DB->get_field(consent::CONTACTS, 'status', ['phone' => '34600000002']));
+        listening_plugin::forget();
+    }
+
+    /**
+     * A sample of one item goes at once, also in the quiet hours; the rest waits for them; a sample is one item.
+     */
+    public function test_sample(): void {
+        set_config('quietdays', '0,1,2,3,4,5,6', self::C);
+        $asker = $this->getDataGenerator()->create_user();
+        $sample = api::bulk_request(self::C, self::N, [$this->item(2, '+34600000002')], (int)$asker->id, 'Muestra', '', true);
+        $rest = api::bulk_request(self::C, self::N, [$this->item(3, '+34600000003')], (int)$asker->id, 'Charla');
+        $api = $this->api();
+        queue::process($api);
+        $this->assertSame(['34600000002'], $api->sent);
+        $this->assertSame('sent', api::bulk_items($sample['id'])[0]['status']);
+        $waits = api::bulk_items($rest['id'])[0];
+        $this->assertSame(['waiting', 'quiet'], [$waits['status'], $waits['why']]);
+        $this->expectException(\coding_exception::class);
+        api::bulk_request(self::C, self::N, [$this->item(4), $this->item(5)], (int)$asker->id, 'Muestra', '', true);
     }
 
     /**

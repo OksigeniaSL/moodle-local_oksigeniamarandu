@@ -47,6 +47,9 @@ class bulk {
     /** The most items of a send. */
     public const MAXITEMS = 5000;
 
+    /** For how long a message of a send may be answered: a «no» later is a message like any other. */
+    public const ANSWER_DAYS = 7;
+
     /** @var string The component. */
     private const COMPONENT = 'local_oksigeniamarandu';
 
@@ -97,6 +100,8 @@ class bulk {
      * @param int $userid Who asks for it.
      * @param string $label What it is, for whoever approves it: «Invitation to the open day of 12 March».
      * @param string $area The kind of item.
+     * @param bool $sample A sample of one item, to see it before the rest: it goes at once, also in the quiet hours and over
+     *                     the notices a day.
      * @return array id and status (queued or pending).
      */
     public static function request(
@@ -105,11 +110,15 @@ class bulk {
         array $items,
         int $userid,
         string $label,
-        string $area = ''
+        string $area = '',
+        bool $sample = false
     ): array {
         global $DB;
         if (!$items || count($items) > self::MAXITEMS) {
             throw new \coding_exception('A send takes from 1 to ' . self::MAXITEMS . ' items');
+        }
+        if ($sample && count($items) !== 1) {
+            throw new \coding_exception('A sample is a send of one item');
         }
         $phones = [];
         foreach ($items as $item) {
@@ -140,6 +149,7 @@ class bulk {
             'sent' => 0,
             'timecreated' => $now,
             'timedecided' => $quote['approval'] ? 0 : $now,
+            'sample' => (int)$sample,
         ];
         $transaction = $DB->start_delegated_transaction();
         $bulk->id = $DB->insert_record(self::TABLE, $bulk);
@@ -399,6 +409,81 @@ class bulk {
                 return ['status' => 'skipped', 'time' => (int)($row->status === 'expired' ? $row->timeexpires : $row->timesent),
                     'why' => $row->status === 'expired' ? 'expired' : (string)$row->error, 'channel' => $channel];
         }
+    }
+
+    /**
+     * A «no» to the last message a number got, when that message came from a send to many, such as «we cannot come» to an
+     * invitation: its plugin hears it (callback <plugin>_marandu_bulk_answer($bulkid, $itemid, 'no', $time), which returns
+     * what to answer, or null) and it is not a «no» to the messages. Only the first thing the number writes after that
+     * message, within ANSWER_DAYS, and only if the plugin listens.
+     *
+     * @param string $phone Digits with the country code.
+     * @param int $before When the number had written before this message; 0 if never.
+     * @param string $text What it wrote.
+     * @return bool Whether it was that answer and its plugin took it.
+     */
+    public static function answer(string $phone, int $before, string $text): bool {
+        global $DB;
+        if (!in_array(joinask::plain($text), self::nowords(), true)) {
+            return false;
+        }
+        $contact = $DB->get_record(consent::CONTACTS, ['phone' => $phone], 'id');
+        if (!$contact) {
+            return false;
+        }
+        $rows = $DB->get_records_select(
+            queue::TABLE,
+            "contactid = :contactid AND status IN ('sent', 'delivered', 'read') AND timesent > :since",
+            ['contactid' => $contact->id, 'since' => time() - self::ANSWER_DAYS * DAYSECS],
+            'timesent DESC, id DESC',
+            '*',
+            0,
+            1
+        );
+        $row = reset($rows);
+        if (!$row || !(int)$row->itemid || (int)$row->timesent <= $before) {
+            return false;
+        }
+        // The send that queued it: released when it was queued.
+        $sends = $DB->get_records_sql("SELECT b.id
+                                         FROM {" . self::TABLE . "} b
+                                         JOIN {" . self::ITEMS . "} i ON i.bulkid = b.id
+                                        WHERE b.component = :component AND b.notice = :notice AND b.area = :area
+                                              AND b.status = 'queued' AND i.itemid = :itemid
+                                              AND b.timedecided BETWEEN :from AND :to
+                                     ORDER BY b.timedecided DESC, b.id DESC", ['component' => $row->component,
+            'notice' => $row->notice, 'area' => (string)$row->area, 'itemid' => $row->itemid,
+            'from' => (int)$row->timequeued - 10 * MINSECS, 'to' => (int)$row->timequeued + 5], 0, 1);
+        $send = reset($sends);
+        if (!$send || !component_callback_exists((string)$row->component, 'marandu_bulk_answer')) {
+            return false;
+        }
+        try {
+            $reply = component_callback((string)$row->component, 'marandu_bulk_answer', [(int)$send->id, (int)$row->itemid,
+                'no', time()]);
+        } catch (\Throwable $e) {
+            debugging('Marandu: a plugin failed with an answer to a send: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return false;
+        }
+        if (is_string($reply) && trim($reply) !== '') {
+            \local_oksigeniamarandu\task\send_reply::queue_text($phone, \core_text::substr(trim($reply), 0, 1000));
+        }
+        return true;
+    }
+
+    /**
+     * The whole answers that say «no» to what was sent, such as «we cannot come», in the languages of the site.
+     *
+     * @return string[]
+     */
+    public static function nowords(): array {
+        $strings = get_string_manager();
+        $words = [];
+        foreach (array_unique(array_merge(['en'], array_keys($strings->get_list_of_translations()))) as $lang) {
+            $list = $strings->get_string('bulk:nowords', self::COMPONENT, null, $lang);
+            array_push($words, ...array_map([joinask::class, 'plain'], explode(',', $list)));
+        }
+        return array_values(array_filter(array_unique($words), 'strlen'));
     }
 
     /**
@@ -726,7 +811,7 @@ class bulk {
                     $url === '' ? null : new \moodle_url($url),
                     (int)$item->itemid,
                     null,
-                    false,
+                    !empty($bulk->sample),
                     $phoned ? implied::VALIDFOR : 2 * DAYSECS,
                     [],
                     (string)$bulk->area,

@@ -63,6 +63,7 @@ The notices wait in the queue and go out as soon as it is fixed. Connect the bot
 $string['blockmail:telegramsubject'] = 'Telegram notices of {$a->site}: the bot has stopped';
 $string['bulk:line'] = '{$a->by} asks to send "{$a->label}": {$a->count} by WhatsApp, {$a->cost}';
 $string['bulk:notify'] = 'Waiting for your approval: {$a->by} asks to send "{$a->label}" ({$a->count} by WhatsApp, {$a->cost})';
+$string['bulk:nowords'] = 'no, no thanks, no thank you, we cannot come, we can not come, we cannot make it, we cannot, we will not come, not this time, sorry no, sorry we cannot';
 $string['bulk:or'] = '{$a->list} or {$a->last}';
 $string['bulk:said'] = '"{$a->label}": {$a->said}';
 $string['bulk:said:approved'] = 'Approved by {$a->by} · it goes now';
@@ -1290,7 +1291,6 @@ $string['error:token'] = 'Meta does not take the access token: it may have expir
 $string['error:unexpected'] = 'Meta answered something this version does not understand.';
 $string['event:classworksent'] = 'Work of a class sent to the channel';
 $string['history:attachment'] = 'Attachment that was not kept';
-$string['implied:no'] = 'All right, we will not write to you here any more.';
 $string['implied:quality'] = 'WhatsApp says the quality of the number went down to {$a}: what goes to people who did not join waits until it is green again.';
 $string['implied:qualityred'] = 'red';
 $string['implied:qualityyellow'] = 'yellow';

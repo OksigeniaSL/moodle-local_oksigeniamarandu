@@ -30,11 +30,15 @@ class listening_plugin {
     /** @var callable|null What it says of each item of a send; null to say nothing of it. */
     public static $item = null;
 
+    /** @var array The answers to its sends it heard: the send, the item and the answer. */
+    public static $answers = [];
+
     /**
      * Forgets everything.
      */
     public static function forget(): void {
         self::$heard = [];
         self::$item = null;
+        self::$answers = [];
     }
 }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.68.1 (2026-11-26)
+
+- A «no» to the last message a number got, when it came from a send to many (such as «we cannot come» to an invitation),
+  is an answer to that, not a «no» to the messages: its plugin hears it with `<plugin>_marandu_bulk_answer($bulkid,
+  $itemid, 'no', $time)` and says what to answer. Only the first thing written after that message, within a week, from a
+  number that joined or not. The words, in each language, with `api::bulk_nowords()`. Only the words of leaving stop the
+  messages, as always.
+- A sample of a send (`api::bulk_request(..., $sample = true)`, one item) goes at once, also in the quiet hours, to see it
+  before the rest.
+
 ## 0.68.0 (2026-11-26)
 
 - A send to many can also reach items nobody joined for, with the permission their plugin has (`api::bulk_phones()`): each

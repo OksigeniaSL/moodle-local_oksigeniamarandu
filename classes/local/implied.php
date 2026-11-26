@@ -18,9 +18,11 @@ namespace local_oksigeniamarandu\local;
 
 /**
  * Writing first to a number that has not joined, with the permission its plugin has: a family that gave its phone to be
- * written to, and has not said no. The number joins for that item as implied, until it writes or answers; its «no» or
- * any word of leaving stops it, as always. Also what WhatsApp lets a number write to in a day, and how well its messages
- * are taken, as Meta says each hour: what goes to people who did not join waits while the line is not green.
+ * written to, and has not said no. The number joins for that item as implied, until it writes or answers. Only a word of
+ * leaving (or a «no» to a question to join) stops it, as always: a «no» to what a send to many brought, such as an
+ * invitation, is an answer to that, and reaches its plugin (bulk::answer()). Also what WhatsApp lets a number write to in
+ * a day, and how well its messages are taken, as Meta says each hour: what goes to people who did not join waits while
+ * the line is not green.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -133,41 +135,6 @@ class implied {
         global $DB;
         $contact = $DB->get_record(consent::CONTACTS, ['phone' => $phone], 'id, status, implied');
         return $contact && $contact->status === 'active' ? (string)$contact->implied : '';
-    }
-
-    /**
-     * A number joined as implied answers «no»: the plugins it was joined for send nothing more to it, they hear of it as
-     * of any «no», and it is told so in a few words.
-     *
-     * @param string $phone Digits with the country code.
-     * @param string $was The permission it was joined with, as of() gave it before it wrote.
-     * @param string $text What it wrote.
-     * @return bool Whether it was that «no», and so nothing else.
-     */
-    public static function said_no(string $phone, string $was, string $text): bool {
-        global $DB;
-        if ($was === '' || !in_array(joinask::plain($text), joinask::words('no'), true)) {
-            return false;
-        }
-        $contact = $DB->get_record(consent::CONTACTS, ['phone' => $phone]);
-        if (!$contact) {
-            return false;
-        }
-        $components = $DB->get_fieldset_sql(
-            'SELECT DISTINCT component FROM {' . consent::LINKS . "}
-              WHERE contactid = :contactid AND userid IS NULL AND component <> 'core'",
-            ['contactid' => $contact->id]
-        );
-        foreach ($components as $component) {
-            consent::set_optout($contact, (string)$component, true, 'implied:no');
-        }
-        \local_oksigeniamarandu\task\send_reply::queue_text($phone, get_string_manager()->get_string(
-            'implied:no',
-            self::COMPONENT,
-            null,
-            $contact->lang ?: null
-        ));
-        return true;
     }
 
     /**

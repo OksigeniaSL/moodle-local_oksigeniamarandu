@@ -83,6 +83,17 @@ class consent {
     }
 
     /**
+     * When a number last wrote.
+     *
+     * @param string $phone Digits with the country code.
+     * @return int 0 if never, or the site does not know it.
+     */
+    public static function last_inbound(string $phone): int {
+        global $DB;
+        return (int)$DB->get_field(self::CONTACTS, 'lastinbound', ['phone' => $phone]);
+    }
+
+    /**
      * Notes that a number has just written: it opens the 24-hour window of WhatsApp.
      *
      * @param string $phone Digits with the country code.

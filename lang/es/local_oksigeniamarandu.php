@@ -63,6 +63,7 @@ Los avisos esperan en la cola y salen en cuanto se arregle. Conecta el bot otra 
 $string['blockmail:telegramsubject'] = 'Avisos por Telegram de {$a->site}: el bot se ha parado';
 $string['bulk:line'] = '{$a->by} pide mandar «{$a->label}»: {$a->count} por WhatsApp, {$a->cost}';
 $string['bulk:notify'] = 'Espera tu aprobación: {$a->by} pide mandar «{$a->label}» ({$a->count} por WhatsApp, {$a->cost})';
+$string['bulk:nowords'] = 'no, no gracias, no podemos, no podemos ir, no podremos, no podremos ir, no vamos, no vamos a ir, no iremos, esta vez no, esta vez no podemos, lo siento no podemos, no nos viene bien, no nos va bien, imposible';
 $string['bulk:or'] = '{$a->list} o {$a->last}';
 $string['bulk:said'] = '«{$a->label}»: {$a->said}';
 $string['bulk:said:approved'] = 'Aprobado por {$a->by} · sale ahora';
@@ -1290,7 +1291,6 @@ $string['error:token'] = 'Meta no acepta el token de acceso: puede haber caducad
 $string['error:unexpected'] = 'Meta ha respondido algo que esta versión no entiende.';
 $string['event:classworksent'] = 'Trabajo de clase mandado al canal';
 $string['history:attachment'] = 'Adjunto que no se ha conservado';
-$string['implied:no'] = 'De acuerdo, no les escribiremos más por aquí.';
 $string['implied:quality'] = 'WhatsApp dice que la calidad del número ha bajado a {$a}: lo que va a quien no se ha unido espera hasta que vuelva a verde.';
 $string['implied:qualityred'] = 'rojo';
 $string['implied:qualityyellow'] = 'amarillo';

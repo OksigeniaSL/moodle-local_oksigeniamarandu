@@ -448,6 +448,8 @@ class api {
      * @param int $userid Who asks for it.
      * @param string $label What it is, for whoever approves it, such as «Invitation to the open day of 12 March».
      * @param string $area The kind of item, if your plugin has more than one.
+     * @param bool $sample A sample of one item (such as a made-up family with the phone of whoever wants to see it), to see
+     *                     it before the rest: it goes at once, also in the quiet hours.
      * @return array id and status: queued (it goes now) or pending (it waits for approval).
      */
     public static function bulk_request(
@@ -456,9 +458,23 @@ class api {
         array $items,
         int $userid,
         string $label,
-        string $area = ''
+        string $area = '',
+        bool $sample = false
     ): array {
-        return local\bulk::request($component, $notice, $items, $userid, $label, self::area($area));
+        return local\bulk::request($component, $notice, $items, $userid, $label, self::area($area), $sample);
+    }
+
+    /**
+     * When somebody answers «no» (or «we cannot come», in the languages of the site) to the last message they got, and it
+     * came from a send to many of your plugin, within a week: your plugin hears it with the callback
+     * <plugin>_marandu_bulk_answer(int $bulkid, int $itemid, string $answer, int $time): ?string in its lib.php, which
+     * returns what to answer them (free, inside the 24 hours) or null for nothing. It is an answer to what was sent, not a
+     * «no» to the messages: only the words of leaving stop them. Without the callback, it reaches you as any message.
+     *
+     * @return string[] The answers that count as «no», as they are compared (small letters, without punctuation).
+     */
+    public static function bulk_nowords(): array {
+        return local\bulk::nowords();
     }
 
     /**

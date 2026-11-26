@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.68.2 (2026-11-26)
+
+- «Propose an improvement» takes the picture of pages with switches drawn with `::before` or `::after` (html2canvas put
+  them inside the field and failed reading them).
+
 ## 0.68.1 (2026-11-26)
 
 - A «no» to the last message a number got, when it came from a send to many (such as «we cannot come» to an invitation),

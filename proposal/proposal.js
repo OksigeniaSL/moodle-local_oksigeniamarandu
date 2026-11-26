@@ -225,6 +225,12 @@
     // made with a mask and the SVG images with no size. Only in the copy, and through the styles of each element (no style
     // sheet, for the pages with a policy that allows none).
     function drawable(copy) {
+        // html2canvas puts the ::before and ::after of a field (a switch drawn with appearance: none) inside it as a node
+        // of its own, and fails reading it. A field draws no children: nothing is lost.
+        var inside = copy.querySelectorAll('input > *, textarea > *');
+        for (var k = 0; k < inside.length; k++) {
+            inside[k].parentNode.removeChild(inside[k]);
+        }
         var nodes = copy.querySelectorAll('*');
         var found = [];
         var later = [];

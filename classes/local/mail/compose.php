@@ -73,8 +73,9 @@ class compose {
         $id = '';
         if ($keep) {
             $id = sha1($html);
-            mailer::keep_file($html, $id . '.html');
-            mailer::keep_file($text, sha1($html) . '.txt');
+            // Both found again by the hash of the HTML, the one the mark of the notice carries.
+            mailer::keep_file($html, $id . '.html', true);
+            mailer::keep_file($text, $id . '.txt', true);
         }
         return ['subject' => (string)($pieces['subject'] ?? $pieces['heading']), 'html' => $html, 'text' => $text,
             'images' => $images, 'unsubscribe' => (string)($pieces['unsub']['unsuburl'] ?? ''), 'id' => $id];

@@ -15,12 +15,11 @@
     along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 }}
 {{!
-    The template of the text of the common mail (letter/mail.txt.mst), rendered by compose::render(), not by
-    the renderer of Moodle: it is a mail, not a page.
+    @template oksigenia/mail_text
 
-    The plain text of the common e-mail, with the same words as the HTML (mail_letter.mustache) and in the same order: spam
+    The plain text of the common e-mail, with the same words as the HTML (mail.html.mst) and in the same order: spam
     filters compare both, and some readers only see this one. Plain text, so nothing is escaped. Every address is
-    written out after its words. The same context as mail.mustache.
+    written out after its words. The same context as mail.html.mst.
 
     Example context (json):
     {
@@ -88,7 +87,7 @@
 {{/action}}
 {{#link}}
 
-{{#linkbefore}}{{{linkbefore}}} {{/linkbefore}}{{{linktext}}}: {{{linkurl}}}
+{{#linkbefore}}{{{linkbefore}}} {{/linkbefore}}{{#linkbare}}{{{linkurl}}}{{/linkbare}}{{^linkbare}}{{{linktext}}}: {{{linkurl}}}{{/linkbare}}
 {{/link}}
 {{#small}}
 

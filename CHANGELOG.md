@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.71.0 (2026-11-27)
+
+- Attachments in `api::mail()` (and `api::mail_letter()`): `files`, each with name, mime and data, by both ways and also
+  in the line. 9 MB at most for all the attachments of a mail (Mailjet takes 15 MB a message, and an attachment grows a
+  third in base64): past that, the mail does not go, `api::mail()` says `toobig` and the plugin hears it.
+- The common mail: a link whose words are its own address is written once in the text version.
+
 ## 0.70.2 (2026-11-27)
 
 - Every date of the page «Mail» in the same way: «today at 15:58», «yesterday at 16:08», «on 24 November at 16:08».

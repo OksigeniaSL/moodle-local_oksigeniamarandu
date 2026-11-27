@@ -490,10 +490,12 @@ class cards {
      * @return string
      */
     private static function plain($text): string {
+        // Without tags and as letters, not entities: format_string() writes «&» as «&amp;», and a card or a mail
+        // escapes it again (Aty, 27-11).
         $text = preg_replace(
             '/[\x{10000}-\x{10FFFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE00}-\x{FE0F}\x{200D}\x{20E3}]/u',
             '',
-            strip_tags((string)$text)
+            html_entity_decode(strip_tags((string)$text), ENT_QUOTES | ENT_HTML5, 'UTF-8')
         );
         return trim(preg_replace('/[ \t]+/u', ' ', (string)$text));
     }

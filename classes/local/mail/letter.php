@@ -18,7 +18,7 @@ namespace local_oksigeniamarandu\local\mail;
 
 /**
  * The common e-mail of the Oksigenia plugins: from the brand of a centre and the pieces of one mail, the context of
- * letter/mail.html.mst and letter/mail.txt.mst, the pictures that go inside the mail and the headers it needs.
+ * mail.html.mst and mail.txt.mst, the pictures that go inside the mail and the headers it needs.
  *
  * No dependency on Moodle: PHP 8 with GD. Marandu fills it from the site in api::mail_html().
  *
@@ -41,7 +41,7 @@ final class letter {
      * colours of the brand with the main one first (one is enough); logo, the bytes of a PNG or JPEG; wordmark, true
      * when the logo already says the name.
      *
-     * The mail: lang; dir (ltr or rtl); subject; preheader; heading; hello; blocks (as in mail.mustache; a picture
+     * The mail: lang; dir (ltr or rtl); subject; preheader; heading; hello; blocks (as in mail.html.mst; a picture
      * brings picturebytes, picturealt, picturecaption and, if smaller, picturewidth, in place of its cid); signature
      * (signoff, signer, signrole); contact; reason; unsub (unsuburl, unsubtext, unsubhint: only in mails to many);
      * hero (bytes, alt and brand: a picture across the top, over the band; with brand, the picture already carries
@@ -94,6 +94,11 @@ final class letter {
                 $block = ['picture' => ['picturecid' => $cid, 'picturewidth' => $width,
                     'pictureheight' => (int)round($width * $h / $w), 'picturealt' => (string)($p['picturealt'] ?? ''),
                     'picturecaption' => (string)($p['picturecaption'] ?? '')]];
+            }
+            if (isset($block['link'])) {
+                // A link that shows its own address: the plain text writes it once, not «address: address».
+                $block['link']['linkbare'] = trim((string)($block['link']['linktext'] ?? ''))
+                    === trim((string)($block['link']['linkurl'] ?? ''));
             }
             $blocks[] = $block;
         }

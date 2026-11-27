@@ -414,6 +414,13 @@ final class mail_test extends \advanced_testcase {
         $this->assertStringContainsString('https://example.org/menu', $built['text']);
         $this->assertSame('', $built['id']);
 
+        // A name with «&»: escaped once in the mail, as it is in its text.
+        set_config('cardorg', 'Colegio Sol & Mar', self::C);
+        $built = api::mail_html(['heading' => 'Hola', 'blocks' => [['paragraph' => 'Texto.']]], 'es');
+        $this->assertStringContainsString('Colegio Sol &amp; Mar', $built['html']);
+        $this->assertStringNotContainsString('&amp;amp;', $built['html']);
+        $this->assertStringContainsString('Colegio Sol & Mar', $built['text']);
+
         // Built and sent at once: a send to many, with its way out.
         $this->choose_mailjet();
         $this->assertSame('queued', api::mail_letter('ana@example.com', $pieces, ['component' => self::C]));
@@ -467,6 +474,12 @@ final class mail_test extends \advanced_testcase {
         ));
         $sent = $this->sends()[0]['Messages'][0];
         $this->assertStringContainsString('Un envío a 20 familias espera tu decisión.', $sent['HTMLPart']);
+        // With the text version kept with it, not one made again from the HTML: the button keeps its address.
+        $this->assertStringContainsString(
+            'Conversaciones: https://www.example.com/moodle/local/oksigeniamarandu/chat.php',
+            $sent['TextPart']
+        );
+        $this->assertStringNotContainsString('&amp;', $sent['TextPart']);
         $this->assertStringContainsString('Conversaciones', $sent['HTMLPart']);
         $this->assertStringNotContainsString('Sencillo', $sent['HTMLPart']);
         $this->assertCount(0, $sink->get_messages());
@@ -542,6 +555,69 @@ final class mail_test extends \advanced_testcase {
         $this->assertFalse(check::test('ana@example.com', self::NOW)['ok']);
         $this->assertCount(0, $sink->get_messages());
         $this->assertSame('site', get_config(self::C, 'mailway') ?: 'site');
+    }
+
+    /**
+     * Attachments, by both ways and in the line; past their weight the mail does not go, and the plugin hears it.
+     */
+    public function test_files(): void {
+        global $DB;
+        $sink = $this->redirectEmails();
+        $pdf = ['name' => 'Previsión de compras.pdf', 'mime' => 'application/pdf', 'data' => '%PDF-1.4 ejemplo'];
+
+        // Home, by the mail of the site.
+        $this->assertSame('site', api::mail(
+            'pepe@example.org',
+            'Encargo',
+            '<p>Adjunto el encargo.</p>',
+            '',
+            [],
+            ['component' => self::C, 'files' => [$pdf]]
+        ));
+        $mail = $sink->get_messages()[0];
+        $this->assertStringContainsString('Content-Disposition: attachment', $mail->body);
+        $this->assertStringContainsString('application/pdf', $mail->body);
+
+        // Out of home, by Mailjet; and in the line, also after it waited.
+        $this->choose_mailjet();
+        $this->assertSame('mailjet', api::mail(
+            'catering@example.com',
+            'Previsión',
+            '<p>Adjunto la previsión.</p>',
+            '',
+            [],
+            ['component' => self::C, 'files' => [$pdf]]
+        ));
+        $attachment = $this->sends()[0]['Messages'][0]['Attachments'][0];
+        $this->assertSame(
+            ['application/pdf', 'Previsión de compras.pdf', base64_encode('%PDF-1.4 ejemplo')],
+            [$attachment['ContentType'], $attachment['Filename'], $attachment['Base64Content']]
+        );
+        $this->assertSame('queued', api::mail(
+            'tutor@example.com',
+            'Lista',
+            '<p>La lista.</p>',
+            '',
+            [],
+            ['component' => self::C, 'files' => [$pdf], 'later' => true, 'ref' => 'lista']
+        ));
+        mailer::process(self::NOW);
+        $this->assertSame(base64_encode('%PDF-1.4 ejemplo'), $this->sends()[1]['Messages'][0]['Attachments'][0]['Base64Content']);
+
+        // Too heavy: it does not go.
+        $big = ['name' => 'grande.pdf', 'mime' => 'application/pdf', 'data' => str_repeat('x', mailer::MAXFILES + 1)];
+        $this->assertSame('toobig', api::mail(
+            'catering@example.com',
+            'Grande',
+            '<p>Grande.</p>',
+            '',
+            [],
+            ['component' => self::C, 'files' => [$big], 'ref' => 'grande']
+        ));
+        $this->assertDebuggingCalled();
+        $this->assertSame(['catering@example.com', 'failed', 'toobig', 'grande'], array_slice(end(listening_plugin::$mail), 0, 4));
+        $this->assertCount(2, $this->sends());
+        $this->assertSame(0, $DB->count_records(mailer::TABLE, ['email' => 'catering@example.com', 'subject' => 'Grande']));
     }
 
     /**

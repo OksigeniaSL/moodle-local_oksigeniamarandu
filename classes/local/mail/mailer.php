@@ -58,6 +58,12 @@ class mailer {
     /** The most bytes of the pictures of one mail, so that it is not cut nor taken for spam. */
     public const MAXIMAGES = 1048576;
 
+    /**
+     * The most bytes of the attachments of one mail: Mailjet takes up to 15 MB a message with everything in it, and an
+     * attachment grows a third in base64 (9 MB are 12 MB, with room for the pictures and the text).
+     */
+    public const MAXFILES = 9437184;
+
     /** The waits between tries of what failed for a while; then each hour, until a day. */
     private const RETRIES = [MINSECS, 5 * MINSECS, 15 * MINSECS, HOURSECS];
 
@@ -67,12 +73,13 @@ class mailer {
     /**
      * Sends a mail, or leaves it waiting.
      *
-     * @param array $letter email, name, userid, subject, html, text, images (each with cid, name, mime and data),
-     *     component, ref, replyto, bulk, routine, unsubscribe (the address to leave, for a send to many) and later.
+     * @param array $letter email, name, userid, subject, html, text, images (each with cid, name, mime and data), files
+     *     (attachments, each with name, mime and data), component, ref, replyto, bulk, routine, unsubscribe (the address
+     *     to leave, for a send to many) and later.
      * @param int|null $now
      * @param bool $onlymailjet Only if it goes by Mailjet, now; if not, nothing (the mail of Moodle sends it).
-     * @return string site or mailjet (the way it went), queued, bad (the address does not receive), invalid, failed,
-     *     or, with $onlymailjet, no.
+     * @return string site or mailjet (the way it went), queued, bad (the address does not receive), invalid, toobig (the
+     *     attachments pass MAXFILES), failed, or, with $onlymailjet, no.
      */
     public static function send(array $letter, ?int $now = null, bool $onlymailjet = false): string {
         $now = $now ?? time();
@@ -82,6 +89,13 @@ class mailer {
         }
         if (self::refused($letter)) {
             return $onlymailjet ? 'no' : 'bad';
+        }
+        $size = array_sum(array_map(fn($file) => strlen($file['data']), $letter['files']));
+        if ($size > self::MAXFILES) {
+            debugging('Marandu: the attachments of a mail weigh ' . $size . ' bytes, more than ' . self::MAXFILES
+                . '; it does not go.', DEBUG_DEVELOPER);
+            self::tell($letter['component'], $letter['email'], 'failed', 'toobig', $letter['ref'], $now);
+            return 'toobig';
         }
         $bulk = $letter['bulk'] || $letter['later'];
         $way = self::route($letter, $now, quota::used($now), $why);
@@ -300,7 +314,10 @@ class mailer {
      * @return array
      */
     private static function normal(array $letter): array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
         $letter += ['email' => '', 'name' => '', 'userid' => 0, 'subject' => '', 'html' => '', 'text' => '', 'images' => [],
+            'files' => [],
             'component' => '', 'ref' => '', 'replyto' => '', 'bulk' => false, 'routine' => false, 'unsubscribe' => '',
             'later' => false, 'released' => false];
         $letter['email'] = \core_text::strtolower(trim((string)$letter['email']));
@@ -327,6 +344,16 @@ class mailer {
                 'mime' => (string)($image['mime'] ?? 'image/png'), 'data' => $data];
         }
         $letter['images'] = $images;
+        $files = [];
+        foreach ((array)$letter['files'] as $file) {
+            $data = (string)($file['data'] ?? '');
+            if ($data === '') {
+                continue;
+            }
+            $name = clean_param((string)($file['name'] ?? ''), PARAM_FILE) ?: 'file';
+            $files[] = ['name' => $name, 'mime' => (string)($file['mime'] ?? '') ?: mimeinfo('type', $name), 'data' => $data];
+        }
+        $letter['files'] = $files;
         foreach (['bulk', 'routine', 'later', 'released'] as $flag) {
             $letter[$flag] = !empty($letter[$flag]);
         }
@@ -384,7 +411,11 @@ class mailer {
             $images[] = ['cid' => $image['cid'], 'name' => $image['name'], 'mime' => $image['mime'],
                 'file' => self::keep_file($image['data'], $image['name'])];
         }
-        $payload = array_diff_key($letter, ['images' => 1]) + ['images' => $images];
+        $files = [];
+        foreach ($letter['files'] as $file) {
+            $files[] = ['name' => $file['name'], 'mime' => $file['mime'], 'file' => self::keep_file($file['data'], $file['name'])];
+        }
+        $payload = array_diff_key($letter, ['images' => 1, 'files' => 1]) + ['images' => $images, 'files' => $files];
         $DB->update_record(self::TABLE, (object)['id' => $id, 'payload' => json_encode($payload),
             'waiting' => $why, 'timeretry' => $why === null ? null : $now + ($why === 'paused' ? self::PAUSE : HOURSECS)]);
         return $id;
@@ -409,6 +440,14 @@ class mailer {
             }
         }
         $letter['images'] = $images;
+        $files = [];
+        foreach ((array)($letter['files'] ?? []) as $file) {
+            $kept = self::find_file((string)($file['file'] ?? ''));
+            if ($kept !== null) {
+                $files[] = ['name' => $file['name'], 'mime' => $file['mime'], 'data' => $kept['data']];
+            }
+        }
+        $letter['files'] = $files;
         $letter['released'] = !empty($row->released);
         return self::normal($letter);
     }
@@ -418,14 +457,16 @@ class mailer {
      * the notices of Moodle marked for this way, which come with their HTML only.
      *
      * @param string $data
-     * @param string $name Its name, for its extension.
+     * @param string $name Its name, for its extension; or the whole name to keep it with, with $asnamed.
+     * @param bool $asnamed Kept with that very name (a part found again by another, such as the text of a kept mail by
+     *     the hash of its HTML), not by what it is.
      * @return string What finds it again: the name it is kept with.
      */
-    public static function keep_file(string $data, string $name): string {
+    public static function keep_file(string $data, string $name, bool $asnamed = false): string {
         $fs = get_file_storage();
         $context = \context_system::instance();
         $ext = preg_replace('/[^a-z0-9]/', '', strtolower(pathinfo($name, PATHINFO_EXTENSION))) ?: 'png';
-        $filename = sha1($data) . '.' . $ext;
+        $filename = $asnamed ? clean_param($name, PARAM_FILE) : sha1($data) . '.' . $ext;
         if (!$fs->file_exists($context->id, self::C, self::FILEAREA, 0, '/', $filename)) {
             $fs->create_file_from_string(['contextid' => $context->id, 'component' => self::C, 'filearea' => self::FILEAREA,
                 'itemid' => 0, 'filepath' => '/', 'filename' => $filename], $data);
@@ -567,6 +608,9 @@ class mailer {
             $mail->isHTML(false);
             $mail->Body = $letter['text'];
         }
+        foreach ($letter['files'] as $file) {
+            $mail->addStringAttachment($file['data'], $file['name'], 'base64', $file['mime']);
+        }
         $ok = $mail->send();
         $error = $ok ? $note : (string)$mail->ErrorInfo;
         self::finish($id, $now, $ok ? 'sent' : 'failed', 'site', $error);
@@ -669,6 +713,10 @@ class mailer {
                 if ($inside) {
                     $message['InlinedAttachments'] = $inside;
                 }
+            }
+            if ($letter['files']) {
+                $message['Attachments'] = array_map(fn($file) => ['ContentType' => $file['mime'], 'Filename' => $file['name'],
+                    'Base64Content' => base64_encode($file['data'])], $letter['files']);
             }
             $replyto = $letter['replyto'] ?: settings::replyto();
             if ($replyto !== '' && validate_email($replyto)) {

@@ -15,8 +15,7 @@
     along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 }}
 {{!
-    The template of the common mail (letter/mail.html.mst), rendered by compose::render(), not by the renderer of
-    Moodle: a mail needs the attributes of tables that old mail programs read, which a page of HTML5 no longer has.
+    @template oksigenia/mail
 
     The common e-mail of the Oksigenia plugins, in the brand of the centre that sends it: a band in its colour with its
     logo on a white plate and its name (or a picture across the top), the stripe of its colours, the letter on white
@@ -25,9 +24,10 @@
     styles, with near white paper, so a program that darkens a mail by itself takes it as its background; the dark of
     the centre in the style block, for the programs that ask (Apple Mail, iOS, Outlook) and for Outlook.com. The logo
     keeps its white plate in every mode: inverted or dark, it never disappears. No remote image: the pictures go inside
-    the mail (cid:). The plain text version is mail_letter_text.mustache, with the same words.
+    the mail (cid:). The plain text version is mail.txt.mst, with the same words. Both are .mst, never .mustache: they
+    keep the table attributes Outlook needs, which the Moodle CI rejects in any .mustache of a plugin.
 
-    The colours come from letter::build(); every text arrives already in the language of the
+    The colours come from letter::context() (mail.php); every text arrives already in the language of the
     reader. Keys inside a block never repeat a key of the root: Mustache would take the root's when the block has none.
     For the same reason a list is never walked inside its own «list.0» section: that section puts the first item on
     the stack, and a later item without «bold» would take the first one's. The «.0» sections only open and close
@@ -49,7 +49,8 @@
     * blocks - one key each, in the order given:
         paragraph (text) · rich (runs: run, bold) · subheading (text) · data (rows: label, value) · items (texts) ·
         note (notetitle, notetext) · picture (picturecid, picturewidth, pictureheight, picturealt, picturecaption) ·
-        action (actionurl, actiontext) · link (linkbefore, linkurl, linktext) · small (text)
+        action (actionurl, actiontext) · link (linkbefore, linkurl, linktext; linkbare, set by mail.php when the text
+        is the address) · small (text)
     * signature - signoff, signer, signrole; or false
     * contact, reason - the foot: how to reach the centre (address, telephone, mail), why this mail arrives
     * unsub - unsuburl, unsubtext, unsubhint: only in mails to many, with List-Unsubscribe in the headers; or false

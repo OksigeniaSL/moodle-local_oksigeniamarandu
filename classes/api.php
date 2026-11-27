@@ -801,10 +801,11 @@ class api {
      * @param array $images Each with cid (as written in the HTML, cid:<cid>), name, mime and data (the bytes).
      * @param array $options component (the plugin that sends it), ref (what the plugin calls it, back in its events),
      *     replyto, bulk (one of a send to many), unsubscribe (with bulk: the https address to leave, for List-Unsubscribe
-     *     with one click), routine (daily and repeated: by the mail of the site once the month is near its quota) and
-     *     later (to the line, even to one person).
+     *     with one click), routine (daily and repeated: by the mail of the site once the month is near its quota), later
+     *     (to the line, even to one person) and files (attachments, each with name, mime and data: 9 MB at most in all).
      * @return string site or mailjet (the way it went), queued, bad (the address came back for good, was blocked, or marked
-     *     a mail as spam and this is a send to many or routine), invalid or failed.
+     *     a mail as spam and this is a send to many or routine), invalid, toobig (the attachments pass 9 MB: it does not
+     *     go) or failed.
      */
     public static function mail(
         $to,
@@ -831,7 +832,7 @@ class api {
             $letter['email'] = (string)$to;
         }
         $allowed = array_intersect_key($options, array_flip(['component', 'ref', 'replyto', 'bulk', 'unsubscribe', 'routine',
-            'later']));
+            'later', 'files']));
         return local\mail\mailer::send($letter + $allowed + ['subject' => $subject, 'html' => $html, 'text' => $text,
             'images' => $images]);
     }

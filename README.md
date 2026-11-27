@@ -32,6 +32,11 @@ everyone who writes, on top of Chatwoot. Each version is small and tested before
   `template_category_update` and, for the history of a number that moves from the app of WhatsApp Business,
   `history` and `smb_app_state_sync`.
 - **Telegram:** a bot of the organisation, made with @BotFather.
+- **Mail (optional):** the mails of the tools of the site go to the addresses of home (the domains you say) by the mail
+  of the site, and to the rest by the mail of the site too or by Mailjet, from a sender on a domain of the organisation
+  signed with DKIM, with their pictures inside, a text version and no tracking. Mailjet tells its bounces, blocks and
+  spam to `/local/oksigeniamarandu/mailjet.php`. Other plugins send with `api::mail()`, and their notices of Moodle
+  go the same way with `api::mail_from()` as sender (Moodle 5.3 and later).
 - **The conversations of the team (optional):** an account of Chatwoot (self-hosted) whose inbox receives the same
   WhatsApp. Each department is a team of Chatwoot; each person of the team, an agent of Chatwoot with the same email as
   their account on the site (one account per email); the hours of the team, those of the inbox, or a week of its own
@@ -73,6 +78,14 @@ Days by their names in English, Spanish, Portuguese or Arabic, whole or short, a
 those days, one span or several. In the calendar of closed days (`--calendar`), «Canteen: closed» closes only that
 department that day, and «Office: 8:00-12:00» gives it other hours that day. `--status` shows how the site is, and
 `--help` has the rest.
+
+The mail, with the keys of Mailjet on the standard input (one per line), its sender, the quota of its plan and a test:
+
+```
+printf '%s\n%s\n' "$KEY" "$SECRET" | sudo -u www-data php local/oksigeniamarandu/cli/mail.php --keys-file=- \
+  --from=notices@example.org --replyto=office@example.org --quota=15000 --check
+sudo -u www-data php local/oksigeniamarandu/cli/mail.php --test=you@example.com --way=mailjet --events --status
+```
 
 ## Development
 

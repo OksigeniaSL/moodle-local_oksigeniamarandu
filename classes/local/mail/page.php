@@ -1,0 +1,343 @@
+<?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+namespace local_oksigeniamarandu\local\mail;
+
+use local_oksigeniamarandu\local\gestures;
+
+/**
+ * The page «Mail», without the look of a form: where each mail goes out (home and out of home), Mailjet (its keys, who
+ * sends, who is answered, what Mailjet says of them, a test and its events), the month against the quota, the last
+ * mails, and the addresses that do not receive. Each card saves what it shows, and comes back with its «Saved».
+ *
+ * @package    local_oksigeniamarandu
+ * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class page {
+    /** The plugin. */
+    private const C = 'local_oksigeniamarandu';
+
+    /** The cards that save. */
+    public const PARTS = ['route', 'mailjet', 'month', 'bad'];
+
+    /** The most mails in a month the quota can be. */
+    private const MOSTQUOTA = 1000000;
+
+    /**
+     * Saves what a card sent.
+     *
+     * @param string $part One of PARTS.
+     * @return array The errors, by field; empty if saved.
+     */
+    public static function save(string $part): array {
+        $errors = [];
+        $do = optional_param('do', '', PARAM_ALPHA);
+        if ($part === 'route') {
+            if ($do === 'home') {
+                $text = optional_param('mailhome', '', PARAM_RAW_TRIMMED);
+                $domains = settings::domains($text);
+                if ($text !== '' && !$domains) {
+                    $errors['mailhome'] = get_string('mail:home:error', self::C);
+                } else {
+                    set_config('mailhome', implode(', ', $domains), self::C);
+                }
+            } else if ($do === 'site' || $do === 'mailjet') {
+                if ($do === 'mailjet' && !check::ready()) {
+                    $errors['way'] = get_string('mail:way:notready', self::C);
+                } else {
+                    set_config('mailway', $do, self::C);
+                }
+            }
+        } else if ($part === 'mailjet') {
+            if ($do === 'keys') {
+                $key = optional_param('mjkey', '', PARAM_RAW_TRIMMED);
+                $secret = optional_param('mjsecret', '', PARAM_RAW_TRIMMED);
+                if ($key === '' || $secret === '') {
+                    $errors['keys'] = get_string('mail:keys:error', self::C);
+                } else {
+                    settings::set_keys($key, $secret);
+                    check::run();
+                }
+            } else if ($do === 'sender') {
+                $from = optional_param('mjfrom', '', PARAM_RAW_TRIMMED);
+                $replyto = optional_param('mjreplyto', '', PARAM_RAW_TRIMMED);
+                if ($from !== '' && !validate_email($from)) {
+                    $errors['mjfrom'] = get_string('invalidemail');
+                }
+                if ($replyto !== '' && !validate_email($replyto)) {
+                    $errors['mjreplyto'] = get_string('invalidemail');
+                }
+                if (!$errors) {
+                    set_config('mjfrom', $from, self::C);
+                    set_config('mjfromname', optional_param('mjfromname', '', PARAM_TEXT), self::C);
+                    set_config('mjreplyto', $replyto, self::C);
+                    if (settings::keys()) {
+                        check::run();
+                    }
+                }
+            } else if ($do === 'check') {
+                check::run();
+            } else if ($do === 'test') {
+                $email = optional_param('mailtestto', '', PARAM_RAW_TRIMMED);
+                if (!validate_email($email)) {
+                    $errors['mailtestto'] = get_string('invalidemail');
+                } else {
+                    check::test($email);
+                }
+            } else if ($do === 'events') {
+                if (!self::listen()) {
+                    $errors['events'] = get_string('mail:events:error', self::C);
+                }
+            }
+        } else if ($part === 'month') {
+            if ($do === 'release') {
+                mailer::release();
+            } else {
+                foreach (['mailquota' => self::MOSTQUOTA, 'mailroutine' => 100] as $name => $most) {
+                    $value = optional_param($name, null, PARAM_INT);
+                    if ($value !== null) {
+                        set_config($name, max(0, min($most, $value)), self::C);
+                    }
+                }
+            }
+        } else if ($part === 'bad') {
+            events::forget(optional_param('forget', '', PARAM_RAW_TRIMMED));
+        }
+        return $errors;
+    }
+
+    /**
+     * What the page shows.
+     *
+     * @param string $saved The card just saved.
+     * @param array $errors
+     * @param \moodle_url $baseurl
+     * @param int|null $now
+     * @return array The context of local_oksigeniamarandu/mail.
+     */
+    public static function context(string $saved, array $errors, \moodle_url $baseurl, ?int $now = null): array {
+        global $CFG, $DB;
+        $now = $now ?? time();
+        $action = function (string $part) use ($baseurl): string {
+            return (new \moodle_url($baseurl, ['part' => $part]))->out(false) . '#mrd-' . $part;
+        };
+        $mailjet = settings::mailjet_chosen();
+        $checked = check::last();
+        $ready = check::ready();
+        $paused = mailer::paused($now);
+        $state = quota::state($now);
+        [$from, $fromname] = settings::from();
+        $keystime = (int)get_config(self::C, 'mjkeystime');
+        $test = json_decode((string)get_config(self::C, 'mailtest'), true);
+        $date = get_string('strftimedatetimeshort', 'langconfig');
+
+        $checks = [];
+        foreach (check::PARTS as $part) {
+            $value = $checked[$part] ?? 'unknown';
+            // SPF does not stop Mailjet: DKIM alone aligns the mail.
+            $checks[] = ['label' => get_string('mail:check:' . $part, self::C), 'ok' => $value === 'ok',
+                'bad' => $value === 'bad' && $part !== 'spf', 'warn' => $value === 'bad' && $part === 'spf',
+                'unknown' => $value === 'unknown', 'note' => get_string('mail:check:' . $part . ':' . $value, self::C)];
+        }
+        $events = self::events_here($checked);
+
+        $quota = $state['quota'];
+        $month = [
+            'saved' => $saved === 'month',
+            'action' => $action('month'),
+            'used' => format_float($state['used'], 0),
+            'hasquota' => $quota > 0,
+            'fill' => $quota ? min(100, round($state['used'] * 100 / $quota, 1)) : 0,
+            'mark' => settings::routine_share(),
+            'over' => $quota && $state['used'] >= $quota,
+            'near' => $quota && $state['used'] >= (int)$state['routine'] && $state['used'] < $quota,
+            'caption' => $quota ? get_string('mail:month:caption', self::C, (object)['used' => format_float($state['used'], 0),
+                'quota' => format_float($quota, 0), 'routine' => format_float((int)$state['routine'], 0)])
+                : get_string('mail:month:noquota', self::C, format_float($state['used'], 0)),
+            'counted' => $state['counted'] ? get_string('mail:month:counted', self::C, (object)[
+                'sent' => format_float($state['counted']['sent'], 0),
+                'time' => userdate((int)$state['counted']['time'], $date)]) : '',
+            'quotastepper' => gestures::stepper(
+                'mailquota',
+                $quota,
+                self::MOSTQUOTA,
+                get_string('mail:month:unit', self::C),
+                1000
+            ),
+            'sharestepper' => gestures::stepper(
+                'mailroutine',
+                settings::routine_share(),
+                100,
+                get_string('mail:month:shareunit', self::C),
+                5
+            ),
+            'waiting' => $state['waiting'] ? get_string('mail:month:waiting', self::C, $state['waiting']) : '',
+        ];
+
+        $recent = [];
+        $last = $DB->get_records_select(mailer::TABLE, 'timesent IS NOT NULL', null, 'timesent DESC, id DESC', '*', 0, 8);
+        foreach ($last as $row) {
+            $recent[] = [
+                'when' => userdate((int)$row->timesent, $date),
+                'plugin' => self::plugin_name((string)$row->component),
+                'email' => $row->email,
+                'way' => $row->way ? get_string('mail:way:' . $row->way, self::C) : '',
+                'failed' => $row->status === 'failed',
+                'error' => $row->status === 'failed' || ($row->error && strpos((string)$row->error, 'mailjet:') === 0)
+                    ? (string)$row->error : '',
+            ];
+        }
+        $today = $DB->get_records_sql(
+            "SELECT CASE WHEN status = 'failed' THEN 'failed' ELSE way END AS what, COUNT(1) AS n
+               FROM {" . mailer::TABLE . "}
+              WHERE timesent >= :start
+           GROUP BY CASE WHEN status = 'failed' THEN 'failed' ELSE way END",
+            ['start' => usergetmidnight($now)]
+        );
+        $todayline = [];
+        foreach (['site', 'mailjet', 'failed'] as $what) {
+            if (!empty($today[$what])) {
+                $todayline[] = get_string('mail:today:' . $what, self::C, (int)$today[$what]->n);
+            }
+        }
+
+        $bad = [];
+        foreach ($DB->get_records(mailer::BAD, null, 'timemodified DESC', '*', 0, 30) as $row) {
+            $bad[] = ['email' => $row->email, 'why' => get_string('mail:bad:' . $row->event, self::C),
+                'reason' => (string)$row->reason, 'when' => userdate((int)$row->timemodified, $date),
+                'plugin' => $row->component ? self::plugin_name((string)$row->component) : ''];
+        }
+
+        return [
+            'saved' => $saved,
+            'route' => [
+                'saved' => $saved === 'route',
+                'action' => $action('route'),
+                'home' => implode(', ', settings::home_domains()),
+                'homeerror' => $errors['mailhome'] ?? '',
+                'sitefrom' => $CFG->noreplyaddress ?? '',
+                'mailjet' => $mailjet,
+                'ready' => $ready,
+                'wayerror' => $errors['way'] ?? '',
+                'outcaption' => get_string($mailjet ? 'mail:out:mailjet' : 'mail:out:site', self::C, $from),
+                'paused' => $paused ? get_string('mail:paused', self::C, (object)['error' => s($paused['error']),
+                    'time' => userdate((int)$paused['time'], $date)]) : '',
+            ],
+            'mailjet' => [
+                'saved' => $saved === 'mailjet',
+                'action' => $action('mailjet'),
+                'keys' => $keystime ? get_string('mail:keys:set', self::C, userdate($keystime, $date)) : '',
+                'keyserror' => $errors['keys'] ?? '',
+                'from' => (string)get_config(self::C, 'mjfrom'),
+                'fromerror' => $errors['mjfrom'] ?? '',
+                'fromname' => (string)get_config(self::C, 'mjfromname'),
+                'fromnamehint' => $fromname,
+                'replyto' => (string)get_config(self::C, 'mjreplyto'),
+                'replytoerror' => $errors['mjreplyto'] ?? '',
+                'checks' => $checks,
+                'checked' => $checked ? get_string('mail:check:when', self::C, userdate((int)$checked['time'], $date)) : '',
+                'checkerror' => $checked['error'] ?? '',
+                'cancheck' => settings::keys() !== null,
+                'testto' => is_array($test) ? (string)$test['to'] : '',
+                'testerror' => $errors['mailtestto'] ?? '',
+                'test' => is_array($test) ? get_string($test['ok'] ? 'mail:test:ok' : 'mail:test:bad', self::C, (object)[
+                    'to' => s($test['to']), 'time' => userdate((int)$test['time'], $date), 'error' => s($test['error'])]) : '',
+                'testok' => is_array($test) && !empty($test['ok']),
+                'events' => $events,
+                'eventserror' => $errors['events'] ?? '',
+            ],
+            'month' => $month,
+            'today' => $todayline ? get_string('mail:today', self::C, implode(' · ', $todayline))
+                : get_string('mail:today:none', self::C),
+            'recent' => $recent,
+            'hasrecent' => !empty($recent),
+            'bad' => $bad,
+            'hasbad' => !empty($bad),
+            'badsaved' => $saved === 'bad',
+            'badaction' => $action('bad'),
+        ];
+    }
+
+    /**
+     * Where Mailjet tells the events of the account now: here, somewhere else, or nowhere; asked to Mailjet only when the
+     * keys open the account.
+     *
+     * @param array|null $checked
+     * @return array here, other (the address it goes to, without its key), none, canset, unknown (Mailjet did not say).
+     */
+    private static function events_here(?array $checked): array {
+        $out = ['here' => false, 'other' => '', 'none' => false, 'canset' => false, 'unknown' => false];
+        if (!$checked || $checked['keys'] !== 'ok') {
+            return $out;
+        }
+        $api = mailjet_api::from_config();
+        $list = $api ? $api->callbacks() : null;
+        if ($list === null) {
+            $out['unknown'] = true;
+            return $out;
+        }
+        $mine = settings::hook_url();
+        $urls = [];
+        foreach ($list as $callback) {
+            if (in_array($callback['EventType'] ?? '', mailjet_api::EVENTS, true)) {
+                $urls[$callback['EventType']] = (string)($callback['Url'] ?? '');
+            }
+        }
+        $out['here'] = count($urls) === count(mailjet_api::EVENTS) && count(array_unique($urls)) === 1 && reset($urls) === $mine;
+        $others = array_filter($urls, fn($url) => $url !== $mine);
+        $out['other'] = $others ? preg_replace('/([?&](k|key|token)=)[^&]+/i', '$1…', reset($others)) : '';
+        $out['none'] = !$urls;
+        $out['canset'] = !$out['here'];
+        return $out;
+    }
+
+    /**
+     * Makes Mailjet tell the events of the account here: bounce, blocked and spam.
+     *
+     * @return bool Whether Mailjet took the three.
+     */
+    public static function listen(): bool {
+        $api = mailjet_api::from_config();
+        $list = $api ? $api->callbacks() : null;
+        if ($list === null) {
+            return false;
+        }
+        $ids = [];
+        foreach ($list as $callback) {
+            $ids[(string)($callback['EventType'] ?? '')] = (int)($callback['ID'] ?? 0);
+        }
+        $ok = true;
+        foreach (mailjet_api::EVENTS as $event) {
+            $ok = $api->set_callback($event, settings::hook_url(), $ids[$event] ?? 0) && $ok;
+        }
+        return $ok;
+    }
+
+    /**
+     * The name of a plugin, for a person.
+     *
+     * @param string $component
+     * @return string
+     */
+    private static function plugin_name(string $component): string {
+        if ($component === '') {
+            return '';
+        }
+        $manager = get_string_manager();
+        return $manager->string_exists('pluginname', $component) ? get_string('pluginname', $component) : $component;
+    }
+}

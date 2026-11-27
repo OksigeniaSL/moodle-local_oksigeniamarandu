@@ -88,3 +88,16 @@ function local_oksigeniamarandu_marandu_chat_in(string $phone, string $text, int
     }
     listening_plugin::$chat[] = [$phone, $text, $time, $url, $messageid];
 }
+
+/**
+ * What became of a mail.
+ *
+ * @param string $email The address.
+ * @param string $event bounce, blocked, spam or failed.
+ * @param string $why What the other side said.
+ * @param string $ref What the plugin calls the mail.
+ * @param int $time When.
+ */
+function local_oksigeniamarandu_marandu_mail_event(string $email, string $event, string $why, string $ref, int $time): void {
+    listening_plugin::$mail[] = [$email, $event, $why, $ref, $time];
+}

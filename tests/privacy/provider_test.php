@@ -52,8 +52,8 @@ final class provider_test extends provider_testcase {
 
     /**
      * The tables, the answers and the conversations among them, WhatsApp, Telegram, Chatwoot, the other address of the
-     * webhook, the choices of the person on the conversations (backgrounds, tour, sound, desktop) and their reminders are
-     * declared.
+     * webhook, the choices of the person on the conversations (backgrounds, tour, sound, desktop), their reminders, the
+     * mails and Mailjet are declared.
      */
     public function test_get_metadata(): void {
         $items = provider::get_metadata(new \core_privacy\local\metadata\collection('local_oksigeniamarandu'))
@@ -72,7 +72,7 @@ final class provider_test extends provider_testcase {
             'local_oksigeniamarandu_convsched', 'local_oksigeniamarandu_joinask', 'local_oksigeniamarandu_waid',
             'local_oksigeniamarandu_chatfavs', 'local_oksigeniamarandu_board', 'local_oksigeniamarandu_boardto', consent::OPTOUTS,
             'local_oksigeniamarandu_bulk', 'local_oksigeniamarandu_teamconv', 'local_oksigeniamarandu_teammsg',
-            'local_oksigeniamarandu_teamread'],
+            'local_oksigeniamarandu_teamread', 'local_oksigeniamarandu_mail', 'local_oksigeniamarandu_mailbad', 'mailjet'],
             $names
         );
     }

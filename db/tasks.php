@@ -107,4 +107,14 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    [
+        // The mails that wait (a send to many, what Mailjet could not take a while), every minute.
+        'classname' => 'local_oksigeniamarandu\task\send_mail',
+        'blocking' => 0,
+        'minute' => '*',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

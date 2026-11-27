@@ -39,6 +39,9 @@ class listening_plugin {
     /** @var bool Whether it fails when it hears something written in the chat. */
     public static $chatfails = false;
 
+    /** @var array What it heard of its mails: the address, the event, why, its reference and when. */
+    public static $mail = [];
+
     /**
      * Forgets everything.
      */
@@ -48,5 +51,6 @@ class listening_plugin {
         self::$answers = [];
         self::$chat = [];
         self::$chatfails = false;
+        self::$mail = [];
     }
 }

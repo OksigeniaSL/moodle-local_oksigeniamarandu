@@ -244,6 +244,7 @@ class implied {
             $message->contexturl = (new \moodle_url('/local/oksigeniamarandu/chat.php', ['b' => 'inicio']))->out(false);
             $message->contexturlname = get_string('chat:title', self::COMPONENT);
             try {
+                \local_oksigeniamarandu\api::mail_notice($message);
                 message_send($message);
             } catch (\Throwable $e) {
                 debugging('Marandu: the quality of the line was not told: ' . $e->getMessage(), DEBUG_DEVELOPER);

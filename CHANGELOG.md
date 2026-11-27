@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.70.0 (2026-11-27)
+
+- The mails of the tools of the site, by one way. To the addresses of home (the domains the site says; by default that
+  of its no-reply address), by the mail of the site; to the rest, by the mail of the site too or by Mailjet, from a
+  sender of the organisation on a domain signed with DKIM. Always with their pictures inside (`cid:`), a text version,
+  `Auto-Submitted: auto-generated` and no tracking (no pixel, `TrackOpens` and `TrackClicks` disabled).
+- `api::mail($to, $subject, $html, $text, $images, $options)`: to a user or an address. A mail to one person goes at
+  once and, if Mailjet fails for a while or is stopped, by the mail of the site, so that it never waits. A send to many
+  (`bulk`, with `unsubscribe` for `List-Unsubscribe` with one click; or `later`) waits in a line that goes out each
+  minute, 50 mails a call, never by the mail of the site, and is tried again for a day. `routine` marks what is daily
+  and repeated.
+- The common look of the mails of the tools (templates `mail_letter` and `mail_letter_text`): the band in the colour of
+  the organisation with its logo on a white plate, the letter on white paper, and a foot with who writes, why it
+  arrives and, to many, how to leave; light and dark for the programs that ask, the logo always readable when a program
+  inverts the colours. `api::mail_html($pieces, $lang)` fills it from the site (the name, the colour and the logo of its
+  cards) with the pieces of a plugin (heading, greeting, paragraphs with bold, data, a short list, a note, a picture,
+  one button, a link, a small line, the signature, the foot, the way out), in the language of the reader;
+  `api::mail_letter($to, $pieces, $options)` builds and sends at once.
+- The notices of Moodle of any plugin (`message_send()`) go the same way, on Moodle 5.3 and later (hook
+  `before_email_to_user`): `api::mail_notice($message)` before `message_send()` gives the notice its mail in the common
+  look, which goes out with its pictures inside (home by the mail of the site, the rest by Mailjet when the site chose
+  it) while the bell keeps what it had; `api::mail_from($component, $routine)` as sender sends the notice as it comes,
+  by Mailjet out of home. If Marandu cannot send it, Moodle sends the notice as always; unmarked mails are never
+  touched. Marandu's own notices (a number that joins an account, the spend, the channel of WhatsApp) and its warnings
+  (a channel stopped, the cap of the month, Mailjet aside, the quota) already go this way, in the common look.
+- Mailjet refuses the keys or the sender (401, 403): it stays aside 15 minutes at a time, whoever is told of the limits
+  hears it once, a mail to one person goes by the mail of the site and a send to many waits.
+- The quota of the month of the plan of Mailjet: what Mailjet counts for the whole account each hour (also what other
+  tools send by it) or what Marandu sent, the more. Past a share (80 % by default), what is routine goes by the mail of
+  the site; at the quota, a send to many waits for the next month or for a person who lets it go, and a mail to one
+  person goes on. Warnings at that share and at the quota, once a month each.
+- The events of Mailjet (`mailjet.php`, with the key of the site): a bounce for good, a block and a mark of spam are
+  noted; an address that bounces or is blocked receives nothing more, one that marked spam nothing of a send to many nor
+  routine. The plugin whose mail it was hears it in `<plugin>_marandu_mail_event($email, $event, $why, $ref, $time)`;
+  a mail Marandu did not send goes to every plugin that listens. `api::mail_state()` says how an address is.
+- The page «Mail» (also from the panel), without the look of a form: the domains of home and the way of the rest; the
+  keys of Mailjet (kept encrypted, never shown), the sender and the address for answers; four lights of what Mailjet
+  says (the keys, the sender or its domain, DKIM and SPF; Mailjet can be chosen with the first three green); a test by
+  Mailjet; where Mailjet tells its events; the month against the quota; the latest mails; and the addresses that do
+  not receive, each with «Receives again». `cli/mail.php` does the same from the command line, with the keys on the
+  standard input.
+
 ## 0.69.2 (2026-11-27)
 
 - The robots that follow a link to look at it (the reader of links of Meta, the previews of WhatsApp, Telegram and the

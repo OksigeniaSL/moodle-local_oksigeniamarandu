@@ -1,0 +1,282 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/mail_letter
+
+    The common e-mail of the Oksigenia plugins, in the brand of the centre that sends it: a band in its colour with its
+    logo on a white plate and its name (or a picture across the top), the stripe of its colours, the letter on white
+    paper, and a foot that says who writes, why it arrives and, when it goes to many, how to stop it. Tables and styles
+    in line, the only thing every mail program respects; 600 pixels at most. Light by default in the elements' own
+    styles, with near white paper, so a program that darkens a mail by itself takes it as its background; the dark of
+    the centre in the style block, for the programs that ask (Apple Mail, iOS, Outlook) and for Outlook.com. The logo
+    keeps its white plate in every mode: inverted or dark, it never disappears. No remote image: the pictures go inside
+    the mail (cid:). The plain text version is mail_letter_text.mustache, with the same words.
+
+    The colours come from letter::build(); every text arrives already in the language of the
+    reader. Keys inside a block never repeat a key of the root: Mustache would take the root's when the block has none.
+    For the same reason a list is never walked inside its own «list.0» section: that section puts the first item on
+    the stack, and a later item without «bold» would take the first one's. The «.0» sections only open and close
+    the box.
+
+    Context variables required for this template:
+    * lang, dir, start, end - the language; ltr or rtl; left and right (or the reverse)
+    * subject, preheader - the subject (the title of the page) and the hidden line mail programs show before opening
+    * brand - name, unit (who writes inside the centre, or empty), site and siteurl (its address), or empty
+    * logo - logocid, logowidth, logoheight, wordmark (the logo already says the name); or false
+    * hero - herocid, herowidth, heroheight, heroalt: a picture across the top, over the band; herobrand, when the
+      picture already carries the brand (a greeting with the logo drawn in), and then it goes without the band; or false
+    * colours, dark - the colours by day and at night: page, wall, card, band, bandink, soft, ink, ink2, title, link,
+      accent, button, buttonink, line, border
+    * hasstripe, stripe, stripetop - the stripe of the brand, only with two colours or more: n, colour, night. Under the
+      band goes stripetop, without the main colour, which is the band's; the whole stripe goes at the foot, and under a
+      picture that carries the brand
+    * heading, hello - the title of the mail; the greeting, or empty
+    * blocks - one key each, in the order given:
+        paragraph (text) · rich (runs: run, bold) · subheading (text) · data (rows: label, value) · items (texts) ·
+        note (notetitle, notetext) · picture (picturecid, picturewidth, pictureheight, picturealt, picturecaption) ·
+        action (actionurl, actiontext) · link (linkbefore, linkurl, linktext) · small (text)
+    * signature - signoff, signer, signrole; or false
+    * contact, reason - the foot: how to reach the centre (address, telephone, mail), why this mail arrives
+    * unsub - unsuburl, unsubtext, unsubhint: only in mails to many, with List-Unsubscribe in the headers; or false
+    * sample - a line under the card, only in samples; or empty
+
+    Example context (json):
+    {
+        "lang": "es", "dir": "ltr", "start": "left", "end": "right",
+        "subject": "Un número se ha unido a tu cuenta", "preheader": "Desde hoy, tus avisos también llegan por WhatsApp.",
+        "brand": {"name": "Colegio Los Arces", "unit": "Secretaría", "site": "losarces.example",
+            "siteurl": "https://losarces.example"},
+        "logo": {"logocid": "logo", "logowidth": 44, "logoheight": 44, "wordmark": false}, "hero": false,
+        "colours": {"page": "#F3F4F6", "wall": "#E9EFED", "card": "#FFFFFF", "band": "#1F5A4E", "bandink": "#FFFFFF",
+            "soft": "#F1F5F4", "ink": "#1E2523", "ink2": "#57605E", "title": "#1F5A4E", "link": "#1F5A4E",
+            "accent": "#1F5A4E", "button": "#1F5A4E", "buttonink": "#FFFFFF", "line": "#D2DEDB", "border": "#B9C2C0"},
+        "dark": {"page": "#0F1715", "wall": "#0F1715", "card": "#16201E", "band": "#1F5A4E", "bandink": "#FFFFFF",
+            "soft": "#1F2927", "ink": "#EFF1F1", "ink2": "#B1B9B7", "title": "#D3E1DE", "link": "#8FC2B6",
+            "accent": "#5E9D8F", "button": "#5E9D8F", "buttonink": "#0B0B0F", "line": "#323B39", "border": "#55605D"},
+        "hasstripe": true,
+        "stripe": [{"n": 1, "colour": "#1F5A4E", "night": "#5E9D8F"}, {"n": 2, "colour": "#E0A526", "night": "#E0A526"}],
+        "stripetop": [{"n": 2, "colour": "#E0A526", "night": "#E0A526"}],
+        "heading": "Un número se ha unido a tu cuenta", "hello": "Hola, Marta:",
+        "blocks": [
+            {"paragraph": "Desde hoy, los avisos de la plataforma también te llegan a este número."},
+            {"rich": [{"run": "Lo ha añadido "}, {"run": "Marta Ruiz", "bold": true}, {"run": "."}]},
+            {"subheading": "El número"},
+            {"data": [{"label": "Número", "value": "+34 600 000 412"}, {"label": "Por", "value": "WhatsApp"}]},
+            {"items": ["Las notas", "Los avisos del tutor"]},
+            {"note": {"notetitle": "Ojo", "notetext": "Solo llegan los avisos que tienes encendidos."} },
+            {"picture": {"picturecid": "pic", "picturewidth": 520, "pictureheight": 260, "picturealt": "La tarjeta",
+                "picturecaption": "Así se ve en el móvil."} },
+            {"action": {"actionurl": "https://losarces.example/avisos", "actiontext": "Ver mis avisos"} },
+            {"link": {"linkbefore": "También puedes", "linkurl": "https://losarces.example/canales",
+                "linktext": "elegir qué avisos te llegan"} },
+            {"small": "Si no has sido tú, quita el número desde tu cuenta."}
+        ],
+        "signature": {"signoff": "Un saludo,", "signer": "Secretaría", "signrole": "Colegio Los Arces"},
+        "contact": "Calle de los Arces 14, Valle Alto · +34 900 000 014",
+        "reason": "Te llega porque tienes cuenta en la plataforma del Colegio Los Arces.",
+        "unsub": {"unsuburl": "https://losarces.example/baja", "unsubtext": "Darme de baja",
+            "unsubhint": "¿Prefieres no recibir estos correos?"},
+        "sample": ""
+    }
+}}
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="x-apple-disable-message-reformatting" content="yes">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{subject}}</title>
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+<style>
+table, td, p, a, h1, h2, span, strong { font-family: 'Segoe UI', Arial, sans-serif !important; }
+table { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+.om-gap { mso-line-height-rule: exactly; }
+.om-btn { mso-padding-alt: 15px 30px; }
+.om-btn-a { mso-padding-alt: 0; }
+</style>
+<![endif]-->
+<style>
+:root { color-scheme: light dark; }
+body { margin: 0 !important; padding: 0 !important; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table { border-collapse: collapse; }
+img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+[dir="rtl"] * { letter-spacing: 0 !important; }
+@media (max-width: 620px) {
+    .om-outer { padding: 0 !important; }
+    .om-card, .om-round { border-radius: 0 !important; }
+    .om-pad { padding-left: 20px !important; padding-right: 20px !important; }
+    .om-h1 { font-size: 24px !important; }
+    .om-dt, .om-dd { display: block !important; width: auto !important; }
+    .om-dt { padding-bottom: 0 !important; }
+    .om-dd { padding-top: 2px !important; padding-{{start}}: 16px !important; }
+    .om-btnwrap { width: 100% !important; }
+    .om-btn-a { display: block !important; text-align: center !important; }
+    .om-pic { width: 100% !important; height: auto !important; }
+}
+@media (prefers-color-scheme: light) {
+    .om-page { background-color: {{colours.wall}} !important; }
+}
+@media (prefers-color-scheme: dark) {
+    .om-page { background-color: {{dark.page}} !important; }
+    .om-card { background-color: {{dark.card}} !important; }
+    .om-soft { background-color: {{dark.soft}} !important; }
+    .om-ink { color: {{dark.ink}} !important; }
+    .om-ink2 { color: {{dark.ink2}} !important; }
+    .om-title { color: {{dark.title}} !important; }
+    .om-link { color: {{dark.link}} !important; }
+    .om-note { border-color: {{dark.accent}} !important; }
+    .om-bullet { background-color: {{dark.accent}} !important; }
+    .om-btn { background-color: {{dark.button}} !important; }
+    .om-btn-a { color: {{dark.buttonink}} !important; }
+    .om-line { background-color: {{dark.line}} !important; }
+    .om-baja { border-color: {{dark.border}} !important; color: {{dark.link}} !important; }
+{{#stripe}}
+    .om-s{{n}} { background-color: {{night}} !important; }
+{{/stripe}}
+}
+[data-ogsb] .om-page { background-color: {{dark.page}} !important; }
+[data-ogsb] .om-card { background-color: {{dark.card}} !important; }
+[data-ogsb] .om-soft { background-color: {{dark.soft}} !important; }
+[data-ogsc] .om-ink { color: {{dark.ink}} !important; }
+[data-ogsc] .om-ink2 { color: {{dark.ink2}} !important; }
+[data-ogsc] .om-title { color: {{dark.title}} !important; }
+[data-ogsc] .om-link { color: {{dark.link}} !important; }
+[data-ogsb] .om-btn { background-color: {{dark.button}} !important; }
+[data-ogsc] .om-btn-a { color: {{dark.buttonink}} !important; }
+</style>
+</head>
+<body class="om-page" style="margin:0;padding:0;background-color:{{colours.page}};">
+<!--[if !mso]><!--><div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:{{colours.page}};">{{preheader}}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div><!--<![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="om-page" style="width:100%;background-color:{{colours.page}};">
+<tr><td align="center" class="om-outer" style="padding:28px 12px;">
+<!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" dir="{{dir}}" width="100%" cellpadding="0" cellspacing="0" border="0" class="om-card" style="width:100%;max-width:600px;margin:0 auto;border-collapse:separate;border-spacing:0;background-color:{{colours.card}};border-radius:12px;text-align:{{start}};">
+{{#hero}}
+<tr><td class="om-round" style="padding:0;font-size:0;line-height:0;border-radius:12px 12px 0 0;"><img src="cid:{{herocid}}" width="{{herowidth}}" height="{{heroheight}}" alt="{{heroalt}}" class="om-round" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:12px 12px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.4;color:{{colours.bandink}};background-color:{{colours.band}};"></td></tr>
+{{/hero}}
+{{^hero.herobrand}}
+<tr><td class="om-pad om-round" bgcolor="{{colours.band}}" style="padding:18px 40px;background-color:{{colours.band}};border-radius:{{^hero}}12px 12px 0 0{{/hero}}{{#hero}}0{{/hero}};">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+{{#logo}}
+<td style="padding:0;padding-{{end}}:14px;vertical-align:middle;"><img src="cid:{{logocid}}" width="{{logowidth}}" height="{{logoheight}}" alt="{{#wordmark}}{{brand.name}}{{/wordmark}}" style="display:block;border:0;border-radius:10px;"></td>
+{{/logo}}
+{{^logo.wordmark}}
+<td style="padding:0;vertical-align:middle;">
+<p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.3;font-weight:700;color:{{colours.bandink}};">{{brand.name}}</p>
+{{#brand.unit}}<p style="margin:2px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.3;color:{{colours.bandink}};">{{brand.unit}}</p>{{/brand.unit}}
+</td>
+{{/logo.wordmark}}
+{{#logo.wordmark}}{{#brand.unit}}
+<td style="padding:0;vertical-align:middle;"><p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.3;font-weight:600;color:{{colours.bandink}};">{{brand.unit}}</p></td>
+{{/brand.unit}}{{/logo.wordmark}}
+</tr></table>
+</td></tr>
+{{/hero.herobrand}}
+{{#hasstripe}}
+<tr><td style="padding:0;font-size:0;line-height:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;"><tr>
+{{#hero.herobrand}}{{#stripe}}<td class="om-s{{n}} om-gap" height="6" bgcolor="{{colour}}" style="height:6px;padding:0;background-color:{{colour}};font-size:0;line-height:0;">&nbsp;</td>{{/stripe}}{{/hero.herobrand}}
+{{^hero.herobrand}}{{#stripetop}}<td class="om-s{{n}} om-gap" height="6" bgcolor="{{colour}}" style="height:6px;padding:0;background-color:{{colour}};font-size:0;line-height:0;">&nbsp;</td>{{/stripetop}}{{/hero.herobrand}}
+</tr></table></td></tr>
+{{/hasstripe}}
+<tr><td class="om-pad" style="padding:34px 40px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<h1 class="om-title om-h1" style="margin:0 0 18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:27px;line-height:1.25;font-weight:800;color:{{colours.title}};">{{heading}}</h1>
+{{#hello}}<p class="om-ink" style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.6;color:{{colours.ink}};">{{hello}}</p>{{/hello}}
+{{#blocks}}
+{{#paragraph}}<p class="om-ink" style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.6;color:{{colours.ink}};">{{paragraph}}</p>{{/paragraph}}
+{{#rich.0}}<p class="om-ink" style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.6;color:{{colours.ink}};">{{/rich.0}}{{#rich}}{{#bold}}<strong style="font-weight:700;">{{run}}</strong>{{/bold}}{{^bold}}{{run}}{{/bold}}{{/rich}}{{#rich.0}}</p>{{/rich.0}}
+{{#subheading}}<h2 class="om-title" style="margin:26px 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:19px;line-height:1.3;font-weight:800;color:{{colours.title}};">{{subheading}}</h2>{{/subheading}}
+{{#data.0}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="om-soft" bgcolor="{{colours.soft}}" style="width:100%;margin:4px 0 20px;border-collapse:separate;border-spacing:0;background-color:{{colours.soft}};border-radius:10px;">
+<tr><td height="8" style="height:8px;padding:0;font-size:0;line-height:0;">&nbsp;</td></tr>
+{{/data.0}}
+{{#data}}
+<tr><td style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;"><tr>
+<td class="om-dt om-ink2" width="132" style="width:132px;padding:7px 0 7px;padding-{{start}}:16px;vertical-align:top;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;color:{{colours.ink2}};">{{label}}</td>
+<td class="om-dd om-ink" style="padding:7px 16px 7px;padding-{{start}}:10px;vertical-align:top;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.45;font-weight:600;color:{{colours.ink}};">{{value}}</td>
+</tr></table></td></tr>
+{{/data}}
+{{#data.0}}
+<tr><td height="8" style="height:8px;padding:0;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
+{{/data.0}}
+{{#items.0}}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;">
+{{/items.0}}
+{{#items}}
+<tr>
+<td width="20" style="width:20px;padding:10px 0 0;vertical-align:top;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="om-bullet om-gap" width="7" height="7" bgcolor="{{colours.accent}}" style="width:7px;height:7px;padding:0;background-color:{{colours.accent}};border-radius:2px;font-size:0;line-height:0;">&nbsp;</td></tr></table></td>
+<td class="om-ink" style="padding:0 0 6px;vertical-align:top;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.6;color:{{colours.ink}};">{{.}}</td>
+</tr>
+{{/items}}
+{{#items.0}}
+</table>
+{{/items.0}}
+{{#note}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:4px 0 20px;"><tr>
+<td class="om-soft om-note" bgcolor="{{colours.soft}}" style="padding:14px 18px;background-color:{{colours.soft}};border-{{start}}:4px solid {{colours.accent}};border-radius:4px 10px 10px 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+{{#notetitle}}<p class="om-ink" style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.45;font-weight:700;color:{{colours.ink}};">{{notetitle}}</p>{{/notetitle}}
+<p class="om-ink" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:{{colours.ink}};">{{notetext}}</p>
+</td></tr></table>
+{{/note}}
+{{#picture}}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;"><tr><td style="padding:0;">
+<img src="cid:{{picturecid}}" width="{{picturewidth}}" height="{{pictureheight}}" alt="{{picturealt}}" class="om-pic om-soft om-ink2" style="display:block;max-width:100%;height:auto;border:0;border-radius:10px;background-color:{{colours.soft}};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;color:{{colours.ink2}};">
+{{#picturecaption}}<p class="om-ink2" style="margin:8px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;color:{{colours.ink2}};">{{picturecaption}}</p>{{/picturecaption}}
+</td></tr></table>
+{{/picture}}
+{{#action}}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="om-btnwrap" style="margin:8px 0 22px;border-collapse:separate;"><tr>
+<td class="om-btn" align="center" bgcolor="{{colours.button}}" style="border-radius:10px;background-color:{{colours.button}};">
+<a class="om-btn-a" href="{{actionurl}}" target="_blank" style="display:inline-block;padding:15px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.25;font-weight:700;color:{{colours.buttonink}};text-decoration:none;border-radius:10px;">{{actiontext}}</a>
+</td></tr></table>
+{{/action}}
+{{#link}}<p class="om-ink" style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:{{colours.ink}};">{{#linkbefore}}{{linkbefore}} {{/linkbefore}}<a class="om-link" href="{{linkurl}}" target="_blank" style="font-weight:700;color:{{colours.link}};text-decoration:underline;">{{linktext}}</a></p>{{/link}}
+{{#small}}<p class="om-ink2" style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.55;color:{{colours.ink2}};">{{small}}</p>{{/small}}
+{{/blocks}}
+{{#signature}}
+<p class="om-ink" style="margin:22px 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.5;color:{{colours.ink}};">{{signoff}}</p>
+<p class="om-title" style="margin:8px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;line-height:1.4;font-weight:700;color:{{colours.title}};">{{signer}}</p>
+{{#signrole}}<p class="om-ink2" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;color:{{colours.ink2}};">{{signrole}}</p>{{/signrole}}
+{{/signature}}
+</td></tr>
+{{#hasstripe}}
+<tr><td style="padding:18px 0 0;font-size:0;line-height:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;"><tr>
+{{#stripe}}<td class="om-s{{n}} om-gap" height="4" bgcolor="{{colour}}" style="height:4px;padding:0;background-color:{{colour}};font-size:0;line-height:0;">&nbsp;</td>{{/stripe}}
+</tr></table></td></tr>
+{{/hasstripe}}
+{{^hasstripe}}
+<tr><td class="om-pad" style="padding:18px 40px 0;font-size:0;line-height:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;"><tr><td class="om-line om-gap" height="1" bgcolor="{{colours.line}}" style="height:1px;padding:0;background-color:{{colours.line}};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
+{{/hasstripe}}
+<tr><td class="om-pad" style="padding:18px 40px 26px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<p class="om-ink2" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:{{colours.ink2}};"><strong class="om-title" style="font-weight:700;color:{{colours.title}};">{{brand.name}}</strong>{{#brand.site}} · <a class="om-link" href="{{brand.siteurl}}" target="_blank" style="color:{{colours.link}};text-decoration:none;">{{brand.site}}</a>{{/brand.site}}</p>
+{{#contact}}<p class="om-ink2" style="margin:2px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:{{colours.ink2}};">{{contact}}</p>{{/contact}}
+{{#reason}}<p class="om-ink2" style="margin:12px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:{{colours.ink2}};">{{reason}}</p>{{/reason}}
+{{#unsub}}<p class="om-ink2" style="margin:10px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:{{colours.ink2}};">{{unsubhint}} <a class="om-baja" href="{{unsuburl}}" target="_blank" style="display:inline-block;margin:2px 0;padding:5px 12px;border:1px solid {{colours.border}};border-radius:6px;font-weight:700;color:{{colours.link}};text-decoration:none;">{{unsubtext}}</a></p>{{/unsub}}
+</td></tr>
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+{{#sample}}<p class="om-ink2" style="margin:14px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:{{colours.ink2}};">{{sample}}</p>{{/sample}}
+</td></tr>
+</table>
+</body>
+</html>

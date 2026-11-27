@@ -788,6 +788,132 @@ class api {
     }
 
     /**
+     * Sends a mail by the way of the site: to an address of home, by the mail of the site; to one out of home, by Mailjet
+     * when the site chose it (page «Mail»), from the authenticated domain of the organization. The pictures go inside the
+     * mail (cid:), and there is always a text version and never tracking. A mail to one person goes at once and, if Mailjet
+     * fails, by the mail of the site; a send to many (bulk or later) waits in a line that goes out each minute, and never
+     * falls to the mail of the site. What becomes of it later comes to <plugin>_marandu_mail_event() in its lib.php.
+     *
+     * @param \stdClass|int|string $to A user, its id, or an address.
+     * @param string $subject
+     * @param string $html The mail; empty for text only.
+     * @param string $text Its text version; made from the HTML if empty.
+     * @param array $images Each with cid (as written in the HTML, cid:<cid>), name, mime and data (the bytes).
+     * @param array $options component (the plugin that sends it), ref (what the plugin calls it, back in its events),
+     *     replyto, bulk (one of a send to many), unsubscribe (with bulk: the https address to leave, for List-Unsubscribe
+     *     with one click), routine (daily and repeated: by the mail of the site once the month is near its quota) and
+     *     later (to the line, even to one person).
+     * @return string site or mailjet (the way it went), queued, bad (the address came back for good, was blocked, or marked
+     *     a mail as spam and this is a send to many or routine), invalid or failed.
+     */
+    public static function mail(
+        $to,
+        string $subject,
+        string $html,
+        string $text = '',
+        array $images = [],
+        array $options = []
+    ): string {
+        if (is_numeric($to)) {
+            $to = \core_user::get_user((int)$to);
+            if (!$to) {
+                return 'invalid';
+            }
+        }
+        $letter = ['email' => '', 'name' => '', 'userid' => 0];
+        if (is_object($to)) {
+            if (!empty($to->deleted) || !empty($to->suspended) || ($to->auth ?? '') === 'nologin') {
+                return 'invalid';
+            }
+            $letter = ['email' => (string)($to->email ?? ''), 'name' => isset($to->firstname) ? fullname($to) : '',
+                'userid' => (int)($to->id ?? 0)];
+        } else {
+            $letter['email'] = (string)$to;
+        }
+        $allowed = array_intersect_key($options, array_flip(['component', 'ref', 'replyto', 'bulk', 'unsubscribe', 'routine',
+            'later']));
+        return local\mail\mailer::send($letter + $allowed + ['subject' => $subject, 'html' => $html, 'text' => $text,
+            'images' => $images]);
+    }
+
+    /**
+     * A mail in the common look of the tools (the template of the organization: its name, its colour and its logo), from
+     * its pieces. Give the result to api::mail(), or use api::mail_letter() to build and send at once.
+     *
+     * @param array $pieces heading; subject (the heading if not given); preheader (the line a mail program shows before
+     *     opening it); hello; blocks, one piece each, in order: paragraph (text), rich (runs of run and bold), subheading,
+     *     data (rows of label and value), items (texts), note (notetitle, notetext), picture (picturebytes, picturealt,
+     *     picturecaption), action (actionurl, actiontext: the one button), link (linkbefore, linkurl, linktext), small;
+     *     signature (signer, signrole); contact and reason (the foot: how to reach the organization, why it arrives);
+     *     unsub (unsuburl, only to many: an https address that takes a POST «List-Unsubscribe=One-Click» and stops the
+     *     mails, and shows a page with a button on a GET); hero (bytes, alt: a picture across the top); unit (who writes
+     *     inside the organization).
+     * @param string $lang The language of the reader; that of the site if empty.
+     * @return array subject, html, text, images and unsubscribe, for api::mail().
+     */
+    public static function mail_html(array $pieces, string $lang = ''): array {
+        return local\mail\compose::build($pieces, $lang);
+    }
+
+    /**
+     * Builds a mail in the common look and sends it by the way of the site: api::mail_html() and api::mail() at once,
+     * in the language of the person when it goes to an account.
+     *
+     * @param \stdClass|int|string $to A user, its id, or an address.
+     * @param array $pieces As api::mail_html() takes them.
+     * @param array $options As api::mail() takes them; lang for an address without an account.
+     * @return string As api::mail() says.
+     */
+    public static function mail_letter($to, array $pieces, array $options = []): string {
+        $user = is_numeric($to) ? \core_user::get_user((int)$to) : (is_object($to) ? $to : null);
+        $lang = $user && !empty($user->lang) ? (string)$user->lang : (string)($options['lang'] ?? '');
+        $built = local\mail\compose::build($pieces, $lang);
+        if ($built['unsubscribe'] !== '') {
+            $options['unsubscribe'] = $built['unsubscribe'];
+            $options['bulk'] = $options['bulk'] ?? true;
+        }
+        return self::mail($user ?: $to, $built['subject'], $built['html'], $built['text'], $built['images'], $options);
+    }
+
+    /**
+     * Gives a notice of Moodle (before message_send()) its mail in the common look and the way of the site: when Moodle
+     * turns it into a mail, it goes with the template of the organization and its pictures inside, by the mail of the
+     * site to home and by Mailjet to the rest when the site chose it. What the bell shows does not change. Moodle 5.3 and
+     * later; before, Moodle sends the notice as always. One line before message_send():
+     * api::mail_notice($message);
+     *
+     * @param \core\message\message $message
+     * @param array $pieces As api::mail_html() takes them; empty for the subject, the text and the page of the notice.
+     * @param bool $routine Daily and repeated: by the mail of the site once the month is near its quota.
+     */
+    public static function mail_notice(\core\message\message $message, array $pieces = [], bool $routine = false): void {
+        local\mail\compose::for_notice($message, $pieces, $routine);
+    }
+
+    /**
+     * The sender of the notices of a plugin (message_send()) whose mail goes by the way of the site as it comes, without
+     * the common look: to an address out of home, by Mailjet, as api::mail(); to one of home, or if Mailjet does not take
+     * it, by the mail of Moodle as always. api::mail_notice() is the same with the common look. Moodle 5.3 and later.
+     *
+     * @param string $component The plugin.
+     * @param bool $routine Daily and repeated: by the mail of the site once the month is near its quota.
+     * @return \stdClass The no-reply user of the site, marked.
+     */
+    public static function mail_from(string $component, bool $routine = false): \stdClass {
+        return local\mail\hook::from($component, $routine);
+    }
+
+    /**
+     * What an address is, for the mails: whether a mail came back for good, was blocked or was marked as spam.
+     *
+     * @param string $email
+     * @return array|null event (bounce, blocked or spam), reason, component and time; null if it receives as any.
+     */
+    public static function mail_state(string $email): ?array {
+        return local\mail\events::state($email);
+    }
+
+    /**
      * By which channels a notice would reach an item now: somebody joined for it there, said no neither to everything nor
      * to the plugin, the site has the notice switched on for that channel and the channel works; on WhatsApp, inside the
      * 24 hours or with its template approved. A plugin that gets none has to say it another way, such as by mail.

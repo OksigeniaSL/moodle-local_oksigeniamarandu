@@ -33,6 +33,11 @@ escriba, encima de Chatwoot. Cada versión es pequeña y se prueba antes de publ
   `template_category_update` y, para el historial de un número que pasa desde la app de WhatsApp Business, `history` y
   `smb_app_state_sync`.
 - **Telegram:** un bot de la organización, hecho con @BotFather.
+- **Correo (opcional):** los correos de las herramientas del sitio van a las direcciones de casa (los dominios que digas)
+  por el correo del sitio, y a las demás también por el correo del sitio o por Mailjet, desde un remitente de un dominio
+  de la organización firmado con DKIM, con sus imágenes dentro, su versión de texto y sin rastreo. Mailjet cuenta sus
+  rebotes, bloqueos y spam a `/local/oksigeniamarandu/mailjet.php`. Los demás plugins mandan con `api::mail()`, y sus
+  avisos de Moodle van por el mismo camino con `api::mail_from()` como remitente (Moodle 5.3 y posteriores).
 - **Las conversaciones del equipo (opcional):** una cuenta de Chatwoot (instalado en un servidor propio) cuya bandeja
   recibe el mismo WhatsApp. Cada departamento es un equipo de Chatwoot; cada persona del equipo, un agente de Chatwoot
   con el mismo correo que su cuenta del sitio (una cuenta por correo); el horario del equipo, el de la bandeja, o una
@@ -69,6 +74,15 @@ Los días, por su nombre en español, inglés, portugués o árabe, entero o cor
 de esos días, un tramo o varios. En el calendario de días cerrados (`--calendar`), «Comedor: cerrado» cierra solo ese
 departamento ese día, y «Secretaría: 8:00-12:00» le da otro horario ese día. `--status` dice cómo está el sitio, y
 `--help` trae el resto.
+
+El correo, con las claves de Mailjet por la entrada estándar (una por línea), su remitente, el cupo de su plan y una
+prueba:
+
+```
+printf '%s\n%s\n' "$KEY" "$SECRET" | sudo -u www-data php local/oksigeniamarandu/cli/mail.php --keys-file=- \
+  --from=avisos@example.org --replyto=secretaria@example.org --quota=15000 --check
+sudo -u www-data php local/oksigeniamarandu/cli/mail.php --test=tu@example.com --way=mailjet --events --status
+```
 
 ## Desarrollo
 

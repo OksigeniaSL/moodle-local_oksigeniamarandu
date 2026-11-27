@@ -629,12 +629,8 @@ class queue {
         ];
         $prefix = $channel === 'telegram' ? 'blockmail:telegram' : 'blockmail:';
         foreach ($emails as $email) {
-            $to = \core_user::get_noreply_user();
-            $to->email = $email;
-            $to->emailstop = 0;
-            email_to_user(
-                $to,
-                \core_user::get_noreply_user(),
+            mail\mailer::warn(
+                $email,
                 get_string($prefix . 'subject', 'local_oksigeniamarandu', $a),
                 get_string($prefix . 'body', 'local_oksigeniamarandu', $a)
             );
@@ -1025,12 +1021,8 @@ class queue {
         $site = format_string(get_site()->fullname, true, ['context' => \context_system::instance(), 'escape' => false]);
         $a = (object)['site' => $site, 'cap' => format_float((float)get_config('local_oksigeniamarandu', 'capmonth'), 2)];
         foreach ($emails as $email) {
-            $to = \core_user::get_noreply_user();
-            $to->email = $email;
-            $to->emailstop = 0;
-            email_to_user(
-                $to,
-                \core_user::get_noreply_user(),
+            mail\mailer::warn(
+                $email,
                 get_string('capmail:subject', 'local_oksigeniamarandu', $a),
                 get_string('capmail:body', 'local_oksigeniamarandu', $a)
             );

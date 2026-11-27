@@ -594,6 +594,7 @@ class wachannel {
         $message->contexturl = $url->out(false);
         $message->contexturlname = get_string('wachannel:open', self::COMPONENT);
         try {
+            \local_oksigeniamarandu\api::mail_notice($message);
             message_send($message);
         } catch (\Throwable $e) {
             debugging('Marandu: a notification for the channel of WhatsApp did not go: ' . $e->getMessage(), DEBUG_DEVELOPER);

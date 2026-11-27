@@ -47,6 +47,7 @@ use local_oksigeniamarandu\local\channel;
 use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\history;
 use local_oksigeniamarandu\local\joinask;
+use local_oksigeniamarandu\local\mail\mailer;
 use local_oksigeniamarandu\local\proposals;
 use local_oksigeniamarandu\local\telegram;
 use local_oksigeniamarandu\local\wachannel;
@@ -211,6 +212,20 @@ class provider implements
             'userid' => 'privacy:metadata:chatwoot:userid',
             'message' => 'privacy:metadata:chatwoot:message',
         ], 'privacy:metadata:chatwoot');
+        $collection->add_database_table(mailer::TABLE, [
+            'userid' => 'privacy:metadata:mail:userid',
+            'email' => 'privacy:metadata:mail:email',
+            'subject' => 'privacy:metadata:mail:subject',
+            'timesent' => 'privacy:metadata:mail:timesent',
+        ], 'privacy:metadata:mail');
+        $collection->add_database_table(mailer::BAD, [
+            'email' => 'privacy:metadata:mailbad:email',
+            'event' => 'privacy:metadata:mailbad:event',
+        ], 'privacy:metadata:mailbad');
+        $collection->add_external_location_link('mailjet', [
+            'email' => 'privacy:metadata:mailjet:email',
+            'message' => 'privacy:metadata:mailjet:message',
+        ], 'privacy:metadata:mailjet');
         $collection->add_user_preference(chat_prefs::PREFERENCE, 'privacy:metadata:preference:chatbackgrounds');
         $collection->add_user_preference(agenda::PREF, 'privacy:metadata:preference:chatfavs');
         foreach (array_keys(chat_flag::FLAGS) as $name) {
@@ -245,6 +260,7 @@ class provider implements
             || $DB->record_exists(team::READS, ['userid' => $userid])
             || $DB->record_exists_select(team::CONVS, 'usera = ? OR userb = ?', [$userid, $userid])
             || $DB->record_exists_select(proposals::TABLE, 'userid = ? OR doneby = ?', [$userid, $userid])
+            || $DB->record_exists(mailer::TABLE, ['userid' => $userid])
         ) {
             $contextlist->add_system_context();
         }
@@ -278,6 +294,7 @@ class provider implements
         $userlist->add_from_sql('userb', 'SELECT userb FROM {' . team::CONVS . '} WHERE userb > 0', []);
         $userlist->add_from_sql('userid', 'SELECT userid FROM {' . proposals::TABLE . '}', []);
         $userlist->add_from_sql('doneby', 'SELECT doneby FROM {' . proposals::TABLE . '} WHERE doneby > 0', []);
+        $userlist->add_from_sql('userid', 'SELECT userid FROM {' . mailer::TABLE . '} WHERE userid > 0', []);
     }
 
     /**
@@ -369,6 +386,10 @@ class provider implements
                 return ['tool' => $one->component, 'screen' => (string)$one->screen, 'url' => (string)$one->pageurl,
                     'text' => $one->body, 'status' => $one->status, 'time' => transform::datetime($one->timecreated)];
             }, $DB->get_records(proposals::TABLE, ['userid' => $userid], 'id'))),
+            'mails' => array_values(array_map(function ($one) {
+                return ['subject' => (string)$one->subject, 'email' => $one->email, 'way' => (string)$one->way,
+                    'status' => $one->status, 'time' => transform::datetime((int)($one->timesent ?: $one->timequeued))];
+            }, $DB->get_records(mailer::TABLE, ['userid' => $userid], 'id'))),
         ];
         if ($numbers || $reviewed || $whatsapp || array_filter($conversations)) {
             writer::with_context($context)->export_data(
@@ -446,6 +467,8 @@ class provider implements
         $DB->delete_records(team::CONVS);
         get_file_storage()->delete_area_files($context->id, 'local_oksigeniamarandu', proposals::AREA);
         $DB->delete_records(proposals::TABLE);
+        $DB->delete_records(mailer::TABLE);
+        $DB->delete_records(mailer::BAD);
     }
 
     /**
@@ -513,6 +536,12 @@ class provider implements
             );
         }
         $DB->delete_records(proposals::TABLE, ['userid' => $userid]);
+        // Their mails, and what was noted of their address.
+        $email = $DB->get_field('user', 'email', ['id' => $userid]);
+        if ($email) {
+            $DB->delete_records(mailer::BAD, ['email' => \core_text::strtolower((string)$email)]);
+        }
+        $DB->delete_records(mailer::TABLE, ['userid' => $userid]);
         $DB->set_field(proposals::TABLE, 'doneby', null, ['doneby' => $userid]);
         foreach ($links as $link) {
             if ($link->contactid && !$DB->record_exists(consent::LINKS, ['contactid' => $link->contactid])) {

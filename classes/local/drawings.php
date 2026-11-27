@@ -58,6 +58,8 @@ class drawings {
             '<circle cx="32" cy="33" r="15" fill="currentColor" fill-opacity=".12"/>' .
             '<circle cx="32" cy="33" r="8"/><path d="M9 14 V24 C9 27 14 27 14 24 V14 M11.5 14 V54"/>' .
             '<path d="M55 14 C51 18 50 28 54 31 V54"/>',
+        'correo' =>
+            '<rect x="8" y="15" width="48" height="34" rx="5"/><path d="M10 18l22 17 22-17"/><path d="M10 47l16-14M54 47L38 33"/>',
         'elige' =>
             '<rect x="8" y="12" width="48" height="40" rx="6" fill="currentColor" fill-opacity=".12"/>' .
             '<path d="M15 25 H28 M15 39 H28"/>' .

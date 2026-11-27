@@ -591,5 +591,54 @@
         <INDEX NAME="status-timecreated" UNIQUE="false" FIELDS="status, timecreated"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_mail" COMMENT="The mails that went by Marandu, or wait: by the mail of the site or by Mailjet">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="The plugin that sends it"/>
+        <FIELD NAME="ref" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="What the plugin calls it, for its events"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="The person, when it goes to an account"/>
+        <FIELD NAME="email" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="subject" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="way" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="site or mailjet, once it went"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="queued" SEQUENCE="false" COMMENT="queued, sent or failed"/>
+        <FIELD NAME="bulk" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="One of a send to many"/>
+        <FIELD NAME="routine" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Daily and repeated: by the mail of the site once the month is near its quota"/>
+        <FIELD NAME="released" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Let go by Mailjet past the quota by a person"/>
+        <FIELD NAME="waiting" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Why it waits: quota, paused or retry"/>
+        <FIELD NAME="error" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="mjid" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="The id Mailjet gave it"/>
+        <FIELD NAME="payload" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The mail while it waits; empty once it went"/>
+        <FIELD NAME="attempts" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timequeued" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timeretry" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timesent" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="status-timeretry" UNIQUE="false" FIELDS="status, timeretry"/>
+        <INDEX NAME="way-timesent" UNIQUE="false" FIELDS="way, timesent"/>
+        <INDEX NAME="email" UNIQUE="false" FIELDS="email"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_mailbad" COMMENT="The addresses that do not receive: a mail came back for good, was blocked, or was marked as spam">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="email" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="event" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="bounce, blocked or spam"/>
+        <FIELD NAME="reason" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="What the other side said"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="The plugin whose mail it was"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="email" UNIQUE="true" FIELDS="email"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

@@ -364,6 +364,7 @@ class consent {
         $message->contexturl = (new \moodle_url('/message/notificationpreferences.php'))->out(false);
         $message->contexturlname = get_string('newchat:where', 'local_oksigeniamarandu');
         try {
+            \local_oksigeniamarandu\api::mail_notice($message);
             message_send($message);
         } catch (\Throwable $e) {
             debugging('Marandu: the person was not told of a new chat: ' . $e->getMessage(), DEBUG_DEVELOPER);

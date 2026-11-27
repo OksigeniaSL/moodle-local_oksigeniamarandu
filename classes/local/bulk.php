@@ -881,6 +881,7 @@ class bulk {
             $message->customdata = \local_oksigeniamarandu\local\message_icon::customdata();
             $message->contexturl = $url->out(false);
             $message->contexturlname = get_string('chat:title', self::COMPONENT);
+            \local_oksigeniamarandu\api::mail_notice($message);
             message_send($message);
             try {
                 \local_oksigeniamarandu\api::ask(
@@ -923,6 +924,7 @@ class bulk {
         $message->smallmessage = $subject;
         $message->notification = 1;
         $message->customdata = \local_oksigeniamarandu\local\message_icon::customdata();
+        \local_oksigeniamarandu\api::mail_notice($message);
         message_send($message);
     }
 

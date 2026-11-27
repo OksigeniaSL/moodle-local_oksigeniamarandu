@@ -15,7 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * What Marandu listens to of itself: the buttons of the notice of a conversation, pressed on Telegram.
+ * What Marandu listens to: the buttons of the notice of a conversation, pressed on Telegram; the entry in the main
+ * navigation; and the mails Moodle is about to send, for the notices marked for its way.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -35,5 +36,12 @@ if (class_exists(\core\hook\navigation\primary_extend::class)) {
     $callbacks[] = [
         'hook' => \core\hook\navigation\primary_extend::class,
         'callback' => [\local_oksigeniamarandu\local\chat\entry::class, 'primary'],
+    ];
+}
+// The notices of the plugins that Moodle turns into a mail, marked for the way of Marandu (Moodle 5.3 and later).
+if (class_exists(\core\hook\email\before_email_to_user::class)) {
+    $callbacks[] = [
+        'hook' => \core\hook\email\before_email_to_user::class,
+        'callback' => [\local_oksigeniamarandu\local\mail\hook::class, 'before'],
     ];
 }

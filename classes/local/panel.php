@@ -123,6 +123,9 @@ class panel {
                 $links[] = $link('limits.php', get_string('limits:title', $component), 'silencio');
             } else if ($current === 'limits') {
                 $links[] = $link('notices.php', get_string('panel:notices', $component), 'elige');
+                $links[] = $link('mail.php', get_string('mail:title', $component), 'correo');
+            } else if ($current === 'mail') {
+                $links[] = $link('limits.php', get_string('limits:title', $component), 'silencio');
             } else if ($current === 'channel') {
                 $links[] = $link('telegram.php', 'Telegram', 'telegram', 'tg');
             }
@@ -139,6 +142,7 @@ class panel {
             ),
             $link('notices.php', get_string('panel:notices', $component), 'elige'),
             $link('limits.php', get_string('limits:title', $component), 'silencio'),
+            $link('mail.php', get_string('mail:title', $component), 'correo'),
             $link('wizard.php', 'WhatsApp', 'whatsapp', 'wa'),
             $link('telegram.php', 'Telegram', 'telegram', 'tg'),
         ];

@@ -242,7 +242,7 @@ class implied {
             $message->notification = 1;
             $message->customdata = message_icon::customdata();
             $message->contexturl = (new \moodle_url('/local/oksigeniamarandu/chat.php', ['b' => 'inicio']))->out(false);
-            $message->contexturlname = get_string('chat:title', self::COMPONENT);
+            $message->contexturlname = get_string('notice:action:chat', self::COMPONENT);
             try {
                 \local_oksigeniamarandu\api::mail_notice($message);
                 message_send($message);

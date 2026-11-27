@@ -228,7 +228,10 @@ $PAGE->blocks->show_only_fake_blocks(true);
 if ($canconfig) {
     $PAGE->add_header_action($OUTPUT->render_from_template(
         'local_oksigeniamarandu/panel_links',
-        ['links' => panel::links('channel')]
+        ['links' => panel::links('channel'), 'extra' => \local_oksigeniamarandu\api::proposal_button(
+            'local_oksigeniamarandu',
+            get_string('channel:title', 'local_oksigeniamarandu')
+        )]
     ));
 }
 
@@ -667,11 +670,14 @@ if ($current) {
     }
 }
 
-// «Propose an improvement» of this page, the piece the tools of the site share.
-$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
-    'local_oksigeniamarandu',
-    get_string('channel:title', 'local_oksigeniamarandu')
-));
+// «Propose an improvement» of this page, the piece the tools of the site share: beside the links of the panel, when
+// they are there.
+if (!$canconfig) {
+    $PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
+        'local_oksigeniamarandu',
+        get_string('channel:title', 'local_oksigeniamarandu')
+    ));
+}
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/channel', $context);
 // The PNG copies of the logos drawn in SVG, for the cards: the browser of whoever administers makes them.

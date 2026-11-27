@@ -150,6 +150,7 @@ class quota {
                 $email,
                 get_string('mail:quota:' . $level . ':subject', self::C, $a),
                 get_string('mail:quota:' . $level . ':body', self::C, $a),
+                get_string('mail:action:month', self::C),
                 $now
             );
         }

@@ -18,7 +18,7 @@ namespace local_oksigeniamarandu\local\mail;
 
 /**
  * The common e-mail of the Oksigenia plugins: from the brand of a centre and the pieces of one mail, the context of
- * mail_letter.mustache and mail_letter_text.mustache, the pictures that go inside the mail and the headers it needs.
+ * letter/mail.mustache and letter/mail_text.mustache, the pictures that go inside the mail and the headers it needs.
  *
  * No dependency on Moodle: PHP 8 with GD. Marandu fills it from the site in api::mail_html().
  *

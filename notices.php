@@ -110,7 +110,10 @@ $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template(
     'local_oksigeniamarandu/panel_links',
-    ['links' => panel::links('notices')]
+    ['links' => panel::links('notices'), 'extra' => \local_oksigeniamarandu\api::proposal_button(
+        'local_oksigeniamarandu',
+        get_string('notices:title', 'local_oksigeniamarandu')
+    )]
 ));
 
 // The notices by plugin, the plugins of the house first and Marandu's own at the end.
@@ -237,11 +240,6 @@ require([], function() {
 JS
 );
 
-// «Propose an improvement» of this page, the piece the tools of the site share.
-$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
-    'local_oksigeniamarandu',
-    get_string('notices:title', 'local_oksigeniamarandu')
-));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/notices', $context);
 echo $OUTPUT->footer();

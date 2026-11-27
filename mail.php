@@ -50,16 +50,14 @@ $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template(
     'local_oksigeniamarandu/panel_links',
-    ['links' => panel::links('mail')]
-));
-$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
-    'local_oksigeniamarandu',
-    get_string('mail:title', 'local_oksigeniamarandu')
+    ['links' => panel::links('mail'), 'extra' => \local_oksigeniamarandu\api::proposal_button(
+        'local_oksigeniamarandu',
+        get_string('mail:title', 'local_oksigeniamarandu')
+    )]
 ));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/mail', [
     'lead' => get_string('mail:lead', $component),
-    'formurl' => $baseurl->out(false),
     'sesskey' => sesskey(),
 ] + page::context($errors ? $part : optional_param('saved', '', PARAM_ALPHA), $errors, $baseurl));
 echo $OUTPUT->footer();

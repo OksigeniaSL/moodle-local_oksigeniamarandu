@@ -20,8 +20,8 @@ use local_oksigeniamarandu\local\cards;
 
 /**
  * The common mail of the tools, filled from the site: its name, its colour and its logo (the brand of the cards), the
- * words that are always the same in the language of the reader, and the pieces a plugin gives (letter, templates
- * mail_letter and mail_letter_text). The pictures are kept by what they are, so that a notice of Moodle marked for the
+ * words that are always the same in the language of the reader, and the pieces a plugin gives (letter, and the
+ * templates letter/mail.mustache and letter/mail_text.mustache). The pictures are kept by what they are, so that a notice of Moodle marked for the
  * way of Marandu, which comes with its HTML only, finds them again when it goes out.
  *
  * @package    local_oksigeniamarandu
@@ -44,7 +44,7 @@ class compose {
      *     (what finds it again, when kept).
      */
     public static function build(array $pieces, string $lang = '', bool $keep = false): array {
-        global $CFG, $PAGE;
+        global $CFG;
         $lang = $lang !== '' ? $lang : (string)$CFG->lang;
         $manager = get_string_manager();
         $say = fn(string $key) => $manager->get_string('mail:letter:' . $key, self::C, null, $lang);
@@ -57,10 +57,8 @@ class compose {
         $pieces['lang'] = $lang;
         $pieces['dir'] = $manager->get_string('thisdirection', 'langconfig', null, $lang) === 'rtl' ? 'rtl' : 'ltr';
         $built = letter::build(self::brand((string)($pieces['unit'] ?? '')), $pieces);
-        $renderer = $PAGE->get_renderer('core');
-        $html = $renderer->render_from_template('local_oksigeniamarandu/mail_letter', $built['context']);
-        $text = $renderer->render_from_template('local_oksigeniamarandu/mail_letter_text', $built['context']);
-        $text = trim(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $html = self::render('mail', $built['context']);
+        $text = trim(html_entity_decode(self::render('mail_text', $built['context']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $images = [];
         foreach ($built['images'] as $image) {
             // Named by what it is: the same picture, the same name, in every mail that carries it.
@@ -83,6 +81,32 @@ class compose {
     }
 
     /**
+     * Renders a template of the mail (letter/), with the Mustache of Moodle but not its renderer: a mail keeps the
+     * attributes of tables that old mail programs read, which the templates of the pages of Moodle may not have.
+     *
+     * @param string $name mail or mail_text.
+     * @param array $context
+     * @return string
+     */
+    private static function render(string $name, array $context): string {
+        global $CFG;
+        static $engine = null;
+        if ($engine === null) {
+            $options = ['escape' => fn($value) => s($value)];
+            if (class_exists(\Mustache\Engine::class)) {
+                $engine = new \Mustache\Engine($options);
+            } else {
+                if (!class_exists(\Mustache_Engine::class)) {
+                    require_once($CFG->libdir . '/mustache/src/Mustache/Autoloader.php');
+                    \Mustache_Autoloader::register();
+                }
+                $engine = new \Mustache_Engine($options);
+            }
+        }
+        return $engine->render((string)file_get_contents(__DIR__ . '/../../../letter/' . $name . '.mustache'), $context);
+    }
+
+    /**
      * Gives a notice of Moodle its mail in the common look, for when Moodle turns it into a mail: it is kept, and the
      * sender of the notice is marked so that the way of Marandu takes it out with its pictures (Moodle 5.3 and later).
      * What the notice shows in the bell does not change. Without pieces, the mail says the subject of the notice, its
@@ -96,7 +120,8 @@ class compose {
         $to = is_object($message->userto) ? $message->userto : \core_user::get_user((int)$message->userto);
         $lang = $to && !empty($to->lang) ? (string)$to->lang : '';
         if (!$pieces) {
-            $pieces = self::from_text((string)$message->subject, (string)$message->fullmessage, '', $lang);
+            $text = trim((string)$message->fullmessage);
+            $pieces = self::from_text((string)$message->subject, $text === trim((string)$message->subject) ? '' : $text, '', $lang);
             $url = $message->contexturl;
             if (!empty($url)) {
                 $pieces['blocks'][] = ['action' => ['actionurl' => $url instanceof \moodle_url ? $url->out(false) : (string)$url,
@@ -130,14 +155,27 @@ class compose {
      * @param string $text
      * @param string $reason Why it arrives.
      * @param string $lang
+     * @param string $action What its button says, naming what it does; the words before the address if empty.
      * @return array The pieces.
      */
-    public static function from_text(string $subject, string $text, string $reason = '', string $lang = ''): array {
+    public static function from_text(
+        string $subject,
+        string $text,
+        string $reason = '',
+        string $lang = '',
+        string $action = ''
+    ): array {
         global $CFG;
         $blocks = [];
-        foreach (preg_split('/\R{2,}/', trim($text)) as $part) {
+        foreach ($text === '' ? [] : preg_split('/\R{2,}/', trim($text)) as $part) {
             if (preg_match('~^(.*?):?\s*(' . preg_quote($CFG->wwwroot, '~') . '\S*)$~s', trim($part), $match)) {
-                $label = trim($match[1]);
+                $before = rtrim(trim($match[1]), ':');
+                // With a button that says what it does, the sentence before the address stays, unless it only pointed
+                // to it («To look at it»).
+                if ($action !== '' && count(preg_split('/\s+/u', $before)) > 4) {
+                    $blocks[] = ['paragraph' => $before];
+                }
+                $label = $action !== '' ? $action : $before;
                 $blocks[] = ['action' => ['actionurl' => $match[2], 'actiontext' => $label !== '' ? $label
                     : get_string_manager()->get_string('mail:letter:open', self::C, null, $lang ?: $CFG->lang)]];
                 continue;

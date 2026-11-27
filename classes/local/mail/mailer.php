@@ -119,11 +119,13 @@ class mailer {
      * @param string $email
      * @param string $subject
      * @param string $text Paragraphs; a line that ends in an address of the site becomes its button.
+     * @param string $action What the button says, naming what it does.
      * @param int|null $now
      * @return string As send() says.
      */
-    public static function warn(string $email, string $subject, string $text, ?int $now = null): string {
-        $built = compose::build(compose::from_text($subject, $text, get_string('mail:letter:reason:limits', self::C)));
+    public static function warn(string $email, string $subject, string $text, string $action = '', ?int $now = null): string {
+        $reason = get_string('mail:letter:reason:limits', self::C);
+        $built = compose::build(compose::from_text($subject, $text, $reason, '', $action));
         return self::send(['email' => $email, 'subject' => $subject, 'html' => $built['html'], 'text' => $built['text'],
             'images' => $built['images'], 'component' => self::C], $now);
     }
@@ -731,7 +733,13 @@ class mailer {
             'url' => (new \moodle_url('/local/oksigeniamarandu/mail.php'))->out(false)];
         foreach (limits::emails() as $email) {
             // Mailjet is aside now: this goes by the mail of the site.
-            self::warn($email, get_string('mail:paused:subject', self::C, $a), get_string('mail:paused:body', self::C, $a), $now);
+            self::warn(
+                $email,
+                get_string('mail:paused:subject', self::C, $a),
+                get_string('mail:paused:body', self::C, $a),
+                get_string('mail:action:mailjet', self::C),
+                $now
+            );
         }
     }
 

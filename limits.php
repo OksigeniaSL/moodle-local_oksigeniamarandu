@@ -51,14 +51,12 @@ $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template(
     'local_oksigeniamarandu/panel_links',
-    ['links' => panel::links('limits')]
+    ['links' => panel::links('limits'), 'extra' => \local_oksigeniamarandu\api::proposal_button(
+        'local_oksigeniamarandu',
+        get_string('limits:title', 'local_oksigeniamarandu')
+    )]
 ));
 
-// «Propose an improvement» of this page, the piece the tools of the site share.
-$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
-    'local_oksigeniamarandu',
-    get_string('limits:title', 'local_oksigeniamarandu')
-));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/limits', [
     'lead' => get_string($money ? 'limits:lead' : 'limits:lead_tg', $component),

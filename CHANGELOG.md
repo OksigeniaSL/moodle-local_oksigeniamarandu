@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.70.1 (2026-11-27)
+
+- The templates of the common mail live in `letter/` and are rendered with the Mustache of Moodle, not as templates of
+  pages: a mail keeps the attributes of tables that old mail programs read, which the checks of the templates of Moodle
+  take as obsolete HTML (the tag v0.70.0 stopped there).
+- The page «Mail», after its review: the domains of home as chips with their ×, and a field that adds one on Enter;
+  the way out of home as one choice of two cards, Mailjet off with its reason until it is ready; each card its own form;
+  the latest mails and the addresses that do not receive in words («It bounced: that address does not exist», «Mailjet
+  did not answer and it went by the mail of the site»), with what the other side said in small; «Today, 15:30»; the
+  names of the tools also when this site does not have them; the numbers with their separator of thousands; and «Propose
+  an improvement» in the row of the links of the header, on every page of Marandu.
+- The buttons of the mails name what they do: the notices of Marandu say «Decide on the send», «See the spend of the
+  month» or «See your notices», and its warnings «Check Mailjet», «See the quota of the month» or «Check the
+  connection»; a notice whose text is its title does not repeat it.
+- The processor of mail of Moodle takes a notice sent by the way of Marandu as sent (tested on its own).
+
 ## 0.70.0 (2026-11-27)
 
 - The mails of the tools of the site, by one way. To the addresses of home (the domains the site says; by default that

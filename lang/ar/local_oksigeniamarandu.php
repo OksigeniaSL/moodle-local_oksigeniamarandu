@@ -97,6 +97,7 @@ $string['marandu:join_option_no'] = 'لا';
 $string['marandu:join_option_yes'] = 'نعم';
 $string['marandu:join_template'] = 'تأكيد طلبكم: طلبتم استلام إشعارات {{1}} عبر واتساب. هل هذا صحيح؟';
 $string['marandu:notification_button'] = 'اقرأه';
+$string['newchat:where'] = 'عرض إشعاراتك';
 $string['reply:joinno'] = 'حسنًا: لن نكتب لكم هنا. إذا أردتم يومًا ما، يكفي أن تكتبوا {$a->optin}.';
 $string['reply:joinover'] = 'شكرًا على ردكم. لم يعد هذا الطلب قائمًا؛ إن احتجتم إلى أي شيء فاكتبوا لنا هنا.';
 $string['reply:optin'] = 'تم: من الآن ستصلك هنا إشعارات {$a->site}. لإيقافها، يكفي أن تكتب {$a->optout}.';

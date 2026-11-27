@@ -97,6 +97,7 @@ $string['marandu:join_option_no'] = 'Não';
 $string['marandu:join_option_yes'] = 'Sim';
 $string['marandu:join_template'] = 'Confirmação do vosso pedido: pediram para receber os avisos {{1}} pelo WhatsApp. Está certo?';
 $string['marandu:notification_button'] = 'Ler';
+$string['newchat:where'] = 'Ver os seus avisos';
 $string['reply:joinno'] = 'De acordo: não vos escreveremos por aqui. Se um dia quiserem, basta escrever {$a->optin}.';
 $string['reply:joinover'] = 'Obrigado por responderem. Esse pedido já não está em curso; para o que precisarem, escrevam-nos por aqui mesmo.';
 $string['reply:optin'] = 'Feito: a partir de agora os avisos de {$a->site} chegam aqui. Para deixares de os receber, basta escreveres {$a->optout}.';

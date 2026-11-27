@@ -427,6 +427,7 @@ final class mail_test extends \advanced_testcase {
      * fails, by the mail of the site through Marandu, never twice.
      */
     public function test_notice_letter(): void {
+        global $CFG;
         if (!class_exists(\core\hook\email\before_email_to_user::class)) {
             $this->markTestSkipped('The hook before_email_to_user comes with Moodle 5.3.');
         }
@@ -480,9 +481,13 @@ final class mail_test extends \advanced_testcase {
         $this->assertStringContainsString('Un env', $sink->get_messages()[0]->body);
         $this->assertCount(1, $this->sends());
 
-        // The whole notice counts as sent: message_send() gives its id.
-        set_user_preference('message_provider_' . self::C . '_spend_enabled', 'email', $home);
-        $this->assertNotFalse(message_send($notice($home)));
+        // The processor of mail of Moodle takes the notice as sent, so that the whole notice counts as sent.
+        require_once($CFG->dirroot . '/message/output/email/message_output_email.php');
+        $message = $notice($home);
+        $eventdata = (object)['userto' => $home, 'userfrom' => $message->userfrom, 'subject' => $message->subject,
+            'fullmessage' => $message->fullmessage, 'fullmessagehtml' => $message->fullmessagehtml, 'notification' => 1,
+            'attachment' => null, 'replyto' => null];
+        $this->assertTrue((new \message_output_email())->send_message($eventdata));
         $this->assertCount(2, $sink->get_messages());
 
         $this->answer = fn($method, $path) => $path === '/v3.1/send' ? [500, ['ErrorMessage' => 'Down']] : null;

@@ -47,13 +47,17 @@ class page {
         $errors = [];
         $do = optional_param('do', '', PARAM_ALPHA);
         if ($part === 'route') {
-            if ($do === 'home') {
-                $text = optional_param('mailhome', '', PARAM_RAW_TRIMMED);
+            $remove = optional_param('removehome', '', PARAM_RAW_TRIMMED);
+            if ($remove !== '') {
+                $gone = \core_text::strtolower($remove);
+                set_config('mailhome', implode(', ', array_diff(settings::home_domains(), [$gone])), self::C);
+            } else if ($do === 'addhome') {
+                $text = optional_param('addhome', '', PARAM_RAW_TRIMMED);
                 $domains = settings::domains($text);
                 if ($text !== '' && !$domains) {
                     $errors['mailhome'] = get_string('mail:home:error', self::C);
-                } else {
-                    set_config('mailhome', implode(', ', $domains), self::C);
+                } else if ($domains) {
+                    set_config('mailhome', implode(', ', array_unique(array_merge(settings::home_domains(), $domains))), self::C);
                 }
             } else if ($do === 'site' || $do === 'mailjet') {
                 if ($do === 'mailjet' && !check::ready()) {
@@ -159,17 +163,17 @@ class page {
         $month = [
             'saved' => $saved === 'month',
             'action' => $action('month'),
-            'used' => format_float($state['used'], 0),
+            'used' => self::number($state['used']),
             'hasquota' => $quota > 0,
             'fill' => $quota ? min(100, round($state['used'] * 100 / $quota, 1)) : 0,
             'mark' => settings::routine_share(),
             'over' => $quota && $state['used'] >= $quota,
             'near' => $quota && $state['used'] >= (int)$state['routine'] && $state['used'] < $quota,
-            'caption' => $quota ? get_string('mail:month:caption', self::C, (object)['used' => format_float($state['used'], 0),
-                'quota' => format_float($quota, 0), 'routine' => format_float((int)$state['routine'], 0)])
-                : get_string('mail:month:noquota', self::C, format_float($state['used'], 0)),
+            'caption' => $quota ? get_string('mail:month:caption', self::C, (object)['used' => self::number($state['used']),
+                'quota' => self::number($quota), 'routine' => self::number((int)$state['routine'])])
+                : get_string('mail:month:noquota', self::C, self::number($state['used'])),
             'counted' => $state['counted'] ? get_string('mail:month:counted', self::C, (object)[
-                'sent' => format_float($state['counted']['sent'], 0),
+                'sent' => self::number((int)$state['counted']['sent']),
                 'time' => userdate((int)$state['counted']['time'], $date)]) : '',
             'quotastepper' => gestures::stepper(
                 'mailquota',
@@ -185,20 +189,21 @@ class page {
                 get_string('mail:month:shareunit', self::C),
                 5
             ),
-            'waiting' => $state['waiting'] ? get_string('mail:month:waiting', self::C, $state['waiting']) : '',
+            'waiting' => $state['waiting'] ? get_string('mail:month:waiting', self::C, self::number($state['waiting'])) : '',
         ];
 
         $recent = [];
         $last = $DB->get_records_select(mailer::TABLE, 'timesent IS NOT NULL', null, 'timesent DESC, id DESC', '*', 0, 8);
         foreach ($last as $row) {
+            [$note, $code] = self::what_happened($row);
             $recent[] = [
-                'when' => userdate((int)$row->timesent, $date),
+                'when' => self::when((int)$row->timesent, $now),
                 'plugin' => self::plugin_name((string)$row->component),
                 'email' => $row->email,
-                'way' => $row->way ? get_string('mail:way:' . $row->way, self::C) : '',
+                'way' => $row->way && $row->status !== 'failed' ? get_string('mail:way:' . $row->way, self::C) : '',
                 'failed' => $row->status === 'failed',
-                'error' => $row->status === 'failed' || ($row->error && strpos((string)$row->error, 'mailjet:') === 0)
-                    ? (string)$row->error : '',
+                'note' => $note,
+                'code' => $code,
             ];
         }
         $today = $DB->get_records_sql(
@@ -211,14 +216,14 @@ class page {
         $todayline = [];
         foreach (['site', 'mailjet', 'failed'] as $what) {
             if (!empty($today[$what])) {
-                $todayline[] = get_string('mail:today:' . $what, self::C, (int)$today[$what]->n);
+                $todayline[] = get_string('mail:today:' . $what, self::C, self::number((int)$today[$what]->n));
             }
         }
 
         $bad = [];
         foreach ($DB->get_records(mailer::BAD, null, 'timemodified DESC', '*', 0, 30) as $row) {
             $bad[] = ['email' => $row->email, 'why' => get_string('mail:bad:' . $row->event, self::C),
-                'reason' => (string)$row->reason, 'when' => userdate((int)$row->timemodified, $date),
+                'reason' => (string)$row->reason, 'when' => self::when((int)$row->timemodified, $now),
                 'plugin' => $row->component ? self::plugin_name((string)$row->component) : ''];
         }
 
@@ -227,13 +232,16 @@ class page {
             'route' => [
                 'saved' => $saved === 'route',
                 'action' => $action('route'),
-                'home' => implode(', ', settings::home_domains()),
+                'home' => array_map(fn($domain) => ['domain' => $domain], settings::home_domains()),
+                'homedefault' => (string)get_config(self::C, 'mailhome') === '',
                 'homeerror' => $errors['mailhome'] ?? '',
                 'sitefrom' => $CFG->noreplyaddress ?? '',
                 'mailjet' => $mailjet,
                 'ready' => $ready,
                 'wayerror' => $errors['way'] ?? '',
-                'outcaption' => get_string($mailjet ? 'mail:out:mailjet' : 'mail:out:site', self::C, $from),
+                'canmailjet' => $ready || $mailjet,
+                'outsite' => get_string('mail:out:site', self::C),
+                'outmailjet' => $from !== '' ? get_string('mail:out:mailjet', self::C, $from) : get_string('mail:out:mailjet:nofrom', self::C),
                 'paused' => $paused ? get_string('mail:paused', self::C, (object)['error' => s($paused['error']),
                     'time' => userdate((int)$paused['time'], $date)]) : '',
             ],
@@ -328,7 +336,7 @@ class page {
     }
 
     /**
-     * The name of a plugin, for a person.
+     * The name of a plugin, for a person; also of a tool of the house that this site does not have (Oksigenia Meals).
      *
      * @param string $component
      * @return string
@@ -338,6 +346,58 @@ class page {
             return '';
         }
         $manager = get_string_manager();
-        return $manager->string_exists('pluginname', $component) ? get_string('pluginname', $component) : $component;
+        if ($manager->string_exists('pluginname', $component)) {
+            return get_string('pluginname', $component);
+        }
+        if (preg_match('/^[a-z]+_oksigenia([a-z]+)$/', $component, $match)) {
+            return 'Oksigenia ' . ucfirst($match[1]);
+        }
+        return $component;
+    }
+
+    /**
+     * What happened to a mail, in words, and what the other side said, for whoever wants to look further.
+     *
+     * @param \stdClass $row
+     * @return string[] [words, code]
+     */
+    private static function what_happened(\stdClass $row): array {
+        $error = (string)$row->error;
+        if ($row->status === 'failed') {
+            foreach (['bounce', 'blocked'] as $event) {
+                if (strpos($error, $event . ':') === 0) {
+                    return [get_string('mail:bad:' . $event . ':long', self::C), trim(substr($error, strlen($event) + 1))];
+                }
+            }
+            return [get_string('mail:row:failed', self::C), $error];
+        }
+        if ($row->way === 'site' && strpos($error, 'mailjet:') === 0) {
+            return [get_string('mail:row:fellback', self::C), trim(substr($error, 8))];
+        }
+        return ['', ''];
+    }
+
+    /**
+     * When something happened: «Today, 15:30», or its day.
+     *
+     * @param int $time
+     * @param int $now
+     * @return string
+     */
+    private static function when(int $time, int $now): string {
+        if (usergetmidnight($time) === usergetmidnight($now)) {
+            return get_string('mail:today:at', self::C, userdate($time, get_string('strftimetime', 'langconfig')));
+        }
+        return userdate($time, get_string('strftimedatetimeshort', 'langconfig'));
+    }
+
+    /**
+     * A whole number with the separator of thousands of the language.
+     *
+     * @param int $number
+     * @return string
+     */
+    private static function number(int $number): string {
+        return number_format($number, 0, get_string('decsep', 'langconfig'), get_string('thousandssep', 'langconfig'));
     }
 }

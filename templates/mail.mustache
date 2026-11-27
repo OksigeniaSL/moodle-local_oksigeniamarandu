@@ -17,32 +17,35 @@
 {{!
     @template local_oksigeniamarandu/mail
 
-    The page «Mail», without the look of a form. Cards:
-    - where each mail goes out: the domains of home, by the mail of the site; the rest, by the mail of the site or by
-      Mailjet, two switches;
+    The page «Mail», without the look of a form. Cards, each its own form, so that Enter does what that card does:
+    - where each mail goes out: the domains of home as chips with their ×, and a field to add one that saves on Enter;
+      the rest, one choice of two cards (the mail of the site, or Mailjet; Mailjet off, with its reason, until it is
+      ready);
     - Mailjet: its keys (never shown again), who sends and who is answered, what Mailjet says of them (four lights), a
       test, and where Mailjet tells its events;
     - the month against the quota: a bar with the mark from which what is routine goes by the mail of the site, the quota
       and that share with one less and one more, and what waits for the quota, to let it go;
-    - the last mails, and the addresses that do not receive, each with «Receives again».
-    Each button goes back to its card (formaction with ?part= and its anchor), which comes back with its «Saved».
+    - the latest mails, in words, and the addresses that do not receive, each with «Receives again».
+    Each card goes back to itself (?part= and its anchor), with its «Saved».
 
     Context variables required for this template:
-    * lead, formurl, sesskey
-    * route - saved, action, home, homeerror, sitefrom, mailjet, ready, wayerror, outcaption, paused.
+    * lead, sesskey
+    * route - saved, action, home (domain), homedefault, homeerror, sitefrom, mailjet, ready, canmailjet, wayerror,
+      outsite, outmailjet, paused.
     * mailjet - saved, action, keys, keyserror, from, fromerror, fromname, fromnamehint, replyto, replytoerror, checks
       (label, ok, bad, warn, unknown, note), checked, checkerror, cancheck, testto, testerror, test, testok, events (here,
       other, none, canset, unknown), eventserror.
     * month - saved, action, used, hasquota, fill, mark, over, near, caption, counted, quotastepper, sharestepper
       (local_oksigeniamarandu/channel_stepper), waiting.
-    * today, recent (when, plugin, email, way, failed, error), hasrecent, bad (email, why, reason, when, plugin), hasbad,
-      badsaved, badaction.
+    * today, recent (when, plugin, email, way, failed, note, code), hasrecent, bad (email, why, reason, when, plugin),
+      hasbad, badsaved, badaction.
 
     Example context (json):
     {
-        "lead": "The mails of the tools.", "formurl": "#", "sesskey": "abc",
-        "route": {"saved": false, "action": "#", "home": "example.org", "homeerror": "", "sitefrom": "noreply@example.org",
-            "mailjet": false, "ready": false, "wayerror": "", "outcaption": "By the mail of the site.", "paused": ""},
+        "lead": "The mails of the tools.", "sesskey": "abc",
+        "route": {"saved": false, "action": "#", "home": [{"domain": "example.org"}], "homedefault": true,
+            "homeerror": "", "sitefrom": "noreply@example.org", "mailjet": false, "ready": false, "canmailjet": false,
+            "wayerror": "", "outsite": "By the mail of the site.", "outmailjet": "By Mailjet.", "paused": ""},
         "mailjet": {"saved": false, "action": "#", "keys": "", "keyserror": "", "from": "", "fromerror": "",
             "fromname": "", "fromnamehint": "School", "replyto": "", "replytoerror": "", "checks": [], "checked": "",
             "checkerror": "", "cancheck": false, "testto": "", "testerror": "", "test": "", "testok": false,
@@ -60,110 +63,125 @@
 <div class="local-oksigeniamarandu-wizard local-oksigeniamarandu-mail">
 <section>
 <p class="mrd-lead">{{lead}}</p>
-<form method="post" action="{{formurl}}" class="mrd-correo" id="mrd-mail" novalidate>
-    <input type="hidden" name="sesskey" value="{{sesskey}}">
-    <input type="hidden" name="action" value="mail">
-    <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true" disabled></button>
 
-    {{#route}}
-    <section class="mrd-part mrd-camino" id="mrd-route" aria-labelledby="mrd-route-t">
-        <div class="mrd-cab"><h2 id="mrd-route-t">{{#str}} mail:route, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
-        {{#paused}}<p class="mrd-aviso-correo" role="alert">{{{paused}}}</p>{{/paused}}
-        <div class="mrd-carriles">
-            <div class="mrd-carril">
-                <h3>{{#str}} mail:route:home, local_oksigeniamarandu {{/str}}</h3>
-                <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} mail:home, local_oksigeniamarandu {{/str}}</span>
-                    <input type="text" name="mailhome" value="{{home}}" autocomplete="off" spellcheck="false" aria-describedby="mrd-home-help{{#homeerror}} mrd-home-err{{/homeerror}}"{{#homeerror}} aria-invalid="true"{{/homeerror}}></label>
-                <p class="mrd-pie" id="mrd-home-help">{{#str}} mail:home:help, local_oksigeniamarandu, {{sitefrom}} {{/str}}</p>
-                {{#homeerror}}<p class="mrd-err" id="mrd-home-err">{{.}}</p>{{/homeerror}}
-                <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="home" formaction="{{action}}">{{#str}} save {{/str}}</button>
-            </div>
-            <div class="mrd-carril">
-                <h3>{{#str}} mail:route:out, local_oksigeniamarandu {{/str}}</h3>
-                <ul class="mrd-llaves mrd-caminos">
-                    <li><button type="submit" class="mrd-llave" name="do" value="site" aria-pressed="{{^mailjet}}true{{/mailjet}}{{#mailjet}}false{{/mailjet}}" formaction="{{action}}"><span class="mrd-llave-i" aria-hidden="true"></span>{{#str}} mail:way:site, local_oksigeniamarandu {{/str}}</button></li>
-                    <li><button type="submit" class="mrd-llave" name="do" value="mailjet" aria-pressed="{{#mailjet}}true{{/mailjet}}{{^mailjet}}false{{/mailjet}}" formaction="{{action}}"{{^ready}}{{^mailjet}} aria-describedby="mrd-way-help"{{/mailjet}}{{/ready}}><span class="mrd-llave-i" aria-hidden="true"></span>Mailjet</button></li>
-                </ul>
-                <p class="mrd-pie">{{outcaption}}</p>
-                {{^ready}}{{^mailjet}}<p class="mrd-pie" id="mrd-way-help">{{#str}} mail:way:needs, local_oksigeniamarandu {{/str}}</p>{{/mailjet}}{{/ready}}
-                {{#wayerror}}<p class="mrd-err" role="alert">{{.}}</p>{{/wayerror}}
-            </div>
-        </div>
-    </section>
-    {{/route}}
-
-    {{#mailjet}}
-    <section class="mrd-part mrd-mailjet" id="mrd-mailjet" aria-labelledby="mrd-mailjet-t">
-        <div class="mrd-cab"><h2 id="mrd-mailjet-t">Mailjet</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
-        <div class="mrd-dos">
-            <div class="mrd-dorso">
-                <h4>{{#str}} mail:keys, local_oksigeniamarandu {{/str}}</h4>
-                {{#keys}}<p class="mrd-pie">{{.}}</p>{{/keys}}
-                <div class="mrd-campos">
-                    <label class="mrd-campo"><span>{{#str}} mail:keys:key, local_oksigeniamarandu {{/str}}</span>
-                        <input type="password" name="mjkey" value="" autocomplete="off" spellcheck="false"></label>
-                    <label class="mrd-campo"><span>{{#str}} mail:keys:secret, local_oksigeniamarandu {{/str}}</span>
-                        <input type="password" name="mjsecret" value="" autocomplete="off" spellcheck="false"></label>
-                </div>
-                <p class="mrd-pie">{{#str}} mail:keys:help, local_oksigeniamarandu {{/str}}</p>
-                {{#keyserror}}<p class="mrd-err" role="alert">{{.}}</p>{{/keyserror}}
-                <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="keys" formaction="{{action}}">{{#str}} mail:keys:save, local_oksigeniamarandu {{/str}}</button>
-            </div>
-            <div class="mrd-dorso">
-                <h4>{{#str}} mail:sender, local_oksigeniamarandu {{/str}}</h4>
-                <div class="mrd-campos">
-                    <label class="mrd-campo"><span>{{#str}} mail:sender:from, local_oksigeniamarandu {{/str}}</span>
-                        <input type="email" name="mjfrom" value="{{from}}" autocomplete="off"{{#fromerror}} aria-invalid="true"{{/fromerror}}></label>
-                    <label class="mrd-campo"><span>{{#str}} mail:sender:name, local_oksigeniamarandu {{/str}}</span>
-                        <input type="text" name="mjfromname" value="{{fromname}}" placeholder="{{fromnamehint}}" autocomplete="off"></label>
-                    <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} mail:sender:replyto, local_oksigeniamarandu {{/str}}</span>
-                        <input type="email" name="mjreplyto" value="{{replyto}}" autocomplete="off"{{#replytoerror}} aria-invalid="true"{{/replytoerror}}></label>
-                </div>
-                {{#fromerror}}<p class="mrd-err" role="alert">{{#str}} mail:sender:from, local_oksigeniamarandu {{/str}}: {{.}}</p>{{/fromerror}}
-                {{#replytoerror}}<p class="mrd-err" role="alert">{{#str}} mail:sender:replyto, local_oksigeniamarandu {{/str}}: {{.}}</p>{{/replytoerror}}
-                <p class="mrd-pie">{{#str}} mail:sender:help, local_oksigeniamarandu {{/str}}</p>
-                <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="sender" formaction="{{action}}">{{#str}} save {{/str}}</button>
-            </div>
-        </div>
-        <div class="mrd-luces">
-            <ul>
-                {{#checks}}<li class="{{#ok}}mrd-luz-ok{{/ok}}{{#bad}}mrd-luz-mal{{/bad}}{{#warn}}mrd-luz-aviso{{/warn}}{{#unknown}}mrd-luz-nose{{/unknown}}"><span class="mrd-luz" aria-hidden="true"></span><b>{{label}}</b> <span>{{note}}</span></li>{{/checks}}
+{{#route}}
+<section class="mrd-part mrd-camino" id="mrd-route" aria-labelledby="mrd-route-t">
+    <div class="mrd-cab"><h2 id="mrd-route-t">{{#str}} mail:route, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+    {{#paused}}<p class="mrd-aviso-correo" role="alert">{{{paused}}}</p>{{/paused}}
+    <form method="post" action="{{action}}" class="mrd-carriles" novalidate>
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="mail">
+        <button type="submit" class="mrd-default" name="do" value="addhome" tabindex="-1" aria-hidden="true"></button>
+        <div class="mrd-carril">
+            <h3>{{#str}} mail:route:home, local_oksigeniamarandu {{/str}}</h3>
+            <ul class="mrd-fichas" aria-label="{{#str}} mail:home, local_oksigeniamarandu {{/str}}">
+                {{#home}}<li class="mrd-ficha"><span>{{domain}}</span>{{^homedefault}}<button type="submit" class="mrd-ficha-x" name="removehome" value="{{domain}}" aria-label="{{#str}} mail:home:remove, local_oksigeniamarandu, {{domain}} {{/str}}"><span aria-hidden="true">×</span></button>{{/homedefault}}</li>{{/home}}
             </ul>
-            <p class="mrd-pie">{{checked}}{{#checkerror}} · {{.}}{{/checkerror}}</p>
-            {{#cancheck}}<button type="submit" class="mrd-btn mrd-second" name="do" value="check" formaction="{{action}}">{{#str}} mail:check:again, local_oksigeniamarandu {{/str}}</button>{{/cancheck}}
+            <label class="mrd-campo"><span>{{#str}} mail:home:add, local_oksigeniamarandu {{/str}}</span>
+                <input type="text" name="addhome" value="" autocomplete="off" spellcheck="false" aria-describedby="mrd-home-help{{#homeerror}} mrd-home-err{{/homeerror}}"{{#homeerror}} aria-invalid="true"{{/homeerror}}></label>
+            <p class="mrd-pie" id="mrd-home-help">{{#homedefault}}{{#str}} mail:home:default, local_oksigeniamarandu {{/str}} {{/homedefault}}{{#str}} mail:home:help, local_oksigeniamarandu, {{sitefrom}} {{/str}}</p>
+            {{#homeerror}}<p class="mrd-err" id="mrd-home-err">{{.}}</p>{{/homeerror}}
         </div>
-        {{#cancheck}}
-        <div class="mrd-dos">
-            <div class="mrd-dorso">
-                <h4>{{#str}} mail:test, local_oksigeniamarandu {{/str}}</h4>
-                <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} mail:test:to, local_oksigeniamarandu {{/str}}</span>
-                    <input type="email" name="mailtestto" value="{{testto}}" autocomplete="email"{{#testerror}} aria-invalid="true"{{/testerror}}></label>
-                {{#testerror}}<p class="mrd-err" role="alert">{{.}}</p>{{/testerror}}
-                {{#test}}<p class="mrd-pie {{#testok}}mrd-bien{{/testok}}{{^testok}}mrd-err{{/testok}}" role="status">{{{test}}}</p>{{/test}}
-                <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="test" formaction="{{action}}">{{#str}} mail:test:send, local_oksigeniamarandu {{/str}}</button>
+        <div class="mrd-carril">
+            <h3 id="mrd-route-out">{{#str}} mail:route:out, local_oksigeniamarandu {{/str}}</h3>
+            <div class="mrd-opciones" role="group" aria-labelledby="mrd-route-out">
+                <button type="submit" class="mrd-opcion" name="do" value="site" aria-pressed="{{^mailjet}}true{{/mailjet}}{{#mailjet}}false{{/mailjet}}"><span class="mrd-opcion-t">{{#str}} mail:way:site, local_oksigeniamarandu {{/str}}</span><span class="mrd-opcion-d">{{outsite}}</span></button>
+                <button type="submit" class="mrd-opcion" name="do" value="mailjet" aria-pressed="{{#mailjet}}true{{/mailjet}}{{^mailjet}}false{{/mailjet}}"{{^canmailjet}} disabled{{/canmailjet}}><span class="mrd-opcion-t">Mailjet</span><span class="mrd-opcion-d">{{outmailjet}}</span>{{^canmailjet}}<span class="mrd-opcion-por">{{#str}} mail:way:needs, local_oksigeniamarandu {{/str}}</span>{{/canmailjet}}</button>
             </div>
-            <div class="mrd-dorso">
-                <h4>{{#str}} mail:events, local_oksigeniamarandu {{/str}}</h4>
-                {{#events}}
-                <p class="mrd-pie">{{#here}}{{#str}} mail:events:here, local_oksigeniamarandu {{/str}}{{/here}}{{#other}}{{#str}} mail:events:other, local_oksigeniamarandu, {{other}} {{/str}}{{/other}}{{#none}}{{#str}} mail:events:none, local_oksigeniamarandu {{/str}}{{/none}}{{#unknown}}{{#str}} mail:events:unknown, local_oksigeniamarandu {{/str}}{{/unknown}}</p>
-                {{#canset}}<button type="submit" class="mrd-btn mrd-second" name="do" value="events" formaction="{{action}}">{{#str}} mail:events:set, local_oksigeniamarandu {{/str}}</button>{{/canset}}
-                {{/events}}
-                {{#eventserror}}<p class="mrd-err" role="alert">{{.}}</p>{{/eventserror}}
-            </div>
+            {{#wayerror}}<p class="mrd-err" role="alert">{{.}}</p>{{/wayerror}}
         </div>
-        {{/cancheck}}
-    </section>
-    {{/mailjet}}
+    </form>
+</section>
+{{/route}}
 
-    {{#month}}
-    <section class="mrd-part mrd-mes" id="mrd-month" aria-labelledby="mrd-month-t">
-        <div class="mrd-cab"><h2 id="mrd-month-t">{{#str}} mail:month, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
-        {{#hasquota}}
-        <div class="mrd-barra-mes{{#near}} mrd-cerca{{/near}}{{#over}} mrd-lleno{{/over}}" aria-hidden="true">
-            <i class="mrd-barra-lleno" style="--w: {{fill}}%"></i><i class="mrd-barra-marca" style="--x: {{mark}}%"></i>
-        </div>
-        {{/hasquota}}
-        <p class="mrd-pie">{{caption}}{{#counted}} {{.}}{{/counted}}</p>
+{{#mailjet}}
+<section class="mrd-part mrd-mailjet" id="mrd-mailjet" aria-labelledby="mrd-mailjet-t">
+    <div class="mrd-cab"><h2 id="mrd-mailjet-t">Mailjet</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+    <div class="mrd-dos">
+        <form method="post" action="{{action}}" class="mrd-dorso" novalidate>
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="mail">
+            <button type="submit" class="mrd-default" name="do" value="keys" tabindex="-1" aria-hidden="true"></button>
+            <h4>{{#str}} mail:keys, local_oksigeniamarandu {{/str}}</h4>
+            {{#keys}}<p class="mrd-pie">{{.}}</p>{{/keys}}
+            <div class="mrd-campos">
+                <label class="mrd-campo"><span>{{#str}} mail:keys:key, local_oksigeniamarandu {{/str}}</span>
+                    <input type="password" name="mjkey" value="" autocomplete="off" spellcheck="false"></label>
+                <label class="mrd-campo"><span>{{#str}} mail:keys:secret, local_oksigeniamarandu {{/str}}</span>
+                    <input type="password" name="mjsecret" value="" autocomplete="off" spellcheck="false"></label>
+            </div>
+            <p class="mrd-pie">{{#str}} mail:keys:help, local_oksigeniamarandu {{/str}}</p>
+            {{#keyserror}}<p class="mrd-err" role="alert">{{.}}</p>{{/keyserror}}
+            <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="keys">{{#str}} mail:keys:save, local_oksigeniamarandu {{/str}}</button>
+        </form>
+        <form method="post" action="{{action}}" class="mrd-dorso" novalidate>
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="mail">
+            <button type="submit" class="mrd-default" name="do" value="sender" tabindex="-1" aria-hidden="true"></button>
+            <h4>{{#str}} mail:sender, local_oksigeniamarandu {{/str}}</h4>
+            <div class="mrd-campos">
+                <label class="mrd-campo"><span>{{#str}} mail:sender:from, local_oksigeniamarandu {{/str}}</span>
+                    <input type="email" name="mjfrom" value="{{from}}" autocomplete="off"{{#fromerror}} aria-invalid="true"{{/fromerror}}></label>
+                <label class="mrd-campo"><span>{{#str}} mail:sender:name, local_oksigeniamarandu {{/str}}</span>
+                    <input type="text" name="mjfromname" value="{{fromname}}" placeholder="{{fromnamehint}}" autocomplete="off"></label>
+                <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} mail:sender:replyto, local_oksigeniamarandu {{/str}}</span>
+                    <input type="email" name="mjreplyto" value="{{replyto}}" autocomplete="off"{{#replytoerror}} aria-invalid="true"{{/replytoerror}}></label>
+            </div>
+            {{#fromerror}}<p class="mrd-err" role="alert">{{#str}} mail:sender:from, local_oksigeniamarandu {{/str}}: {{.}}</p>{{/fromerror}}
+            {{#replytoerror}}<p class="mrd-err" role="alert">{{#str}} mail:sender:replyto, local_oksigeniamarandu {{/str}}: {{.}}</p>{{/replytoerror}}
+            <p class="mrd-pie">{{#str}} mail:sender:help, local_oksigeniamarandu {{/str}}</p>
+            <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="sender">{{#str}} save {{/str}}</button>
+        </form>
+    </div>
+    <form method="post" action="{{action}}" class="mrd-luces" novalidate>
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="mail">
+        <ul>
+            {{#checks}}<li class="{{#ok}}mrd-luz-ok{{/ok}}{{#bad}}mrd-luz-mal{{/bad}}{{#warn}}mrd-luz-aviso{{/warn}}{{#unknown}}mrd-luz-nose{{/unknown}}"><span class="mrd-luz" aria-hidden="true"></span><b>{{label}}</b> <span>{{note}}</span></li>{{/checks}}
+        </ul>
+        <p class="mrd-pie">{{checked}}{{#checkerror}} · {{.}}{{/checkerror}}</p>
+        {{#cancheck}}<button type="submit" class="mrd-btn mrd-second" name="do" value="check">{{#str}} mail:check:again, local_oksigeniamarandu {{/str}}</button>{{/cancheck}}
+    </form>
+    {{#cancheck}}
+    <div class="mrd-dos">
+        <form method="post" action="{{action}}" class="mrd-dorso" novalidate>
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="mail">
+            <h4>{{#str}} mail:test, local_oksigeniamarandu {{/str}}</h4>
+            <label class="mrd-campo mrd-campo-ancho"><span>{{#str}} mail:test:to, local_oksigeniamarandu {{/str}}</span>
+                <input type="email" name="mailtestto" value="{{testto}}" autocomplete="email"{{#testerror}} aria-invalid="true"{{/testerror}}></label>
+            {{#testerror}}<p class="mrd-err" role="alert">{{.}}</p>{{/testerror}}
+            {{#test}}<p class="mrd-pie {{#testok}}mrd-bien{{/testok}}{{^testok}}mrd-err{{/testok}}" role="status">{{{test}}}</p>{{/test}}
+            <button type="submit" class="mrd-btn mrd-primary mrd-guardar" name="do" value="test">{{#str}} mail:test:send, local_oksigeniamarandu {{/str}}</button>
+        </form>
+        <form method="post" action="{{action}}" class="mrd-dorso" novalidate>
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="mail">
+            <h4>{{#str}} mail:events, local_oksigeniamarandu {{/str}}</h4>
+            {{#events}}
+            <p class="mrd-pie">{{#here}}{{#str}} mail:events:here, local_oksigeniamarandu {{/str}}{{/here}}{{#other}}{{#str}} mail:events:other, local_oksigeniamarandu, {{other}} {{/str}}{{/other}}{{#none}}{{#str}} mail:events:none, local_oksigeniamarandu {{/str}}{{/none}}{{#unknown}}{{#str}} mail:events:unknown, local_oksigeniamarandu {{/str}}{{/unknown}}</p>
+            {{#canset}}<button type="submit" class="mrd-btn mrd-second" name="do" value="events">{{#str}} mail:events:set, local_oksigeniamarandu {{/str}}</button>{{/canset}}
+            {{/events}}
+            {{#eventserror}}<p class="mrd-err" role="alert">{{.}}</p>{{/eventserror}}
+        </form>
+    </div>
+    {{/cancheck}}
+</section>
+{{/mailjet}}
+
+{{#month}}
+<section class="mrd-part mrd-mes" id="mrd-month" aria-labelledby="mrd-month-t">
+    <div class="mrd-cab"><h2 id="mrd-month-t">{{#str}} mail:month, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+    {{#hasquota}}
+    <div class="mrd-barra-mes{{#near}} mrd-cerca{{/near}}{{#over}} mrd-lleno{{/over}}" aria-hidden="true">
+        <i class="mrd-barra-lleno" style="--w: {{fill}}%"></i><i class="mrd-barra-marca" style="--x: {{mark}}%"></i>
+    </div>
+    {{/hasquota}}
+    <p class="mrd-pie">{{caption}}{{#counted}} {{.}}{{/counted}}</p>
+    <form method="post" action="{{action}}" novalidate>
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="mail">
+        <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
         <div class="mrd-dos">
             <div class="mrd-aldia-g">{{#quotastepper}}{{> local_oksigeniamarandu/channel_stepper }}{{/quotastepper}}
                 <p class="mrd-pie">{{#str}} mail:month:quotahelp, local_oksigeniamarandu {{/str}}</p></div>
@@ -172,31 +190,35 @@
         </div>
         {{#waiting}}
         <p class="mrd-explica">{{.}}</p>
-        <button type="submit" class="mrd-btn mrd-second" name="do" value="release" formaction="{{action}}">{{#str}} mail:month:release, local_oksigeniamarandu {{/str}}</button>
+        <button type="submit" class="mrd-btn mrd-second" name="do" value="release">{{#str}} mail:month:release, local_oksigeniamarandu {{/str}}</button>
         {{/waiting}}
-    </section>
-    {{/month}}
+    </form>
+</section>
+{{/month}}
 
-    <section class="mrd-part mrd-ultimos" id="mrd-recent" aria-labelledby="mrd-recent-t">
-        <div class="mrd-cab"><h2 id="mrd-recent-t">{{#str}} mail:recent, local_oksigeniamarandu {{/str}}</h2></div>
-        <p class="mrd-pie">{{today}}</p>
-        {{#hasrecent}}
-        <ul class="mrd-lista-correo">
-            {{#recent}}<li class="{{#failed}}mrd-fallo{{/failed}}"><span class="mrd-cuando">{{when}}</span> <b>{{email}}</b> <span>{{plugin}}</span> <span class="mrd-via">{{way}}</span>{{#error}} <small>{{.}}</small>{{/error}}</li>{{/recent}}
-        </ul>
-        {{/hasrecent}}
-    </section>
+<section class="mrd-part mrd-ultimos" id="mrd-recent" aria-labelledby="mrd-recent-t">
+    <div class="mrd-cab"><h2 id="mrd-recent-t">{{#str}} mail:recent, local_oksigeniamarandu {{/str}}</h2></div>
+    <p class="mrd-pie">{{today}}</p>
+    {{#hasrecent}}
+    <ul class="mrd-lista-correo">
+        {{#recent}}<li class="{{#failed}}mrd-fallo{{/failed}}"><span class="mrd-cuando">{{when}}</span> <b>{{email}}</b> <span>{{plugin}}</span>{{#way}} <span class="mrd-via">{{.}}</span>{{/way}}{{#note}} <span class="mrd-que">{{.}}</span>{{/note}}{{#code}} <small>{{.}}</small>{{/code}}</li>{{/recent}}
+    </ul>
+    {{/hasrecent}}
+</section>
 
-    {{#hasbad}}
-    <section class="mrd-part mrd-rebotes" id="mrd-bad" aria-labelledby="mrd-bad-t">
-        <div class="mrd-cab"><h2 id="mrd-bad-t">{{#str}} mail:bad, local_oksigeniamarandu {{/str}}</h2>{{#badsaved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/badsaved}}</div>
-        <p class="mrd-explica">{{#str}} mail:bad:help, local_oksigeniamarandu {{/str}}</p>
+{{#hasbad}}
+<section class="mrd-part mrd-rebotes" id="mrd-bad" aria-labelledby="mrd-bad-t">
+    <div class="mrd-cab"><h2 id="mrd-bad-t">{{#str}} mail:bad, local_oksigeniamarandu {{/str}}</h2>{{#badsaved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/badsaved}}</div>
+    <p class="mrd-explica">{{#str}} mail:bad:help, local_oksigeniamarandu {{/str}}</p>
+    <form method="post" action="{{badaction}}" novalidate>
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="mail">
         <ul class="mrd-lista-correo">
-            {{#bad}}<li><b>{{email}}</b> <span>{{why}}</span> <span class="mrd-cuando">{{when}}</span>{{#plugin}} <span>{{.}}</span>{{/plugin}}{{#reason}} <small>{{.}}</small>{{/reason}}
-                <button type="submit" class="mrd-btn mrd-second mrd-btn-pequeno" name="forget" value="{{email}}" formaction="{{badaction}}">{{#str}} mail:bad:forget, local_oksigeniamarandu {{/str}}</button></li>{{/bad}}
+            {{#bad}}<li><b>{{email}}</b> <span class="mrd-que">{{why}}</span> <span class="mrd-cuando">{{when}}</span>{{#plugin}} <span>{{.}}</span>{{/plugin}}{{#reason}} <small>{{.}}</small>{{/reason}}
+                <button type="submit" class="mrd-btn mrd-second mrd-btn-pequeno" name="forget" value="{{email}}">{{#str}} mail:bad:forget, local_oksigeniamarandu {{/str}}</button></li>{{/bad}}
         </ul>
-    </section>
-    {{/hasbad}}
-</form>
+    </form>
+</section>
+{{/hasbad}}
 </section>
 </div>

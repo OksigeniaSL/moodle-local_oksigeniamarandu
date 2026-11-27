@@ -632,7 +632,8 @@ class queue {
             mail\mailer::warn(
                 $email,
                 get_string($prefix . 'subject', 'local_oksigeniamarandu', $a),
-                get_string($prefix . 'body', 'local_oksigeniamarandu', $a)
+                get_string($prefix . 'body', 'local_oksigeniamarandu', $a),
+                get_string('mail:action:channel', 'local_oksigeniamarandu')
             );
         }
     }

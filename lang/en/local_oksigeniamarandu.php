@@ -1391,12 +1391,17 @@ $string['list:reason:phone'] = 'Asked by phone';
 $string['list:search'] = 'Search by number or name';
 $string['list:shown'] = '{$a->shown} of {$a->total}';
 $string['list:unlinked'] = 'Not linked yet';
+$string['mail:action:channel'] = 'Check the connection';
+$string['mail:action:mailjet'] = 'Check Mailjet';
+$string['mail:action:month'] = 'See the quota of the month';
 $string['mail:bad'] = 'Addresses that do not receive';
-$string['mail:bad:blocked'] = 'Blocked';
-$string['mail:bad:bounce'] = 'Bounces';
+$string['mail:bad:blocked'] = 'Its server does not take our mails';
+$string['mail:bad:blocked:long'] = 'Its mail server did not take it';
+$string['mail:bad:bounce'] = 'Bounces: that address does not exist';
+$string['mail:bad:bounce:long'] = 'It bounced: that address does not exist';
 $string['mail:bad:forget'] = 'Receives again';
 $string['mail:bad:help'] = 'A mail came back, was blocked or was marked as spam. An address that bounces or is blocked gets nothing more; one that marked spam, nothing that goes to many nor routine. If the address is right now, let it receive again.';
-$string['mail:bad:spam'] = 'Marked it as spam';
+$string['mail:bad:spam'] = 'Marked it as spam in their mail program';
 $string['mail:check:again'] = 'Check again';
 $string['mail:check:dkim'] = 'DKIM';
 $string['mail:check:dkim:bad'] = 'the domain does not sign: its DKIM record is missing';
@@ -1423,8 +1428,11 @@ $string['mail:events:other'] = 'Mailjet tells them to another address: {$a}.';
 $string['mail:events:set'] = 'Tell them here';
 $string['mail:events:unknown'] = 'Mailjet did not say where it tells them: try checking again.';
 $string['mail:home'] = 'Domains of home';
+$string['mail:home:add'] = 'Add a domain';
+$string['mail:home:default'] = 'For now, that of the mail of the site.';
 $string['mail:home:error'] = 'Write domains, such as example.org.';
-$string['mail:home:help'] = 'They go by the mail of the site, from {$a}. Several, separated by commas.';
+$string['mail:home:help'] = 'They go by the mail of the site, from {$a}; also their subdomains. Write the domain and press Enter.';
+$string['mail:home:remove'] = 'Remove {$a}';
 $string['mail:keys'] = 'Keys';
 $string['mail:keys:error'] = 'Both are needed.';
 $string['mail:keys:help'] = 'They are in the account of Mailjet, with the keys of the API. They are kept encrypted.';
@@ -1451,26 +1459,29 @@ $string['mail:month:shareunit'] = '% of the quota for what is routine';
 $string['mail:month:unit'] = 'mails a month';
 $string['mail:month:waiting'] = '{$a} mails wait for the quota of next month.';
 $string['mail:out:mailjet'] = 'They go by Mailjet, from {$a}. If Mailjet fails, what goes to one person goes by the mail of the site, and what goes to many waits.';
+$string['mail:out:mailjet:nofrom'] = 'They go by Mailjet, from the sender of the card below.';
 $string['mail:out:site'] = 'They go by the mail of the site, as always.';
 $string['mail:paused'] = 'Mailjet is stopped since {$a->time}: {$a->error}. What goes to one person goes by the mail of the site, and what goes to many waits. It is tried again every 15 minutes.';
 $string['mail:paused:body'] = 'Mailjet does not take the mails of {$a->site}: {$a->error}
 
 Meanwhile, what goes to one person goes by the mail of the site, and what goes to many waits. It is tried again every 15 minutes.
 
-To look at it: {$a->url}';
+{$a->url}';
 $string['mail:paused:subject'] = '{$a->site}: Mailjet stopped';
-$string['mail:quota:full:body'] = '{$a->used} mails went by Mailjet this month and the quota is {$a->quota}. What goes to many waits for next month ({$a->waiting} now) and what goes to one person goes on.
+$string['mail:quota:full:body'] = '{$a->used} mails went by Mailjet this month and the quota is {$a->quota}. What goes to many waits for next month ({$a->waiting} now) and what goes to one person goes on. From the page «Mail» you can send what waits now, or raise the quota.
 
-To send what waits now, or raise the quota: {$a->url}';
+{$a->url}';
 $string['mail:quota:full:subject'] = '{$a->site}: the mail of the month reached the quota';
 $string['mail:quota:near:body'] = '{$a->used} mails went by Mailjet this month, of a quota of {$a->quota}. From now on, what is routine goes by the mail of the site, to leave room for what matters.
 
-To look at it: {$a->url}';
+{$a->url}';
 $string['mail:quota:near:subject'] = '{$a->site}: the mail of the month reaches {$a->share} % of the quota';
 $string['mail:recent'] = 'The latest';
 $string['mail:route'] = 'Where each mail goes out';
 $string['mail:route:home'] = 'To the addresses of home';
 $string['mail:route:out'] = 'To the rest';
+$string['mail:row:failed'] = 'It did not go';
+$string['mail:row:fellback'] = 'Mailjet did not answer and it went by the mail of the site';
 $string['mail:sender'] = 'Who sends it';
 $string['mail:sender:from'] = 'Send from';
 $string['mail:sender:help'] = 'An address of the domain authenticated in Mailjet. Answers, to an address of the organization that somebody reads.';
@@ -1485,12 +1496,13 @@ $string['mail:test:subject'] = 'Test of the mail of {$a->site}';
 $string['mail:test:to'] = 'Send a test to';
 $string['mail:title'] = 'Mail';
 $string['mail:today'] = 'Today: {$a}.';
+$string['mail:today:at'] = 'Today, {$a}';
 $string['mail:today:failed'] = '{$a} that did not go';
 $string['mail:today:mailjet'] = '{$a} by Mailjet';
 $string['mail:today:none'] = 'No mail went out today.';
 $string['mail:today:site'] = '{$a} by the mail of the site';
 $string['mail:way:mailjet'] = 'Mailjet';
-$string['mail:way:needs'] = 'Mailjet can be chosen once the keys, the sender and DKIM are green, in the card below.';
+$string['mail:way:needs'] = 'Once the keys, the sender and DKIM are green, below.';
 $string['mail:way:notready'] = 'Not yet: the keys, the sender and DKIM have to be green.';
 $string['mail:way:site'] = 'Mail of the site';
 $string['marandu:board'] = 'Board of the team';
@@ -1557,7 +1569,10 @@ $string['messageprovider:wachannel'] = 'WhatsApp channel: what goes out in the T
 $string['newchat:subject'] = '{$a->site}: a new {$a->channel} joined your account';
 $string['newchat:text'] = 'A new {$a->channel} ({$a->who}) joined your account at {$a->site}. From now on your notices reach you there too. If it was not you, tell whoever runs the platform at once.';
 $string['newchat:textnoname'] = 'A new {$a->channel} joined your account at {$a->site}. From now on your notices reach you there too. If it was not you, tell whoever runs the platform at once.';
-$string['newchat:where'] = 'Your notices';
+$string['newchat:where'] = 'See your notices';
+$string['notice:action:chat'] = 'Open Conversations';
+$string['notice:action:decide'] = 'Decide on the send';
+$string['notice:action:spend'] = 'See the spend of the month';
 $string['notices:alltg'] = 'Switch them all on by Telegram';
 $string['notices:back'] = 'Back to the panel';
 $string['notices:cost'] = 'about {$a} a month';

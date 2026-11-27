@@ -68,7 +68,10 @@ $PAGE->set_secondary_navigation(false);
 $PAGE->blocks->show_only_fake_blocks(true);
 $PAGE->add_header_action($OUTPUT->render_from_template(
     'local_oksigeniamarandu/panel_links',
-    ['links' => panel::links('panel')]
+    ['links' => panel::links('panel'), 'extra' => \local_oksigeniamarandu\api::proposal_button(
+        'local_oksigeniamarandu',
+        get_string('panel', 'local_oksigeniamarandu')
+    )]
 ));
 
 // 1. The state: the hero, with its scene, its channels and the one thing to do.
@@ -544,11 +547,6 @@ require([], function() {
 JS
 );
 
-// «Propose an improvement» of this page, the piece the tools of the site share.
-$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
-    'local_oksigeniamarandu',
-    get_string('panel', 'local_oksigeniamarandu')
-));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/panel', [
     'hero' => $hero,

@@ -1391,12 +1391,17 @@ $string['list:reason:phone'] = 'Lo pidió por teléfono';
 $string['list:search'] = 'Buscar por número o nombre';
 $string['list:shown'] = '{$a->shown} de {$a->total}';
 $string['list:unlinked'] = 'Aún sin vincular';
+$string['mail:action:channel'] = 'Revisar la conexión';
+$string['mail:action:mailjet'] = 'Revisar Mailjet';
+$string['mail:action:month'] = 'Ver el cupo del mes';
 $string['mail:bad'] = 'Direcciones que no reciben';
-$string['mail:bad:blocked'] = 'Bloqueada';
-$string['mail:bad:bounce'] = 'Rebota';
+$string['mail:bad:blocked'] = 'Su servidor no acepta nuestros correos';
+$string['mail:bad:blocked:long'] = 'Su servidor de correo no lo aceptó';
+$string['mail:bad:bounce'] = 'Rebota: esa dirección no existe';
+$string['mail:bad:bounce:long'] = 'Rebotó: esa dirección no existe';
 $string['mail:bad:forget'] = 'Que reciba otra vez';
 $string['mail:bad:help'] = 'Un correo volvió, se bloqueó o se marcó como spam. A una dirección que rebota o está bloqueada no le sale nada más; a una que marcó spam, nada de lo que va a muchos ni de lo rutinario. Si la dirección ya está bien, que reciba otra vez.';
-$string['mail:bad:spam'] = 'Lo marcó como spam';
+$string['mail:bad:spam'] = 'Lo marcó como spam en su programa de correo';
 $string['mail:check:again'] = 'Comprobar otra vez';
 $string['mail:check:dkim'] = 'DKIM';
 $string['mail:check:dkim:bad'] = 'el dominio no firma: falta su registro DKIM';
@@ -1423,8 +1428,11 @@ $string['mail:events:other'] = 'Mailjet los cuenta a otra dirección: {$a}.';
 $string['mail:events:set'] = 'Que los cuente aquí';
 $string['mail:events:unknown'] = 'Mailjet no ha dicho adónde los cuenta: prueba a comprobar otra vez.';
 $string['mail:home'] = 'Dominios de casa';
+$string['mail:home:add'] = 'Añadir un dominio';
+$string['mail:home:default'] = 'Ahora, el del correo del sitio.';
 $string['mail:home:error'] = 'Escribe dominios, como ejemplo.org.';
-$string['mail:home:help'] = 'Salen por el correo del sitio, desde {$a}. Si hay varios, sepáralos con comas.';
+$string['mail:home:help'] = 'Salen por el correo del sitio, desde {$a}; también sus subdominios. Escribe el dominio y pulsa Intro.';
+$string['mail:home:remove'] = 'Quitar {$a}';
 $string['mail:keys'] = 'Claves';
 $string['mail:keys:error'] = 'Hacen falta las dos.';
 $string['mail:keys:help'] = 'Están en la cuenta de Mailjet, con las claves de la API. Se guardan cifradas.';
@@ -1451,26 +1459,29 @@ $string['mail:month:shareunit'] = '% del cupo para lo rutinario';
 $string['mail:month:unit'] = 'correos al mes';
 $string['mail:month:waiting'] = '{$a} correos esperan al cupo del mes que viene.';
 $string['mail:out:mailjet'] = 'Salen por Mailjet, desde {$a}. Si Mailjet falla, lo que va a una persona sale por el correo del sitio y lo que va a muchos espera.';
+$string['mail:out:mailjet:nofrom'] = 'Salen por Mailjet, desde el remitente de la tarjeta de abajo.';
 $string['mail:out:site'] = 'Salen por el correo del sitio, como siempre.';
 $string['mail:paused'] = 'Mailjet está parado desde el {$a->time}: {$a->error}. Lo que va a una persona sale por el correo del sitio y lo que va a muchos espera. Se vuelve a probar cada 15 minutos.';
 $string['mail:paused:body'] = 'Mailjet no acepta los correos de {$a->site}: {$a->error}
 
 Mientras tanto, lo que va a una persona sale por el correo del sitio y lo que va a muchos espera. Se vuelve a probar cada 15 minutos.
 
-Para mirarlo: {$a->url}';
+{$a->url}';
 $string['mail:paused:subject'] = '{$a->site}: Mailjet se ha parado';
-$string['mail:quota:full:body'] = 'Este mes han salido {$a->used} correos por Mailjet y el cupo es {$a->quota}. Lo que va a muchos espera al mes que viene ({$a->waiting} ahora) y lo que va a una persona sigue saliendo.
+$string['mail:quota:full:body'] = 'Este mes han salido {$a->used} correos por Mailjet y el cupo es {$a->quota}. Lo que va a muchos espera al mes que viene ({$a->waiting} ahora) y lo que va a una persona sigue saliendo. Desde la página «Correo» se puede mandar ya lo que espera, o subir el cupo.
 
-Para mandar ya lo que espera, o subir el cupo: {$a->url}';
+{$a->url}';
 $string['mail:quota:full:subject'] = '{$a->site}: el correo del mes ha llegado al cupo';
 $string['mail:quota:near:body'] = 'Este mes han salido {$a->used} correos por Mailjet, de un cupo de {$a->quota}. Desde ahora, lo rutinario sale por el correo del sitio, para dejar sitio a lo importante.
 
-Para mirarlo: {$a->url}';
+{$a->url}';
 $string['mail:quota:near:subject'] = '{$a->site}: el correo del mes llega al {$a->share} % del cupo';
 $string['mail:recent'] = 'Lo último';
 $string['mail:route'] = 'Por dónde sale cada correo';
 $string['mail:route:home'] = 'A las direcciones de casa';
 $string['mail:route:out'] = 'A las de fuera';
+$string['mail:row:failed'] = 'No salió';
+$string['mail:row:fellback'] = 'Mailjet no respondió y salió por el correo del sitio';
 $string['mail:sender'] = 'Quién lo manda';
 $string['mail:sender:from'] = 'Enviar desde';
 $string['mail:sender:help'] = 'Una dirección del dominio autenticado en Mailjet. Las respuestas, a una dirección del centro que alguien lea.';
@@ -1485,12 +1496,13 @@ $string['mail:test:subject'] = 'Prueba del correo de {$a->site}';
 $string['mail:test:to'] = 'Mandar una prueba a';
 $string['mail:title'] = 'Correo';
 $string['mail:today'] = 'Hoy: {$a}.';
+$string['mail:today:at'] = 'Hoy, {$a}';
 $string['mail:today:failed'] = '{$a} sin salir';
 $string['mail:today:mailjet'] = '{$a} por Mailjet';
 $string['mail:today:none'] = 'Hoy no ha salido ningún correo.';
 $string['mail:today:site'] = '{$a} por el correo del sitio';
 $string['mail:way:mailjet'] = 'Mailjet';
-$string['mail:way:needs'] = 'Mailjet se puede elegir cuando las claves, el remitente y DKIM estén en verde, en la tarjeta de abajo.';
+$string['mail:way:needs'] = 'Cuando las claves, el remitente y DKIM estén en verde, abajo.';
 $string['mail:way:notready'] = 'Todavía no: las claves, el remitente y DKIM tienen que estar en verde.';
 $string['mail:way:site'] = 'Correo del sitio';
 $string['marandu:board'] = 'Tablón del equipo';
@@ -1557,7 +1569,10 @@ $string['messageprovider:wachannel'] = 'Canal de WhatsApp: lo que sale en el can
 $string['newchat:subject'] = '{$a->site}: se ha unido un {$a->channel} nuevo a tu cuenta';
 $string['newchat:text'] = 'Se ha unido a tu cuenta de {$a->site} un {$a->channel} nuevo ({$a->who}). Desde ahora te llegan por ahí tus avisos. Si no has sido tú, avisa cuanto antes a quien administra la plataforma.';
 $string['newchat:textnoname'] = 'Se ha unido a tu cuenta de {$a->site} un {$a->channel} nuevo. Desde ahora te llegan por ahí tus avisos. Si no has sido tú, avisa cuanto antes a quien administra la plataforma.';
-$string['newchat:where'] = 'Tus avisos';
+$string['newchat:where'] = 'Ver tus avisos';
+$string['notice:action:chat'] = 'Abrir Conversaciones';
+$string['notice:action:decide'] = 'Decidir el envío';
+$string['notice:action:spend'] = 'Ver el gasto del mes';
 $string['notices:alltg'] = 'Encender todos por Telegram';
 $string['notices:back'] = 'Volver al panel';
 $string['notices:cost'] = 'unos {$a} al mes';

@@ -6,6 +6,9 @@
   in the line. 9 MB at most for all the attachments of a mail (Mailjet takes 15 MB a message, and an attachment grows a
   third in base64): past that, the mail does not go, `api::mail()` says `toobig` and the plugin hears it.
 - The common mail: a link whose words are its own address is written once in the text version.
+- A notice with its mail (`api::mail_notice()`) goes with the text version kept with it, not one made again from the
+  HTML: the text was kept under another name than the one it was looked for by.
+- A name of the organisation with «&» is written once, in the mails and on the cards.
 
 ## 0.70.2 (2026-11-27)
 

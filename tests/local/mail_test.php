@@ -35,6 +35,7 @@ use local_oksigeniamarandu\local\listening_plugin;
  * @covers     \local_oksigeniamarandu\local\mail\hook
  * @covers     \local_oksigeniamarandu\local\mail\check
  * @covers     \local_oksigeniamarandu\local\mail\settings
+ * @covers     \local_oksigeniamarandu\local\mail\page
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(mailer::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(quota::class)]
@@ -42,6 +43,7 @@ use local_oksigeniamarandu\local\listening_plugin;
 #[\PHPUnit\Framework\Attributes\CoversClass(hook::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(check::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(settings::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(page::class)]
 final class mail_test extends \advanced_testcase {
     /** The plugin. */
     private const C = 'local_oksigeniamarandu';
@@ -540,6 +542,23 @@ final class mail_test extends \advanced_testcase {
         $this->assertFalse(check::test('ana@example.com', self::NOW)['ok']);
         $this->assertCount(0, $sink->get_messages());
         $this->assertSame('site', get_config(self::C, 'mailway') ?: 'site');
+    }
+
+    /**
+     * Every date of the page in the same way: today, yesterday, or its day, always with its hour.
+     */
+    public function test_when(): void {
+        $hour = fn(int $time) => userdate($time, get_string('strftimetime', 'langconfig'));
+        $early = self::NOW - 90 * MINSECS;
+        $late = self::NOW - 11 * HOURSECS - 50 * MINSECS;
+        $before = self::NOW - 3 * DAYSECS;
+        $this->assertSame('today at ' . $hour($early), page::when($early, self::NOW));
+        $this->assertSame('yesterday at ' . $hour($late), page::when($late, self::NOW));
+        $this->assertSame(
+            'on ' . userdate($before, get_string('strftimedateshort', 'langconfig')) . ' at ' . $hour($before),
+            page::when($before, self::NOW)
+        );
+        $this->assertSame('Today at ' . $hour(self::NOW), page::when(self::NOW, self::NOW, true));
     }
 
     /**

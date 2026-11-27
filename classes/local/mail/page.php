@@ -147,7 +147,6 @@ class page {
         [$from, $fromname] = settings::from();
         $keystime = (int)get_config(self::C, 'mjkeystime');
         $test = json_decode((string)get_config(self::C, 'mailtest'), true);
-        $date = get_string('strftimedatetimeshort', 'langconfig');
 
         $checks = [];
         foreach (check::PARTS as $part) {
@@ -174,7 +173,7 @@ class page {
                 : get_string('mail:month:noquota', self::C, self::number($state['used'])),
             'counted' => $state['counted'] ? get_string('mail:month:counted', self::C, (object)[
                 'sent' => self::number((int)$state['counted']['sent']),
-                'time' => userdate((int)$state['counted']['time'], $date)]) : '',
+                'time' => self::when((int)$state['counted']['time'], $now)]) : '',
             'quotastepper' => gestures::stepper(
                 'mailquota',
                 $quota,
@@ -197,7 +196,7 @@ class page {
         foreach ($last as $row) {
             [$note, $code] = self::what_happened($row);
             $recent[] = [
-                'when' => self::when((int)$row->timesent, $now),
+                'when' => self::when((int)$row->timesent, $now, true),
                 'plugin' => self::plugin_name((string)$row->component),
                 'email' => $row->email,
                 'way' => $row->way && $row->status !== 'failed' ? get_string('mail:way:' . $row->way, self::C) : '',
@@ -243,12 +242,12 @@ class page {
                 'outsite' => get_string('mail:out:site', self::C),
                 'outmailjet' => $from !== '' ? get_string('mail:out:mailjet', self::C, $from) : get_string('mail:out:mailjet:nofrom', self::C),
                 'paused' => $paused ? get_string('mail:paused', self::C, (object)['error' => s($paused['error']),
-                    'time' => userdate((int)$paused['time'], $date)]) : '',
+                    'time' => self::when((int)($paused['since'] ?? $paused['time']), $now)]) : '',
             ],
             'mailjet' => [
                 'saved' => $saved === 'mailjet',
                 'action' => $action('mailjet'),
-                'keys' => $keystime ? get_string('mail:keys:set', self::C, userdate($keystime, $date)) : '',
+                'keys' => $keystime ? get_string('mail:keys:set', self::C, self::when($keystime, $now)) : '',
                 'keyserror' => $errors['keys'] ?? '',
                 'from' => (string)get_config(self::C, 'mjfrom'),
                 'fromerror' => $errors['mjfrom'] ?? '',
@@ -257,13 +256,13 @@ class page {
                 'replyto' => (string)get_config(self::C, 'mjreplyto'),
                 'replytoerror' => $errors['mjreplyto'] ?? '',
                 'checks' => $checks,
-                'checked' => $checked ? get_string('mail:check:when', self::C, userdate((int)$checked['time'], $date)) : '',
+                'checked' => $checked ? get_string('mail:check:when', self::C, self::when((int)$checked['time'], $now)) : '',
                 'checkerror' => $checked['error'] ?? '',
                 'cancheck' => settings::keys() !== null,
                 'testto' => is_array($test) ? (string)$test['to'] : '',
                 'testerror' => $errors['mailtestto'] ?? '',
                 'test' => is_array($test) ? get_string($test['ok'] ? 'mail:test:ok' : 'mail:test:bad', self::C, (object)[
-                    'to' => s($test['to']), 'time' => userdate((int)$test['time'], $date), 'error' => s($test['error'])]) : '',
+                    'to' => s($test['to']), 'time' => self::when((int)$test['time'], $now), 'error' => s($test['error'])]) : '',
                 'testok' => is_array($test) && !empty($test['ok']),
                 'events' => $events,
                 'eventserror' => $errors['events'] ?? '',
@@ -378,17 +377,27 @@ class page {
     }
 
     /**
-     * When something happened: «Today, 15:30», or its day.
+     * When something happened, always in the same way: «today at 15:58», «yesterday at 16:08», «on 24 November at 16:08».
      *
      * @param int $time
      * @param int $now
+     * @param bool $first Whether it starts a line, with its capital.
      * @return string
      */
-    private static function when(int $time, int $now): string {
-        if (usergetmidnight($time) === usergetmidnight($now)) {
-            return get_string('mail:today:at', self::C, userdate($time, get_string('strftimetime', 'langconfig')));
+    public static function when(int $time, int $now, bool $first = false): string {
+        $hour = userdate($time, get_string('strftimetime', 'langconfig'));
+        $midnight = usergetmidnight($now);
+        if ($time >= $midnight) {
+            $said = get_string('mail:when:today', self::C, $hour);
+        } else if ($time >= usergetmidnight($midnight - HOURSECS)) {
+            $said = get_string('mail:when:yesterday', self::C, $hour);
+        } else {
+            $said = get_string('mail:when:day', self::C, (object)['day' => userdate(
+                $time,
+                get_string('strftimedateshort', 'langconfig')
+            ), 'time' => $hour]);
         }
-        return userdate($time, get_string('strftimedatetimeshort', 'langconfig'));
+        return $first ? \core_text::strtoupper(\core_text::substr($said, 0, 1)) . \core_text::substr($said, 1) : $said;
     }
 
     /**

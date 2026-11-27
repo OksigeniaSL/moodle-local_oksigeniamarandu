@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.70.2 (2026-11-27)
+
+- Every date of the page «Mail» in the same way: «today at 15:58», «yesterday at 16:08», «on 24 November at 16:08».
+- The templates of the common mail are `letter/mail.html.mst` and `letter/mail.txt.mst`: the checks of Moodle take any
+  `.mustache` as the template of a page, also out of `templates/` (the tag v0.70.1 stopped there).
+
 ## 0.70.1 (2026-11-27)
 
 - The templates of the common mail live in `letter/` and are rendered with the Mustache of Moodle, not as templates of

@@ -15,7 +15,7 @@
     along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 }}
 {{!
-    The template of the text of the common mail (letter/mail_text.mustache), rendered by compose::render(), not by
+    The template of the text of the common mail (letter/mail.txt.mst), rendered by compose::render(), not by
     the renderer of Moodle: it is a mail, not a page.
 
     The plain text of the common e-mail, with the same words as the HTML (mail_letter.mustache) and in the same order: spam

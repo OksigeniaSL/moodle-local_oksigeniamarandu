@@ -21,7 +21,7 @@ use local_oksigeniamarandu\local\cards;
 /**
  * The common mail of the tools, filled from the site: its name, its colour and its logo (the brand of the cards), the
  * words that are always the same in the language of the reader, and the pieces a plugin gives (letter, and the
- * templates letter/mail.mustache and letter/mail_text.mustache). The pictures are kept by what they are, so that a notice of Moodle marked for the
+ * templates letter/mail.html.mst and letter/mail.txt.mst). The pictures are kept by what they are, so that a notice of Moodle marked for the
  * way of Marandu, which comes with its HTML only, finds them again when it goes out.
  *
  * @package    local_oksigeniamarandu
@@ -57,8 +57,8 @@ class compose {
         $pieces['lang'] = $lang;
         $pieces['dir'] = $manager->get_string('thisdirection', 'langconfig', null, $lang) === 'rtl' ? 'rtl' : 'ltr';
         $built = letter::build(self::brand((string)($pieces['unit'] ?? '')), $pieces);
-        $html = self::render('mail', $built['context']);
-        $text = trim(html_entity_decode(self::render('mail_text', $built['context']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $html = self::render('mail.html', $built['context']);
+        $text = trim(html_entity_decode(self::render('mail.txt', $built['context']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $images = [];
         foreach ($built['images'] as $image) {
             // Named by what it is: the same picture, the same name, in every mail that carries it.
@@ -84,7 +84,8 @@ class compose {
      * Renders a template of the mail (letter/), with the Mustache of Moodle but not its renderer: a mail keeps the
      * attributes of tables that old mail programs read, which the templates of the pages of Moodle may not have.
      *
-     * @param string $name mail or mail_text.
+     * @param string $name mail.html or mail.txt (letter/<name>.mst: not .mustache, which the checks of Moodle take as a
+     *     template of a page wherever it is).
      * @param array $context
      * @return string
      */
@@ -103,7 +104,7 @@ class compose {
                 $engine = new \Mustache_Engine($options);
             }
         }
-        return $engine->render((string)file_get_contents(__DIR__ . '/../../../letter/' . $name . '.mustache'), $context);
+        return $engine->render((string)file_get_contents(__DIR__ . '/../../../letter/' . $name . '.mst'), $context);
     }
 
     /**

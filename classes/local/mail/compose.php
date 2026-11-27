@@ -58,7 +58,9 @@ class compose {
         $pieces['dir'] = $manager->get_string('thisdirection', 'langconfig', null, $lang) === 'rtl' ? 'rtl' : 'ltr';
         $built = letter::build(self::brand((string)($pieces['unit'] ?? '')), $pieces);
         $html = self::render('mail.html', $built['context']);
-        $text = trim(html_entity_decode(self::render('mail.txt', $built['context']), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $text = html_entity_decode(self::render('mail.txt', $built['context']), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // The template leaves a blank line after every block: never more than one in a row, as in the mould's sample.
+        $text = trim(preg_replace('/\n(?:[ \t]*\n){2,}/', "\n\n", $text));
         $images = [];
         foreach ($built['images'] as $image) {
             // Named by what it is: the same picture, the same name, in every mail that carries it.

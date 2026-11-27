@@ -412,6 +412,7 @@ final class mail_test extends \advanced_testcase {
         );
         $this->assertStringContainsString('Esto es lo que comerá Leo.', $built['text']);
         $this->assertStringContainsString('https://example.org/menu', $built['text']);
+        $this->assertDoesNotMatchRegularExpression('/\n[ \t]*\n[ \t]*\n/', $built['text']);
         $this->assertSame('', $built['id']);
 
         // A name with «&»: escaped once in the mail, as it is in its text.

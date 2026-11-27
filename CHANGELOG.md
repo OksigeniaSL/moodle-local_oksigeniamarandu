@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.71.1 (2026-11-27)
+
+- The text version of the common mail has never more than one blank line in a row (there were three around a picture
+  and before the button).
+
 ## 0.71.0 (2026-11-27)
 
 - Attachments in `api::mail()` (and `api::mail_letter()`): `files`, each with name, mime and data, by both ways and also

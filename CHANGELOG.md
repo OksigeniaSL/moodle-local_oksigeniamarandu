@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.69.1 (2026-11-27)
+
+- Past the 24 hours, the conversation keeps the height: at its foot, a band says since when the contact waits, with
+  «Choose a message» and «Internal note». The approved messages open in a sheet over the conversation, under the last
+  thing the contact wrote, and close with the cross, the veil or Escape; chosen one, only that one shows, with «Change
+  the message». On a wide screen the composer takes at most half the height. A conversation only to be read keeps its
+  folded line.
+- The staff guide «Attend» (Spanish) shows it, over two pages.
+
 ## 0.69.0 (2026-11-27)
 
 - What a contact writes in a conversation of the team reaches the plugins that listen, whether the number joined anything

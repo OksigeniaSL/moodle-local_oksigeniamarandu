@@ -1559,10 +1559,14 @@ final class chat_test extends \advanced_testcase {
         usort($heard, function ($a, $b) {
             return $a[4] - $b[4];
         });
+        // The times the account gave them (set up a moment before this test).
+        $at = function (int $conversation): int {
+            return (int)$this->client->messages[$conversation][0]['created_at'];
+        };
         $this->assertSame([
-            ['34600000001', 'Hola', $now - 600, $url(1), 10],
-            ['34600000002', '¿Cuándo pasa el recibo?', $now - 300, $url(2), 20],
-            ['34600000003', 'Gracias', $now - 900, $url(3), 30],
+            ['34600000001', 'Hola', $at(1), $url(1), 10],
+            ['34600000002', '¿Cuándo pasa el recibo?', $at(2), $url(2), 20],
+            ['34600000003', 'Gracias', $at(3), $url(3), 30],
         ], $heard);
 
         // By the webhook: only what is new, and only from the contact.

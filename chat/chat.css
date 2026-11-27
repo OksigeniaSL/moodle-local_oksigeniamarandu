@@ -8378,3 +8378,230 @@
         clip-path: inset(50%);
     }
 }
+
+/* ---------- Past 24 hours: a band at the foot, and the approved messages in a sheet over the conversation ---------- */
+/* The conversation is what is read, so it keeps the height: the composer folds into a band that says who waits and
+   since when, with «Elegir un mensaje». The sheet rises over the conversation and quotes what the family said last, so
+   nothing has to be scrolled to know what one answers; it closes when one is chosen (the chosen one stays alone in the
+   composer, with «Cambiar de mensaje»), with its cross, with Escape or touching the veil. No color-mix(): Chrome 93. */
+#mrd-chat .mrd-24-espera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 2px 0 0;
+}
+#mrd-chat .mrd-24-espera .mrd-reloj {
+    width: 36px;
+    height: 36px;
+}
+#mrd-chat .mrd-24-espera-t {
+    flex: 1 1 300px;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-24-espera-t b {
+    color: var(--tinta);
+}
+#mrd-chat .mrd-24-espera .mrd-btn {
+    min-height: 40px;
+}
+#mrd-chat .mrd-24-espera .mrd-btn .mrd-i {
+    width: 16px;
+    height: 16px;
+}
+#mrd-chat .mrd-24-espera .mrd-24-nota {
+    min-height: 40px;
+}
+
+/* The sheet: the column of the conversation (.mrd-chat) is its frame, not the composer. */
+#mrd-chat .mrd-escribir.mrd-con-hoja {
+    position: static;
+    padding: 0;
+    border-top: 0;
+}
+#mrd-chat .mrd-hoja-velo {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    padding: 0;
+    border: 0;
+    background: rgba(28, 26, 25, 0.32);
+    cursor: default;
+}
+#mrd-chat .mrd-hoja-24 {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 31;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: min(84%, 760px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 0 20px;
+    border-radius: 18px 18px 0 0;
+    background: var(--hoja);
+    box-shadow: var(--sombra-pop);
+    animation: mrd-hoja-sube 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes mrd-hoja-sube {
+    from {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    #mrd-chat .mrd-hoja-24 {
+        animation: none;
+    }
+}
+#mrd-chat .mrd-hoja-cab {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 -20px;
+    padding: 16px 10px 10px 20px;
+    border-bottom: 1px solid var(--linea);
+    background: var(--hoja);
+}
+#mrd-chat .mrd-hoja-asa {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    margin-left: -20px;
+    border-radius: 2px;
+    background: var(--linea-2);
+}
+#mrd-chat .mrd-hoja-cab h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--tinta);
+}
+#mrd-chat .mrd-hoja-cerrar {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-hoja-cerrar:hover {
+    background: var(--hoja-2);
+    color: var(--tinta);
+}
+#mrd-chat .mrd-hoja-cerrar .mrd-i {
+    width: 20px;
+    height: 20px;
+}
+/* What the family said last, as its bubble in the conversation. */
+#mrd-chat .mrd-hoja-dijo {
+    display: grid;
+    gap: 5px;
+    margin: 2px 0 0;
+}
+#mrd-chat .mrd-hoja-dijo figcaption {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-hoja-dijo blockquote {
+    justify-self: start;
+    max-width: 88%;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--linea);
+    border-radius: 4px 14px 14px;
+    background: var(--burbuja-fam);
+}
+#mrd-chat .mrd-hoja-dijo p {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--tinta);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+#mrd-chat .mrd-hoja-por {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.4;
+    color: var(--tinta-2);
+}
+#mrd-chat .mrd-hoja-por .mrd-i {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    margin-top: 2px;
+    color: var(--tinta-3);
+}
+#mrd-chat .mrd-hoja-24 .mrd-paga {
+    margin: -6px 0 0;
+}
+/* In the sheet the cards are rows: the box to write in comes after choosing, unless something was left half written. */
+#mrd-chat .mrd-hoja-24 .mrd-finge:not(.mrd-a-medias) {
+    display: none;
+}
+#mrd-chat .mrd-hoja-24 .mrd-retomar-pie {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin: 0 -20px;
+    padding: 10px 20px 12px;
+    border-top: 1px solid var(--linea);
+    background: var(--hoja);
+}
+
+/* With a message chosen: on a wide screen the composer stays under half of the height and scrolls on its own, so the
+   conversation above keeps its last message in sight. On a phone it takes what the message needs: its send button
+   must stay in sight. */
+@media (min-width: 761px) {
+    #mrd-chat .mrd-escribir.mrd-con-previa {
+        max-height: 50vh;
+    }
+}
+
+@media (max-width: 760px) {
+    #mrd-chat .mrd-hoja-24 {
+        max-height: calc(100% - 16px);
+        padding-inline: 12px;
+    }
+    #mrd-chat .mrd-hoja-cab {
+        margin-inline: -12px;
+        padding-inline: 12px 4px;
+    }
+    #mrd-chat .mrd-hoja-24 .mrd-retomar-pie {
+        margin-inline: -12px;
+        /* stylelint-disable-next-line csstree/validator */
+        padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+    }
+    #mrd-chat .mrd-24-espera-t {
+        flex: 1 1 calc(100% - 48px);
+    }
+    #mrd-chat .mrd-24-espera .mrd-primario {
+        flex: 1 1 auto;
+    }
+    /* The chosen message without a second frame: the composer is the frame. */
+    #mrd-chat .mrd-con-previa .mrd-previa {
+        padding: 2px 0 0;
+        border: 0;
+        box-shadow: none;
+    }
+}

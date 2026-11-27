@@ -5865,7 +5865,7 @@
             var newer = newerOf(c);
             var areas = [box2, hiloEl()].filter(Boolean), areaState = function (cls) {
                 areas.forEach(function (area) {
-                    area.classList.remove('mrd-eligiendo', 'mrd-con-previa');
+                    area.classList.remove('mrd-eligiendo', 'mrd-con-previa', 'mrd-con-hoja');
                     if (cls) {
                         area.classList.add(cls);
                     }
@@ -5943,18 +5943,44 @@
                     '</button></div>';
                 return;
             }
-            areaState(tpls.length ? 'mrd-eligiendo' : '');
+            // The family wrote last and waits: a band at the foot that says since when, with the way to answer. The
+            // conversation keeps its height to be read; the approved messages open in a sheet over it.
+            if (!st.unfold[c.id] && st.schedPick !== c.id && tpls.length) {
+                box2.innerHTML = '<div class="mrd-24-espera"><span class="mrd-reloj">' + ico('reloj') + '</span><span class="mrd-24-espera-t"><b>' +
+                    esc(lastIn ? s('waitbar', { name: name, when: whenPhrase(lastIn) }) : s('waitbarnever', name)) + '</b> ' + esc(s('waitbartail')) +
+                    '</span><button type="button" class="mrd-btn mrd-primario" data-a="unfold" aria-haspopup="dialog" aria-expanded="false">' + ico('mensaje') +
+                    esc(s('waitbarpick')) + '</button><button type="button" class="mrd-24-nota" data-a="mode" data-v="note">' + ico('nota') + esc(s('tabnote')) +
+                    '</button></div>';
+                return;
+            }
+            var sheet = tpls.length && st.schedPick !== c.id;
+            areaState(sheet ? 'mrd-con-hoja' : tpls.length ? 'mrd-eligiendo' : '');
             if (st.schedPick === c.id) {
                 h = '<div class="mrd-retomar-pie mrd-prog-volver"><button type="button" data-a="schedback">' + ico('izq') + esc(s('schedback')) + '</button></div>';
             } else {
                 h = '';
             }
-            h += '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(st.schedPick === c.id ? s('schedpicktitle')
-                : lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
-                '<p>' + esc(st.schedPick === c.id ? s('schedpickhelp', whenPhrase(schedAt(c)))
-                : lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p>' +
-                (tpls.length ? '<p class="mrd-paga">' + ico('gs-euro') + '<span>' + esc(s('payline')) + ' <strong>' + esc(s('paylinewho')) + '</strong>' +
-                    esc(s('paylinetail')) + '</span></p>' : '') + '</div></div>';
+            if (sheet) {
+                // The sheet: its title and its close, the last thing the family said (what one is answering), and why
+                // an approved message, in two short lines.
+                var said = lastSaid();
+                h += '<button type="button" class="mrd-hoja-velo" data-a="fold" tabindex="-1" aria-hidden="true"></button>' +
+                    '<div class="mrd-hoja-24" role="dialog" aria-modal="false" aria-labelledby="mrd-hoja-t"><div class="mrd-hoja-cab"><span class="mrd-hoja-asa" aria-hidden="true"></span>' +
+                    '<h3 id="mrd-hoja-t">' + esc(s('sheettitle', name)) + '</h3><button type="button" class="mrd-hoja-cerrar" data-a="fold" aria-label="' +
+                    esc(s('sheetclose')) + '">' + ico('cerrar') + '</button></div>' +
+                    (said ? '<figure class="mrd-hoja-dijo"><figcaption>' + esc(s('sheetlast', { name: name, when: whenPhrase(lastIn) })) + '</figcaption>' +
+                        '<blockquote><p>' + esc(said) + '</p></blockquote></figure>' : '') +
+                    '<p class="mrd-hoja-por">' + ico('reloj') + '<span>' + esc(lastIn ? s('sheetwhy') : s('closednever', name)) + '</span></p>' +
+                    '<p class="mrd-paga">' + ico('gs-euro') + '<span>' + esc(s('payline')) + ' <strong>' + esc(s('paylinewho')) + '</strong>' +
+                    esc(s('paylinetail')) + '</span></p>';
+            } else {
+                h += '<div class="mrd-retomar-cab"><span class="mrd-reloj">' + ico('reloj') + '</span><div><b>' + esc(st.schedPick === c.id ? s('schedpicktitle')
+                    : lastIn ? s('closedtitle') : s('starttitle')) + '</b>' +
+                    '<p>' + esc(st.schedPick === c.id ? s('schedpickhelp', whenPhrase(schedAt(c)))
+                    : lastIn ? s('closedlast', { name: name, when: whenPhrase(lastIn) }) : s('closednever', name)) + '</p>' +
+                    (tpls.length ? '<p class="mrd-paga">' + ico('gs-euro') + '<span>' + esc(s('payline')) + ' <strong>' + esc(s('paylinewho')) + '</strong>' +
+                        esc(s('paylinetail')) + '</span></p>' : '') + '</div></div>';
+            }
             var said = st.fichaFor === c.id && st.ficha ? st.ficha.optout : null, held = optoutBlocked(c.contact && c.contact.phone, said);
             h += optoutBand(c.contact && c.contact.phone, said, false);
             if (tpls.length) {
@@ -5989,8 +6015,18 @@
                 h += '<p class="mrd-ayuda">' + esc(s('notemplates')) + '</p>';
             }
             h += '<div class="mrd-retomar-pie">' + esc(s('teamnolimit')) + ' <button type="button" data-a="mode" data-v="note">' + ico('nota') +
-                esc(s('writenotebtn')) + '</button></div>';
+                esc(s('writenotebtn')) + '</button></div>' + (sheet ? '</div>' : '');
             box2.innerHTML = h;
+        }
+        /* The last thing the family said, as text: what the sheet quotes while one chooses how to answer it. */
+        function lastSaid() {
+            for (var i = st.msgs.length - 1; i >= 0; i--) {
+                var m = st.msgs[i];
+                if (m.kind === 'incoming') {
+                    return String(m.text || (m.attachments && m.attachments.length ? s('sheetfile') : '')).trim();
+                }
+            }
+            return '';
         }
         /* Whether the conversation is open only to be read: resolved, or with our message as the last one. When the family
            wrote last and it is not resolved, it waits for an answer and the approved messages show unfolded. */
@@ -9223,7 +9259,18 @@
                     break;
                 case 'tplback':
                     st.tpl = -1;
+                    if (c) {
+                        st.unfold[c.id] = true;
+                    }
                     renderComposer(true);
+                    focusPop('.mrd-escribir .mrd-plantilla, .mrd-escribir .mrd-libre');
+                    break;
+                case 'fold':
+                    if (c) {
+                        st.unfold[c.id] = false;
+                        renderComposer(true);
+                        focusPop('.mrd-escribir [data-a="unfold"]');
+                    }
                     break;
                 case 'unfold':
                     if (c) {
@@ -9551,6 +9598,12 @@
             if (e.key === 'Escape') {
                 if (!el.visor.hidden) {
                     closeViewer();
+                    return;
+                }
+                var sheet24 = el.chat && el.chat.querySelector('.mrd-escribir.mrd-con-hoja [data-a="fold"]');
+                if (sheet24 && !st.pop) {
+                    e.preventDefault();
+                    sheet24.click();
                     return;
                 }
                 if (closePops()) {

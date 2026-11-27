@@ -817,9 +817,10 @@ class channel {
      * The visit through the link of a post: it counts, and goes on to the page of the post.
      *
      * @param string $token The token of the post.
+     * @param bool $count Whether it counts: not when a robot looks at the link (links::is_robot()).
      * @return string|null Where it goes; null if the post or its link are not known.
      */
-    public static function click(string $token): ?string {
+    public static function click(string $token, bool $count = true): ?string {
         global $DB;
         $post = $token === '' ? false : $DB->get_record(self::TABLE, ['token' => $token], 'id, kind, content');
         $content = $post ? (json_decode($post->content, true) ?: []) : [];
@@ -827,7 +828,9 @@ class channel {
         if (!preg_match('~^https?://~i', $url)) {
             return null;
         }
-        $DB->execute('UPDATE {' . self::TABLE . '} SET clicks = clicks + 1 WHERE id = ?', [$post->id]);
+        if ($count) {
+            $DB->execute('UPDATE {' . self::TABLE . '} SET clicks = clicks + 1 WHERE id = ?', [$post->id]);
+        }
         return isset($content['utm']) && !$content['utm'] ? $url : links::utm($url, $post->kind);
     }
 

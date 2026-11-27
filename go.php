@@ -30,17 +30,22 @@ define('NO_MOODLE_COOKIES', true);
 require(__DIR__ . '/../../config.php');
 
 use local_oksigeniamarandu\local\channel;
+use local_oksigeniamarandu\local\links;
 use local_oksigeniamarandu\local\queue;
 use local_oksigeniamarandu\local\wachannel;
 
+// A robot that looks at the link (Meta, the previews of Telegram or WhatsApp) goes on to the same page, so that it sees
+// where the link leads, but it is not a visit.
+$person = !links::is_robot();
+
 $post = optional_param('p', '', PARAM_ALPHANUM);
 if ($post !== '') {
-    redirect(new moodle_url(channel::click($post) ?? '/'));
+    redirect(new moodle_url(channel::click($post, $person) ?? '/'));
 }
 // The same post in the channel of WhatsApp: its visits apart, with utm_source=whatsapp.
 $whatsapp = optional_param('w', '', PARAM_ALPHANUM);
 if ($whatsapp !== '') {
-    redirect(new moodle_url(wachannel::click($whatsapp) ?? '/'));
+    redirect(new moodle_url(wachannel::click($whatsapp, $person) ?? '/'));
 }
 
 $token = optional_param('k', '', PARAM_ALPHANUM);
@@ -48,7 +53,7 @@ $row = $token === '' ? false : $DB->get_record(queue::TABLE, ['token' => $token]
 $target = new moodle_url('/');
 if ($row && !empty($row->url) && strpos($row->url, $CFG->wwwroot . '/') === 0) {
     $target = new moodle_url($row->url);
-    if (empty($row->timeclicked)) {
+    if ($person && empty($row->timeclicked)) {
         $DB->set_field(queue::TABLE, 'timeclicked', time(), ['id' => $row->id]);
     }
 }

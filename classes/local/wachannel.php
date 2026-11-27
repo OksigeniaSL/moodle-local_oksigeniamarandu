@@ -337,9 +337,10 @@ class wachannel {
      * to the page of the post with utm_source=whatsapp.
      *
      * @param string $token The token of what waits for WhatsApp.
+     * @param bool $count Whether it counts: not when a robot looks at the link (links::is_robot()).
      * @return string|null Where it goes; null if it or its link are not known.
      */
-    public static function click(string $token): ?string {
+    public static function click(string $token, bool $count = true): ?string {
         global $DB;
         $wa = $token === '' ? false : $DB->get_record(self::TABLE, ['token' => $token], 'id, postid');
         $post = $wa ? $DB->get_record(channel::TABLE, ['id' => $wa->postid], 'id, kind, content') : false;
@@ -348,7 +349,9 @@ class wachannel {
         if (!preg_match('~^https?://~i', $url)) {
             return null;
         }
-        $DB->execute('UPDATE {' . self::TABLE . '} SET clicks = clicks + 1 WHERE id = ?', [$wa->id]);
+        if ($count) {
+            $DB->execute('UPDATE {' . self::TABLE . '} SET clicks = clicks + 1 WHERE id = ?', [$wa->id]);
+        }
         return isset($content['utm']) && !$content['utm'] ? $url :
             links::utm(links::for_whatsapp($url), $post->kind, 'whatsapp');
     }

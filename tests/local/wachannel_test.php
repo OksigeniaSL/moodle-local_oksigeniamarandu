@@ -253,6 +253,53 @@ final class wachannel_test extends \advanced_testcase {
     }
 
     /**
+     * The robots that look at a link (Meta, the previews of Telegram and WhatsApp, search engines, scripts) are told from
+     * the people who tap it, also on a phone whose brand ends in «bot».
+     */
+    public function test_robots(): void {
+        $robots = [
+            'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+            'facebookexternalhit/1.1',
+            'meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)',
+            'WhatsApp/2.23.20.0 A',
+            'TelegramBot (like TwitterBot)',
+            'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+            'curl/8.5.0',
+            'python-requests/2.31.0',
+            '',
+        ];
+        foreach ($robots as $agent) {
+            $this->assertTrue(api::is_robot($agent), $agent);
+        }
+        $people = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 '
+                . 'Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (Linux; Android 12; CUBOT X50) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile '
+                . 'Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 13; SM-A145R Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) '
+                . 'Version/4.0 Chrome/130.0.6723.107 Mobile Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0',
+        ];
+        foreach ($people as $agent) {
+            $this->assertFalse(api::is_robot($agent), $agent);
+        }
+
+        // Without an agent given, that of the request; a HEAD request is a machine.
+        $server = $_SERVER;
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_USER_AGENT'] = $people[0];
+        $this->assertFalse(links::is_robot());
+        $_SERVER['REQUEST_METHOD'] = 'HEAD';
+        $this->assertTrue(links::is_robot());
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_USER_AGENT'] = $robots[0];
+        $this->assertTrue(links::is_robot());
+        $_SERVER = $server;
+    }
+
+    /**
      * Switched on, a post that goes out in Telegram waits for WhatsApp, and who publishes there hears of it: by the
      * notice of Marandu on what they joined, or in the bell and the app; its link counts apart, with utm_source=whatsapp.
      */
@@ -307,6 +354,14 @@ final class wachannel_test extends \advanced_testcase {
             'https://example.org/libro?utm_source=whatsapp&utm_medium=channel&utm_campaign=book',
             wachannel::click($wa->token)
         );
+        $this->assertSame(['1', '0'], [$DB->get_field(wachannel::TABLE, 'clicks', ['id' => $wa->id]),
+            $DB->get_field(channel::TABLE, 'clicks', ['id' => $post->id])]);
+        // A robot that looks at the link goes to the same page, and does not count.
+        $this->assertSame(
+            'https://example.org/libro?utm_source=whatsapp&utm_medium=channel&utm_campaign=book',
+            wachannel::click($wa->token, false)
+        );
+        $this->assertNotNull(channel::click($post->token, false));
         $this->assertSame(['1', '0'], [$DB->get_field(wachannel::TABLE, 'clicks', ['id' => $wa->id]),
             $DB->get_field(channel::TABLE, 'clicks', ['id' => $post->id])]);
         $this->assertNull(wachannel::click('nothing'));

@@ -32,6 +32,32 @@ class links {
     private static $fortests = null;
 
     /**
+     * The machines that follow a link to look at it before anyone taps it: the reader of links of Meta (the buttons of the
+     * templates, the previews of WhatsApp and Facebook), the previews of Telegram, Slack and the like, search engines and
+     * scripts. «bot» as a word, so that a phone of the brand Cubot is a person.
+     */
+    private const ROBOTS = '~facebookexternalhit|facebookcatalog|meta-external|^whatsapp/|(?<!cu)bot\b|crawler|spider|slurp'
+        . '|preview|\+https?://|^curl/|^wget/|python-|go-http-client|^java/|^okhttp|headless|lighthouse~i';
+
+    /**
+     * Whether a visit comes from a machine and not from a person: robots follow the links of the notices and of the posts
+     * like a person, to check them or to draw their preview, and must not count as a visit.
+     *
+     * @param string|null $agent The user agent; that of this request if not given (and a HEAD request is a machine).
+     * @return bool
+     */
+    public static function is_robot(?string $agent = null): bool {
+        if ($agent === null) {
+            if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') {
+                return true;
+            }
+            $agent = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+        }
+        $agent = trim($agent);
+        return $agent === '' || (bool)preg_match(self::ROBOTS, $agent);
+    }
+
+    /**
      * A link with the UTM marks of the site, if it measures them: source, medium and the kind of post as campaign. Marks
      * the link already has are left as they are.
      *

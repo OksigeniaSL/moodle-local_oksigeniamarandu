@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.69.2 (2026-11-27)
+
+- The robots that follow a link to look at it (the reader of links of Meta, the previews of WhatsApp, Telegram and the
+  like, search engines, scripts, a HEAD request) no longer count as a visit: not as the tap on the button of a notice
+  (`timeclicked`), nor as a visit to a post of the channel, in Telegram or in WhatsApp. They still go on to the same page.
+  Meta began to follow the button of each template a few seconds after it went out, and the tap was marked on families
+  that had not tapped anything.
+- `api::is_robot(?string $agent = null)`, for a plugin that counts the visits to the page a notice opens: those robots
+  reach it too.
+
 ## 0.69.1 (2026-11-27)
 
 - Past the 24 hours, the conversation keeps the height: at its foot, a band says since when the contact waits, with

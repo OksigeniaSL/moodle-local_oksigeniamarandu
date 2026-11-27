@@ -776,6 +776,18 @@ class api {
     }
 
     /**
+     * Whether this request comes from a machine and not from a person. Meta, Telegram and WhatsApp follow the links of the
+     * notices and the posts to check them or to draw their preview, often before anyone taps them, and they go on to the
+     * page of the plugin too: a plugin that counts the visits to that page asks this first. Marandu does not count them.
+     *
+     * @param string|null $agent The user agent; that of this request if not given.
+     * @return bool
+     */
+    public static function is_robot(?string $agent = null): bool {
+        return local\links::is_robot($agent);
+    }
+
+    /**
      * By which channels a notice would reach an item now: somebody joined for it there, said no neither to everything nor
      * to the plugin, the site has the notice switched on for that channel and the channel works; on WhatsApp, inside the
      * 24 hours or with its template approved. A plugin that gets none has to say it another way, such as by mail.

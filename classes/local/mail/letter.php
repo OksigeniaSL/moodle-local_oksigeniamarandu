@@ -42,8 +42,9 @@ final class letter {
      * when the logo already says the name.
      *
      * The mail: lang; dir (ltr or rtl); subject; preheader; heading; hello; blocks (as in mail.html.mst; a picture
-     * brings picturebytes, picturealt, picturecaption and, if smaller, picturewidth, in place of its cid); signature
-     * (signoff, signer, signrole); contact; reason; unsub (unsuburl, unsubtext, unsubhint: only in mails to many);
+     * brings picturebytes, picturealt, picturecaption, pictureframe and, if smaller, picturewidth, in place of its
+     * cid); signature (signoff, signer, signrole); contact; reason; unsub (unsuburl, unsubtext, unsubhint: only in
+     * mails to many);
      * hero (bytes, alt and brand: a picture across the top, over the band; with brand, the picture already carries
      * the brand, and the band is left out); sample.
      *
@@ -89,11 +90,13 @@ final class letter {
                 }
                 [$w, $h, $mime] = self::size($bytes);
                 $cid = 'picture' . (++$n);
-                $width = min((int)($p['picturewidth'] ?? self::PICTURE), self::PICTURE, $w);
+                // A frame: a thin edge for a picture as white as the paper (a whiteboard, a sheet), inside the width.
+                $frame = !empty($p['pictureframe']);
+                $width = min((int)($p['picturewidth'] ?? self::PICTURE), self::PICTURE - ($frame ? 2 : 0), $w);
                 $images[] = ['cid' => $cid, 'bytes' => $bytes, 'mime' => $mime, 'name' => $cid . '.' . self::extension($mime)];
                 $block = ['picture' => ['picturecid' => $cid, 'picturewidth' => $width,
                     'pictureheight' => (int)round($width * $h / $w), 'picturealt' => (string)($p['picturealt'] ?? ''),
-                    'picturecaption' => (string)($p['picturecaption'] ?? '')]];
+                    'picturecaption' => (string)($p['picturecaption'] ?? ''), 'pictureframe' => $frame]];
             }
             if (isset($block['link'])) {
                 // A link that shows its own address: the plain text writes it once, not «address: address».

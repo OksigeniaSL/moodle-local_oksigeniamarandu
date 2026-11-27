@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.71.2 (2026-11-27)
+
+- The template of the common mail, copied again from its mould: no stray blank line after each piece of the text
+  version, and `pictureframe` in a picture piece, a thin edge in the colour of the lines (also in dark) for a picture as
+  white as the paper, such as a whiteboard.
+
 ## 0.71.1 (2026-11-27)
 
 - The text version of the common mail has never more than one blank line in a row (there were three around a picture

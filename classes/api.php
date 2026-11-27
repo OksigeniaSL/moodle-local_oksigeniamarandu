@@ -844,7 +844,8 @@ class api {
      * @param array $pieces heading; subject (the heading if not given); preheader (the line a mail program shows before
      *     opening it); hello; blocks, one piece each, in order: paragraph (text), rich (runs of run and bold), subheading,
      *     data (rows of label and value), items (texts), note (notetitle, notetext), picture (picturebytes, picturealt,
-     *     picturecaption), action (actionurl, actiontext: the one button), link (linkbefore, linkurl, linktext), small;
+     *     picturecaption; pictureframe, a thin edge for a picture as white as the paper), action (actionurl, actiontext:
+     *     the one button), link (linkbefore, linkurl, linktext), small;
      *     signature (signer, signrole); contact and reason (the foot: how to reach the organization, why it arrives);
      *     unsub (unsuburl, only to many: an https address that takes a POST «List-Unsubscribe=One-Click» and stops the
      *     mails, and shows a page with a button on a GET); hero (bytes, alt: a picture across the top); unit (who writes

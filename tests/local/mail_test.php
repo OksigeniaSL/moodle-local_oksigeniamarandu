@@ -413,7 +413,15 @@ final class mail_test extends \advanced_testcase {
         $this->assertStringContainsString('Esto es lo que comerá Leo.', $built['text']);
         $this->assertStringContainsString('https://example.org/menu', $built['text']);
         $this->assertDoesNotMatchRegularExpression('/\n[ \t]*\n[ \t]*\n/', $built['text']);
+        $this->assertStringNotContainsString('om-ink2 om-frame', $built['html']);
         $this->assertSame('', $built['id']);
+
+        // A picture as white as the paper, with its thin edge.
+        $built = api::mail_html(['heading' => 'La pizarra', 'blocks' => [
+            ['picture' => ['picturebytes' => $bytes, 'picturealt' => 'La pizarra', 'pictureframe' => true]],
+        ]], 'es');
+        $this->assertStringContainsString('om-ink2 om-frame', $built['html']);
+        $this->assertStringContainsString('border:1px solid', $built['html']);
 
         // A name with «&»: escaped once in the mail, as it is in its text.
         set_config('cardorg', 'Colegio Sol & Mar', self::C);

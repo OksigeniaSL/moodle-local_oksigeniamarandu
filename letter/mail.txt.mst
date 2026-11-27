@@ -55,9 +55,7 @@
 {{/rich.0}}
 {{#rich}}{{{run}}}{{/rich}}{{#rich.0}}
 {{/rich.0}}
-
 {{#subheading}}
-
 
 {{{subheading}}}
 {{/subheading}}

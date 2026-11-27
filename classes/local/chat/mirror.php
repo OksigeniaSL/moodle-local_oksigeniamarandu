@@ -271,6 +271,7 @@ class mirror {
             $DB->update_record(self::TABLE, $row);
             if (!$fresh) {
                 notify::changed($old, $row, $list);
+                incoming::tell($id, (string)$row->phone, $list, (int)$old->lastmsgid, time() - incoming::FRESH);
             }
         } else {
             $row->passedby = 0;
@@ -281,6 +282,9 @@ class mirror {
             $row->timemodified = $row->timecreated;
             $DB->insert_record(self::TABLE, $row);
             notify::changed(null, $row, $list);
+            if (!$fresh) {
+                incoming::tell($id, (string)$row->phone, $list, 0, time() - incoming::FRESH);
+            }
         }
         return true;
     }

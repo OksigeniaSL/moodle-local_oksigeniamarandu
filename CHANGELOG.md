@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.69.0 (2026-11-27)
+
+- What a contact writes in a conversation of the team reaches the plugins that listen, whether the number joined anything
+  or not: `<plugin>_marandu_chat_in(string $phone, string $text, int $time, string $url, int $messageid): void` in their
+  lib.php, once for each new text the index sees (by the webhook of Chatwoot or by the task of each minute), with the
+  number as digits with the country code and the address of the conversation. Not what the team writes, notes, what was
+  brought in from a phone, what is older than a day or a contact without a phone. A plugin that fails does not stop the
+  chat. `cli/chat.php --chat-in-since=DAY [--chat-in-plugin=NAME]` tells again what came since a day, to bring a plugin
+  what came before it listened; the plugin knows a repeated message by its id.
+- What waits for the quiet hours goes on the minute they end, not up to a quarter of an hour after.
+- Two sends of the same item each say what became of their own notice (`api::bulk_items()`): an earlier one took what a
+  later one queued.
+
 ## 0.68.4 (2026-11-26)
 
 - A send that goes at once (a sample, or one under the limit of approval) no longer asks its plugin whether each item

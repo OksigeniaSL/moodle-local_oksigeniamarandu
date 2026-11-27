@@ -33,6 +33,12 @@ class listening_plugin {
     /** @var array The answers to its sends it heard: the send, the item and the answer. */
     public static $answers = [];
 
+    /** @var array What it heard written in the chat: the number, the text, the time, the conversation and the message. */
+    public static $chat = [];
+
+    /** @var bool Whether it fails when it hears something written in the chat. */
+    public static $chatfails = false;
+
     /**
      * Forgets everything.
      */
@@ -40,5 +46,7 @@ class listening_plugin {
         self::$heard = [];
         self::$item = null;
         self::$answers = [];
+        self::$chat = [];
+        self::$chatfails = false;
     }
 }

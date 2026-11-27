@@ -454,7 +454,16 @@ final class queue_test extends \advanced_testcase {
         $api = $this->fake_api();
         $counts = queue::process($api, $night);
         $this->assertSame([1, 1], [$counts['sent'], $counts['waiting']]);
+        $waiting = $DB->get_record(queue::TABLE, ['status' => 'queued']);
+        $this->assertEquals($night + 15 * MINSECS, $waiting->timeretry);
+        // Three minutes before the quiet hours end, it waits only until they end, not a quarter of an hour.
+        $dawn = self::WEDNESDAY + 20 * HOURSECS + 57 * MINSECS + 2;
+        $this->assertTrue(queue::is_quiet($dawn));
+        $this->assertSame(1, queue::process($api, $dawn)['waiting']);
+        $this->assertEquals($dawn + 3 * MINSECS, $DB->get_field(queue::TABLE, 'timeretry', ['id' => $waiting->id]));
+        $this->assertSame(1, queue::process($api, $dawn + 3 * MINSECS)['sent']);
 
+        $this->notify();
         $counts = queue::process($api, $night + 3 * DAYSECS);
         $this->assertSame(1, $counts['expired']);
         $this->assertSame(1, $DB->count_records(queue::TABLE, ['status' => 'expired']));

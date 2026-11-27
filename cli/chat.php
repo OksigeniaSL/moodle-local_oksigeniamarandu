@@ -61,6 +61,8 @@ use local_oksigeniamarandu\local\chat\team_hours;
     'sync' => false,
     'sync-all' => false,
     'rebuild' => false,
+    'chat-in-since' => null,
+    'chat-in-plugin' => null,
     'status' => false,
     'disconnect' => false,
 ], ['h' => 'help']);
@@ -132,6 +134,10 @@ Options:
                        history into Chatwoot (import_history.rb), which never comes by the webhook.
 --rebuild              With --sync-all: every row written again from Chatwoot (its department, its state, its 24
                        hours), also what changed there without moving its time, such as departments set in bulk.
+--chat-in-since=DATE   Tells again the plugins that listen (<plugin>_marandu_chat_in) what the contacts wrote since
+                       that day (2026-11-25, in the time zone of the site), to bring them what came before they
+                       listened. The same messages can come twice: each plugin knows them by their id.
+--chat-in-plugin=NAME  With --chat-in-since: only this plugin, such as local_oksigeniaeguahe.
 --status               Shows what is connected.
 --disconnect           Forgets the account, its tokens and the index.
 -h, --help             This help.
@@ -342,6 +348,21 @@ try {
     if ($options['sync']) {
         set_config('chatsynced', 0, $component);
         mtrace('Conversations in the index: ' . mirror::sync());
+    }
+    if ($options['chat-in-since'] !== null) {
+        $day = trim((string)$options['chat-in-since']);
+        $date = \DateTime::createFromFormat('!Y-m-d', $day, \core_date::get_server_timezone_object());
+        if (!$date) {
+            cli_error('--chat-in-since takes a day such as 2026-11-25');
+        }
+        $plugin = trim((string)$options['chat-in-plugin']) ?: null;
+        $listeners = \local_oksigeniamarandu\local\chat\incoming::listeners($plugin);
+        if (!$listeners) {
+            mtrace('No plugin listens to what the contacts write' . ($plugin ? ' (' . $plugin . ')' : ''));
+        } else {
+            [$read, $told] = \local_oksigeniamarandu\local\chat\incoming::tell_since($date->getTimestamp(), $plugin);
+            mtrace('Told to ' . implode(', ', array_keys($listeners)) . ": $told messages of $read conversations since $day");
+        }
     }
     if ($options['status']) {
         $config = get_config($component);

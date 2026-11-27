@@ -122,6 +122,31 @@ final class bulk_test extends \advanced_testcase {
     }
 
     /**
+     * Two sends of the same item: each one says what became of its own notice, not of the other's (the queue does not
+     * keep the send, and an earlier one took what a later one queued).
+     */
+    public function test_items_of_each_send(): void {
+        global $DB;
+        $this->join('34600000001', 1);
+        $asker = $this->getDataGenerator()->create_user();
+        $items = [['itemid' => 1, 'params' => ['Jornada', 'jueves'], 'url' => null, 'lang' => '']];
+        $first = api::bulk_request('local_oksigeniamarandu', 'act_invitation', $items, (int)$asker->id, 'Jornada');
+        $row = $DB->get_record(queue::TABLE, ['itemid' => 1]);
+        $hour = time() - HOURSECS;
+        $DB->update_record(queue::TABLE, (object)['id' => $row->id, 'status' => 'failed', 'errorcode' => 131000,
+            'timequeued' => $hour, 'timesent' => $hour]);
+        $DB->set_field(bulk::TABLE, 'timedecided', $hour, ['id' => $first['id']]);
+
+        $second = api::bulk_request('local_oksigeniamarandu', 'act_invitation', $items, (int)$asker->id, 'Jornada otra vez');
+        $again = $DB->get_record_select(queue::TABLE, 'itemid = 1 AND id <> ?', [$row->id]);
+        $DB->update_record(queue::TABLE, (object)['id' => $again->id, 'status' => 'delivered', 'timesent' => time(),
+            'timedelivered' => time()]);
+
+        $this->assertSame(['failed', '131000'], [api::bulk_items($first['id'])[0]['status'], api::bulk_items($first['id'])[0]['why']]);
+        $this->assertSame('delivered', api::bulk_items($second['id'])[0]['status']);
+    }
+
+    /**
      * The month as Meta counts it, by category and by day, against the budget: at 80 % and at 100 %, a word to whoever
      * watches, once each; over the budget, a send waits for approval though it is under the threshold.
      */

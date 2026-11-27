@@ -72,3 +72,19 @@ function local_oksigeniamarandu_marandu_bulk_answer(int $bulkid, int $itemid, st
     listening_plugin::$answers[] = [$bulkid, $itemid, $answer];
     return 'Thanks for telling us.';
 }
+
+/**
+ * Hears what a contact wrote in a conversation of the team.
+ *
+ * @param string $phone The number.
+ * @param string $text What it wrote.
+ * @param int $time When.
+ * @param string $url The conversation.
+ * @param int $messageid The message.
+ */
+function local_oksigeniamarandu_marandu_chat_in(string $phone, string $text, int $time, string $url, int $messageid): void {
+    if (listening_plugin::$chatfails) {
+        throw new \coding_exception('It fails on purpose');
+    }
+    listening_plugin::$chat[] = [$phone, $text, $time, $url, $messageid];
+}

@@ -151,6 +151,8 @@ class queue {
         $cap = (float)($config->capmonth ?? 0);
         $perday = (int)($config->capfamily ?? 0);
         $quiet = self::is_quiet($now);
+        // What waits for the quiet hours goes on the minute they end, not up to a quarter of an hour after.
+        $quietwait = $quiet ? max(1, min(self::LATER, self::quiet_end($now) - $now)) : self::LATER;
         $enabled = ['whatsapp' => notices::enabled('whatsapp'), 'telegram' => notices::enabled('telegram')];
         $urgent = notices::urgent();
         $spent = self::spent($now);
@@ -204,7 +206,7 @@ class queue {
             }
             $canwait = self::can_wait($row, $notice, $urgent);
             if ($quiet && $canwait) {
-                self::later($row, $now, self::LATER, 'quiet');
+                self::later($row, $now, $quietwait, 'quiet');
                 $counts['waiting']++;
                 continue;
             }

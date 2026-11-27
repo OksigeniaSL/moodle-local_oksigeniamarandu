@@ -35,6 +35,7 @@ use local_oksigeniamarandu\local\chat\chatwoot;
 use local_oksigeniamarandu\local\chat\closed;
 use local_oksigeniamarandu\local\chat\directory;
 use local_oksigeniamarandu\local\chat\hours;
+use local_oksigeniamarandu\local\chat\incoming;
 use local_oksigeniamarandu\local\chat\message;
 use local_oksigeniamarandu\local\chat\mirror;
 use local_oksigeniamarandu\local\chat\scheduled;
@@ -255,7 +256,10 @@ final class chat_test extends \advanced_testcase {
                         }
                         return $message;
                     }
-                    return ['payload' => $this->messages[$m[1]] ?? []];
+                    // Chatwoot gives the last ones, or those before a message.
+                    return ['payload' => array_values(array_filter($this->messages[$m[1]] ?? [], function ($one) use ($data) {
+                        return empty($data['before']) || (int)$one['id'] < (int)$data['before'];
+                    }))];
                 }
                 if (preg_match('~^/conversations/(\d+)/assignments$~', $path, $m)) {
                     if (array_key_exists('assignee_id', $data)) {
@@ -1532,6 +1536,63 @@ final class chat_test extends \advanced_testcase {
         $preview = mirror::from_messages([['id' => 1, 'message_type' => 1, 'content' => "*Ana · Secretaría*\nYa está.",
             'created_at' => 1, 'sender' => ['type' => 'user', 'id' => 1]]]);
         $this->assertSame('Ya está.', $preview['preview']);
+    }
+
+    /**
+     * What a contact writes reaches the plugins that listen, once each new text, joined or not: by the webhook and by
+     * the task; not the team's, nor notes, nor what came from a phone, nor what is older than a day, nor a file without
+     * words. A plugin that fails does not stop the chat, and what came before it listened can be told again.
+     */
+    public function test_chat_in(): void {
+        global $DB;
+        require_once(__DIR__ . '/../fixtures/listening_plugin.php');
+        require_once(__DIR__ . '/../fixtures/listening_plugin_lib.php');
+        listening_plugin::forget();
+        $now = time();
+        $this->client->conversations[4] = $this->conversation(4, 10, 0, 'Pablo Gil', '+34600000004');
+        $this->client->messages[4] = [$this->message(40, 0, 'Hace tres días', $now - 3 * DAYSECS)];
+        mirror::sync();
+        $url = function (int $id): string {
+            return (new \moodle_url('/local/oksigeniamarandu/chat.php', ['c' => $id]))->out(false);
+        };
+        $heard = listening_plugin::$chat;
+        usort($heard, function ($a, $b) {
+            return $a[4] - $b[4];
+        });
+        $this->assertSame([
+            ['34600000001', 'Hola', $now - 600, $url(1), 10],
+            ['34600000002', '¿Cuándo pasa el recibo?', $now - 300, $url(2), 20],
+            ['34600000003', 'Gracias', $now - 900, $url(3), 30],
+        ], $heard);
+
+        // By the webhook: only what is new, and only from the contact.
+        listening_plugin::$chat = [];
+        $this->client->messages[1][] = $this->message(12, 0, 'Esta vez no podremos ir', $now - 20);
+        $this->client->messages[1][] = $this->message(13, 1, 'Gracias por decírnoslo', $now - 10);
+        $this->client->messages[1][] = $this->message(14, 1, 'Ojo, es la familia de Iker', $now - 5, 'user', true);
+        $this->client->messages[1][] = $this->message(15, 0, '', $now - 4) + ['attachments' => [['file_type' => 'image']]];
+        $this->client->messages[1][] = $this->message(16, 0, 'Del móvil', $now - 3) + ['content_attributes' => ['imported' => true]];
+        mirror::webhook(['event' => 'message_created', 'account' => ['id' => 7], 'conversation' => ['id' => 1]]);
+        $this->assertSame([['34600000001', 'Esta vez no podremos ir', $now - 20, $url(1), 12]], listening_plugin::$chat);
+        mirror::webhook(['event' => 'message_created', 'account' => ['id' => 7], 'conversation' => ['id' => 1]]);
+        $this->assertCount(1, listening_plugin::$chat);
+
+        // A plugin that fails: the index keeps the message all the same.
+        listening_plugin::$chatfails = true;
+        $this->client->messages[2][] = $this->message(21, 0, 'Otra pregunta', $now - 2);
+        mirror::webhook(['event' => 'message_created', 'account' => ['id' => 7], 'conversation' => ['id' => 2]]);
+        $this->assertDebuggingCalled();
+        $this->assertSame(21, (int)$DB->get_field(mirror::TABLE, 'lastmsgid', ['cwid' => 2]));
+        listening_plugin::$chatfails = false;
+
+        // Told again since a day: the texts of the contacts of then, also the old one, page by page back.
+        listening_plugin::$chat = [];
+        $this->assertSame([4, 6], incoming::tell_since($now - 4 * DAYSECS, 'local_oksigeniamarandu'));
+        $ids = array_column(listening_plugin::$chat, 4);
+        sort($ids);
+        $this->assertSame([10, 12, 20, 21, 30, 40], $ids);
+        $this->assertSame([0, 0], incoming::tell_since($now - 4 * DAYSECS, 'local_other'));
+        listening_plugin::forget();
     }
 
     /**

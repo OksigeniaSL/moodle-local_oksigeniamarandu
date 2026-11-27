@@ -350,6 +350,14 @@ class bulk {
         $rank = ['skipped' => 0, 'failed' => 1, 'nowhatsapp' => 1, 'queued' => 2, 'waiting' => 3, 'sent' => 4,
             'delivered' => 5, 'read' => 6];
         $out = [];
+        // The queue does not keep the send: a later send of the same item takes what is queued from its own decision on.
+        $later = $DB->get_records_sql_menu("SELECT i.itemid, MIN(b.timedecided)
+                                              FROM {" . self::ITEMS . "} i
+                                              JOIN {" . self::TABLE . "} b ON b.id = i.bulkid
+                                             WHERE b.id > :id AND b.component = :component AND b.notice = :notice
+                                                   AND b.area = :area AND b.status = 'queued'
+                                          GROUP BY i.itemid", ['id' => $bulk->id, 'component' => $bulk->component,
+            'notice' => $bulk->notice, 'area' => (string)$bulk->area]);
         foreach ($DB->get_records(self::ITEMS, ['bulkid' => $id], 'id ASC') as $item) {
             $digits = $item->phone ? implied::digits((string)$item->phone) : null;
             $best = ['itemid' => (int)$item->itemid, 'status' => 'skipped', 'time' => 0,
@@ -364,9 +372,10 @@ class bulk {
                                             FROM {" . queue::TABLE . "} q
                                             JOIN {" . consent::CONTACTS . "} c ON c.id = q.contactid
                                            WHERE q.component = :component AND q.notice = :notice AND q.itemid = :itemid
-                                                 AND q.area = :area AND q.timequeued >= :since
+                                                 AND q.area = :area AND q.timequeued >= :since AND q.timequeued < :until
                                         ORDER BY q.id ASC", ['component' => $bulk->component, 'notice' => $bulk->notice,
-                'itemid' => $item->itemid, 'area' => (string)$bulk->area, 'since' => (int)$bulk->timedecided - 5]);
+                'itemid' => $item->itemid, 'area' => (string)$bulk->area, 'since' => (int)$bulk->timedecided - 5,
+                'until' => isset($later[$item->itemid]) ? (int)$later[$item->itemid] - 5 : PHP_INT_MAX]);
             foreach ($rows as $row) {
                 $one = self::item_row($row, $now);
                 if ($rank[$one['status']] < $rank[$best['status']] && $best['channel'] !== '') {

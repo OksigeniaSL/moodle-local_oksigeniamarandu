@@ -423,6 +423,14 @@ final class mail_test extends \advanced_testcase {
         $this->assertStringContainsString('om-ink2 om-frame', $built['html']);
         $this->assertStringContainsString('border:1px solid', $built['html']);
 
+        // A code to type by hand: large in the mail, alone on its line in the text.
+        $built = api::mail_html(['heading' => 'Tu código', 'blocks' => [
+            ['paragraph' => 'Escríbelo en la página.'], ['code' => '482913'],
+        ]], 'es');
+        $this->assertStringContainsString('letter-spacing:6px;', $built['html']);
+        $this->assertStringContainsString('>482913</td>', $built['html']);
+        $this->assertStringContainsString("\n\n482913\n", $built['text']);
+
         // A name with «&»: escaped once in the mail, as it is in its text.
         set_config('cardorg', 'Colegio Sol & Mar', self::C);
         $built = api::mail_html(['heading' => 'Hola', 'blocks' => [['paragraph' => 'Texto.']]], 'es');

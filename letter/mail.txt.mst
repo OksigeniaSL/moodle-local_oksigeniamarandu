@@ -75,6 +75,10 @@
 
 {{#notetitle}}{{{notetitle}}} {{/notetitle}}{{{notetext}}}
 {{/note}}
+{{#code}}
+
+{{{code}}}
+{{/code}}
 {{#picture}}
 
 [{{{picturealt}}}]{{#picturecaption}} {{{picturecaption}}}{{/picturecaption}}

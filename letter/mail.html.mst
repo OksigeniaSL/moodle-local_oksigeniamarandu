@@ -27,7 +27,7 @@
     the mail (cid:). The plain text version is mail.txt.mst, with the same words. Both are .mst, never .mustache: they
     keep the table attributes Outlook needs, which the Moodle CI rejects in any .mustache of a plugin.
 
-    The colours come from letter::context() (mail.php); every text arrives already in the language of the
+    The colours come from letter::build() (letter.php); every text arrives already in the language of the
     reader. Keys inside a block never repeat a key of the root: Mustache would take the root's when the block has none.
     For the same reason a list is never walked inside its own «list.0» section: that section puts the first item on
     the stack, and a later item without «bold» would take the first one's. The «.0» sections only open and close
@@ -48,7 +48,7 @@
     * heading, hello - the title of the mail; the greeting, or empty
     * blocks - one key each, in the order given:
         paragraph (text) · rich (runs: run, bold) · subheading (text) · data (rows: label, value) · items (texts) ·
-        note (notetitle, notetext) · picture (picturecid, picturewidth, pictureheight, picturealt, picturecaption, pictureframe) ·
+        note (notetitle, notetext) · code (text: a code to type by hand) · picture (picturecid, picturewidth, pictureheight, picturealt, picturecaption, pictureframe) ·
         action (actionurl, actiontext) · link (linkbefore, linkurl, linktext; linkbare, set by mail.php when the text
         is the address) · small (text)
     * signature - signoff, signer, signrole; or false
@@ -181,7 +181,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <tr><td class="om-pad om-round" bgcolor="{{colours.band}}" style="padding:18px 40px;background-color:{{colours.band}};border-radius:{{^hero}}12px 12px 0 0{{/hero}}{{#hero}}0{{/hero}};">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 {{#logo}}
-<td style="padding:0;padding-{{end}}:14px;vertical-align:middle;"><img src="cid:{{logocid}}" width="{{logowidth}}" height="{{logoheight}}" alt="{{#wordmark}}{{brand.name}}{{/wordmark}}" style="display:block;border:0;border-radius:10px;"></td>
+<td style="padding:0;padding-{{end}}:14px;vertical-align:middle;"><img src="cid:{{logocid}}" width="{{logowidth}}" height="{{logoheight}}" alt="{{#wordmark}}{{brand.name}}{{/wordmark}}" class="om-logo" style="display:block;border:0;border-radius:10px;"></td>
 {{/logo}}
 {{^logo.wordmark}}
 <td style="padding:0;vertical-align:middle;">
@@ -241,6 +241,11 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 <p class="om-ink" style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:{{colours.ink}};">{{notetext}}</p>
 </td></tr></table>
 {{/note}}
+{{#code}}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;border-collapse:separate;"><tr>
+<td class="om-soft om-ink" dir="ltr" bgcolor="{{colours.soft}}" style="padding:14px 18px 14px 24px;background-color:{{colours.soft}};border-radius:10px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;font-size:32px;line-height:1.2;font-weight:700;letter-spacing:6px;color:{{colours.ink}};-webkit-user-select:all;user-select:all;">{{code}}</td>
+</tr></table>
+{{/code}}
 {{#picture}}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;"><tr><td style="padding:0;">
 <img src="cid:{{picturecid}}" width="{{picturewidth}}" height="{{pictureheight}}" alt="{{picturealt}}" class="om-pic om-soft om-ink2{{#pictureframe}} om-frame{{/pictureframe}}" style="display:block;max-width:100%;height:auto;{{#pictureframe}}border:1px solid {{colours.line}};box-sizing:border-box;{{/pictureframe}}{{^pictureframe}}border:0;{{/pictureframe}}border-radius:10px;background-color:{{colours.soft}};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;color:{{colours.ink2}};">

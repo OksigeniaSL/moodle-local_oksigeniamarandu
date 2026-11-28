@@ -843,7 +843,8 @@ class api {
      *
      * @param array $pieces heading; subject (the heading if not given); preheader (the line a mail program shows before
      *     opening it); hello; blocks, one piece each, in order: paragraph (text), rich (runs of run and bold), subheading,
-     *     data (rows of label and value), items (texts), note (notetitle, notetext), picture (picturebytes, picturealt,
+     *     data (rows of label and value), items (texts), note (notetitle, notetext), code (a code to type by hand, large
+     *     and alone on its line), picture (picturebytes, picturealt,
      *     picturecaption; pictureframe, a thin edge for a picture as white as the paper), action (actionurl, actiontext:
      *     the one button), link (linkbefore, linkurl, linktext), small;
      *     signature (signer, signrole); contact and reason (the foot: how to reach the organization, why it arrives);

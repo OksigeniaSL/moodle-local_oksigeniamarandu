@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.71.3 (2026-11-28)
+
+- The common mail has a `code` piece, a code to type by hand (`['code' => '482913']`): large, with air between the
+  figures and in its box, and alone on its line in the text version. The logo of the mail is marked `om-logo`.
+
 ## 0.71.2 (2026-11-27)
 
 - The template of the common mail, copied again from its mould: no stray blank line after each piece of the text

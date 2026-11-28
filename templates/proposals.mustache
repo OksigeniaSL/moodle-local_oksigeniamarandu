@@ -23,7 +23,7 @@
     Context variables required for this template:
     * lead - What the page is.
     * tabs - Each: label, count, url, current.
-    * groups - Each: kind (idea or fallo), label, count, cards (as proposal_card takes them).
+    * groups - Each: kind (idea or fallo), isissue, label, count, cards (as proposal_card takes them).
     * none - Nothing in this tab, in words; empty if there is something.
 
     Example context (json):
@@ -32,7 +32,7 @@
         "tabs": [{"label": "Por atender", "count": 1, "url": "#", "current": true},
             {"label": "En Oksigenia", "count": 0, "url": "#", "current": false},
             {"label": "Cerradas", "count": 0, "url": "#", "current": false}],
-        "groups": [{"kind": "idea", "label": "Ideas", "count": 1, "cards": [{"id": 3, "kind": "idea",
+        "groups": [{"kind": "idea", "isissue": false, "label": "Ideas", "count": 1, "cards": [{"id": 3, "kind": "idea",
             "text": "Ver dos semanas a la vez.", "who": "Ana Pérez", "when": "ayer a las 17:40", "where": "Oksigenia Meals",
             "url": "", "extra": "", "image": "", "portrait": false, "formurl": "#", "sesskey": "abc",
             "open": {"release": "0.116.2", "donelabel": "Hecho, en la versión", "whyhint": "Se guarda al pulsar Intro.",
@@ -47,7 +47,7 @@
     </nav>
     {{#none}}<p class="sg-vacio">{{none}}</p>{{/none}}
     {{#groups}}
-    <h2 class="sg-grupo"><span class="sg-tag sg-t-{{kind}}">{{label}}</span><small>{{count}}</small></h2>
+    <h2 class="sg-grupo"><span class="sg-tag sg-t-{{kind}}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">{{#isissue}}<path d="M12.5 3.5h8v8l-9 9-8-8z"/><circle cx="16.8" cy="7.2" r="1.3"/><path d="M8 11.5l2 2M10.5 9l2 2"/>{{/isissue}}{{^isissue}}<path d="M4.5 4.5h15v9.5l-5.5 5.5h-9.5z"/><path d="M19.5 14h-5.5v5.5"/><path d="M8 9h7.5M8 12.5h4"/>{{/isissue}}</svg>{{label}}</span><small>{{count}}</small></h2>
     <div class="sg-lista">
         {{#cards}}{{> local_oksigeniamarandu/proposal_card }}{{/cards}}
     </div>

@@ -97,7 +97,8 @@ foreach (['issue' => 'fallo', 'idea' => 'idea'] as $kind => $class) {
         }
     }
     if ($cards) {
-        $groups[] = ['kind' => $class, 'label' => get_string('proposals:' . ($kind === 'issue' ? 'issues' : 'ideas'), $component),
+        $groups[] = ['kind' => $class, 'isissue' => $kind === 'issue',
+            'label' => get_string('proposals:' . ($kind === 'issue' ? 'issues' : 'ideas'), $component),
             'count' => count($cards), 'cards' => $cards];
     }
 }

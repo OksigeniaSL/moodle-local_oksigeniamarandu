@@ -29,7 +29,6 @@
 }
 [data-bs-theme="dark"] .sg-boton, [data-bs-theme="dark"] .sg-capa, [data-bs-theme="dark"] .sg-recibe,
 [data-bs-theme="dark"] .sg-avisos, [data-bs-theme="dark"] .sg-captura {
-    --sg-accent-ink: #0d1a26;
     --sg-desk: #0d0f11;
     --sg-dot: rgba(255, 255, 255, 0.05);
     --sg-idea: #ffc933;
@@ -48,7 +47,6 @@
 @media (prefers-color-scheme: dark) {
     :root:not([data-bs-theme]) .sg-boton, :root:not([data-bs-theme]) .sg-capa, :root:not([data-bs-theme]) .sg-recibe,
     :root:not([data-bs-theme]) .sg-avisos, :root:not([data-bs-theme]) .sg-captura {
-        --sg-accent-ink: #0d1a26;
         --sg-desk: #0d0f11;
         --sg-dot: rgba(255, 255, 255, 0.05);
         --sg-idea: #ffc933;
@@ -393,3 +391,20 @@
 
 .sg-recibe .sg-pestanas a, .sg-recibe .sg-pestanas a:hover, .sg-recibe .sg-pestanas a:focus { text-decoration: none; }
 .sg-recibe .sg-pestanas a:not([aria-current="page"]):hover { background: var(--sg-soft); }
+
+/* The ways out of a card take its whole width, under the picture and the text. */
+.sg-tarjeta > .sg-salidas, .sg-tarjeta > .sg-porque, .sg-tarjeta > .sg-sello-fin, .sg-tarjeta > .sg-aviso-oks {
+    grid-column: 1 / -1; margin-top: 0;
+}
+.sg-tarjeta > .sg-salidas { display: flex; flex-wrap: wrap; gap: 8px; }
+.sg-porque textarea {
+    flex: 1 1 260px; min-height: 52px; padding: 10px 14px; resize: none; overflow: hidden; line-height: 1.45;
+    border: 1.5px solid var(--sg-accent); border-radius: 12px; background: var(--sg-paper); color: var(--sg-ink);
+    font: inherit; font-size: 15.5px;
+}
+.sg-porque textarea:focus { outline: 2px solid var(--sg-accent); outline-offset: 1px; }
+.sg-grupo .sg-tag svg { width: 17px; height: 17px; }
+@media (max-width: 699.98px) {
+    .sg-tarjeta > .sg-salidas { display: grid; grid-template-columns: 1fr; }
+}
+.sg-cab .sg-marca { box-shadow: inset 0 0 0 1px var(--sg-line); }

@@ -52,7 +52,8 @@
         <p class="sg-dice">{{text}}</p>
         <p class="sg-meta">{{who}}<span class="sg-sep">·</span>{{when}}<span class="sg-sep">·</span>{{where}}{{#url}}<span class="sg-sep">·</span><a href="{{url}}">{{#str}} proposals:open, local_oksigeniamarandu {{/str}}</a>{{/url}}</p>
         {{#extra}}<p class="sg-meta">{{extra}}</p>{{/extra}}
-        {{#open}}
+    </div>
+    {{#open}}
         {{#remote}}<p class="sg-aviso-oks">{{remote}}</p>{{/remote}}
         <div class="sg-salidas">
             <form method="post" action="{{formurl}}" class="sg-salida sg-hecho" data-sg-form>
@@ -75,7 +76,7 @@
             <input type="hidden" name="id" value="{{id}}">
             <input type="hidden" name="action" value="no">
             <label for="sg-por-{{id}}">{{#str}} proposals:why, local_oksigeniamarandu {{/str}}</label>
-            <input type="text" id="sg-por-{{id}}" name="reason" maxlength="4000" required>
+            <textarea id="sg-por-{{id}}" name="reason" rows="2" maxlength="4000" required data-sg-enter></textarea>
             <small>{{whyhint}}</small>
             <button type="submit" class="sg-oculto">{{#str}} proposals:save, local_oksigeniamarandu {{/str}}</button>
         </form>
@@ -93,6 +94,5 @@
             </form>
             {{/undo}}
         </div>
-        {{/seal}}
-    </div>
+    {{/seal}}
 </article>

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.74.1 (2026-11-28)
+
+- «Sugerencias», after its review: nothing painted over the logo in the picture (what the page says without JavaScript,
+  and the texts for screen readers, out of the copy); white letters on the send button, also at night; the ways out of
+  a card take its whole width; the groups carry their icon again; «why not» is a box that grows, where Enter saves and
+  Shift+Enter breaks the line; the square of the icon of the sheet, seen on any paper.
+- In the answer by mail, the picture of a phone goes narrower; the notices of the suggestions carry the icon of Marandu.
+- The sheet takes its texts, the addresses of its files and where it sends from window.ProponerConfig too (or a JSON
+  with id «proponer»): an external function of another plugin, a function, or a receiver outside Moodle.
+
 ## 0.74.0 (2026-11-28)
 
 - «Sugerencias», the piece of every tool for ideas and for what does not work (it was «Propose an improvement»):

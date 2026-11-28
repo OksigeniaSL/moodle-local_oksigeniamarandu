@@ -715,6 +715,21 @@ class proposals {
             $DB->set_field(self::TABLE, 'timetold', time(), ['id' => $id]);
             return false;
         }
+        [$subject, $text, $url, $see, $pieces] = self::letter($record, $to);
+        $message = self::message('proposalanswer', $to, $subject, $text, $url, $see, $pieces);
+        $DB->set_field(self::TABLE, 'timetold', time(), ['id' => $id]);
+        return $message;
+    }
+
+    /**
+     * What whoever proposed a closed suggestion gets: its subject, its text, the address and the words of its button, and
+     * the pieces of its mail in the common look.
+     *
+     * @param \stdClass $record
+     * @param \stdClass $to Whoever proposed it.
+     * @return array
+     */
+    public static function letter(\stdClass $record, \stdClass $to): array {
         $lang = !empty($to->lang) ? (string)$to->lang : '';
         $sm = get_string_manager();
         $say = fn(string $key, $a = null) => $sm->get_string($key, self::COMPONENT, $a, $lang ?: null);
@@ -752,8 +767,11 @@ class proposals {
         $blocks[] = ['note' => ['notetitle' => $proposed, 'notetext' => (string)$record->body]];
         $picture = self::jpeg((int)$record->id, 1040, 200000);
         if ($picture !== '') {
+            $size = @getimagesizefromstring($picture);
+            // A picture of a phone, taller than wide: narrower, so that the mail does not become a long scroll.
+            $narrow = $size && $size[1] > $size[0];
             $blocks[] = ['picture' => ['picturebytes' => $picture, 'picturealt' => $say('proposal:tell:picture'),
-                'picturecaption' => $say('proposal:tell:picture'), 'pictureframe' => true]];
+                'picturecaption' => $say('proposal:tell:picture'), 'pictureframe' => true] + ($narrow ? ['picturewidth' => 280] : [])];
         }
         if (!$done) {
             $blocks[] = ['small' => $say('proposal:tell:another')];
@@ -774,9 +792,7 @@ class proposals {
         ];
         $text = $subject . "\n\n" . $proposed . ":\n" . $record->body;
         $url = (string)$record->pageurl !== '' ? new \moodle_url((string)$record->pageurl) : null;
-        $message = self::message('proposalanswer', $to, $subject, $text, $url, $say('proposal:tell:see', $tool), $pieces);
-        $DB->set_field(self::TABLE, 'timetold', time(), ['id' => $id]);
-        return $message;
+        return [$subject, $text, $url, $say('proposal:tell:see', $tool), $pieces];
     }
 
     /**
@@ -903,6 +919,7 @@ class proposals {
         $message->fullmessagehtml = '';
         $message->smallmessage = $subject;
         $message->notification = 1;
+        $message->customdata = message_icon::customdata();
         if ($url) {
             $message->contexturl = $url;
             $message->contexturlname = $urlname;

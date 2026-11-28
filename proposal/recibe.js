@@ -21,7 +21,7 @@
             form.hidden = !open;
             why.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (open) {
-                form.querySelector('input[name="reason"]').focus();
+                form.querySelector('[name="reason"]').focus();
             }
             return;
         }
@@ -49,6 +49,28 @@
             document.addEventListener('keydown', esc, true);
             document.body.appendChild(big);
             big.focus();
+        }
+    });
+
+    // The line of «why not»: it grows with the text; Enter saves it, Shift+Enter breaks the line.
+    page.addEventListener('keydown', function (e) {
+        var area = e.target;
+        if (area && area.hasAttribute && area.hasAttribute('data-sg-enter') && e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (area.value.trim() !== '') {
+                if (area.form.requestSubmit) {
+                    area.form.requestSubmit();
+                } else {
+                    area.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            }
+        }
+    });
+    page.addEventListener('input', function (e) {
+        var area = e.target;
+        if (area && area.hasAttribute && area.hasAttribute('data-sg-enter')) {
+            area.style.height = 'auto';
+            area.style.height = area.scrollHeight + 'px';
         }
     });
 

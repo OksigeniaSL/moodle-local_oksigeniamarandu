@@ -12,16 +12,26 @@
     var layer = null;
     var loading = null;
 
-    // A page that prints itself without the header of Moodle gives the texts and the site in
-    // <script type="application/json" id="marandu-proposal"> (api::proposal_assets()).
+    // What the page says: window.ProponerConfig set before this script, or the JSON a page prints in
+    // <script type="application/json" id="marandu-proposal"> (or id="proponer"; api::proposal_assets() in Marandu).
+    // strings: the texts. send: function (fields) returning a promise; or endpoint: the address of a receiver such as
+    // Oksigenia's (fields as it takes them, plus producto); or service: the external function of Moodle that keeps it
+    // (local_oksigeniamarandu_proposal_send by default). css and drawer: the addresses of the sheet and of html2canvas
+    // (by default, next to Marandu's in the site). producto, sitio: for a receiver outside Moodle.
     var printed = null;
     function data() {
         if (printed === null) {
-            var node = document.getElementById('marandu-proposal');
+            var node = document.getElementById('marandu-proposal') || document.getElementById('proponer');
             try {
                 printed = node ? JSON.parse(node.textContent) : {};
             } catch (e) {
                 printed = {};
+            }
+            var own = root.ProponerConfig || {};
+            for (var key in own) {
+                if (Object.prototype.hasOwnProperty.call(own, key)) {
+                    printed[key] = own[key];
+                }
             }
         }
         return printed;
@@ -29,6 +39,16 @@
     function str(key) {
         var s = root.MaranduProposalStrings || data().strings || {};
         return s[key] || key;
+    }
+    function asset(name) {
+        var d = data();
+        if (name === 'css' && d.css) {
+            return d.css;
+        }
+        if (name === 'drawer' && d.drawer) {
+            return d.drawer;
+        }
+        return cfg().wwwroot + '/local/oksigeniamarandu/proposal/' + (name === 'css' ? 'proposal.css' : 'html2canvas.min.js');
     }
     function el(tag, cls, text) {
         var e = document.createElement(tag);
@@ -54,7 +74,7 @@
         if (loading) {
             return loading;
         }
-        var url = cfg().wwwroot + '/local/oksigeniamarandu/proposal/html2canvas.min.js';
+        var url = asset('drawer');
         loading = new Promise(function (resolve, reject) {
             if (typeof root.require === 'function' && root.define && root.define.amd) {
                 root.require([url], function (draw) {
@@ -232,6 +252,18 @@
         for (var k = 0; k < inside.length; k++) {
             inside[k].parentNode.removeChild(inside[k]);
         }
+        // The texts only a screen reader reads («Ir al contenido principal»): html2canvas does not honour the clip that
+        // hides them and would paint them over the logo.
+        var hidden = copy.querySelectorAll('.sr-only, .visually-hidden, .visually-hidden-focusable, .accesshide');
+        for (k = 0; k < hidden.length; k++) {
+            hidden[k].style.setProperty('display', 'none', 'important');
+        }
+        // What a page says for a browser without JavaScript: in the copy it comes back as text, and html2canvas painted it
+        // in a heap over the logo (the header of Moodle has one).
+        var quiet = copy.querySelectorAll('noscript');
+        for (k = 0; k < quiet.length; k++) {
+            quiet[k].parentNode.removeChild(quiet[k]);
+        }
         // What enters with an animation starts it again in the copy and would be drawn in its first frame, faded: every
         // animation jumps to its end, keeping what it leaves there (fill-mode), and nothing changes by transition. Before
         // anything is read. A sheet reaches the ::before and ::after too, where the page allows one; the style of each
@@ -272,6 +304,11 @@
                 found.push([nodes[i], 'list-style', 'none']);
             }
             var style = copy.defaultView.getComputedStyle(nodes[i]);
+            // The same, outside Moodle: whatever is clipped away to nothing.
+            if (style.getPropertyValue('clip') === 'rect(0px, 0px, 0px, 0px)' || style.getPropertyValue('clip-path') === 'inset(50%)') {
+                found.push([nodes[i], 'display', 'none']);
+                continue;
+            }
             for (j = 0; j < COLOURED.length; j++) {
                 var value = style.getPropertyValue(COLOURED[j]);
                 if (COLOURED[j] === 'box-shadow') {
@@ -324,13 +361,36 @@
     }
 
     function call(args) {
+        var d = data();
+        if (typeof d.send === 'function') {
+            return Promise.resolve(d.send(args));
+        }
+        if (d.endpoint) {
+            // Straight to a receiver such as Oksigenia's, from outside Moodle: without the name of the person.
+            return fetch(d.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    producto: d.producto || args.component, version: d.version || '', tipo: args.kind === 'issue' ? 'incidencia' : 'idea',
+                    texto: args.text, pantalla: args.screen, pagina: args.url, navegador: args.browser,
+                    sitio: d.sitio || root.location.hostname, idioma: document.documentElement.lang || '',
+                    imagen: args.image || undefined
+                })
+            }).then(function (r) {
+                if (!r.ok) {
+                    throw new Error('receiver ' + r.status);
+                }
+                return r.json();
+            });
+        }
         var c = cfg();
+        var service = d.service || 'local_oksigeniamarandu_proposal_send';
         return fetch(c.wwwroot + '/lib/ajax/service.php?sesskey=' + encodeURIComponent(c.sesskey) +
-            '&info=local_oksigeniamarandu_proposal_send', {
+            '&info=' + encodeURIComponent(service), {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify([{ index: 0, methodname: 'local_oksigeniamarandu_proposal_send', args: args }])
+            body: JSON.stringify([{ index: 0, methodname: service, args: args }])
         }).then(function (r) {
             return r.json();
         }).then(function (d) {
@@ -838,25 +898,25 @@
 
     // The sheet of the piece, loaded once with the script: the button of the header is drawn with it too.
     (function styles() {
-        var url = cfg().wwwroot + '/local/oksigeniamarandu/proposal/proposal.css';
+        var url = asset('css');
         var links = document.querySelectorAll('link[rel="stylesheet"]');
         for (var i = 0; i < links.length; i++) {
-            if ((links[i].getAttribute('href') || '').indexOf('/proposal/proposal.css') !== -1) {
+            if ((links[i].getAttribute('href') || '').split('?')[0] === url.split('?')[0]) {
                 return;
             }
         }
         var link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = url + (data().version ? '?v=' + encodeURIComponent(data().version) : '');
+        link.href = url + (data().version && url.indexOf('?') === -1 ? '?v=' + encodeURIComponent(data().version) : '');
         document.head.appendChild(link);
     })();
 
     document.addEventListener('click', function (e) {
-        var t = e.target && e.target.closest ? e.target.closest('[data-marandu-proposal]') : null;
+        var t = e.target && e.target.closest ? e.target.closest('[data-marandu-proposal], [data-proponer]') : null;
         if (t) {
             e.preventDefault();
             open({
-                component: t.getAttribute('data-marandu-proposal'),
+                component: t.getAttribute('data-marandu-proposal') || t.getAttribute('data-proponer'),
                 screen: t.getAttribute('data-screen') || '',
                 tool: t.getAttribute('data-tool') || '',
                 release: t.getAttribute('data-release') || ''
@@ -865,4 +925,5 @@
     });
 
     root.MaranduProposal = { open: open, close: close };
+    root.Proponer = root.MaranduProposal;
 })(window);

@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * The proposals of improvement of the tools of the site, for the people chosen to receive them and whoever has the
- * capability: each one with the picture of the screen and its marks, who, when and where, and a way to close it with
- * what was done.
+ * «Sugerencias», the page of whoever receives them (the people chosen and whoever has the capability): what does not
+ * work first, then the ideas, each with its picture and its marks, who, when and where; and three ways out, saved as
+ * they are made: done in a version, not and why, or to Oksigenia. «Deshacer» while the person has not heard it.
  *
  * @package    local_oksigeniamarandu
  * @copyright  2026 Oksigenia SL <dev@oksigenia.cc>
@@ -33,11 +33,33 @@ $component = 'local_oksigeniamarandu';
 if (!proposals::can_read((int)$USER->id)) {
     throw new required_capability_exception(context_system::instance(), 'local/oksigeniamarandu:proposals', 'nopermissions', '');
 }
-$all = optional_param('all', 0, PARAM_BOOL);
-$baseurl = new moodle_url('/local/oksigeniamarandu/proposals.php', $all ? ['all' => 1] : []);
-if (optional_param('action', '', PARAM_ALPHA) === 'done' && confirm_sesskey()) {
+$tab = optional_param('tab', 'new', PARAM_ALPHA);
+$tab = in_array($tab, ['new', 'away', 'done'], true) ? $tab : 'new';
+$baseurl = new moodle_url('/local/oksigeniamarandu/proposals.php', $tab === 'new' ? [] : ['tab' => $tab]);
+
+// A gesture on a card: saved at once; by the page's script, the card comes back as it is now.
+$action = optional_param('action', '', PARAM_ALPHA);
+if ($action !== '' && confirm_sesskey()) {
     $id = required_param('id', PARAM_INT);
-    proposals::done($id, optional_param('note', '', PARAM_TEXT), (int)$USER->id);
+    $ok = false;
+    if ($action === 'done') {
+        $ok = proposals::close($id, 'done', '', optional_param('release', '', PARAM_TEXT), (int)$USER->id);
+    } else if ($action === 'no') {
+        $reason = trim(optional_param('reason', '', PARAM_TEXT));
+        $ok = $reason !== '' && proposals::close($id, 'no', $reason, '', (int)$USER->id);
+    } else if ($action === 'forward') {
+        $ok = proposals::forward($id, (int)$USER->id);
+    } else if ($action === 'undo') {
+        $ok = proposals::undo($id);
+    }
+    if (optional_param('ajax', 0, PARAM_BOOL)) {
+        $record = $DB->get_record(proposals::TABLE, ['id' => $id], '*', MUST_EXIST);
+        $PAGE->set_context(context_system::instance());
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => $ok, 'late' => !$ok && $action === 'undo' ? get_string('proposals:late', $component) : '',
+            'html' => $OUTPUT->render_from_template('local_oksigeniamarandu/proposal_card', proposals::card($record, time()))]);
+        die();
+    }
     redirect(new moodle_url($baseurl, [], 'p' . $id));
 }
 
@@ -47,44 +69,50 @@ $PAGE->set_pagelayout('standard');
 $PAGE->set_title(get_string('proposals:title', $component));
 $PAGE->set_heading(get_string('proposals:title', $component));
 
-$items = [];
-foreach (proposals::list($all ? '' : 'new') as $record) {
-    $data = proposals::export($record);
-    $image = proposals::image_url((int)$record->id);
-    $done = $record->status === 'done';
-    $items[] = [
-        'id' => (int)$record->id,
-        'tool' => $data['toolname'] . ($data['release'] !== '' ? ' ' . $data['release'] : ''),
-        'screen' => $data['screen'],
-        'from' => get_string('proposals:from', $component, (object)['name' => $data['who'],
-            'date' => userdate((int)$record->timecreated, get_string('strftimedaydatetime', 'langconfig'))]),
-        'text' => $data['text'],
-        'summary' => $data['summary'],
-        'guessed' => $data['guessedtool'] !== '' && $data['guessedtool'] !== $data['tool']
-            ? get_string('proposals:guessed', $component, proposals::tool_name($data['guessedtool'])) : '',
-        'url' => $data['url'],
-        'image' => $image ? $image->out(false) : '',
-        'done' => $done,
-        'donenote' => $done ? get_string('proposals:donenote', $component, (object)[
-            'date' => userdate((int)$record->timedone, get_string('strftimedate', 'langconfig')),
-            'note' => (string)$record->note,
-        ]) : '',
-    ];
+$now = time();
+$counts = [];
+foreach (['new', 'away', 'done'] as $status) {
+    $counts[$status] = $DB->count_records(proposals::TABLE, ['status' => $status]);
+}
+$tabs = [];
+foreach (['new', 'away', 'done'] as $status) {
+    $tabs[] = ['label' => get_string('proposals:tab:' . $status, $component), 'count' => $counts[$status],
+        'url' => (new moodle_url('/local/oksigeniamarandu/proposals.php', $status === 'new' ? [] : ['tab' => $status]))->out(false),
+        'current' => $status === $tab];
+}
+$records = $DB->get_records(
+    proposals::TABLE,
+    ['status' => $tab],
+    $tab === 'done' ? 'timedone DESC, id DESC' : 'timecreated DESC, id DESC',
+    '*',
+    0,
+    $tab === 'done' ? 100 : 0
+);
+$groups = [];
+foreach (['issue' => 'fallo', 'idea' => 'idea'] as $kind => $class) {
+    $cards = [];
+    foreach ($records as $record) {
+        if (($record->kind === 'issue') === ($kind === 'issue')) {
+            $cards[] = proposals::card($record, $now);
+        }
+    }
+    if ($cards) {
+        $groups[] = ['kind' => $class, 'label' => get_string('proposals:' . ($kind === 'issue' ? 'issues' : 'ideas'), $component),
+            'count' => count($cards), 'cards' => $cards];
+    }
 }
 
-// «Propose an improvement» of this page, the piece the tools of the site share.
+// The piece on this page too, and the script of the gestures.
 $PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
     'local_oksigeniamarandu',
     get_string('proposals:title', 'local_oksigeniamarandu')
 ));
+$PAGE->requires->js(new moodle_url('/local/oksigeniamarandu/proposal/recibe.js', ['v' => get_config($component, 'version')]));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/proposals', [
     'lead' => get_string('proposals:lead', $component),
-    'items' => $items,
-    'none' => !$items,
-    'formurl' => $baseurl->out(false),
-    'sesskey' => sesskey(),
-    'all' => $all,
-    'allurl' => (new moodle_url('/local/oksigeniamarandu/proposals.php', ['all' => 1]))->out(false),
+    'tabs' => $tabs,
+    'groups' => $groups,
+    'none' => $groups ? '' : get_string('proposals:none:' . $tab, $component),
 ]);
 echo $OUTPUT->footer();

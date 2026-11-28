@@ -42,6 +42,12 @@ class proposals {
     /** @var int The most characters of what the person writes. */
     public const MAX_TEXT = 4000;
 
+    /** @var int Seconds before whoever proposed it hears how it ended, or it goes to Oksigenia: the time to undo. */
+    public const UNDO = 10;
+
+    /** @var int The largest picture that goes to Oksigenia, in bytes. */
+    public const REMOTE_BYTES = 1000000;
+
     /** @var string The plugin. */
     private const COMPONENT = 'local_oksigeniamarandu';
 
@@ -55,10 +61,21 @@ class proposals {
      * @param string $body What they would change.
      * @param string $image The picture of the screen with the marks, a JPEG or a PNG in base64 (a data: URL too); empty
      *                      if the browser could not make it.
+     * @param string $kind idea, or issue: something does not work (the people who receive them hear it at once).
+     * @param string $browser The browser, its system, the size of its window and its colours, in words.
      * @return int Its id.
      * @throws \invalid_parameter_exception If it says nothing, or the picture is not a picture.
      */
-    public static function save(int $userid, string $component, string $screen, string $url, string $body, string $image): int {
+    public static function save(
+        int $userid,
+        string $component,
+        string $screen,
+        string $url,
+        string $body,
+        string $image,
+        string $kind = 'idea',
+        string $browser = ''
+    ): int {
         global $DB;
         $component = clean_param($component, PARAM_COMPONENT);
         if ($component === '') {
@@ -78,6 +95,8 @@ class proposals {
             'pageurl' => \core_text::substr(clean_param($url, PARAM_URL), 0, 1333),
             'body' => $body,
             'status' => 'new',
+            'kind' => $kind === 'issue' ? 'issue' : 'idea',
+            'browser' => \core_text::substr(trim(clean_param($browser, PARAM_TEXT)), 0, 255) ?: null,
             'timecreated' => $now,
             'timemodified' => $now,
         ]);
@@ -306,7 +325,7 @@ class proposals {
         $tool = self::tool_name((string)($record->tool ?: $record->component));
         $line = $record->summary ?: \core_text::substr(preg_replace('/\s+/u', ' ', $record->body), 0, 150);
         $image = self::image_url((int)$record->id);
-        $rich = ['title' => get_string('proposal:card', self::COMPONENT, $tool),
+        $rich = ['title' => get_string($record->kind === 'issue' ? 'proposal:cardissue' : 'proposal:card', self::COMPONENT, $tool),
             'text' => [$record->body, get_string('proposal:from', self::COMPONENT, $author ? fullname($author) : '') .
                 ((string)$record->screen !== '' ? ' · ' . $record->screen : '')]];
         if ($image) {
@@ -388,7 +407,7 @@ class proposals {
     }
 
     /**
-     * Closes a proposal, with what was done.
+     * Closes a proposal, with what was done (as before: done, without a version).
      *
      * @param int $id The proposal.
      * @param string $note What was done.
@@ -396,15 +415,542 @@ class proposals {
      * @return bool Whether it was open.
      */
     public static function done(int $id, string $note, int $userid): bool {
+        return self::close($id, 'done', $note, '', $userid);
+    }
+
+    /**
+     * What just came: its line by the text generation of the site; and, if something does not work, the people who
+     * receive the suggestions hear it now. An idea waits for the summary of the day.
+     *
+     * @param int $id
+     * @return int How many chats were told.
+     */
+    public static function received(int $id): int {
         global $DB;
         $record = $DB->get_record(self::TABLE, ['id' => $id]);
-        if (!$record || $record->status === 'done') {
+        if (!$record || $record->timenotified) {
+            return 0;
+        }
+        if (self::summarise($record)) {
+            $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        }
+        if ($record->kind !== 'issue') {
+            return 0;
+        }
+        self::bell($record);
+        return self::notify($record);
+    }
+
+    /**
+     * The ideas of the day, in one notice to each person who receives them: by Telegram, and in the bell.
+     *
+     * @param int $now
+     * @return int How many ideas went.
+     */
+    public static function digest(int $now): int {
+        global $DB;
+        $ideas = $DB->get_records_select(
+            self::TABLE,
+            "status = 'new' AND kind = 'idea' AND timedigest IS NULL",
+            null,
+            'timecreated ASC, id ASC'
+        );
+        if (!$ideas) {
+            return 0;
+        }
+        $lines = [];
+        foreach ($ideas as $idea) {
+            $lines[] = self::tool_name((string)($idea->tool ?: $idea->component)) . ': '
+                . ($idea->summary ?: \core_text::substr(preg_replace('/\s+/u', ' ', $idea->body), 0, 120));
+        }
+        $count = count($ideas);
+        $title = get_string($count === 1 ? 'proposal:digest:one' : 'proposal:digest:many', self::COMPONENT, $count);
+        $url = new \moodle_url('/local/oksigeniamarandu/proposals.php');
+        foreach (self::people() as $person) {
+            \local_oksigeniamarandu\api::notify(
+                self::COMPONENT,
+                'proposal',
+                [$title . "\n" . implode("\n", array_map(fn($line) => '• ' . $line, $lines))],
+                $url,
+                0,
+                (int)$person->id,
+                false,
+                DAYSECS,
+                [],
+                '',
+                '',
+                'telegram'
+            );
+            self::message('proposal', $person, $title, implode("\n", $lines), $url, get_string('proposal:open', self::COMPONENT));
+        }
+        [$in, $params] = $DB->get_in_or_equal(array_keys($ideas));
+        $DB->set_field_select(self::TABLE, 'timedigest', $now, "id $in", $params);
+        return $count;
+    }
+
+    /**
+     * Closes a suggestion with how it ended: done (in a version) or not (and why). Whoever proposed it hears it a few
+     * seconds later (UNDO), unless it is undone before; an answer of Oksigenia is told at once.
+     *
+     * @param int $id
+     * @param string $outcome done or no.
+     * @param string $note Why not; or what was done.
+     * @param string $release The version it is done in.
+     * @param int $userid Who closes it; 0 for Oksigenia.
+     * @param int|null $now
+     * @return bool Whether it was open.
+     */
+    public static function close(int $id, string $outcome, string $note, string $release, int $userid, ?int $now = null): bool {
+        global $DB;
+        $now = $now ?? time();
+        $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        if (!$record || $record->status === 'done' || !in_array($outcome, ['done', 'no'], true)) {
             return false;
         }
-        $now = time();
-        $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'done',
-            'note' => \core_text::substr(trim($note), 0, self::MAX_TEXT), 'doneby' => $userid ?: null, 'timedone' => $now,
-            'timemodified' => $now]);
+        $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'done', 'outcome' => $outcome,
+            'note' => \core_text::substr(trim($note), 0, self::MAX_TEXT),
+            'outcomerelease' => \core_text::substr(trim(clean_param($release, PARAM_TEXT)), 0, 50) ?: null,
+            'doneby' => $userid ?: null, 'timedone' => $now, 'timetold' => null, 'timemodified' => $now]);
+        $task = new \local_oksigeniamarandu\task\proposal_tell();
+        $task->set_custom_data(['id' => $id, 'time' => $now]);
+        $task->set_next_run_time($now + ($userid ? self::UNDO : 0));
+        \core\task\manager::queue_adhoc_task($task);
         return true;
+    }
+
+    /**
+     * Undoes the last gesture on a suggestion, while whoever proposed it has not heard it: a close, or the pass to
+     * Oksigenia before it went.
+     *
+     * @param int $id
+     * @return bool Whether it was undone.
+     */
+    public static function undo(int $id): bool {
+        global $DB;
+        $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        if ($record && $record->status === 'done' && !$record->timetold) {
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => $record->remotestate === 'received' ? 'away' : 'new',
+                'outcome' => null, 'outcomerelease' => null, 'note' => null, 'doneby' => null, 'timedone' => null,
+                'timemodified' => time()]);
+            return true;
+        }
+        if ($record && $record->status === 'away' && $record->remotestate === 'sending') {
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'new', 'remotestate' => null, 'remoteby' => null,
+                'timeremote' => null, 'timeasked' => null, 'timemodified' => time()]);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Passes a suggestion to Oksigenia: it is about the tool, not about the organization. It goes a few seconds later
+     * (UNDO), and then the hourly task tries again while the receiver does not take it, for a day.
+     *
+     * @param int $id
+     * @param int $userid Who passes it.
+     * @param int|null $now
+     * @return bool Whether it was waiting.
+     */
+    public static function forward(int $id, int $userid, ?int $now = null): bool {
+        global $DB;
+        $now = $now ?? time();
+        $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        if (!$record || $record->status !== 'new') {
+            return false;
+        }
+        $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'away', 'remotestate' => 'sending',
+            'remoteby' => $userid ?: null, 'timeremote' => $now, 'timeasked' => null, 'timemodified' => $now]);
+        $task = new \local_oksigeniamarandu\task\proposal_forward();
+        $task->set_custom_data(['id' => $id]);
+        $task->set_next_run_time($now + self::UNDO);
+        \core\task\manager::queue_adhoc_task($task);
+        return true;
+    }
+
+    /**
+     * Sends a suggestion passed to Oksigenia to its receiver, without the name or the mail of the person.
+     *
+     * @param int $id
+     * @param int|null $now
+     * @return string received, refused (the receiver will not take it), failed (a day without taking it), retry, or
+     *     empty if it was not waiting to go.
+     */
+    public static function push(int $id, ?int $now = null): string {
+        global $CFG, $DB;
+        $now = $now ?? time();
+        $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        if (!$record || $record->status !== 'away' || $record->remotestate !== 'sending') {
+            return '';
+        }
+        $author = \core_user::get_user((int)$record->userid);
+        $body = [
+            'producto' => (string)$record->component,
+            'version' => (string)$record->toolrelease,
+            'tipo' => $record->kind === 'issue' ? 'incidencia' : 'idea',
+            'texto' => (string)$record->body,
+            'pantalla' => (string)$record->screen,
+            'pagina' => (string)$record->pageurl,
+            'navegador' => (string)$record->browser,
+            'sitio' => (string)parse_url($CFG->wwwroot, PHP_URL_HOST),
+            'idioma' => $author && !empty($author->lang) ? (string)$author->lang : (string)$CFG->lang,
+            'ref' => (string)$record->id,
+        ];
+        $picture = self::jpeg((int)$record->id, 1600, self::REMOTE_BYTES);
+        if ($picture !== '') {
+            $body['imagen'] = base64_encode($picture);
+        }
+        [$status, $answer] = proposal_receiver::send($body);
+        if (in_array($status, [200, 201], true) && !empty($answer['id']) && !empty($answer['clave'])) {
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'remotestate' => 'received',
+                'remoteid' => \core_text::substr((string)$answer['id'], 0, 64),
+                'remotekey' => \core_text::substr((string)$answer['clave'], 0, 128), 'timeasked' => $now,
+                'timemodified' => $now]);
+            return 'received';
+        }
+        if (in_array($status, [400, 413], true)) {
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'new', 'remotestate' => 'refused',
+                'timeasked' => $now, 'timemodified' => $now]);
+            return 'refused';
+        }
+        if ($now - (int)$record->timeremote >= DAYSECS) {
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'new', 'remotestate' => 'failed',
+                'timeasked' => $now, 'timemodified' => $now]);
+            return 'failed';
+        }
+        $DB->set_field(self::TABLE, 'timeasked', $now, ['id' => $id]);
+        return 'retry';
+    }
+
+    /**
+     * Asks the receiver of Oksigenia how a suggestion goes; when it is done or turned down, closes it with its answer
+     * and whoever proposed it hears it.
+     *
+     * @param int $id
+     * @param int|null $now
+     * @return string received, done, no, lost (the receiver does not know it) or retry; empty if it was not there.
+     */
+    public static function ask(int $id, ?int $now = null): string {
+        global $DB;
+        $now = $now ?? time();
+        $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        if (!$record || $record->status !== 'away' || $record->remotestate !== 'received') {
+            return '';
+        }
+        [$status, $answer] = proposal_receiver::ask((string)$record->remoteid, (string)$record->remotekey);
+        if ($status === 404) {
+            $DB->update_record(self::TABLE, (object)['id' => $id, 'status' => 'new', 'remotestate' => 'lost',
+                'timeasked' => $now, 'timemodified' => $now]);
+            return 'lost';
+        }
+        $DB->set_field(self::TABLE, 'timeasked', $now, ['id' => $id]);
+        if ($status !== 200) {
+            return 'retry';
+        }
+        $state = (string)($answer['estado'] ?? '');
+        if ($state === 'hecha' || $state === 'descartada') {
+            $outcome = $state === 'hecha' ? 'done' : 'no';
+            self::close($id, $outcome, (string)($answer['respuesta'] ?? ''), (string)($answer['version'] ?? ''), 0, $now);
+            return $outcome;
+        }
+        return 'received';
+    }
+
+    /**
+     * The hourly round: what waits to go to Oksigenia (a try an hour, for a day), what Oksigenia has (asked once a day),
+     * and, from 8:00 once a day, the summary of the ideas.
+     *
+     * @param int|null $now
+     * @return array How many of each.
+     */
+    public static function round(?int $now = null): array {
+        global $DB;
+        $now = $now ?? time();
+        $counts = ['sent' => 0, 'asked' => 0, 'ideas' => 0];
+        $waiting = $DB->get_records_select(
+            self::TABLE,
+            "status = 'away' AND remotestate = 'sending' AND timeremote <= :ready AND (timeasked IS NULL OR timeasked <= :hour)",
+            ['ready' => $now - self::UNDO, 'hour' => $now - HOURSECS + 60],
+            'id ASC',
+            'id'
+        );
+        foreach ($waiting as $record) {
+            $counts['sent'] += self::push((int)$record->id, $now) === 'received' ? 1 : 0;
+        }
+        $away = $DB->get_records_select(
+            self::TABLE,
+            "status = 'away' AND remotestate = 'received' AND (timeasked IS NULL OR timeasked <= :day)",
+            ['day' => $now - DAYSECS + 300],
+            'id ASC',
+            'id'
+        );
+        foreach ($away as $record) {
+            self::ask((int)$record->id, $now);
+            $counts['asked']++;
+        }
+        $today = userdate($now, '%Y%m%d', \core_date::get_server_timezone());
+        $hour = (int)userdate($now, '%H', \core_date::get_server_timezone());
+        if ($hour >= 8 && (string)get_config(self::COMPONENT, 'proposaldigest') !== $today) {
+            set_config('proposaldigest', $today, self::COMPONENT);
+            $counts['ideas'] = self::digest($now);
+        }
+        return $counts;
+    }
+
+    /**
+     * Tells whoever proposed it how it ended: in the bell and by mail, in the common look, with what they proposed and
+     * their picture, signed by whoever closed it (or the team of the tool, when Oksigenia answered).
+     *
+     * @param int $id
+     * @param int $time When it was closed: if it was undone and closed again since, the later one tells.
+     * @return bool Whether it told.
+     */
+    public static function tell(int $id, int $time = 0): bool {
+        global $DB;
+        $record = $DB->get_record(self::TABLE, ['id' => $id]);
+        if (!$record || $record->status !== 'done' || $record->timetold || ($time && (int)$record->timedone !== $time)) {
+            return false;
+        }
+        $to = \core_user::get_user((int)$record->userid);
+        if (!$to || $to->deleted || $to->suspended) {
+            $DB->set_field(self::TABLE, 'timetold', time(), ['id' => $id]);
+            return false;
+        }
+        $lang = !empty($to->lang) ? (string)$to->lang : '';
+        $sm = get_string_manager();
+        $say = fn(string $key, $a = null) => $sm->get_string($key, self::COMPONENT, $a, $lang ?: null);
+        $issue = $record->kind === 'issue';
+        $done = $record->outcome === 'done';
+        $release = (string)$record->outcomerelease;
+        $tool = self::tool_name((string)$record->component);
+        $what = $issue ? 'issue' : 'idea';
+        $subject = $done
+            ? $say('proposal:tell:' . $what . ':done' . ($release !== '' ? ':release' : ''), $release)
+            : $say('proposal:tell:' . $what . ':no');
+        $heading = $done
+            ? $say('proposal:tell:' . $what . ':heading' . ($release !== '' ? ':release' : ''), $release)
+            : $say('proposal:tell:no:heading');
+        $when = userdate((int)$record->timecreated, $say('proposal:tell:dateformat'), \core_date::get_user_timezone($to));
+        $proposed = $say('proposal:tell:' . $what . ':proposed', $when);
+        $oksigenia = !$record->doneby && $record->remotestate === 'received';
+        $closer = $record->doneby ? \core_user::get_user((int)$record->doneby) : null;
+        $blocks = [];
+        if ($done) {
+            $blocks[] = ['paragraph' => $say(
+                'proposal:tell:' . $what . ':line' . ($release !== '' ? ':release' : ''),
+                (object)['tool' => $tool, 'release' => $release]
+            )];
+            if (trim((string)$record->note) !== '' && $oksigenia) {
+                $blocks[] = ['paragraph' => trim((string)$record->note)];
+            }
+        } else {
+            $blocks[] = ['paragraph' => $say('proposal:tell:' . $what . ':noline')];
+            $blocks[] = ['rich' => [['run' => trim((string)$record->note) ?: $say('proposal:tell:no:noreason'), 'bold' => true]]];
+        }
+        if ((string)$record->pageurl !== '') {
+            $blocks[] = ['action' => ['actionurl' => (string)$record->pageurl, 'actiontext' => $say('proposal:tell:see', $tool)]];
+        }
+        $blocks[] = ['note' => ['notetitle' => $proposed, 'notetext' => (string)$record->body]];
+        $picture = self::jpeg((int)$record->id, 1040, 200000);
+        if ($picture !== '') {
+            $blocks[] = ['picture' => ['picturebytes' => $picture, 'picturealt' => $say('proposal:tell:picture'),
+                'picturecaption' => $say('proposal:tell:picture'), 'pictureframe' => true]];
+        }
+        if (!$done) {
+            $blocks[] = ['small' => $say('proposal:tell:another')];
+        }
+        $pieces = [
+            'subject' => $subject,
+            'preheader' => $done ? \core_text::substr(preg_replace('/\s+/u', ' ', (string)$record->body), 0, 120)
+                : trim((string)$record->note),
+            'heading' => $heading,
+            'hello' => $say('proposal:tell:hello', $to->firstname),
+            'blocks' => $blocks,
+            'signature' => [
+                'signoff' => $say($issue ? 'proposal:tell:signoff:issue' : 'proposal:tell:signoff:idea'),
+                'signer' => $oksigenia ? $say('proposal:tell:team', $tool) : ($closer ? fullname($closer) : cards::org()),
+                'signrole' => $oksigenia ? $say('proposal:tell:makers', $tool) : cards::org(),
+            ],
+            'reason' => $say('proposal:tell:reason'),
+        ];
+        $text = $subject . "\n\n" . $proposed . ":\n" . $record->body;
+        $url = (string)$record->pageurl !== '' ? new \moodle_url((string)$record->pageurl) : null;
+        $message = self::message('proposalanswer', $to, $subject, $text, $url, $say('proposal:tell:see', $tool), $pieces);
+        $DB->set_field(self::TABLE, 'timetold', time(), ['id' => $id]);
+        return $message;
+    }
+
+    /**
+     * A suggestion as the page of whoever receives them shows it (local_oksigeniamarandu/proposal_card).
+     *
+     * @param \stdClass $record
+     * @param int $now
+     * @return array
+     */
+    public static function card(\stdClass $record, int $now): array {
+        $c = self::COMPONENT;
+        $author = \core_user::get_user((int)$record->userid);
+        $first = $author ? (string)$author->firstname : '';
+        $issue = $record->kind === 'issue';
+        $where = self::tool_name((string)$record->component) . ((string)$record->screen !== '' ? ', «' . $record->screen . '»' : '');
+        $extra = '';
+        if ($issue) {
+            $browser = array_slice(explode(' · ', (string)$record->browser), 0, 2);
+            $browser = count($browser) === 2 && $browser[0] !== '' && $browser[1] !== ''
+                ? str_replace(['{browser}', '{system}'], $browser, get_string('proposal:js:browserin', $c)) : implode(' ', $browser);
+            $parts = array_filter([trim(self::tool_name((string)$record->component) . ' ' . $record->toolrelease), $browser]);
+            $extra = implode(' · ', $parts);
+        }
+        $image = self::image_url((int)$record->id);
+        $portrait = false;
+        if ($image) {
+            $info = self::image_file((int)$record->id)->get_imageinfo();
+            $portrait = $info && $info['height'] > $info['width'];
+        }
+        $card = [
+            'id' => (int)$record->id,
+            'kind' => $issue ? 'fallo' : 'idea',
+            'text' => (string)$record->body,
+            'who' => $author ? fullname($author) : '',
+            'when' => \local_oksigeniamarandu\local\mail\page::when((int)$record->timecreated, $now),
+            'where' => $where,
+            'url' => (string)$record->pageurl,
+            'extra' => $extra,
+            'image' => $image ? $image->out(false) : '',
+            'portrait' => $portrait,
+            'formurl' => (new \moodle_url('/local/oksigeniamarandu/proposals.php'))->out(false),
+            'sesskey' => sesskey(),
+            'open' => false,
+            'seal' => false,
+        ];
+        if ($record->status === 'new') {
+            $remote = in_array((string)$record->remotestate, ['refused', 'failed', 'lost'], true)
+                ? get_string('proposals:remote:' . $record->remotestate, $c) : '';
+            $card['open'] = [
+                'release' => self::release((string)$record->component),
+                'donelabel' => get_string($issue ? 'proposals:done:issue' : 'proposals:done:idea', $c),
+                'whyhint' => get_string('proposals:whyhint', $c, $first),
+                'remote' => $remote,
+            ];
+        } else if ($record->status === 'away') {
+            $card['seal'] = ['kindseal' => 'oks', 'isoks' => true,
+                'title' => get_string('proposals:sealoks', $c, userdate((int)$record->timeremote, get_string('strftimedaydate', 'langconfig'))),
+                'tail' => get_string('proposals:sealoks:tail', $c, $first),
+                'undo' => $record->remotestate === 'sending'];
+        } else {
+            $done = $record->outcome !== 'no';
+            $release = (string)$record->outcomerelease;
+            $title = $done
+                ? get_string('proposals:seal:' . ($issue ? 'issue' : 'idea') . ($release !== '' ? ':release' : ''), $c, $release)
+                : get_string('proposals:seal:no', $c, trim((string)$record->note));
+            $card['seal'] = ['kindseal' => $done ? 'hecho' : 'no', 'ishecho' => $done, 'isno' => !$done, 'title' => $title,
+                'tail' => $record->timetold ? get_string('proposals:seal:told', $c, $first)
+                    : get_string('proposals:seal:telling', $c, $first),
+                'undo' => !$record->timetold];
+        }
+        return $card;
+    }
+
+    /**
+     * The people who receive the suggestions hear in the bell, now, that something does not work.
+     *
+     * @param \stdClass $record
+     */
+    private static function bell(\stdClass $record): void {
+        $tool = self::tool_name((string)($record->tool ?: $record->component));
+        $line = $record->summary ?: \core_text::substr(preg_replace('/\s+/u', ' ', $record->body), 0, 150);
+        $url = new \moodle_url('/local/oksigeniamarandu/proposals.php', [], 'p' . $record->id);
+        foreach (self::people() as $person) {
+            self::message(
+                'proposal',
+                $person,
+                get_string('proposal:issue:subject', self::COMPONENT, (object)['tool' => $tool, 'line' => $line]),
+                $record->body,
+                $url,
+                get_string('proposal:open', self::COMPONENT)
+            );
+        }
+    }
+
+    /**
+     * A notice of the site to one person, in the bell and by mail (in the common look, when there are pieces).
+     *
+     * @param string $name The provider: proposal or proposalanswer.
+     * @param \stdClass $to
+     * @param string $subject
+     * @param string $text
+     * @param \moodle_url|null $url
+     * @param string $urlname
+     * @param array $pieces The pieces of its mail; none for a mail made from the text.
+     * @return bool Whether it went.
+     */
+    private static function message(
+        string $name,
+        \stdClass $to,
+        string $subject,
+        string $text,
+        ?\moodle_url $url,
+        string $urlname,
+        array $pieces = []
+    ): bool {
+        $message = new \core\message\message();
+        $message->component = self::COMPONENT;
+        $message->name = $name;
+        $message->userfrom = \core_user::get_noreply_user();
+        $message->userto = $to;
+        $message->subject = $subject;
+        $message->fullmessage = $text;
+        $message->fullmessageformat = FORMAT_PLAIN;
+        $message->fullmessagehtml = '';
+        $message->smallmessage = $subject;
+        $message->notification = 1;
+        if ($url) {
+            $message->contexturl = $url;
+            $message->contexturlname = $urlname;
+        }
+        \local_oksigeniamarandu\api::mail_notice($message, $pieces);
+        try {
+            return (bool)message_send($message);
+        } catch (\Throwable $e) {
+            debugging('Marandu: a notice of the suggestions did not go: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return false;
+        }
+    }
+
+    /**
+     * The picture of a suggestion as a JPEG of a width at most and a size at most, for a mail or for Oksigenia.
+     *
+     * @param int $id
+     * @param int $width
+     * @param int $bytes
+     * @return string Its bytes; empty if it has none or it cannot be made.
+     */
+    public static function jpeg(int $id, int $width, int $bytes): string {
+        $file = self::image_file($id);
+        if (!$file || !function_exists('imagecreatefromstring')) {
+            return '';
+        }
+        $source = @imagecreatefromstring($file->get_content());
+        if (!$source) {
+            return '';
+        }
+        $w = imagesx($source);
+        $h = imagesy($source);
+        foreach ([$width, (int)round($width * 0.75), (int)round($width * 0.5)] as $max) {
+            $scale = min(1, $max / max(1, $w));
+            $nw = max(1, (int)round($w * $scale));
+            $nh = max(1, (int)round($h * $scale));
+            $image = imagecreatetruecolor($nw, $nh);
+            imagefill($image, 0, 0, imagecolorallocate($image, 255, 255, 255));
+            imagecopyresampled($image, $source, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            foreach ([82, 70, 60] as $quality) {
+                ob_start();
+                imagejpeg($image, null, $quality);
+                $out = (string)ob_get_clean();
+                if (strlen($out) <= $bytes) {
+                    return $out;
+                }
+            }
+        }
+        return '';
     }
 }

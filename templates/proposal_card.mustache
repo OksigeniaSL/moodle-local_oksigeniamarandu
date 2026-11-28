@@ -1,0 +1,98 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/proposal_card
+
+    One suggestion on the page of whoever receives them: its picture with the marks, what the person wrote, who, when
+    and where, and its three ways out (done in a version, not and why, to Oksigenia), each saved by itself; or the seal
+    of how it ended, with «Deshacer» while the person has not heard it.
+
+    Context variables required for this template:
+    * id, kind (idea or fallo), text, who, when, where, url, extra - The suggestion.
+    * image, portrait - Its picture, and whether it is taller than wide (a phone).
+    * formurl, sesskey - Where the gestures are saved.
+    * open - It waits: release (the version, written), donelabel, whyhint, remote (what went wrong with Oksigenia).
+    * seal - It ended or went: kindseal (hecho, no or oks), title, tail, undo.
+
+    Example context (json):
+    {
+        "id": 7, "kind": "fallo", "text": "Pulso «Guardar cambios» y no pasa nada.", "who": "Luis Medina",
+        "when": "hoy a las 10:42", "where": "Oksigenia Meals, «Menú de la semana»", "url": "https://example.com/menu",
+        "extra": "Oksigenia Meals 0.116.2 · Chrome 131 en Windows", "image": "", "portrait": false,
+        "formurl": "https://example.com/local/oksigeniamarandu/proposals.php", "sesskey": "abc",
+        "open": {"release": "0.116.2", "donelabel": "Arreglado, en la versión", "whyhint": "Se guarda al pulsar Intro.",
+            "remote": ""},
+        "seal": false
+    }
+}}
+<article class="sg-tarjeta sg-t-{{kind}}" id="p{{id}}" data-sg-card="{{id}}">
+    {{#image}}
+    <div class="{{#portrait}}sg-marco-mini{{/portrait}}">
+        <button type="button" class="sg-ver-captura" data-sg-zoom="{{image}}" aria-label="{{#str}} proposals:bigger, local_oksigeniamarandu {{/str}}"><img src="{{image}}" alt="" loading="lazy"></button>
+    </div>
+    {{/image}}
+    {{^image}}
+    <div class="sg-sin-img">{{#str}} proposals:nopicture, local_oksigeniamarandu {{/str}}</div>
+    {{/image}}
+    <div>
+        <p class="sg-dice">{{text}}</p>
+        <p class="sg-meta">{{who}}<span class="sg-sep">·</span>{{when}}<span class="sg-sep">·</span>{{where}}{{#url}}<span class="sg-sep">·</span><a href="{{url}}">{{#str}} proposals:open, local_oksigeniamarandu {{/str}}</a>{{/url}}</p>
+        {{#extra}}<p class="sg-meta">{{extra}}</p>{{/extra}}
+        {{#open}}
+        {{#remote}}<p class="sg-aviso-oks">{{remote}}</p>{{/remote}}
+        <div class="sg-salidas">
+            <form method="post" action="{{formurl}}" class="sg-salida sg-hecho" data-sg-form>
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="id" value="{{id}}">
+                <input type="hidden" name="action" value="done">
+                <button type="submit" class="sg-enlace-salida"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5 9.5-10"/></svg>{{donelabel}}</button>
+                <input type="text" name="release" value="{{release}}" class="sg-version" maxlength="50" aria-label="{{#str}} proposals:version, local_oksigeniamarandu {{/str}}">
+            </form>
+            <button type="button" class="sg-salida" data-sg-why="{{id}}" aria-expanded="false" aria-controls="sg-porque-{{id}}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/></svg>{{#str}} proposals:no, local_oksigeniamarandu {{/str}}</button>
+            <form method="post" action="{{formurl}}" data-sg-form>
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="id" value="{{id}}">
+                <input type="hidden" name="action" value="forward">
+                <button type="submit" class="sg-salida sg-a-oks"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12h13"/><path d="M13 6.5l5.5 5.5-5.5 5.5"/></svg>{{#str}} proposals:forward, local_oksigeniamarandu {{/str}}</button>
+            </form>
+        </div>
+        <form method="post" action="{{formurl}}" class="sg-porque" id="sg-porque-{{id}}" data-sg-form hidden>
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="id" value="{{id}}">
+            <input type="hidden" name="action" value="no">
+            <label for="sg-por-{{id}}">{{#str}} proposals:why, local_oksigeniamarandu {{/str}}</label>
+            <input type="text" id="sg-por-{{id}}" name="reason" maxlength="4000" required>
+            <small>{{whyhint}}</small>
+            <button type="submit" class="sg-oculto">{{#str}} proposals:save, local_oksigeniamarandu {{/str}}</button>
+        </form>
+        {{/open}}
+        {{#seal}}
+        <div class="sg-sello-fin sg-f-{{kindseal}}" role="status">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">{{#ishecho}}<path d="M5 12.5l4.5 4.5 9.5-10"/>{{/ishecho}}{{#isno}}<circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/>{{/isno}}{{#isoks}}<path d="M4.5 12h13"/><path d="M13 6.5l5.5 5.5-5.5 5.5"/>{{/isoks}}</svg>
+            <b>{{title}}</b><span>{{tail}}</span>
+            {{#undo}}
+            <form method="post" action="{{formurl}}" data-sg-form>
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                <input type="hidden" name="id" value="{{id}}">
+                <input type="hidden" name="action" value="undo">
+                <button type="submit" class="sg-enlace">{{#str}} proposals:undo, local_oksigeniamarandu {{/str}}</button>
+            </form>
+            {{/undo}}
+        </div>
+        {{/seal}}
+    </div>
+</article>

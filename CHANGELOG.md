@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.74.0 (2026-11-28)
+
+- «Sugerencias», the piece of every tool for ideas and for what does not work (it was «Propose an improvement»):
+  - the button, a pill with its icon and its word in the header, the icon alone on a phone;
+  - the sheet: the page taken as it was goes onto a desk and is marked there, at the size it fits, and the sheet asks
+    first «Tengo una idea» or «Algo no funciona»; an idea is marked with a highlighter, what does not work with a red
+    pen; what does not work goes with the version of the tool, the browser in words and the screen; on a phone,
+    marking takes the screen and writing goes in a sheet from below;
+  - what does not work reaches the people who receive them at once (Telegram and the bell); the ideas, in a summary of
+    the day from 8:00;
+  - the page of whoever receives them: three tabs (to attend, at Oksigenia, closed), what does not work first, each
+    card with its picture and three ways out saved as they are made: done in a version (written, and editable), not
+    and why (one line, Enter), or to Oksigenia; «Undo» while the person has not heard it;
+  - whoever proposed it hears how it ended, ten seconds later, in the bell and by mail in the common look, with what
+    they proposed and their picture;
+  - «Pass to Oksigenia» sends it to the receiver of Oksigenia (`proposalreceiver`, aravo.oksigenia.com by default),
+    without the name or the mail of the person; the site asks it once a day and passes its answer on.
+
 ## 0.73.0 (2026-11-28)
 
 - The way out of the mails that can be done without, with one touch (RFC 8058): `baja.php` with a signed token (the

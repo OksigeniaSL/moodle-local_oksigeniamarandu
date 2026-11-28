@@ -169,8 +169,15 @@ class provider implements
             'body' => 'privacy:metadata:proposal:body',
             'pageurl' => 'privacy:metadata:proposal:pageurl',
             'doneby' => 'privacy:metadata:proposal:doneby',
+            'browser' => 'privacy:metadata:proposal:browser',
             'timecreated' => 'privacy:metadata:proposal:timecreated',
         ], 'privacy:metadata:proposal');
+        $collection->add_external_location_link('proposalreceiver', [
+            'body' => 'privacy:metadata:proposalreceiver:body',
+            'pageurl' => 'privacy:metadata:proposalreceiver:pageurl',
+            'browser' => 'privacy:metadata:proposalreceiver:browser',
+            'image' => 'privacy:metadata:proposalreceiver:image',
+        ], 'privacy:metadata:proposalreceiver');
         $collection->add_database_table(reminders::TABLE, [
             'userid' => 'privacy:metadata:convrem:userid',
             'cwid' => 'privacy:metadata:convrem:cwid',

@@ -659,6 +659,40 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122990, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026123000) {
+        // A proposal is an idea or something that does not work, comes back to whoever proposed it once closed, and can
+        // go to Oksigenia when it is about the tool and not about the organization.
+        $table = new xmldb_table('local_oksigeniamarandu_proposal');
+        $fields = [
+            new xmldb_field('kind', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'idea', 'timemodified'),
+            new xmldb_field('browser', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'kind'),
+            new xmldb_field('outcome', XMLDB_TYPE_CHAR, '10', null, null, null, null, 'browser'),
+            new xmldb_field('outcomerelease', XMLDB_TYPE_CHAR, '50', null, null, null, null, 'outcome'),
+            new xmldb_field('timetold', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'outcomerelease'),
+            new xmldb_field('timedigest', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'timetold'),
+            new xmldb_field('remotestate', XMLDB_TYPE_CHAR, '20', null, null, null, null, 'timedigest'),
+            new xmldb_field('remoteid', XMLDB_TYPE_CHAR, '64', null, null, null, null, 'remotestate'),
+            new xmldb_field('remotekey', XMLDB_TYPE_CHAR, '128', null, null, null, null, 'remoteid'),
+            new xmldb_field('remoteby', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'remotekey'),
+            new xmldb_field('timeremote', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'remoteby'),
+            new xmldb_field('timeasked', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'timeremote'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        $index = new xmldb_index('remotestate', XMLDB_INDEX_NOTUNIQUE, ['remotestate']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+        // What was closed before already had its note; its people are not told now, long after.
+        $DB->execute("UPDATE {local_oksigeniamarandu_proposal} SET outcome = 'done', timetold = timedone WHERE status = 'done'");
+        // The ideas already told one by one do not go in a summary again.
+        $DB->execute('UPDATE {local_oksigeniamarandu_proposal} SET timedigest = timenotified WHERE timenotified IS NOT NULL');
+        upgrade_plugin_savepoint(true, 2026123000, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

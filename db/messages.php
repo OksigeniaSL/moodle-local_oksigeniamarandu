@@ -67,4 +67,23 @@ $messageproviders = [
             'oksigeniamarandu' => MESSAGE_DISALLOWED,
         ],
     ],
+    // Something that does not work, now, and the ideas of the day, for the people who receive the suggestions. By
+    // Telegram they go as the notice «proposal» of lib.php, with the picture.
+    'proposal' => [
+        'defaults' => [
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED,
+            'oksigeniamarandu' => MESSAGE_DISALLOWED,
+        ],
+    ],
+    // How your suggestion ended: done in a version, or not and why; with what you proposed.
+    'proposalanswer' => [
+        'defaults' => [
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'oksigeniamarandu' => MESSAGE_DISALLOWED,
+        ],
+    ],
 ];

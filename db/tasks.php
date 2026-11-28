@@ -117,4 +117,14 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    [
+        // The suggestions: what waits to go to Oksigenia, what Oksigenia has, and the summary of the ideas from 8:00.
+        'classname' => 'local_oksigeniamarandu\task\proposal_round',
+        'blocking' => 0,
+        'minute' => '20',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

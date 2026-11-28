@@ -43,6 +43,8 @@ class proposal_send extends external_api {
             'url' => new external_value(PARAM_URL, 'The address of the page', VALUE_DEFAULT, ''),
             'text' => new external_value(PARAM_TEXT, 'What the person would change'),
             'image' => new external_value(PARAM_RAW, 'The picture with the marks: a JPEG or a PNG in base64', VALUE_DEFAULT, ''),
+            'kind' => new external_value(PARAM_ALPHA, 'idea, or issue: something does not work', VALUE_DEFAULT, 'idea'),
+            'browser' => new external_value(PARAM_TEXT, 'The browser, its system, its window and its colours', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -54,6 +56,8 @@ class proposal_send extends external_api {
      * @param string $url The address.
      * @param string $text What they would change.
      * @param string $image The picture.
+     * @param string $kind idea or issue.
+     * @param string $browser The browser, in words.
      * @return array Its id.
      */
     public static function execute(
@@ -61,11 +65,13 @@ class proposal_send extends external_api {
         string $screen = '',
         string $url = '',
         string $text = '',
-        string $image = ''
+        string $image = '',
+        string $kind = 'idea',
+        string $browser = ''
     ): array {
         global $USER;
         $params = self::validate_parameters(self::execute_parameters(), ['component' => $component, 'screen' => $screen,
-            'url' => $url, 'text' => $text, 'image' => $image]);
+            'url' => $url, 'text' => $text, 'image' => $image, 'kind' => $kind, 'browser' => $browser]);
         $context = \context_system::instance();
         self::validate_context($context);
         if (isguestuser()) {
@@ -78,7 +84,9 @@ class proposal_send extends external_api {
             $params['screen'],
             $params['url'],
             $params['text'],
-            $params['image']
+            $params['image'],
+            $params['kind'],
+            $params['browser']
         )];
     }
 

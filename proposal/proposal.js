@@ -1,8 +1,9 @@
-/* «Propose an improvement»: the common piece of the tools of the site. A page loads it (api::proposal_js() in PHP) and a
-   button with data-marandu-proposal="<component>" (and data-screen="<screen>") opens it; or
-   window.MaranduProposal.open({component: '…', screen: '…'}). It takes a picture of what the person sees of the page,
-   drawn in the browser (nothing outside the page), lets them mark on it with a finger or the mouse and say what they
-   would change, and sends it to the site. Plain ES5, no build: it works on any page of the site.
+/* «Sugerencias»: the common piece of the tools for ideas and for what does not work. A page loads it (api::proposal_js()
+   in PHP) and a button with data-marandu-proposal="<component>" (and data-screen, data-tool, data-release) opens it; or
+   window.MaranduProposal.open({component, screen, tool, release, kind}). It takes a picture of what the person sees of
+   the page, drawn in the browser (nothing outside the page); the person says whether it is an idea or something that does
+   not work, marks on the picture with a finger or the mouse and writes it; something that does not work goes with the
+   version, the browser and the screen. Plain ES5, no build: it works on any page of the site, and loads its own sheet.
    The drawing of the page is html2canvas, loaded only when someone asks for it. */
 (function (root) {
     'use strict';
@@ -341,75 +342,466 @@
         });
     }
 
+    // The sheet: «Sugerencias» (its design, 28-11-2026). The page, taken as it was, goes onto a desk,
+    // and is marked there at the size it fits; beside it (below, on a phone), the sheet with the two ways in.
+    var ICONS = {
+        sugerencias: '<path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z"/><path d="M14 3.5v4.5h4.5"/>' +
+            '<path d="M9 14.2c1.1-1.2 2.1-1.2 3 0s1.9 1.2 3 0"/>',
+        idea: '<path d="M4.5 4.5h15v9.5l-5.5 5.5h-9.5z"/><path d="M19.5 14h-5.5v5.5"/><path d="M8 9h7.5M8 12.5h4"/>',
+        issue: '<path d="M12.5 3.5h8v8l-9 9-8-8z"/><circle cx="16.8" cy="7.2" r="1.3"/><path d="M8 11.5l2 2M10.5 9l2 2"/>',
+        x: '<path d="M6 6l12 12M18 6l-12 12"/>',
+        check: '<path d="M5 12.5l4.5 4.5 9.5-10"/>',
+        goma: '<path d="M9.5 19.5h10"/><path d="M4.6 14.6l8.8-8.8a2 2 0 0 1 2.8 0l2.5 2.5a2 2 0 0 1 0 2.8l-8.7 8.7h-3.4l-2-2a2.2 2.2 0 0 1 0-3.2z"/>' +
+            '<path d="M8.5 10.7l5.3 5.3"/>',
+        flecha: '<path d="M9 5.5l6.5 6.5-6.5 6.5"/>',
+        atras: '<path d="M15 5.5l-6.5 6.5 6.5 6.5"/>'
+    };
+    function icon(name) {
+        return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" ' +
+            'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' + ICONS[name] + '</svg>';
+    }
+    function esc(text) {
+        return String(text).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function fill(text, values) {
+        return String(text).replace(/\{(\w+)\}/g, function (all, name) {
+            return values[name] !== undefined ? values[name] : all;
+        });
+    }
+    function html(markup) {
+        var t = document.createElement('template');
+        t.innerHTML = markup.trim();
+        return t.content.firstChild;
+    }
+
+    // The colours of the page: a highlighter multiplies on paper, and on a dark page it is laid on lighter.
+    function darkPage() {
+        var theme = document.documentElement.getAttribute('data-bs-theme');
+        if (theme) {
+            return theme === 'dark';
+        }
+        return !!(root.matchMedia && root.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    function narrow() {
+        return root.innerWidth < 700;
+    }
+    function touch() {
+        return !!(root.matchMedia && root.matchMedia('(pointer: coarse)').matches);
+    }
+
+    // The browser in words («Chrome 131», «Windows»), not the whole string of the agent.
+    function browserParts() {
+        var ua = navigator.userAgent || '';
+        var name = '';
+        var m;
+        if ((m = /Edg(?:e|A|iOS)?\/(\d+)/.exec(ua))) {
+            name = 'Edge ' + m[1];
+        } else if ((m = /OPR\/(\d+)/.exec(ua))) {
+            name = 'Opera ' + m[1];
+        } else if ((m = /(?:Chrome|CriOS)\/(\d+)/.exec(ua))) {
+            name = 'Chrome ' + m[1];
+        } else if ((m = /(?:Firefox|FxiOS)\/(\d+)/.exec(ua))) {
+            name = 'Firefox ' + m[1];
+        } else if ((m = /Version\/(\d+)[^ ]* .*Safari/.exec(ua))) {
+            name = 'Safari ' + m[1];
+        }
+        var system = /Android/.test(ua) ? 'Android' : /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /CrOS/.test(ua) ? 'ChromeOS' :
+            /Windows/.test(ua) ? 'Windows' : /Mac OS X|Macintosh/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '';
+        return { name: name, system: system };
+    }
+    function browserLine() {
+        var b = browserParts();
+        return b.name && b.system ? fill(str('browserin'), { browser: b.name, system: b.system }) : (b.name || b.system);
+    }
+    function browserFull() {
+        var b = browserParts();
+        var doc = document.documentElement;
+        return [b.name, b.system, doc.clientWidth + '×' + root.innerHeight, darkPage() ? str('dark') : str('light')]
+            .filter(function (part) {
+                return !!part;
+            }).join(' · ');
+    }
+
+    var state = null;
+
     function close() {
         if (layer) {
             layer.remove();
             layer = null;
+            state = null;
             document.removeEventListener('keydown', onKey, true);
+            if (root.__sgReturn && root.__sgReturn.focus) {
+                root.__sgReturn.focus();
+            }
         }
     }
     function onKey(e) {
-        if (e.key === 'Escape' && layer && !layer.classList.contains('mrdp-enviando')) {
+        if (e.key === 'Escape' && layer && !layer.classList.contains('sg-enviando')) {
             e.preventDefault();
             close();
         }
     }
 
-    // The marks: free strokes over the picture, in the pixels of the picture.
-    function marker(shot, marks) {
-        var ctx = marks.getContext('2d');
-        var drawing = false;
-        var last = null;
+    // The marks: free strokes kept as points in the pixels of the picture, drawn again whole each time, so that a
+    // highlighter does not darken where it crosses itself. An idea, a highlighter; what does not work, a red pen.
+    function strokeStyle(ctx, kind, scale, forOutput) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = 'rgba(240, 101, 20, 0.55)';
-        ctx.lineWidth = Math.max(8, Math.round(marks.width / 90));
-        function at(e) {
+        if (kind === 'idea') {
+            ctx.lineWidth = 22 * scale;
+            if (darkPage()) {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = 'rgba(255, 212, 0, 0.36)';
+            } else {
+                ctx.globalCompositeOperation = forOutput ? 'multiply' : 'source-over';
+                ctx.strokeStyle = 'rgba(255, 208, 0, 0.5)';
+            }
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.lineWidth = 4.5 * scale;
+            ctx.strokeStyle = '#d23f31';
+        }
+    }
+    function drawStrokes(ctx, strokes, kind, scale, forOutput) {
+        strokeStyle(ctx, kind, scale, forOutput);
+        strokes.forEach(function (points) {
+            if (!points.length) {
+                return;
+            }
+            ctx.beginPath();
+            ctx.moveTo(points[0].x * (forOutput || 1), points[0].y * (forOutput || 1));
+            if (points.length === 1) {
+                ctx.lineTo(points[0].x * (forOutput || 1) + 0.1, points[0].y * (forOutput || 1) + 0.1);
+            }
+            for (var i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x * (forOutput || 1), points[i].y * (forOutput || 1));
+            }
+            ctx.stroke();
+        });
+        ctx.globalCompositeOperation = 'source-over';
+    }
+    // The picture of the page in a box of the size that fits, with the marks over it; drawing on it adds strokes.
+    function captureBox(maxw, maxh, drawable) {
+        var shot = state.shot;
+        var page = state.page;
+        var s = Math.min(maxw / page.w, maxh / page.h);
+        var box = html('<div class="sg-captura"></div>');
+        box.style.width = Math.round(page.w * s) + 'px';
+        box.style.height = Math.round(page.h * s) + 'px';
+        var copy = document.createElement('canvas');
+        copy.width = shot.width;
+        copy.height = shot.height;
+        copy.getContext('2d').drawImage(shot, 0, 0);
+        box.appendChild(copy);
+        var marks = document.createElement('canvas');
+        marks.className = 'sg-marcas';
+        marks.width = shot.width;
+        marks.height = shot.height;
+        if (!darkPage()) {
+            marks.style.mixBlendMode = 'multiply';
+        }
+        box.appendChild(marks);
+        var ctx = marks.getContext('2d');
+        var ratio = shot.width / page.w;
+        var redraw = function () {
+            ctx.clearRect(0, 0, marks.width, marks.height);
+            drawStrokes(ctx, state.strokes, state.kind, ratio, 0);
+        };
+        redraw();
+        box.redraw = redraw;
+        if (!drawable) {
+            marks.style.pointerEvents = 'none';
+            return box;
+        }
+        marks.setAttribute('aria-label', str(state.kind === 'idea' ? 'markidea' : 'markissue'));
+        var current = null;
+        var at = function (e) {
             var r = marks.getBoundingClientRect();
             return { x: (e.clientX - r.left) * marks.width / r.width, y: (e.clientY - r.top) * marks.height / r.height };
-        }
+        };
+        var queued = false;
+        var later = function () {
+            if (!queued) {
+                queued = true;
+                (root.requestAnimationFrame || setTimeout)(function () {
+                    queued = false;
+                    redraw();
+                });
+            }
+        };
         marks.addEventListener('pointerdown', function (e) {
-            drawing = true;
-            last = at(e);
+            current = [at(e)];
+            state.strokes.push(current);
             marks.setPointerCapture(e.pointerId);
-            ctx.beginPath();
-            ctx.moveTo(last.x, last.y);
-            ctx.lineTo(last.x + 0.1, last.y + 0.1);
-            ctx.stroke();
+            later();
             e.preventDefault();
         });
         marks.addEventListener('pointermove', function (e) {
-            if (!drawing) {
-                return;
+            if (current) {
+                current.push(at(e));
+                later();
+                e.preventDefault();
             }
-            var p = at(e);
-            ctx.beginPath();
-            ctx.moveTo(last.x, last.y);
-            ctx.lineTo(p.x, p.y);
-            ctx.stroke();
-            last = p;
-            e.preventDefault();
         });
         var stop = function () {
-            drawing = false;
+            if (current) {
+                current = null;
+                counted();
+            }
         };
         marks.addEventListener('pointerup', stop);
         marks.addEventListener('pointercancel', stop);
-        return function () {
-            ctx.clearRect(0, 0, marks.width, marks.height);
-        };
+        return box;
     }
 
-    // The picture with the marks, as a JPEG small enough to send.
-    function compose(shot, marks) {
+    // The picture with its marks, as a JPEG small enough to send.
+    function compose() {
+        var shot = state.shot;
         var out = document.createElement('canvas');
         var scale = Math.min(1, 2200 / Math.max(shot.width, 1));
         out.width = Math.round(shot.width * scale);
         out.height = Math.round(shot.height * scale);
         var ctx = out.getContext('2d');
         ctx.drawImage(shot, 0, 0, out.width, out.height);
-        ctx.drawImage(marks, 0, 0, out.width, out.height);
+        drawStrokes(ctx, state.strokes, state.kind, (shot.width / state.page.w) * scale, scale);
         return out.toDataURL('image/jpeg', 0.82);
+    }
+
+    function marksLine() {
+        var n = state.strokes.length;
+        return n === 0 ? str('marks0') : n === 1 ? str('marks1') : fill(str('marksn'), { n: n });
+    }
+    // The line of the marks says how many there are, as they are drawn.
+    function counted() {
+        if (!layer) {
+            return;
+        }
+        var line = layer.querySelector('[data-sg-marcas]');
+        if (line) {
+            line.textContent = marksLine();
+        }
+    }
+
+    function header(title, back) {
+        var h = '<header class="sg-cab">';
+        if (back) {
+            h += '<button type="button" class="sg-redondo" data-sg="back" aria-label="' + esc(str('back')) + '">' + icon('atras') +
+                '</button>';
+        } else {
+            h += '<span class="sg-marca">' + icon('sugerencias') + '</span>';
+        }
+        return h + '<h2>' + esc(title) + '</h2><button type="button" class="sg-redondo" data-sg="close" aria-label="' +
+            esc(str('close')) + '">' + icon('x') + '</button></header>';
+    }
+    function chooseHtml() {
+        var h = (narrow() ? '<div class="sg-asa"></div>' : '') + header(str('title'), false);
+        h += '<p class="sg-intro">' + esc(str('intro')) + '</p><div class="sg-caminos">';
+        ['idea', 'issue'].forEach(function (k) {
+            h += '<button type="button" class="sg-camino sg-t-' + (k === 'idea' ? 'idea' : 'fallo') + '" data-sg="kind" ' +
+                'data-kind="' + k + '"><span class="sg-sello">' + icon(k) + '</span><span><b>' + esc(str(k)) + '</b><small>' +
+                esc(str(k + 'desc')) + '</small></span>' + icon('flecha') + '</button>';
+        });
+        return h + '</div><p class="sg-nota">' + esc(str('goes')) + '</p>';
+    }
+    function kindsHtml() {
+        return '<div class="sg-tipos" role="radiogroup" aria-label="' + esc(str('title')) + '">' + ['idea', 'issue'].map(function (k) {
+            return '<button type="button" role="radio" class="sg-t-' + (k === 'idea' ? 'idea' : 'fallo') + '" data-sg="switch" ' +
+                'data-kind="' + k + '" aria-checked="' + (k === state.kind) + '">' + icon(k) + esc(str(k + 'short')) + '</button>';
+        }).join('') + '</div>';
+    }
+    function goesHtml() {
+        var parts = [];
+        var tool = (state.opts.tool || '') + (state.opts.release ? ' ' + state.opts.release : '');
+        if (tool.trim()) {
+            parts.push(tool.trim());
+        }
+        if (browserLine()) {
+            parts.push(browserLine());
+        }
+        if (state.opts.screen) {
+            parts.push(state.opts.screen);
+        }
+        return '<p class="sg-va"><b>' + esc(str('alsogoes')) + '</b>' + parts.map(function (p) {
+            return '<span>' + esc(p) + '</span>';
+        }).join('') + '</p>';
+    }
+    function writeHtml() {
+        var k = state.kind;
+        var t = k === 'idea' ? 'idea' : 'fallo';
+        var h = (narrow() ? '<div class="sg-asa"></div>' : '') + header(str(k), true);
+        if (!state.shot) {
+            h += '<p class="sg-sin-captura">' + esc(str('nopicture')) + '</p>';
+        } else if (!narrow()) {
+            h += kindsHtml();
+            h += '<div class="sg-captura-linea sg-t-' + t + '">' + icon('check') + '<span data-sg-marcas>' + esc(marksLine()) +
+                '</span><button type="button" class="sg-enlace" data-sg="clear">' + icon('goma') + esc(str('clear')) + '</button></div>';
+        } else {
+            h += '<div class="sg-mini-fila"><span data-sg-mini></span><div><b data-sg-marcas>' + esc(marksLine()) + '</b>' +
+                '<button type="button" class="sg-enlace" data-sg="again">' + esc(str('again')) + '</button></div></div>';
+        }
+        h += '<div><label class="sg-etiqueta" for="sg-texto">' + esc(str(k === 'idea' ? 'whatidea' : 'whatissue')) + '</label>' +
+            '<textarea class="sg-texto" id="sg-texto" rows="4" maxlength="4000"></textarea></div>';
+        if (k === 'issue') {
+            h += goesHtml();
+        }
+        return h + '<div class="sg-pie"><p class="sg-estado" role="status"></p><button type="button" class="sg-enviar" ' +
+            'data-sg="send">' + esc(str(k === 'idea' ? 'sendidea' : 'sendissue')) + '</button><p class="sg-nota">' +
+            esc(str(k === 'idea' ? 'whoidea' : 'whoissue')) + '</p></div>';
+    }
+    function sentHtml() {
+        var k = state.kind;
+        var t = k === 'idea' ? 'idea' : 'fallo';
+        var now = new Date();
+        var time = fill(str('today'), { time: now.getHours() + ':' + ('0' + now.getMinutes()).slice(-2) });
+        var h = (narrow() ? '<div class="sg-asa"></div>' : '');
+        h += '<header class="sg-cab sg-gracias sg-t-' + t + '"><span class="sg-sello">' + icon(k) + '</span><span class="sg-h"></span>' +
+            '<button type="button" class="sg-redondo" data-sg="close" aria-label="' + esc(str('close')) + '">' + icon('x') +
+            '</button></header>';
+        h += '<div class="sg-gracias sg-t-' + t + '"><h2>' + esc(str('thanks' + k)) + '</h2><p>' + esc(str('thanks' + k + 'text')) +
+            '</p><ol class="sg-luego"><li class="sg-ya"><span>' + esc(str('done' + k)) + '<small>' + esc(time) + '</small></span></li>' +
+            '<li><span>' + esc(str('next' + k)) + '<small>' + esc(str('next' + k + 'hint')) + '</small></span></li></ol></div>';
+        return h + '<div class="sg-pie"><button type="button" class="sg-enviar sg-suave" data-sg="close">' +
+            esc(str('backtopage')) + '</button></div>';
+    }
+    function hintHtml(sent) {
+        if (!state.kind) {
+            return '<span>' + esc(str('captured')) + '</span>';
+        }
+        var k = state.kind;
+        var words = sent ? str(k === 'idea' ? 'sentwithidea' : 'sentwithissue') :
+            str((k === 'idea' ? 'markidea' : 'markissue') + (touch() ? 'touch' : ''));
+        return '<span class="sg-rotu">' + icon(k) + '</span>' + esc(words) +
+            (sent ? '' : '<small>' + esc(str(k === 'idea' ? 'sideidea' : 'sideissue')) + '</small>');
+    }
+
+    // Draws the layer for the step: choose, mark (on a phone), write or sent.
+    function show(step) {
+        state.step = step;
+        var text = layer.querySelector('#sg-texto');
+        if (text) {
+            state.text = text.value;
+        }
+        layer.innerHTML = '';
+        layer.className = 'sg-capa' + (state.kind ? ' sg-t-' + (state.kind === 'idea' ? 'idea' : 'fallo') : '');
+        var panel = html('<section class="sg-panel"></section>');
+        var W = root.innerWidth;
+        var H = root.innerHeight;
+        if (!narrow()) {
+            var mesa = html('<div class="sg-mesa"></div>');
+            if (state.shot) {
+                mesa.appendChild(html('<div class="sg-pista">' + hintHtml(step === 'sent') + '</div>'));
+                mesa.appendChild(captureBox(W - 408 - 96, H - 64 - 48, step === 'write'));
+            }
+            layer.appendChild(mesa);
+            panel.innerHTML = step === 'choose' ? chooseHtml() : step === 'sent' ? sentHtml() : writeHtml();
+            layer.appendChild(panel);
+        } else {
+            layer.classList.add('sg-movil');
+            if (step === 'mark') {
+                var t = state.kind === 'idea' ? 'idea' : 'fallo';
+                layer.appendChild(html('<div class="sg-arriba sg-t-' + t + '"><button type="button" class="sg-chip" data-sg="toggle">' +
+                    icon(state.kind) + esc(str(state.kind + 'short')) + '</button><span class="sg-h"></span>' +
+                    '<button type="button" class="sg-redondo" data-sg="close" aria-label="' + esc(str('close')) + '">' + icon('x') +
+                    '</button></div>'));
+                var area = html('<div class="sg-mesa"></div>');
+                area.appendChild(captureBox(W - 24, H - 56 - 124 - 24, true));
+                layer.appendChild(area);
+                layer.appendChild(html('<div class="sg-abajo sg-t-' + t + '"><p>' + icon(state.kind) +
+                    esc(str((state.kind === 'idea' ? 'markidea' : 'markissue') + 'touch')) + '</p><button type="button" ' +
+                    'class="sg-borrar" data-sg="clear">' + icon('goma') + esc(str('clear')) + '</button><button type="button" ' +
+                    'class="sg-enviar" data-sg="next">' + esc(str('next')) + '</button></div>'));
+            } else {
+                layer.classList.add('sg-velo');
+                panel.innerHTML = step === 'choose' ? chooseHtml() : step === 'sent' ? sentHtml() : writeHtml();
+                layer.appendChild(panel);
+                var slot = panel.querySelector('[data-sg-mini]');
+                if (slot && state.shot) {
+                    var mini = captureBox(84, 84 * state.page.h / state.page.w, false);
+                    mini.setAttribute('data-sg', 'again');
+                    slot.replaceWith(mini);
+                }
+            }
+        }
+        var area2 = layer.querySelector('#sg-texto');
+        if (area2) {
+            area2.value = state.text || '';
+            area2.focus();
+        } else {
+            var first = layer.querySelector('.sg-camino, [data-sg="next"], .sg-suave, [data-sg="close"]');
+            if (first) {
+                first.focus();
+            }
+        }
+    }
+
+    function act(e) {
+        var t = e.target && e.target.closest ? e.target.closest('[data-sg]') : null;
+        if (!t || !layer || layer.classList.contains('sg-enviando')) {
+            return;
+        }
+        var what = t.getAttribute('data-sg');
+        if (what === 'close') {
+            close();
+        } else if (what === 'kind') {
+            state.kind = t.getAttribute('data-kind');
+            show(narrow() && state.shot ? 'mark' : 'write');
+        } else if (what === 'switch' || what === 'toggle') {
+            state.kind = what === 'toggle' ? (state.kind === 'idea' ? 'issue' : 'idea') : t.getAttribute('data-kind');
+            show(state.step);
+        } else if (what === 'back') {
+            show('choose');
+        } else if (what === 'clear') {
+            state.strokes = [];
+            var box = layer.querySelector('.sg-captura');
+            if (box && box.redraw) {
+                box.redraw();
+            }
+            counted();
+        } else if (what === 'again') {
+            show('mark');
+        } else if (what === 'next') {
+            show('write');
+        } else if (what === 'send') {
+            send(t);
+        }
+    }
+
+    function send(button) {
+        var area = layer.querySelector('#sg-texto');
+        var status = layer.querySelector('.sg-estado');
+        var text = area ? area.value.trim() : '';
+        if (!text) {
+            status.textContent = str('needtext');
+            area.focus();
+            return;
+        }
+        state.text = text;
+        layer.classList.add('sg-enviando');
+        button.disabled = true;
+        status.textContent = str('sending');
+        call({
+            component: state.opts.component || 'core',
+            screen: state.opts.screen || '',
+            url: root.location.href,
+            text: text,
+            image: state.shot ? compose().replace(/^data:image\/jpeg;base64,/, '') : '',
+            kind: state.kind,
+            browser: browserFull()
+        }).then(function () {
+            if (layer) {
+                layer.classList.remove('sg-enviando');
+                show('sent');
+            }
+            return true;
+        }).catch(function () {
+            if (layer) {
+                layer.classList.remove('sg-enviando');
+                button.disabled = false;
+                status.textContent = str('failed');
+            }
+        });
     }
 
     function open(opts) {
@@ -417,133 +809,58 @@
         if (layer) {
             return;
         }
-        layer = el('div', 'mrdp-capa');
+        root.__sgReturn = document.activeElement;
+        layer = html('<div class="sg-capa" role="dialog" aria-modal="true"></div>');
         layer.setAttribute(SKIP, '');
-        layer.setAttribute('role', 'dialog');
-        layer.setAttribute('aria-modal', 'true');
         layer.setAttribute('aria-label', str('title'));
-        var box = el('div', 'mrdp-hoja');
-        box.appendChild(el('p', 'mrdp-espera', str('taking')));
-        layer.appendChild(box);
+        layer.appendChild(html('<p class="sg-espera"></p>'));
+        layer.firstChild.textContent = str('taking');
         // The layer is not in the picture, but it must not cover the page while the picture is taken.
         layer.style.visibility = 'hidden';
         document.body.appendChild(layer);
         document.addEventListener('keydown', onKey, true);
+        layer.addEventListener('click', act);
+        var page = { w: document.documentElement.clientWidth, h: root.innerHeight };
         picture().then(function (shot) {
             if (!layer) {
                 return;
             }
             layer.style.visibility = '';
-            build(box, shot, opts);
+            state = { opts: opts, shot: shot, page: page, strokes: [], kind: null, text: '', step: '' };
+            if (opts.kind === 'idea' || opts.kind === 'issue') {
+                state.kind = opts.kind;
+                show(narrow() && shot ? 'mark' : 'write');
+            } else {
+                show('choose');
+            }
         });
     }
 
-    function build(box, shot, opts) {
-        box.innerHTML = '';
-        var head = el('div', 'mrdp-cab');
-        head.appendChild(el('h2', '', str('title')));
-        var x = el('button', 'mrdp-cerrar');
-        x.type = 'button';
-        x.setAttribute('aria-label', str('cancel'));
-        x.textContent = '×';
-        x.addEventListener('click', close);
-        head.appendChild(x);
-        box.appendChild(head);
-        var marks = null;
-        var clear = null;
-        if (shot) {
-            box.appendChild(el('p', 'mrdp-pista', str('mark')));
-            var stage = el('div', 'mrdp-escena');
-            shot.className = 'mrdp-foto';
-            // As wide as fits, and no taller than most of the window, keeping its shape.
-            shot.style.width = '';
-            shot.style.height = '';
-            stage.style.maxWidth = Math.round(root.innerHeight * (root.innerWidth < 600 ? 0.45 : 0.58) * shot.width /
-                Math.max(shot.height, 1)) + 'px';
-            stage.appendChild(shot);
-            marks = document.createElement('canvas');
-            marks.className = 'mrdp-marcas';
-            marks.width = shot.width;
-            marks.height = shot.height;
-            marks.setAttribute('aria-label', str('mark'));
-            stage.appendChild(marks);
-            box.appendChild(stage);
-            clear = marker(shot, marks);
-        } else {
-            box.appendChild(el('p', 'mrdp-pista', str('nopicture')));
-        }
-        var label = el('label', 'mrdp-etiqueta', str('what'));
-        var area = el('textarea', 'mrdp-texto');
-        area.id = 'mrdp-texto';
-        label.htmlFor = area.id;
-        area.rows = 3;
-        area.maxLength = 4000;
-        area.placeholder = str('whathint');
-        box.appendChild(label);
-        box.appendChild(area);
-        var foot = el('div', 'mrdp-pie');
-        if (clear) {
-            var wipe = el('button', 'btn btn-outline-secondary mrdp-borrar', str('clear'));
-            wipe.type = 'button';
-            wipe.addEventListener('click', clear);
-            foot.appendChild(wipe);
-        }
-        var status = el('p', 'mrdp-estado');
-        status.setAttribute('role', 'status');
-        foot.appendChild(status);
-        var cancel = el('button', 'btn btn-secondary', str('cancel'));
-        cancel.type = 'button';
-        cancel.addEventListener('click', close);
-        var send = el('button', 'btn btn-primary', str('send'));
-        send.type = 'button';
-        foot.appendChild(cancel);
-        foot.appendChild(send);
-        box.appendChild(foot);
-        area.focus();
-        send.addEventListener('click', function () {
-            var text = area.value.trim();
-            if (!text) {
-                status.textContent = str('needtext');
-                area.focus();
+    // The sheet of the piece, loaded once with the script: the button of the header is drawn with it too.
+    (function styles() {
+        var url = cfg().wwwroot + '/local/oksigeniamarandu/proposal/proposal.css';
+        var links = document.querySelectorAll('link[rel="stylesheet"]');
+        for (var i = 0; i < links.length; i++) {
+            if ((links[i].getAttribute('href') || '').indexOf('/proposal/proposal.css') !== -1) {
                 return;
             }
-            layer.classList.add('mrdp-enviando');
-            send.disabled = true;
-            cancel.disabled = true;
-            status.textContent = str('sending');
-            call({
-                component: opts.component || 'core',
-                screen: opts.screen || '',
-                url: root.location.href,
-                text: text,
-                image: shot ? compose(shot, marks).replace(/^data:image\/jpeg;base64,/, '') : ''
-            }).then(function () {
-                box.innerHTML = '';
-                box.appendChild(el('h2', 'mrdp-gracias', str('thanks')));
-                box.appendChild(el('p', '', str('thankshelp')));
-                var ok = el('button', 'btn btn-primary', str('close'));
-                ok.type = 'button';
-                ok.addEventListener('click', close);
-                var end = el('div', 'mrdp-pie');
-                end.appendChild(ok);
-                box.appendChild(end);
-                layer.classList.remove('mrdp-enviando');
-                ok.focus();
-                return true;
-            }).catch(function () {
-                layer.classList.remove('mrdp-enviando');
-                send.disabled = false;
-                cancel.disabled = false;
-                status.textContent = str('failed');
-            });
-        });
-    }
+        }
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url + (data().version ? '?v=' + encodeURIComponent(data().version) : '');
+        document.head.appendChild(link);
+    })();
 
     document.addEventListener('click', function (e) {
         var t = e.target && e.target.closest ? e.target.closest('[data-marandu-proposal]') : null;
         if (t) {
             e.preventDefault();
-            open({ component: t.getAttribute('data-marandu-proposal'), screen: t.getAttribute('data-screen') || '' });
+            open({
+                component: t.getAttribute('data-marandu-proposal'),
+                screen: t.getAttribute('data-screen') || '',
+                tool: t.getAttribute('data-tool') || '',
+                release: t.getAttribute('data-release') || ''
+            });
         }
     });
 

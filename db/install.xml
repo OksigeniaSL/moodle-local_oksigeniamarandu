@@ -582,6 +582,18 @@
         <FIELD NAME="timenotified" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When whoever receives the proposals was told"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="idea" SEQUENCE="false" COMMENT="idea, or issue: something does not work"/>
+        <FIELD NAME="browser" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="The browser, its system, the size of its window and its colours, as the page said them"/>
+        <FIELD NAME="outcome" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="done or no, once it is closed"/>
+        <FIELD NAME="outcomerelease" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="The version it is done in"/>
+        <FIELD NAME="timetold" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When whoever proposed it was told how it ended"/>
+        <FIELD NAME="timedigest" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When an idea went in the summary of the day"/>
+        <FIELD NAME="remotestate" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Passed to Oksigenia: sending, received, refused or failed"/>
+        <FIELD NAME="remoteid" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Its id at the receiver of Oksigenia"/>
+        <FIELD NAME="remotekey" TYPE="char" LENGTH="128" NOTNULL="false" SEQUENCE="false" COMMENT="The key to ask the receiver of Oksigenia how it goes"/>
+        <FIELD NAME="remoteby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Who passed it to Oksigenia"/>
+        <FIELD NAME="timeremote" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When it was passed to Oksigenia"/>
+        <FIELD NAME="timeasked" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When the receiver of Oksigenia was last asked how it goes"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -589,6 +601,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="status-timecreated" UNIQUE="false" FIELDS="status, timecreated"/>
+        <INDEX NAME="remotestate" UNIQUE="false" FIELDS="remotestate"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="local_oksigeniamarandu_mail" COMMENT="The mails that went by Marandu, or wait: by the mail of the site or by Mailjet">

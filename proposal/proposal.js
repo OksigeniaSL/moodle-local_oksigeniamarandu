@@ -848,7 +848,8 @@
             text: text,
             image: state.shot ? compose().replace(/^data:image\/jpeg;base64,/, '') : '',
             kind: state.kind,
-            browser: browserFull()
+            browser: browserFull(),
+            marks: state.shot ? state.strokes.length : 0
         }).then(function () {
             if (layer) {
                 layer.classList.remove('sg-enviando');

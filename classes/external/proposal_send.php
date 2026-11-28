@@ -45,6 +45,7 @@ class proposal_send extends external_api {
             'image' => new external_value(PARAM_RAW, 'The picture with the marks: a JPEG or a PNG in base64', VALUE_DEFAULT, ''),
             'kind' => new external_value(PARAM_ALPHA, 'idea, or issue: something does not work', VALUE_DEFAULT, 'idea'),
             'browser' => new external_value(PARAM_TEXT, 'The browser, its system, its window and its colours', VALUE_DEFAULT, ''),
+            'marks' => new external_value(PARAM_INT, 'How many marks the picture carries', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -58,6 +59,7 @@ class proposal_send extends external_api {
      * @param string $image The picture.
      * @param string $kind idea or issue.
      * @param string $browser The browser, in words.
+     * @param int $marks How many marks the picture carries.
      * @return array Its id.
      */
     public static function execute(
@@ -67,11 +69,12 @@ class proposal_send extends external_api {
         string $text = '',
         string $image = '',
         string $kind = 'idea',
-        string $browser = ''
+        string $browser = '',
+        int $marks = 0
     ): array {
         global $USER;
         $params = self::validate_parameters(self::execute_parameters(), ['component' => $component, 'screen' => $screen,
-            'url' => $url, 'text' => $text, 'image' => $image, 'kind' => $kind, 'browser' => $browser]);
+            'url' => $url, 'text' => $text, 'image' => $image, 'kind' => $kind, 'browser' => $browser, 'marks' => $marks]);
         $context = \context_system::instance();
         self::validate_context($context);
         if (isguestuser()) {
@@ -86,7 +89,8 @@ class proposal_send extends external_api {
             $params['text'],
             $params['image'],
             $params['kind'],
-            $params['browser']
+            $params['browser'],
+            $params['marks']
         )];
     }
 

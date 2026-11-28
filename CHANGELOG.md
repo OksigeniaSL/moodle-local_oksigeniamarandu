@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.74.2 (2026-11-28)
+
+- The answer by mail to a suggestion, after its review: «Not this time» goes without a button; the signature says the
+  role, «Coordinates the improvements»; «Done» names the screen where it was proposed, as the person knows it, and its
+  button is «Open the page» (the version stays in the title); the caption of the picture says «with what you marked»
+  only when it carries marks (the sheet sends how many).
+- The class of the suggestions works without Marandu: its notices by Telegram and the mail in the common look, only when
+  Marandu is on the site. It goes copied into other plugins (kit/proponer of hq).
+
 ## 0.74.1 (2026-11-28)
 
 - «Sugerencias», after its review: nothing painted over the logo in the picture (what the page says without JavaScript,

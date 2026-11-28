@@ -594,6 +594,7 @@
         <FIELD NAME="remoteby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Who passed it to Oksigenia"/>
         <FIELD NAME="timeremote" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When it was passed to Oksigenia"/>
         <FIELD NAME="timeasked" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="When the receiver of Oksigenia was last asked how it goes"/>
+        <FIELD NAME="marks" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="How many marks the picture carries"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

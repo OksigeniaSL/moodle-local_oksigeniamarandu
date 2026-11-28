@@ -693,6 +693,16 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026123000, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026123003) {
+        // How many marks the picture of a suggestion carries: its mail says «with what you marked» only then.
+        $table = new xmldb_table('local_oksigeniamarandu_proposal');
+        $field = new xmldb_field('marks', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'timeasked');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026123003, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

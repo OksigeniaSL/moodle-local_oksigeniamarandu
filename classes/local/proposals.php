@@ -16,8 +16,6 @@
 
 namespace local_oksigeniamarandu\local;
 
-use local_oksigeniamarandu\local\chat\draft;
-
 /**
  * Proposals of improvement: a person, on a screen of a tool, marks with a picture of it what they would change and says
  * how. They are kept in the site with who, when, the tool and its version, the screen and its address; the text generation
@@ -51,6 +49,9 @@ class proposals {
     /** @var string The plugin. */
     private const COMPONENT = 'local_oksigeniamarandu';
 
+    /** @var string Marandu, written so that a copy of this class in another plugin keeps pointing at it. */
+    private const MARANDU = '\\local_oksigenia' . 'marandu';
+
     /**
      * Keeps a proposal and leaves to a task its line and the notice to the people who receive them.
      *
@@ -63,6 +64,7 @@ class proposals {
      *                      if the browser could not make it.
      * @param string $kind idea, or issue: something does not work (the people who receive them hear it at once).
      * @param string $browser The browser, its system, the size of its window and its colours, in words.
+     * @param int $marks How many marks the picture carries.
      * @return int Its id.
      * @throws \invalid_parameter_exception If it says nothing, or the picture is not a picture.
      */
@@ -74,7 +76,8 @@ class proposals {
         string $body,
         string $image,
         string $kind = 'idea',
-        string $browser = ''
+        string $browser = '',
+        int $marks = 0
     ): int {
         global $DB;
         $component = clean_param($component, PARAM_COMPONENT);
@@ -97,6 +100,7 @@ class proposals {
             'status' => 'new',
             'kind' => $kind === 'issue' ? 'issue' : 'idea',
             'browser' => \core_text::substr(trim(clean_param($browser, PARAM_TEXT)), 0, 255) ?: null,
+            'marks' => max(0, min(999, $marks)),
             'timecreated' => $now,
             'timemodified' => $now,
         ]);
@@ -275,7 +279,7 @@ class proposals {
      */
     public static function summarise(\stdClass $record): bool {
         global $DB;
-        if (!draft::available()) {
+        if (!self::ai()) {
             return false;
         }
         $tools = self::tools();
@@ -332,8 +336,13 @@ class proposals {
             $rich['image'] = $image->out(false);
         }
         $count = 0;
+        if (!self::marandu()) {
+            $DB->set_field(self::TABLE, 'timenotified', time(), ['id' => $record->id]);
+            return 0;
+        }
+        $api = self::MARANDU . '\\api';
         foreach (self::people() as $person) {
-            $count += \local_oksigeniamarandu\api::notify(
+            $count += $api::notify(
                 self::COMPONENT,
                 'proposal',
                 [$tool . ': ' . $line],
@@ -466,8 +475,9 @@ class proposals {
         $count = count($ideas);
         $title = get_string($count === 1 ? 'proposal:digest:one' : 'proposal:digest:many', self::COMPONENT, $count);
         $url = new \moodle_url('/local/oksigeniamarandu/proposals.php');
+        $api = self::MARANDU . '\\api';
         foreach (self::people() as $person) {
-            \local_oksigeniamarandu\api::notify(
+            self::marandu() && $api::notify(
                 self::COMPONENT,
                 'proposal',
                 [$title . "\n" . implode("\n", array_map(fn($line) => '• ' . $line, $lines))],
@@ -749,11 +759,10 @@ class proposals {
         $oksigenia = !$record->doneby && $record->remotestate === 'received';
         $closer = $record->doneby ? \core_user::get_user((int)$record->doneby) : null;
         $blocks = [];
+        // Where the person proposed it, as they know it («Panel de avisos»); the tool, if the screen has no name.
+        $place = (string)$record->screen !== '' ? (string)$record->screen : $tool;
         if ($done) {
-            $blocks[] = ['paragraph' => $say(
-                'proposal:tell:' . $what . ':line' . ($release !== '' ? ':release' : ''),
-                (object)['tool' => $tool, 'release' => $release]
-            )];
+            $blocks[] = ['paragraph' => $say('proposal:tell:' . $what . ':line', $place)];
             if (trim((string)$record->note) !== '' && $oksigenia) {
                 $blocks[] = ['paragraph' => trim((string)$record->note)];
             }
@@ -761,8 +770,8 @@ class proposals {
             $blocks[] = ['paragraph' => $say('proposal:tell:' . $what . ':noline')];
             $blocks[] = ['rich' => [['run' => trim((string)$record->note) ?: $say('proposal:tell:no:noreason'), 'bold' => true]]];
         }
-        if ((string)$record->pageurl !== '') {
-            $blocks[] = ['action' => ['actionurl' => (string)$record->pageurl, 'actiontext' => $say('proposal:tell:see', $tool)]];
+        if ($done && (string)$record->pageurl !== '') {
+            $blocks[] = ['action' => ['actionurl' => (string)$record->pageurl, 'actiontext' => $say('proposal:tell:see')]];
         }
         $blocks[] = ['note' => ['notetitle' => $proposed, 'notetext' => (string)$record->body]];
         $picture = self::jpeg((int)$record->id, 1040, 200000);
@@ -770,8 +779,9 @@ class proposals {
             $size = @getimagesizefromstring($picture);
             // A picture of a phone, taller than wide: narrower, so that the mail does not become a long scroll.
             $narrow = $size && $size[1] > $size[0];
-            $blocks[] = ['picture' => ['picturebytes' => $picture, 'picturealt' => $say('proposal:tell:picture'),
-                'picturecaption' => $say('proposal:tell:picture'), 'pictureframe' => true] + ($narrow ? ['picturewidth' => 280] : [])];
+            $caption = $say((int)($record->marks ?? 0) > 0 ? 'proposal:tell:picture:marked' : 'proposal:tell:picture');
+            $blocks[] = ['picture' => ['picturebytes' => $picture, 'picturealt' => $caption, 'picturecaption' => $caption,
+                'pictureframe' => true] + ($narrow ? ['picturewidth' => 280] : [])];
         }
         if (!$done) {
             $blocks[] = ['small' => $say('proposal:tell:another')];
@@ -785,14 +795,90 @@ class proposals {
             'blocks' => $blocks,
             'signature' => [
                 'signoff' => $say($issue ? 'proposal:tell:signoff:issue' : 'proposal:tell:signoff:idea'),
-                'signer' => $oksigenia ? $say('proposal:tell:team', $tool) : ($closer ? fullname($closer) : cards::org()),
-                'signrole' => $oksigenia ? $say('proposal:tell:makers', $tool) : cards::org(),
+                'signer' => $oksigenia ? $say('proposal:tell:team', $tool) : ($closer ? fullname($closer) : self::org()),
+                'signrole' => $oksigenia ? $say('proposal:tell:makers', $tool) : $say('proposal:tell:role'),
             ],
             'reason' => $say('proposal:tell:reason'),
         ];
         $text = $subject . "\n\n" . $proposed . ":\n" . $record->body;
         $url = (string)$record->pageurl !== '' ? new \moodle_url((string)$record->pageurl) : null;
-        return [$subject, $text, $url, $say('proposal:tell:see', $tool), $pieces];
+        return [$subject, $text, $url, $say('proposal:tell:see'), $pieces];
+    }
+
+    /**
+     * Whether Marandu is on the site: its notices by Telegram, and the mail in the common look. This class goes copied
+     * into other plugins (kit/proponer of hq), and works without it.
+     *
+     * @return bool
+     */
+    private static function marandu(): bool {
+        return class_exists(self::MARANDU . '\\api');
+    }
+
+    /**
+     * Whether the site has text generation (core_ai) for the line of each suggestion.
+     *
+     * @return bool
+     */
+    private static function ai(): bool {
+        if (!class_exists('\\core_ai\\manager') || !class_exists('\\core_ai\\aiactions\\generate_text')) {
+            return false;
+        }
+        try {
+            return (bool)\core\di::get(\core_ai\manager::class)->is_action_available(\core_ai\aiactions\generate_text::class);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * The name of the organization, as the mails sign it.
+     *
+     * @return string
+     */
+    private static function org(): string {
+        global $SITE;
+        $cards = self::MARANDU . '\\local\\cards';
+        if (class_exists($cards)) {
+            return $cards::org();
+        }
+        return html_entity_decode(
+            format_string($SITE->fullname, true, ['context' => \context_system::instance()]),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+    }
+
+    /**
+     * The custom data of a notice with the icon of the tool, in colour (the app reads notificationiconurl).
+     *
+     * @return array
+     */
+    private static function icon(): array {
+        global $OUTPUT;
+        return ['notificationiconurl' => $OUTPUT->image_url('icon', self::COMPONENT)->out(false)];
+    }
+
+    /**
+     * A moment in words, as the pages of the site say it: «hoy a las 10:42», «ayer a las 17:40», «el 26 de noviembre a las…».
+     *
+     * @param int $time
+     * @param int $now
+     * @return string
+     */
+    public static function when(int $time, int $now): string {
+        $hour = userdate($time, get_string('strftimetime', 'langconfig'));
+        $midnight = usergetmidnight($now);
+        if ($time >= $midnight) {
+            return get_string('proposals:when:today', self::COMPONENT, $hour);
+        }
+        if ($time >= usergetmidnight($midnight - HOURSECS)) {
+            return get_string('proposals:when:yesterday', self::COMPONENT, $hour);
+        }
+        return get_string('proposals:when:day', self::COMPONENT, (object)['day' => userdate(
+            $time,
+            get_string('strftimedaydate', 'langconfig')
+        ), 'hour' => $hour]);
     }
 
     /**
@@ -827,7 +913,7 @@ class proposals {
             'kind' => $issue ? 'fallo' : 'idea',
             'text' => (string)$record->body,
             'who' => $author ? fullname($author) : '',
-            'when' => \local_oksigeniamarandu\local\mail\page::when((int)$record->timecreated, $now),
+            'when' => self::when((int)$record->timecreated, $now),
             'where' => $where,
             'url' => (string)$record->pageurl,
             'extra' => $extra,
@@ -919,12 +1005,16 @@ class proposals {
         $message->fullmessagehtml = '';
         $message->smallmessage = $subject;
         $message->notification = 1;
-        $message->customdata = message_icon::customdata();
+        $message->customdata = self::icon();
         if ($url) {
             $message->contexturl = $url;
             $message->contexturlname = $urlname;
         }
-        \local_oksigeniamarandu\api::mail_notice($message, $pieces);
+        if (self::marandu()) {
+            // The mail in the common look of the tools, by the way of the site.
+            $api = self::MARANDU . '\\api';
+            $api::mail_notice($message, $pieces);
+        }
         try {
             return (bool)message_send($message);
         } catch (\Throwable $e) {

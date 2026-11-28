@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.72.0 (2026-11-28)
+
+- A mail by Mailjet without a way out of its own brings ours: `List-Unsubscribe` with a mail to the address that
+  answers it (its reply-to, or the sender of Mailjet), with «Unsubscribe» as subject, and no one-click. Mailjet puts its
+  own way out on every mail that does not bring one, and whoever takes it may be stopped for every mail of the account;
+  this way it reaches a person. A send to many with its own way out keeps it; the mail of the site does not change.
+
 ## 0.71.3 (2026-11-28)
 
 - The common mail has a `code` piece, a code to type by hand (`['code' => '482913']`): large, with air between the

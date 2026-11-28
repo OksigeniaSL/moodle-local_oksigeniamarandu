@@ -92,6 +92,7 @@ $string['mail:letter:open'] = 'فتح';
 $string['mail:letter:reason:notice'] = 'تصلك هذه الرسالة لأنك تتلقى إشعارات {$a} عبر البريد أيضًا.';
 $string['mail:letter:signoff'] = 'مع التحية،';
 $string['mail:letter:unsubhint'] = 'هل تفضّل ألّا تصلك هذه الرسائل؟';
+$string['mail:letter:unsubsubject'] = 'إلغاء الاشتراك';
 $string['mail:letter:unsubtext'] = 'إلغاء الاشتراك';
 $string['marandu:join_option_no'] = 'لا';
 $string['marandu:join_option_yes'] = 'نعم';

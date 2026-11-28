@@ -92,6 +92,7 @@ $string['mail:letter:open'] = 'Abrir';
 $string['mail:letter:reason:notice'] = 'Recebe isto porque tem os avisos de {$a} também por email.';
 $string['mail:letter:signoff'] = 'Cumprimentos,';
 $string['mail:letter:unsubhint'] = 'Prefere não receber estes emails?';
+$string['mail:letter:unsubsubject'] = 'Cancelar a subscrição';
 $string['mail:letter:unsubtext'] = 'Cancelar a subscrição';
 $string['marandu:join_option_no'] = 'Não';
 $string['marandu:join_option_yes'] = 'Sim';

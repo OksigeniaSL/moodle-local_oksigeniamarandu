@@ -624,14 +624,22 @@ class mailer {
      * The headers of every mail: automatic, so that no automatic answer comes back; and, for a send to many, how to
      * leave it with one click.
      *
+     * Mailjet puts its own way out on every mail that does not bring one, and whoever takes it may be stopped for
+     * every mail of the account. So a mail by Mailjet without a way out brings ours: a mail to the address that
+     * answers, where a person reads it.
+     *
      * @param array $letter
+     * @param string $answers The address that answers a mail by Mailjet; empty for the mail of the site.
      * @return array By name.
      */
-    private static function headers(array $letter): array {
+    private static function headers(array $letter, string $answers = ''): array {
         $headers = ['Auto-Submitted' => 'auto-generated'];
         if ($letter['unsubscribe'] !== '' && preg_match('~^https://~i', $letter['unsubscribe'])) {
             $headers['List-Unsubscribe'] = '<' . $letter['unsubscribe'] . '>';
             $headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+        } else if ($answers !== '') {
+            $headers['List-Unsubscribe'] = '<mailto:' . $answers . '?subject='
+                . rawurlencode(get_string('mail:letter:unsubsubject', self::C)) . '>';
         }
         return $headers;
     }
@@ -701,7 +709,6 @@ class mailer {
                 'TrackOpens' => 'disabled',
                 'TrackClicks' => 'disabled',
                 'CustomID' => 'mrd-' . $id,
-                'Headers' => self::headers($letter),
             ];
             if ($letter['html'] !== '') {
                 $message['HTMLPart'] = $letter['html'];
@@ -721,7 +728,10 @@ class mailer {
             $replyto = $letter['replyto'] ?: settings::replyto();
             if ($replyto !== '' && validate_email($replyto)) {
                 $message['ReplyTo'] = ['Email' => $replyto];
+            } else {
+                $replyto = $from;
             }
+            $message['Headers'] = self::headers($letter, $replyto);
             $messages[] = $message;
         }
         [$status, $answer] = $api->send($messages, (bool)get_config(self::C, 'mailsandbox'));

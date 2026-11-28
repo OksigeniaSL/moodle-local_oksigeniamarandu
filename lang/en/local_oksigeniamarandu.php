@@ -1447,6 +1447,7 @@ $string['mail:letter:reason:notice'] = 'You get this because you have the notice
 $string['mail:letter:reason:test'] = 'You get this because somebody sent it as a test from the page «Mail».';
 $string['mail:letter:signoff'] = 'Best regards,';
 $string['mail:letter:unsubhint'] = 'Would you rather not get these emails?';
+$string['mail:letter:unsubsubject'] = 'Unsubscribe';
 $string['mail:letter:unsubtext'] = 'Unsubscribe';
 $string['mail:month'] = 'The month';
 $string['mail:month:caption'] = '{$a->used} of {$a->quota} this month. From {$a->routine}, what is routine goes by the mail of the site; at the quota, what goes to many waits for the next month and what goes to one person goes on.';

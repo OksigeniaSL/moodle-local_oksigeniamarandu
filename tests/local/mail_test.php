@@ -168,6 +168,14 @@ final class mail_test extends \advanced_testcase {
             $message['InlinedAttachments'][0]['ContentID'], $message['ReplyTo']['Email']]);
         $this->assertStringContainsString('9:00', $message['TextPart']);
         $this->assertSame(['sent', '1001', null], [$row->status, $row->mjid, $row->payload]);
+        // Without a way out of its own: ours, to the address that answers, so that Mailjet does not put its own.
+        $this->assertSame(
+            '<mailto:secretaria@example.org?subject=' . rawurlencode(get_string('mail:letter:unsubsubject', self::C)) . '>',
+            $message['Headers']['List-Unsubscribe']
+        );
+        $this->assertArrayNotHasKey('List-Unsubscribe-Post', $message['Headers']);
+        // By the mail of the site, none.
+        $this->assertStringNotContainsString('List-Unsubscribe', $mail->header);
 
         // An address that is not one.
         $this->assertSame('invalid', api::mail('no-es-correo', 'Hola', '<p>Hola</p>'));

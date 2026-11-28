@@ -1447,6 +1447,7 @@ $string['mail:letter:reason:notice'] = 'Te llega porque tienes los avisos de {$a
 $string['mail:letter:reason:test'] = 'Te llega porque alguien la mandó como prueba desde la página «Correo».';
 $string['mail:letter:signoff'] = 'Un saludo,';
 $string['mail:letter:unsubhint'] = '¿Prefieres no recibir estos correos?';
+$string['mail:letter:unsubsubject'] = 'Baja';
 $string['mail:letter:unsubtext'] = 'Darme de baja';
 $string['mail:month'] = 'El mes';
 $string['mail:month:caption'] = '{$a->used} de {$a->quota} este mes. Desde {$a->routine}, lo rutinario sale por el correo del sitio; al llegar al cupo, lo que va a muchos espera al mes siguiente y lo que va a una persona sigue saliendo.';

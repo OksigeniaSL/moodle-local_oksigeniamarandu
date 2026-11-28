@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.72.1 (2026-11-28)
+
+- The mould of the common mail copied again: the hidden line (what a mail program shows before opening it) ends in 3
+  invisible fillers, not 20; with 20, an invitation fell in the junk of Outlook.
+
 ## 0.72.0 (2026-11-28)
 
 - A mail by Mailjet without a way out of its own brings ours: `List-Unsubscribe` with a mail to the address that

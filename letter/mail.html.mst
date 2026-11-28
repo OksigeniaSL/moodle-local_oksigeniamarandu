@@ -36,6 +36,7 @@
     Context variables required for this template:
     * lang, dir, start, end - the language; ltr or rtl; left and right (or the reverse)
     * subject, preheader - the subject (the title of the page) and the hidden line mail programs show before opening
+      (its invisible filler, three repeats only: more reads as hidden text, which Hotmail scores)
     * brand - name, unit (who writes inside the centre, or empty), site and siteurl (its address), or empty
     * logo - logocid, logowidth, logoheight, wordmark (the logo already says the name); or false
     * hero - herocid, herowidth, heroheight, heroalt: a picture across the top, over the band; herobrand, when the
@@ -169,7 +170,7 @@ a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !im
 </style>
 </head>
 <body class="om-page" style="margin:0;padding:0;background-color:{{colours.page}};">
-<!--[if !mso]><!--><div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:{{colours.page}};">{{preheader}}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div><!--<![endif]-->
+<!--[if !mso]><!--><div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:{{colours.page}};">{{preheader}}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div><!--<![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="om-page" style="width:100%;background-color:{{colours.page}};">
 <tr><td align="center" class="om-outer" style="padding:28px 12px;">
 <!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->

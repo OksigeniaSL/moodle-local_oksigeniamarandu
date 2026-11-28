@@ -422,6 +422,8 @@ final class mail_test extends \advanced_testcase {
         $this->assertStringContainsString('https://example.org/menu', $built['text']);
         $this->assertDoesNotMatchRegularExpression('/\n[ \t]*\n[ \t]*\n/', $built['text']);
         $this->assertStringNotContainsString('om-ink2 om-frame', $built['html']);
+        // The filler after the hidden line, short: a long run of invisible characters weighs with spam filters.
+        $this->assertLessThanOrEqual(4, substr_count($built['html'], '&#8199;&#65279;&#847;'));
         $this->assertSame('', $built['id']);
 
         // A picture as white as the paper, with its thin edge.

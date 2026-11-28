@@ -106,25 +106,36 @@ class check {
      *
      * @param string $email
      * @param int|null $now
+     * @param bool $routed By the way that address takes now, not always by Mailjet.
      * @return array ok, way and error.
      */
-    public static function test(string $email, ?int $now = null): array {
+    public static function test(string $email, ?int $now = null, bool $routed = false): array {
         $now = $now ?? time();
         $a = (object)['site' => settings::from()[1], 'time' => userdate($now, get_string('strftimedatetimeshort', 'langconfig'))];
         $subject = get_string('mail:test:subject', self::C, $a);
         $built = compose::build(compose::from_text(
             $subject,
-            get_string('mail:test:body', self::C, $a),
+            get_string($routed ? 'mail:test:bodyroute' : 'mail:test:body', self::C, $a),
             get_string('mail:letter:reason:test', self::C)
         ));
-        $result = mailer::test([
+        $letter = [
             'email' => $email,
             'subject' => $subject,
             'html' => $built['html'],
             'text' => $built['text'],
             'images' => $built['images'],
             'component' => self::C,
-        ], $now);
+        ];
+        if ($routed) {
+            // By the way a mail to that address goes now (the mail of the site for Microsoft, Mailjet for the rest).
+            $way = mailer::send($letter, $now);
+            return ['ok' => in_array($way, ['site', 'mailjet'], true), 'way' => $way, 'error' => in_array(
+                $way,
+                ['site', 'mailjet'],
+                true
+            ) ? '' : $way];
+        }
+        $result = mailer::test($letter, $now);
         set_config('mailtest', json_encode(['to' => $email, 'time' => $now] + $result), self::C);
         return $result;
     }

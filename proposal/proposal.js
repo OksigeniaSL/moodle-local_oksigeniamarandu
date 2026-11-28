@@ -8,6 +8,10 @@
 (function (root) {
     'use strict';
 
+    // Once on a page, even if two plugins with their copy of the piece load it: the first one opens every button.
+    if (root.MaranduProposal) {
+        return;
+    }
     var SKIP = 'data-marandu-proposal-skip';
     var layer = null;
     var loading = null;

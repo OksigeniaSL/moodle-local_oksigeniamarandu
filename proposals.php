@@ -104,10 +104,7 @@ foreach (['issue' => 'fallo', 'idea' => 'idea'] as $kind => $class) {
 }
 
 // The piece on this page too, and the script of the gestures.
-$PAGE->add_header_action(\local_oksigeniamarandu\api::proposal_button(
-    'local_oksigeniamarandu',
-    get_string('proposals:title', 'local_oksigeniamarandu')
-));
+$PAGE->add_header_action(proposals::button($component, get_string('proposals:title', $component)));
 $PAGE->requires->js(new moodle_url('/local/oksigeniamarandu/proposal/recibe.js', ['v' => get_config($component, 'version')]));
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('local_oksigeniamarandu/proposals', [

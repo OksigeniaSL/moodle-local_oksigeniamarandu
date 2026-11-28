@@ -32,7 +32,7 @@ class page {
     private const C = 'local_oksigeniamarandu';
 
     /** The cards that save. */
-    public const PARTS = ['route', 'mailjet', 'month', 'bad'];
+    public const PARTS = ['route', 'mailjet', 'month', 'microsoft', 'bad'];
 
     /** The most mails in a month the quota can be. */
     private const MOSTQUOTA = 1000000;
@@ -116,6 +116,16 @@ class page {
                     if ($value !== null) {
                         set_config($name, max(0, min($most, $value)), self::C);
                     }
+                }
+            }
+        } else if ($part === 'microsoft') {
+            if ($do === 'mssite' || $do === 'msmailjet') {
+                set_config('mailmsway', $do === 'mssite' ? 'site' : 'mailjet', self::C);
+            }
+            foreach (['mailmswarm' => 500, 'mailsitecap' => 5000] as $name => $most) {
+                $value = optional_param($name, null, PARAM_INT);
+                if ($value !== null) {
+                    set_config($name, max(0, min($most, $value)), self::C);
                 }
             }
         } else if ($part === 'bad') {
@@ -268,6 +278,7 @@ class page {
                 'eventserror' => $errors['events'] ?? '',
             ],
             'month' => $month,
+            'microsoft' => $mailjet ? self::microsoft($saved === 'microsoft', $action('microsoft'), $now) : false,
             'today' => $todayline ? get_string('mail:today', self::C, implode(' · ', $todayline))
                 : get_string('mail:today:none', self::C),
             'recent' => $recent,
@@ -276,6 +287,49 @@ class page {
             'hasbad' => !empty($bad),
             'badsaved' => $saved === 'bad',
             'badaction' => $action('bad'),
+        ];
+    }
+
+    /**
+     * The card of Microsoft: its way, its warming up, its cap of the day, and the month by lane.
+     *
+     * @param bool $saved
+     * @param string $action
+     * @param int $now
+     * @return array
+     */
+    private static function microsoft(bool $saved, string $action, int $now): array {
+        global $DB;
+        $lanes = ['home' => 0, 'mssite' => 0, 'msmailjet' => 0, 'rest' => 0];
+        $rows = $DB->get_records_select(
+            mailer::TABLE,
+            "status = 'sent' AND timesent >= :start AND way IN ('site', 'mailjet')",
+            ['start' => quota::month_start($now)],
+            '',
+            'id, email, way'
+        );
+        foreach ($rows as $row) {
+            $ms = settings::is_microsoft((string)$row->email);
+            $lane = settings::is_home((string)$row->email) ? 'home'
+                : ($ms ? ($row->way === 'site' ? 'mssite' : 'msmailjet') : ($row->way === 'site' ? 'home' : 'rest'));
+            $lanes[$lane]++;
+        }
+        $site = settings::microsoft_way() === 'site';
+        return [
+            'saved' => $saved,
+            'action' => $action,
+            'site' => $site,
+            'domains' => get_string('mail:ms:domains', self::C, implode(', ', settings::microsoft_domains())),
+            'warmstepper' => gestures::stepper('mailmswarm', settings::warm(), 500, get_string('mail:ms:warmunit', self::C), 5),
+            'capstepper' => gestures::stepper(
+                'mailsitecap',
+                settings::site_cap(),
+                5000,
+                get_string('mail:ms:capunit', self::C),
+                100
+            ),
+            'lanes' => array_map(fn($lane, $count) => ['label' => get_string('mail:ms:lane:' . $lane, self::C),
+                'count' => self::number($count)], array_keys($lanes), $lanes),
         ];
     }
 

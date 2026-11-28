@@ -37,6 +37,8 @@
       other, none, canset, unknown), eventserror.
     * month - saved, action, used, hasquota, fill, mark, over, near, caption, counted, quotastepper, sharestepper
       (local_oksigeniamarandu/channel_stepper), waiting.
+    * microsoft - With Mailjet chosen: saved, action, site (by the mail of the site), domains, warmstepper, capstepper,
+      lanes (label, count: the month by way).
     * today, recent (when, plugin, email, way, failed, note, code), hasrecent, bad (email, why, reason, when, plugin),
       hasbad, badsaved, badaction.
 
@@ -195,6 +197,35 @@
     </form>
 </section>
 {{/month}}
+
+{{#microsoft}}
+<section class="mrd-part mrd-ms" id="mrd-microsoft" aria-labelledby="mrd-microsoft-t">
+    <div class="mrd-cab"><h2 id="mrd-microsoft-t">{{#str}} mail:ms, local_oksigeniamarandu {{/str}}</h2>{{#saved}}<span class="mrd-sello" role="status">{{#str}} channel:stamp, local_oksigeniamarandu {{/str}}</span>{{/saved}}</div>
+    <p class="mrd-explica">{{#str}} mail:ms:lead, local_oksigeniamarandu {{/str}}</p>
+    <p class="mrd-pie">{{domains}}</p>
+    <form method="post" action="{{action}}" novalidate>
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="mail">
+        <button type="submit" class="mrd-default" tabindex="-1" aria-hidden="true"></button>
+        <div class="mrd-dos">
+            <button type="submit" class="mrd-btn {{#site}}mrd-primary{{/site}}{{^site}}mrd-second{{/site}}" name="do" value="mssite" aria-pressed="{{#site}}true{{/site}}{{^site}}false{{/site}}">{{#str}} mail:ms:site, local_oksigeniamarandu {{/str}}</button>
+            <button type="submit" class="mrd-btn {{^site}}mrd-primary{{/site}}{{#site}}mrd-second{{/site}}" name="do" value="msmailjet" aria-pressed="{{^site}}true{{/site}}{{#site}}false{{/site}}">{{#str}} mail:ms:mailjet, local_oksigeniamarandu {{/str}}</button>
+        </div>
+        {{#site}}
+        <div class="mrd-dos">
+            <div class="mrd-aldia-g">{{#warmstepper}}{{> local_oksigeniamarandu/channel_stepper }}{{/warmstepper}}
+                <p class="mrd-pie">{{#str}} mail:ms:warmhelp, local_oksigeniamarandu {{/str}}</p></div>
+            <div class="mrd-aldia-g">{{#capstepper}}{{> local_oksigeniamarandu/channel_stepper }}{{/capstepper}}
+                <p class="mrd-pie">{{#str}} mail:ms:caphelp, local_oksigeniamarandu {{/str}}</p></div>
+        </div>
+        {{/site}}
+    </form>
+    <h3 class="mrd-sub">{{#str}} mail:ms:month, local_oksigeniamarandu {{/str}}</h3>
+    <ul class="mrd-carriles-mes">
+        {{#lanes}}<li><span>{{label}}</span> <b>{{count}}</b></li>{{/lanes}}
+    </ul>
+</section>
+{{/microsoft}}
 
 <section class="mrd-part mrd-ultimos" id="mrd-recent" aria-labelledby="mrd-recent-t">
     <div class="mrd-cab"><h2 id="mrd-recent-t">{{#str}} mail:recent, local_oksigeniamarandu {{/str}}</h2></div>

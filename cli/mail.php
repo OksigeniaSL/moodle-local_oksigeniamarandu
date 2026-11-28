@@ -51,6 +51,12 @@ use local_oksigeniamarandu\local\mail\settings;
     'release' => false,
     'forget' => '',
     'status' => false,
+    'ms-way' => null,
+    'ms-domains' => null,
+    'ms-warm' => null,
+    'site-cap' => null,
+    'way-for' => '',
+    'send-test' => '',
 ], ['h' => 'help']);
 
 if ($unrecognised) {
@@ -61,7 +67,9 @@ $c = 'local_oksigeniamarandu';
 $nothing = $options['keys-file'] === '' && $options['from'] === null && $options['from-name'] === null
     && $options['replyto'] === null && $options['home'] === null && $options['quota'] === null
     && $options['routine'] === null && $options['sandbox'] === null && !$options['check'] && $options['way'] === null
-    && $options['test'] === '' && !$options['events'] && !$options['release'] && $options['forget'] === '';
+    && $options['test'] === '' && !$options['events'] && !$options['release'] && $options['forget'] === ''
+    && $options['ms-way'] === null && $options['ms-domains'] === null && $options['ms-warm'] === null
+    && $options['site-cap'] === null && $options['way-for'] === '' && $options['send-test'] === '';
 if ($options['help'] || ($nothing && !$options['status'])) {
     echo "The way of the mails of the tools: the addresses of home by the mail of the site; the rest by the mail of the
 site or by Mailjet, from the authenticated domain of the organization.
@@ -83,6 +91,13 @@ Options:
 --events             Makes Mailjet tell its bounces, blocks and spam to this site.
 --release            Lets go by Mailjet what waits for the quota of the month.
 --forget=EMAIL       An address that came back, was blocked or marked spam receives again.
+--ms-way=site|mailjet The way of the mails to Microsoft (Hotmail, Outlook, Live…): site, by the mail of the site, while
+                     the domain of Mailjet makes its name there; mailjet, as the rest (by default).
+--ms-domains=LIST    The domains of Microsoft, comma separated; «hotmail.*» is any ending. Empty for the default ones.
+--ms-warm=N          With --ms-way=site, the first N mails of the day to Microsoft still by Mailjet (10; 0 for none).
+--site-cap=N         With --ms-way=site, the most mails a day to Microsoft by the mail of the site (1500); then Mailjet.
+--way-for=EMAIL      Says the way a mail to EMAIL would go now, without sending it nor counting it.
+--send-test=EMAIL    Sends a test by the way a mail to EMAIL goes now, and says which.
 --status             Shows how it is.
 -h, --help           This help.
 
@@ -142,6 +157,37 @@ if ($options['way'] !== null) {
     set_config('mailway', $options['way'], $c);
     echo 'Way out of home: ' . $options['way'] . "\n";
 }
+if ($options['ms-way'] !== null) {
+    if (!in_array($options['ms-way'], ['site', 'mailjet'], true)) {
+        cli_error('--ms-way is site or mailjet.');
+    }
+    set_config('mailmsway', $options['ms-way'], $c);
+}
+if ($options['ms-domains'] !== null) {
+    set_config('mailmsdomains', trim((string)$options['ms-domains']), $c);
+}
+if ($options['ms-warm'] !== null) {
+    set_config('mailmswarm', max(0, (int)$options['ms-warm']), $c);
+}
+if ($options['site-cap'] !== null) {
+    set_config('mailsitecap', max(0, (int)$options['site-cap']), $c);
+}
+if ($options['way-for'] !== '') {
+    $email = trim((string)$options['way-for']);
+    $way = mailer::route(
+        ['email' => \core_text::strtolower($email), 'bulk' => false, 'later' => false, 'routine' => false],
+        time(),
+        quota::used(time()),
+        $why,
+        false
+    );
+    echo 'Way for ' . $email . ': ' . ($way === 'site' ? 'the mail of the site' : $way) . ($why ? ' (' . $why . ')' : '') . "\n";
+}
+if ($options['send-test'] !== '') {
+    $result = check::test(trim((string)$options['send-test']), null, true);
+    echo 'Test: ' . ($result['ok'] ? 'sent by ' . ($result['way'] === 'site' ? 'the mail of the site' : 'Mailjet')
+        : 'not sent (' . $result['error'] . ')') . "\n";
+}
 if ($options['test'] !== '') {
     $result = check::test(trim((string)$options['test']));
     echo 'Test: ' . ($result['ok'] ? 'sent by Mailjet' : 'not sent (' . $result['error'] . ')') . "\n";
@@ -169,6 +215,9 @@ if ($options['status'] || !$nothing) {
         echo 'Checked: ' . implode(', ', array_map(fn($part) => $part . ' ' . $checked[$part], check::PARTS)) . ' at '
             . userdate((int)$checked['time']) . "\n";
     }
+    echo 'Microsoft: ' . (settings::microsoft_way() === 'site' ? 'by the mail of the site, ' . settings::warm()
+        . ' a day by Mailjet first, up to ' . settings::site_cap() . ' a day' : 'by Mailjet, as the rest') . ' ('
+        . implode(', ', settings::microsoft_domains()) . ")\n";
     echo 'Month: ' . $state['used'] . ($state['quota'] ? ' of ' . $state['quota'] . ' (routine by the site from '
         . $state['routine'] . ')' : '') . ($state['counted'] ? ', Mailjet counted ' . $state['counted']['sent'] : '')
         . ', waiting for the quota ' . $state['waiting'] . "\n";

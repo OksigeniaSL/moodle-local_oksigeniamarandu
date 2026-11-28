@@ -32,6 +32,15 @@ class settings {
     /** The share of the quota from which what is routine goes by the mail of the site, until the site says another. */
     public const ROUTINE = 80;
 
+    /** The domains of Microsoft, unless the site says others: a «.*» is any ending (hotmail.es, hotmail.co.uk). */
+    public const MICROSOFT = 'hotmail.*, outlook.*, live.*, msn.com, windowslive.com';
+
+    /** How many mails a day to Microsoft still go by Mailjet when they go by the mail of the site: its warming up. */
+    public const WARM = 10;
+
+    /** The most mails a day to Microsoft by the mail of the site; past it, by Mailjet. */
+    public const SITECAP = 1500;
+
     /**
      * The domains of home: what is written on the page, or the domain of the no-reply address of the site.
      *
@@ -156,6 +165,76 @@ class settings {
      */
     public static function quota(): int {
         return max(0, (int)get_config(self::C, 'mailquota'));
+    }
+
+    /**
+     * The domains of Microsoft as the site writes them: whole domains, or the start of one with «.*».
+     *
+     * @return string[]
+     */
+    public static function microsoft_domains(): array {
+        $value = get_config(self::C, 'mailmsdomains');
+        $text = $value === false || trim((string)$value) === '' ? self::MICROSOFT : (string)$value;
+        $out = [];
+        foreach (preg_split('/[\s,;]+/', \core_text::strtolower($text)) as $one) {
+            $one = trim(ltrim($one, '@'), ' ');
+            if (preg_match('/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(\.\*)?$/', $one)) {
+                $out[$one] = $one;
+            }
+        }
+        return array_values($out);
+    }
+
+    /**
+     * Whether an address is of Microsoft (Hotmail, Outlook, Live…), whose filters judge the reputation of a new domain.
+     *
+     * @param string $email
+     * @return bool
+     */
+    public static function is_microsoft(string $email): bool {
+        $at = strrpos($email, '@');
+        if ($at === false) {
+            return false;
+        }
+        $domain = \core_text::strtolower(substr($email, $at + 1));
+        foreach (self::microsoft_domains() as $one) {
+            if (
+                substr($one, -2) === '.*' ? strpos($domain, substr($one, 0, -1)) === 0
+                    : ($domain === $one || substr($domain, -strlen($one) - 1) === '.' . $one)
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the mails to Microsoft go by the mail of the site (site) or by Mailjet like the rest (mailjet).
+     *
+     * @return string
+     */
+    public static function microsoft_way(): string {
+        return get_config(self::C, 'mailmsway') === 'site' ? 'site' : 'mailjet';
+    }
+
+    /**
+     * How many mails a day to Microsoft still go by Mailjet, to warm up the domain; 0 for none.
+     *
+     * @return int
+     */
+    public static function warm(): int {
+        $value = get_config(self::C, 'mailmswarm');
+        return $value === false || $value === '' ? self::WARM : max(0, (int)$value);
+    }
+
+    /**
+     * The most mails a day to Microsoft by the mail of the site.
+     *
+     * @return int
+     */
+    public static function site_cap(): int {
+        $value = get_config(self::C, 'mailsitecap');
+        return $value === false || $value === '' ? self::SITECAP : max(0, (int)$value);
     }
 
     /**

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.75.0 (2026-11-28)
+
+- The mails to Microsoft (Hotmail, Outlook, Live, MSN; the domains, a setting) can go by the mail of the site while the
+  domain of Mailjet makes its name there (`mailmsway`): the first ones of the day still by Mailjet, to warm it up
+  (`mailmswarm`, 10; 0 for none), and up to a cap of the day by the site (`mailsitecap`, 1500), past which by Mailjet
+  again. By the mail of the site, a mail out of home brings the way out of one touch too. The page «Mail» has its card,
+  with the month by way; `cli/mail.php --ms-way --ms-domains --ms-warm --site-cap`, `--way-for` (where a mail would
+  go, without sending it) and `--send-test` (a test by that way).
+- A site that installed 0.70.0 had the plugin of a mail required: it is optional, as it should.
+
+## 0.74.3 (2026-11-28)
+
+- The piece of the suggestions travels: the button and what loads the sheet live in the class (`proposals::button()`,
+  `assets()`, `js()`; the API keeps its functions), the notice by Telegram goes only if the plugin declares it, and the
+  sheet loads once on a page even if two plugins bring their copy. kit/proponer of hq copies it into any plugin.
+
 ## 0.74.2 (2026-11-28)
 
 - The answer by mail to a suggestion, after its review: «Not this time» goes without a button; the signature says the

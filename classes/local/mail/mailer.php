@@ -103,7 +103,8 @@ class mailer {
             return 'toobig';
         }
         $bulk = $letter['bulk'] || $letter['later'];
-        $way = self::route($letter, $now, quota::used($now), $why);
+        // What waits in the line takes its lane when it goes, not now.
+        $way = self::route($letter, $now, quota::used($now), $why, !$bulk);
         if ($onlymailjet && $way !== 'mailjet') {
             return 'no';
         }
@@ -175,13 +176,23 @@ class mailer {
      * @param array $letter
      * @param int $now
      * @param int $used The mails of the month by Mailjet so far.
-     * @param string|null $why Why it waits: paused or quota.
+     * @param string|null $why Why it waits (paused or quota), or why it goes by the site (microsoft).
+     * @param bool $take Whether a mail to Microsoft counts in the lanes of the day (a question that sends nothing does not).
      * @return string site, mailjet or wait.
      */
-    public static function route(array $letter, int $now, int $used, ?string &$why = null): string {
+    public static function route(array $letter, int $now, int $used, ?string &$why = null, bool $take = true): string {
         $why = null;
         if (settings::is_home($letter['email']) || !settings::mailjet_chosen()) {
             return 'site';
+        }
+        if (settings::microsoft_way() === 'site' && settings::is_microsoft($letter['email'])) {
+            // Microsoft judges a new domain hard: by the mail of the site, but for a few a day by Mailjet to warm it up,
+            // and up to a cap of the day, past which Mailjet again.
+            $lane = self::microsoft_lane($now, $take);
+            if ($lane === 'site') {
+                $why = 'microsoft';
+                return 'site';
+            }
         }
         $many = $letter['bulk'] || $letter['later'];
         if (self::paused($now)) {
@@ -199,6 +210,50 @@ class mailer {
             }
         }
         return 'mailjet';
+    }
+
+    /** @var array|null Today's mails to Microsoft by each lane, counted once and then as they are decided. */
+    private static ?array $lanes = null;
+
+    /**
+     * The lane of a mail to Microsoft today: warm (by Mailjet, the first ones of the day), site (by the mail of the site,
+     * up to its cap) or over (past the cap: by Mailjet).
+     *
+     * @param int $now
+     * @param bool $take Whether this mail counts (a question of the page does not).
+     * @return string
+     */
+    private static function microsoft_lane(int $now, bool $take): string {
+        global $DB;
+        $day = usergetmidnight($now, \core_date::get_server_timezone());
+        if (self::$lanes === null || self::$lanes['day'] !== $day) {
+            self::$lanes = ['day' => $day, 'mailjet' => 0, 'site' => 0];
+            $rows = $DB->get_records_select(
+                self::TABLE,
+                "status = 'sent' AND timesent >= :day AND way IN ('site', 'mailjet')",
+                ['day' => $day],
+                '',
+                'id, email, way'
+            );
+            foreach ($rows as $row) {
+                if (settings::is_microsoft((string)$row->email)) {
+                    self::$lanes[$row->way]++;
+                }
+            }
+        }
+        $lane = self::$lanes['mailjet'] < settings::warm() ? 'mailjet'
+            : (self::$lanes['site'] < settings::site_cap() ? 'site' : 'over');
+        if ($take) {
+            self::$lanes[$lane === 'over' ? 'mailjet' : $lane]++;
+        }
+        return $lane;
+    }
+
+    /**
+     * Forgets today's lanes to Microsoft, for the tests.
+     */
+    public static function forget_lanes(): void {
+        self::$lanes = null;
     }
 
     /**
@@ -600,7 +655,9 @@ class mailer {
         if ($replyto !== '' && validate_email($replyto)) {
             $mail->addReplyTo($replyto);
         }
-        foreach (self::headers($letter) as $name => $value) {
+        // Out of home (Microsoft, or what Mailjet could not take), with the way out of one touch too.
+        $answers = !settings::is_home($letter['email']) && $replyto !== '' && validate_email($replyto) ? $replyto : '';
+        foreach (self::headers($letter, $answers) as $name => $value) {
             $mail->addCustomHeader($name, $value);
         }
         // No tracking, said also to the SMTP of a provider that would add it (Mailjet reads these; any other leaves them).

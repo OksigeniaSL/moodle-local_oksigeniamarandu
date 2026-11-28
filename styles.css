@@ -7775,3 +7775,22 @@ body.oks-a11y-pause .local-oksigeniamarandu-dash .mrd-confetti {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* The page «Mail»: the month by way, in the card of Microsoft. */
+.local-oksigeniamarandu-mail .mrd-carriles-mes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 8px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.local-oksigeniamarandu-mail .mrd-carriles-mes li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--bs-tertiary-bg, #f8f9fa);
+}

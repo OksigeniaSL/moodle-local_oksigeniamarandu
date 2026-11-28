@@ -451,6 +451,45 @@ final class mail_test extends \advanced_testcase {
     }
 
     /**
+     * To Microsoft, by the mail of the site when the site says so: the first ones of the day still by Mailjet to warm
+     * up the domain, then the site up to its cap, then Mailjet again; the rest, by Mailjet; and by the site too, with the
+     * way out of one touch.
+     */
+    public function test_microsoft(): void {
+        $sink = $this->redirectEmails();
+        $this->choose_mailjet();
+        mailer::forget_lanes();
+        $this->assertTrue(settings::is_microsoft('ana@hotmail.es'));
+        $this->assertTrue(settings::is_microsoft('ana@outlook.co.uk'));
+        $this->assertTrue(settings::is_microsoft('ana@msn.com'));
+        $this->assertFalse(settings::is_microsoft('ana@gmail.com'));
+        $this->assertFalse(settings::is_microsoft('ana@livemail.example'));
+        // Mailjet, as the rest, until the site says otherwise.
+        $this->assertSame('mailjet', api::mail('ana@hotmail.com', 'Hola', '<p>Hola</p>'));
+        // Two a day to warm up (the one before counts), then one by the site, then Mailjet past the cap.
+        set_config('mailmsway', 'site', self::C);
+        set_config('mailmswarm', 2, self::C);
+        set_config('mailsitecap', 1, self::C);
+        mailer::forget_lanes();
+        $this->assertSame('mailjet', mailer::route(['email' => 'luis@outlook.com', 'bulk' => false, 'later' => false,
+            'routine' => false], time(), 0, $why, false));
+        $this->assertSame('mailjet', api::mail('marta@hotmail.com', 'Hola', '<p>Hola</p>'));
+        $this->assertSame('site', api::mail('luis@outlook.com', 'Hola', '<p>Hola</p>'));
+        $this->assertSame('mailjet', api::mail('eva@live.com', 'Hola', '<p>Hola</p>'));
+        $this->assertSame('mailjet', api::mail('rosa@gmail.com', 'Hola', '<p>Hola</p>'));
+        $messages = $sink->get_messages();
+        $mail = end($messages);
+        $this->assertSame('luis@outlook.com', $mail->to);
+        $this->assertStringContainsString('baja.php', $mail->header);
+        $this->assertStringContainsString('List-Unsubscribe-Post: List-Unsubscribe=One-Click', $mail->header);
+        // To home, by the site and without a way out.
+        $this->assertSame('site', api::mail('pepe@example.org', 'Hola', '<p>Hola</p>'));
+        $messages = $sink->get_messages();
+        $this->assertStringNotContainsString('List-Unsubscribe', end($messages)->header);
+        mailer::forget_lanes();
+    }
+
+    /**
      * The common look: the brand of the site, the pieces in order, the pictures inside by what they are, the words that
      * are always the same in the language of the reader, and the way out for a send to many.
      */

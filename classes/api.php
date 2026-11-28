@@ -1712,19 +1712,7 @@ class api {
      * @return bool Whether it is on this page.
      */
     public static function proposal_js(): bool {
-        global $PAGE;
-        static $loaded = false;
-        $assets = self::proposal_assets();
-        if (!$assets) {
-            return false;
-        }
-        if ($loaded) {
-            return true;
-        }
-        $loaded = true;
-        $PAGE->requires->js_init_code('window.MaranduProposalStrings = ' . json_encode($assets['strings'], JSON_HEX_TAG | JSON_HEX_AMP) . ';');
-        $PAGE->requires->js(new \moodle_url($assets['js']));
-        return true;
+        return local\proposals::js();
     }
 
     /**
@@ -1737,29 +1725,7 @@ class api {
      *                    an account that may not propose.
      */
     public static function proposal_assets(): ?array {
-        global $CFG;
-        if (!isloggedin() || isguestuser() || !has_capability('local/oksigeniamarandu:propose', \context_system::instance())) {
-            return null;
-        }
-        $strings = [];
-        $keys = ['title', 'taking', 'nopicture', 'clear', 'sending', 'needtext', 'close', 'failed', 'back', 'intro', 'idea',
-            'ideadesc', 'issue', 'issuedesc', 'goes', 'ideashort', 'issueshort', 'markidea', 'markideatouch', 'markissue',
-            'markissuetouch', 'sideidea', 'sideissue', 'marks0', 'marks1', 'marksn', 'again', 'next', 'whatidea', 'whatissue',
-            'alsogoes', 'sendidea', 'sendissue', 'whoidea', 'whoissue', 'thanksidea', 'thanksideatext', 'thanksissue',
-            'thanksissuetext', 'doneidea', 'doneissue', 'today', 'nextidea', 'nextideahint', 'nextissue', 'nextissuehint',
-            'backtopage', 'captured', 'sentwithidea', 'sentwithissue', 'browserin', 'dark', 'light'];
-        foreach ($keys as $key) {
-            $strings[$key] = get_string('proposal:js:' . $key, 'local_oksigeniamarandu');
-        }
-        $version = ['v' => (string)get_config('local_oksigeniamarandu', 'version')];
-        $config = ['wwwroot' => $CFG->wwwroot, 'sesskey' => sesskey()];
-        return [
-            'js' => (new \moodle_url('/local/oksigeniamarandu/proposal/proposal.js', $version))->out(false),
-            'css' => (new \moodle_url('/local/oksigeniamarandu/proposal/proposal.css', $version))->out(false),
-            'strings' => $strings,
-            'config' => $config,
-            'data' => json_encode(['strings' => $strings, 'config' => $config, 'version' => $version['v']], JSON_HEX_TAG | JSON_HEX_AMP),
-        ];
+        return local\proposals::assets();
     }
 
     /**
@@ -1773,23 +1739,7 @@ class api {
      * @return string Its HTML; empty for an account that may not propose.
      */
     public static function proposal_button(string $component, string $screen = '', string $class = ''): string {
-        if (!self::proposal_js()) {
-            return '';
-        }
-        $component = clean_param($component, PARAM_COMPONENT);
-        $word = get_string('proposal:button', 'local_oksigeniamarandu');
-        $icon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" '
-            . 'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z"/>'
-            . '<path d="M14 3.5v4.5h4.5"/><path d="M9 14.2c1.1-1.2 2.1-1.2 3 0s1.9 1.2 3 0"/></svg>';
-        return \html_writer::tag('button', $icon . \html_writer::span(s($word)), [
-            'type' => 'button',
-            'class' => trim('sg-boton ' . $class),
-            'title' => $word,
-            'data-marandu-proposal' => $component,
-            'data-screen' => clean_param($screen, PARAM_TEXT),
-            'data-tool' => local\proposals::tool_name($component),
-            'data-release' => local\proposals::release($component),
-        ]);
+        return local\proposals::button($component, $screen, $class);
     }
 
     /**

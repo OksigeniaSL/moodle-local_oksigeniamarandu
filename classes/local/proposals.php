@@ -340,21 +340,13 @@ class proposals {
             $DB->set_field(self::TABLE, 'timenotified', time(), ['id' => $record->id]);
             return 0;
         }
-        $api = self::MARANDU . '\\api';
         foreach (self::people() as $person) {
-            $count += $api::notify(
-                self::COMPONENT,
-                'proposal',
+            $count += self::telegram(
                 [$tool . ': ' . $line],
                 new \moodle_url('/local/oksigeniamarandu/proposals.php', [], 'p' . $record->id),
-                0,
                 (int)$person->id,
-                false,
                 3 * DAYSECS,
-                $rich,
-                '',
-                '',
-                'telegram'
+                $rich
             );
         }
         $DB->set_field(self::TABLE, 'timenotified', time(), ['id' => $record->id]);
@@ -475,21 +467,13 @@ class proposals {
         $count = count($ideas);
         $title = get_string($count === 1 ? 'proposal:digest:one' : 'proposal:digest:many', self::COMPONENT, $count);
         $url = new \moodle_url('/local/oksigeniamarandu/proposals.php');
-        $api = self::MARANDU . '\\api';
         foreach (self::people() as $person) {
-            self::marandu() && $api::notify(
-                self::COMPONENT,
-                'proposal',
+            self::telegram(
                 [$title . "\n" . implode("\n", array_map(fn($line) => '• ' . $line, $lines))],
                 $url,
-                0,
                 (int)$person->id,
-                false,
                 DAYSECS,
-                [],
-                '',
-                '',
-                'telegram'
+                []
             );
             self::message('proposal', $person, $title, implode("\n", $lines), $url, get_string('proposal:open', self::COMPONENT));
         }
@@ -803,6 +787,123 @@ class proposals {
         $text = $subject . "\n\n" . $proposed . ":\n" . $record->body;
         $url = (string)$record->pageurl !== '' ? new \moodle_url((string)$record->pageurl) : null;
         return [$subject, $text, $url, $say('proposal:tell:see'), $pieces];
+    }
+
+    /**
+     * Loads on this page «Propose an improvement», the piece the tools of the site share: any element with
+     * data-marandu-proposal="<component>" (and data-screen="<screen>", as the tool names it) opens it, and the script
+     * window.MaranduProposal.open({component, screen}) too. The person marks on a picture of what they see what they
+     * would change and says how; the people the site chose hear of it by Telegram, and cli/proposals.php gives them.
+     * Only for an account that may propose; for others it loads nothing.
+     *
+     * @return bool Whether it is on this page.
+     */
+    public static function js(): bool {
+        global $PAGE;
+        static $loaded = false;
+        $assets = self::assets();
+        if (!$assets) {
+            return false;
+        }
+        if ($loaded) {
+            return true;
+        }
+        $loaded = true;
+        $PAGE->requires->js_init_code('window.MaranduProposalStrings = ' . json_encode($assets['strings'], JSON_HEX_TAG | JSON_HEX_AMP)
+            . '; window.ProponerConfig = window.ProponerConfig || ' . json_encode(['service' => self::COMPONENT . '_proposal_send'])
+            . ';');
+        $PAGE->requires->js(new \moodle_url($assets['js']));
+        return true;
+    }
+
+    /**
+     * What «Propose an improvement» needs, for a page that prints itself without the header of Moodle (and perhaps with a
+     * policy of content that allows no scripts in the page): the script and the styles to link, and the data to print
+     * as is inside <script type="application/json" id="marandu-proposal">…</script>, which proposal.js reads (the texts,
+     * the address of the site and the key of the session). Then any element with data-marandu-proposal opens it.
+     *
+     * @return array|null js and css (addresses), strings, config (wwwroot, sesskey) and data (the JSON to print); null for
+     *                    an account that may not propose.
+     */
+    public static function assets(): ?array {
+        global $CFG;
+        if (!isloggedin() || isguestuser() || !has_capability('local/oksigeniamarandu:propose', \context_system::instance())) {
+            return null;
+        }
+        $strings = [];
+        $keys = ['title', 'taking', 'nopicture', 'clear', 'sending', 'needtext', 'close', 'failed', 'back', 'intro', 'idea',
+            'ideadesc', 'issue', 'issuedesc', 'goes', 'ideashort', 'issueshort', 'markidea', 'markideatouch', 'markissue',
+            'markissuetouch', 'sideidea', 'sideissue', 'marks0', 'marks1', 'marksn', 'again', 'next', 'whatidea', 'whatissue',
+            'alsogoes', 'sendidea', 'sendissue', 'whoidea', 'whoissue', 'thanksidea', 'thanksideatext', 'thanksissue',
+            'thanksissuetext', 'doneidea', 'doneissue', 'today', 'nextidea', 'nextideahint', 'nextissue', 'nextissuehint',
+            'backtopage', 'captured', 'sentwithidea', 'sentwithissue', 'browserin', 'dark', 'light'];
+        foreach ($keys as $key) {
+            $strings[$key] = get_string('proposal:js:' . $key, self::COMPONENT);
+        }
+        $version = ['v' => (string)get_config(self::COMPONENT, 'version')];
+        $config = ['wwwroot' => $CFG->wwwroot, 'sesskey' => sesskey()];
+        return [
+            'js' => (new \moodle_url('/local/oksigeniamarandu/proposal/proposal.js', $version))->out(false),
+            'css' => (new \moodle_url('/local/oksigeniamarandu/proposal/proposal.css', $version))->out(false),
+            'strings' => $strings,
+            'config' => $config,
+            'data' => json_encode(['strings' => $strings, 'config' => $config, 'version' => $version['v'],
+                'service' => self::COMPONENT . '_proposal_send'], JSON_HEX_TAG | JSON_HEX_AMP),
+        ];
+    }
+
+    /**
+     * The button «Sugerencias» for a screen of a tool, with what it needs loaded on the page: a pill with its icon and its
+     * word in the header; on a phone, the icon alone. It carries the name and the version of the tool, which go with what
+     * does not work.
+     *
+     * @param string $component The tool, such as local_oksigeniameals.
+     * @param string $screen The screen, as the tool names it (such as «the week of a diner»).
+     * @param string $class More classes for the button.
+     * @return string Its HTML; empty for an account that may not propose.
+     */
+    public static function button(string $component, string $screen = '', string $class = ''): string {
+        if (!self::js()) {
+            return '';
+        }
+        $component = clean_param($component, PARAM_COMPONENT);
+        $word = get_string('proposal:button', self::COMPONENT);
+        $icon = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" '
+            . 'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z"/>'
+            . '<path d="M14 3.5v4.5h4.5"/><path d="M9 14.2c1.1-1.2 2.1-1.2 3 0s1.9 1.2 3 0"/></svg>';
+        return \html_writer::tag('button', $icon . \html_writer::span(s($word)), [
+            'type' => 'button',
+            'class' => trim('sg-boton ' . $class),
+            'title' => $word,
+            'data-marandu-proposal' => $component,
+            'data-screen' => clean_param($screen, PARAM_TEXT),
+            'data-tool' => self::tool_name($component),
+            'data-release' => self::release($component),
+        ]);
+    }
+
+    /**
+     * The notice «proposal» by Telegram, through Marandu, if it is on the site and the plugin declares the notice (Marandu
+     * does; a copy of this class in another plugin declares it in its <plugin>_marandu_notices(), or goes without it).
+     *
+     * @param array $values
+     * @param \moodle_url $url
+     * @param int $userid
+     * @param int $life
+     * @param array $rich
+     * @return int How many chats it went to.
+     */
+    private static function telegram(array $values, \moodle_url $url, int $userid, int $life, array $rich): int {
+        if (!self::marandu()) {
+            return 0;
+        }
+        $api = self::MARANDU . '\\api';
+        try {
+            return (int)$api::notify(self::COMPONENT, 'proposal', $values, $url, 0, $userid, false, $life, $rich, '', '', 'telegram');
+        } catch (\Throwable $e) {
+            debugging('The suggestions of ' . self::COMPONENT . ' do not go by Telegram: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return 0;
+        }
     }
 
     /**

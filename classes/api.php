@@ -802,10 +802,14 @@ class api {
      * @param array $options component (the plugin that sends it), ref (what the plugin calls it, back in its events),
      *     replyto, bulk (one of a send to many), unsubscribe (with bulk: the https address to leave, for List-Unsubscribe
      *     with one click), routine (daily and repeated: by the mail of the site once the month is near its quota), later
-     *     (to the line, even to one person) and files (attachments, each with name, mime and data: 9 MB at most in all).
+     *     (to the line, even to one person), files (attachments, each with name, mime and data: 9 MB at most in all),
+     *     category (the kind of mail, in letters, digits, - and _, such as «invitation») and essential (true unless the
+     *     plugin says false: a mail that can be done without does not go to an address that left that kind, or every
+     *     kind, of the plugin; an enrolment, an appointment or what the person asked for are essential), and lang (of
+     *     the page to leave). By Mailjet, a mail without unsubscribe brings the way out of Marandu: api::mail_optout_url().
      * @return string site or mailjet (the way it went), queued, bad (the address came back for good, was blocked, or marked
-     *     a mail as spam and this is a send to many or routine), invalid, toobig (the attachments pass 9 MB: it does not
-     *     go) or failed.
+     *     a mail as spam and this is a send to many or routine), optedout (it can be done without, and the address left
+     *     it), invalid, toobig (the attachments pass 9 MB: it does not go) or failed.
      */
     public static function mail(
         $to,
@@ -832,9 +836,54 @@ class api {
             $letter['email'] = (string)$to;
         }
         $allowed = array_intersect_key($options, array_flip(['component', 'ref', 'replyto', 'bulk', 'unsubscribe', 'routine',
-            'later', 'files']));
+            'later', 'files', 'category', 'essential', 'lang']));
         return local\mail\mailer::send($letter + $allowed + ['subject' => $subject, 'html' => $html, 'text' => $text,
             'images' => $images]);
+    }
+
+    /**
+     * The address to leave the mails of a plugin that can be done without (of one kind, or of every kind if empty), with
+     * one click: a POST «List-Unsubscribe=One-Click» (RFC 8058) leaves at once, and opening it shows a page that says what
+     * it does, with a button, and lets the person come back. For List-Unsubscribe, with List-Unsubscribe-Post; Marandu
+     * puts it itself in what it sends by Mailjet. The plugin hears it in <plugin>_marandu_mail_optout(string $email,
+     * string $category, bool $out) («*» for every kind), and names its kinds for the page in
+     * <plugin>_marandu_mail_category_name(string $category): string.
+     *
+     * @param string $email
+     * @param string $component The plugin.
+     * @param string $category Its kind of mail; empty for every kind that can be done without.
+     * @param string $lang The language of the page; that of the site if empty.
+     * @return string
+     */
+    public static function mail_optout_url(string $email, string $component, string $category = '', string $lang = ''): string {
+        return local\mail\optout::url($email, $component, $category, $lang)->out(false);
+    }
+
+    /**
+     * Whether an address left the mails of a plugin of that kind (or every kind that can be done without): before
+     * sending one by another way, or to show it in the record of the person.
+     *
+     * @param string $email
+     * @param string $component
+     * @param string $category Empty for every kind.
+     * @return bool
+     */
+    public static function mail_optout_state(string $email, string $component, string $category = ''): bool {
+        return local\mail\optout::state($email, $component, $category);
+    }
+
+    /**
+     * Leaves, or comes back to, the mails of a plugin of one kind (or every kind), as the record of the person says it:
+     * the same as the page to leave. The plugin hears it in its callback too, as every change.
+     *
+     * @param string $email
+     * @param string $component
+     * @param string $category Empty for every kind.
+     * @param bool $out Leave (true) or come back (false).
+     * @return bool Whether anything changed.
+     */
+    public static function mail_optout(string $email, string $component, string $category = '', bool $out = true): bool {
+        return local\mail\optout::set($email, $component, $category, $out, 'tool');
     }
 
     /**
@@ -871,6 +920,7 @@ class api {
         $user = is_numeric($to) ? \core_user::get_user((int)$to) : (is_object($to) ? $to : null);
         $lang = $user && !empty($user->lang) ? (string)$user->lang : (string)($options['lang'] ?? '');
         $built = local\mail\compose::build($pieces, $lang);
+        $options['lang'] = $options['lang'] ?? $lang;
         if ($built['unsubscribe'] !== '') {
             $options['unsubscribe'] = $built['unsubscribe'];
             $options['bulk'] = $options['bulk'] ?? true;

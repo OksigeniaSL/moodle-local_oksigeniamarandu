@@ -42,6 +42,9 @@ class listening_plugin {
     /** @var array What it heard of its mails: the address, the event, why, its reference and when. */
     public static $mail = [];
 
+    /** @var array The ways out of its mails it heard: the address, the kind and whether it left. */
+    public static $optout = [];
+
     /**
      * Forgets everything.
      */
@@ -52,5 +55,6 @@ class listening_plugin {
         self::$chat = [];
         self::$chatfails = false;
         self::$mail = [];
+        self::$optout = [];
     }
 }

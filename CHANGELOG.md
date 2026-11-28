@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.73.0 (2026-11-28)
+
+- The way out of the mails that can be done without, with one touch (RFC 8058): `baja.php` with a signed token (the
+  address, the tool and the kind of mail). The POST «List-Unsubscribe=One-Click» of the mail program leaves at once;
+  opening the address shows what it stops, with a button, and lets the person come back; opening it never changes
+  anything. What cannot be done without keeps coming.
+- `api::mail()` takes `category` (the kind of mail) and `essential` (true unless the plugin says false): a mail that can
+  be done without does not go to an address that left its kind, or every kind of its tool, and says `optedout`, now or
+  when it leaves the line. `api::mail_optout_url()`, `api::mail_optout_state()` and `api::mail_optout()`; the plugin hears
+  each change in `<plugin>_marandu_mail_optout()` and names its kinds for the page in
+  `<plugin>_marandu_mail_category_name()`.
+- By Mailjet, a mail without a way out of its own brings ours: the page with its one click and a mail to the address
+  that answers. Mailjet keeps it, and puts its own only on a mail whose way out is just a mail address.
+
 ## 0.72.1 (2026-11-28)
 
 - The mould of the common mail copied again: the hidden line (what a mail program shows before opening it) ends in 3

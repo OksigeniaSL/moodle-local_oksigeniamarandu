@@ -640,5 +640,21 @@
         <INDEX NAME="email" UNIQUE="true" FIELDS="email"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_oksigeniamarandu_mailout" COMMENT="The addresses that left the mails of a tool that can be done without, of one kind or of every kind">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="email" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="component" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="The tool, core for the platform"/>
+        <FIELD NAME="category" TYPE="char" LENGTH="40" NOTNULL="true" SEQUENCE="false" COMMENT="The kind of mail, * for every kind that can be done without"/>
+        <FIELD NAME="source" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="oneclick (the mail program), page or tool"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="email" UNIQUE="false" FIELDS="email"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

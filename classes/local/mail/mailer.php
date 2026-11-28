@@ -75,11 +75,12 @@ class mailer {
      *
      * @param array $letter email, name, userid, subject, html, text, images (each with cid, name, mime and data), files
      *     (attachments, each with name, mime and data), component, ref, replyto, bulk, routine, unsubscribe (the address
-     *     to leave, for a send to many) and later.
+     *     to leave, for a send to many), later, category (its kind of mail), essential (false if it can be done without:
+     *     then an address that left that kind does not get it) and lang (of the page to leave).
      * @param int|null $now
      * @param bool $onlymailjet Only if it goes by Mailjet, now; if not, nothing (the mail of Moodle sends it).
-     * @return string site or mailjet (the way it went), queued, bad (the address does not receive), invalid, toobig (the
-     *     attachments pass MAXFILES), failed, or, with $onlymailjet, no.
+     * @return string site or mailjet (the way it went), queued, bad (the address does not receive), optedout (it left
+     *     that kind of mail), invalid, toobig (the attachments pass MAXFILES), failed, or, with $onlymailjet, no.
      */
     public static function send(array $letter, ?int $now = null, bool $onlymailjet = false): string {
         $now = $now ?? time();
@@ -89,6 +90,10 @@ class mailer {
         }
         if (self::refused($letter)) {
             return $onlymailjet ? 'no' : 'bad';
+        }
+        if (self::left($letter)) {
+            self::tell($letter['component'], $letter['email'], 'failed', 'optedout', $letter['ref'], $now);
+            return $onlymailjet ? 'no' : 'optedout';
         }
         $size = array_sum(array_map(fn($file) => strlen($file['data']), $letter['files']));
         if ($size > self::MAXFILES) {
@@ -230,6 +235,12 @@ class mailer {
                 $counts['failed']++;
                 continue;
             }
+            if (self::left($letter)) {
+                self::finish((int)$row->id, $now, 'failed', null, 'optedout');
+                self::tell($letter['component'], $letter['email'], 'failed', 'optedout', $letter['ref'], $now);
+                $counts['failed']++;
+                continue;
+            }
             $way = self::route($letter, $now, $used + count($batch), $why);
             if ($way === 'wait') {
                 self::wait($row, $now, $why === 'paused' ? self::PAUSE : HOURSECS, $why);
@@ -319,7 +330,8 @@ class mailer {
         $letter += ['email' => '', 'name' => '', 'userid' => 0, 'subject' => '', 'html' => '', 'text' => '', 'images' => [],
             'files' => [],
             'component' => '', 'ref' => '', 'replyto' => '', 'bulk' => false, 'routine' => false, 'unsubscribe' => '',
-            'later' => false, 'released' => false];
+            'later' => false, 'released' => false, 'category' => '', 'essential' => true, 'lang' => ''];
+        $letter['essential'] = (bool)$letter['essential'];
         $letter['email'] = \core_text::strtolower(trim((string)$letter['email']));
         $letter['subject'] = \core_text::substr(trim(str_replace(["\r", "\n"], ' ', (string)$letter['subject'])), 0, 250);
         $letter['name'] = trim(str_replace(["\r", "\n", '"'], ' ', (string)$letter['name']));
@@ -371,6 +383,16 @@ class mailer {
         global $DB;
         $event = $DB->get_field(self::BAD, 'event', ['email' => $letter['email']]);
         return $event !== false && ($event !== 'spam' || $letter['bulk'] || $letter['routine']);
+    }
+
+    /**
+     * Whether the address left the mails of that kind of its tool, for a mail that can be done without.
+     *
+     * @param array $letter
+     * @return bool
+     */
+    private static function left(array $letter): bool {
+        return !$letter['essential'] && optout::state($letter['email'], (string)$letter['component'], (string)$letter['category']);
     }
 
     /**
@@ -624,9 +646,10 @@ class mailer {
      * The headers of every mail: automatic, so that no automatic answer comes back; and, for a send to many, how to
      * leave it with one click.
      *
-     * Mailjet puts its own way out on every mail that does not bring one, and whoever takes it may be stopped for
-     * every mail of the account. So a mail by Mailjet without a way out brings ours: a mail to the address that
-     * answers, where a person reads it.
+     * Mailjet puts its own way out on every mail that does not bring one with an https and its one click, and whoever
+     * takes it may be stopped for every mail of the account. So a mail by Mailjet without a way out of its own brings
+     * ours: the page that leaves what can be done without of that tool (of that kind, if the mail can be done without;
+     * all of it, if not), with one click, and a mail to the address that answers, where a person reads it.
      *
      * @param array $letter
      * @param string $answers The address that answers a mail by Mailjet; empty for the mail of the site.
@@ -638,8 +661,15 @@ class mailer {
             $headers['List-Unsubscribe'] = '<' . $letter['unsubscribe'] . '>';
             $headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
         } else if ($answers !== '') {
-            $headers['List-Unsubscribe'] = '<mailto:' . $answers . '?subject='
+            $page = optout::url(
+                $letter['email'],
+                (string)$letter['component'],
+                $letter['essential'] ? '' : (string)$letter['category'],
+                (string)$letter['lang']
+            );
+            $headers['List-Unsubscribe'] = '<' . $page->out(false) . '>, <mailto:' . $answers . '?subject='
                 . rawurlencode(get_string('mail:letter:unsubsubject', self::C)) . '>';
+            $headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
         }
         return $headers;
     }

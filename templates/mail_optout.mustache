@@ -1,0 +1,76 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_oksigeniamarandu/mail_optout
+
+    The page of the way out of a mail: what it stops, with a button; once done, what stopped, what keeps coming and how
+    to come back. The same look as the page where a family joins the notices.
+
+    Context variables required for this template:
+    * sitename, initials - The organization.
+    * invalid - The link is not one of ours.
+    * heading, text, keep, forwhom - Texts of the page.
+    * done - It just left, or had left: the check above.
+    * actionurl - Where the button posts.
+    * action, button, primary - What the button does (out or in), its words, and whether it is the main one.
+
+    Example context (json):
+    {
+        "sitename": "Colegio Ejemplo",
+        "initials": "CE",
+        "invalid": false,
+        "done": true,
+        "heading": "Hecho",
+        "text": "Ya no les llegarán por correo las invitaciones a actos.",
+        "keep": "Lo imprescindible les seguirá llegando: citas, trámites y lo que ustedes pidan.",
+        "forwhom": "Para ana@example.com",
+        "actionurl": "https://example.com/local/oksigeniamarandu/baja.php?t=abc.def",
+        "action": "in",
+        "button": "Volver a recibirlos",
+        "primary": false
+    }
+}}
+<div class="local-oksigeniamarandu-alta">
+    <div class="mrd-centre"><span class="mrd-crest" aria-hidden="true">{{initials}}</span>{{sitename}}</div>
+
+    {{#invalid}}
+    <section class="mrd-screen">
+        <div class="mrd-hero mrd-broken" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5 7 17a3 3 0 0 1-4.2-4.2L5.5 10"/><path d="M14.5 9.5 17 7a3 3 0 0 0-4.2-4.2L10 5.5"/><path d="M4 4l2 2M18 18l2 2M15 21v-2M3 9h2M21 15h-2M9 3v2"/></svg></div>
+        <h1>{{#str}} mail:optout:invalid, local_oksigeniamarandu {{/str}}</h1>
+        <p class="mrd-note">{{#str}} mail:optout:invalidtext, local_oksigeniamarandu {{/str}}</p>
+    </section>
+    {{/invalid}}
+
+    {{^invalid}}
+    <section class="mrd-screen">
+        {{#done}}
+        <div class="mrd-hero mrd-done" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></div>
+        {{/done}}
+        {{^done}}
+        <div class="mrd-hero" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+        {{/done}}
+        <h1>{{heading}}</h1>
+        <p class="mrd-howto">{{text}}</p>
+        <p class="mrd-note">{{keep}}</p>
+        <form method="post" action="{{actionurl}}">
+            <input type="hidden" name="action" value="{{action}}">
+            <button type="submit" class="mrd-big {{#primary}}mrd-primary{{/primary}}{{^primary}}mrd-secondary{{/primary}}">{{button}}</button>
+        </form>
+        <p class="mrd-small">{{forwhom}}</p>
+    </section>
+    {{/invalid}}
+</div>

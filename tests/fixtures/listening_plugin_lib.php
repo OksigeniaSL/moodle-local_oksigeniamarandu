@@ -101,3 +101,24 @@ function local_oksigeniamarandu_marandu_chat_in(string $phone, string $text, int
 function local_oksigeniamarandu_marandu_mail_event(string $email, string $event, string $why, string $ref, int $time): void {
     listening_plugin::$mail[] = [$email, $event, $why, $ref, $time];
 }
+
+/**
+ * An address left one kind of its mails, or every kind, or came back.
+ *
+ * @param string $email
+ * @param string $category The kind, * for every kind.
+ * @param bool $out Whether it left.
+ */
+function local_oksigeniamarandu_marandu_mail_optout(string $email, string $category, bool $out): void {
+    listening_plugin::$optout[] = [$email, $category, $out];
+}
+
+/**
+ * Its kinds of mail in words, for the page of the way out.
+ *
+ * @param string $category
+ * @return string
+ */
+function local_oksigeniamarandu_marandu_mail_category_name(string $category): string {
+    return $category === 'invitation' ? 'las invitaciones a actos' : '';
+}

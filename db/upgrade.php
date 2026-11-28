@@ -651,6 +651,14 @@ function xmldb_local_oksigeniamarandu_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026122960, 'local', 'oksigeniamarandu');
     }
 
+    if ($oldversion < 2026122990) {
+        // The way out of the mails that can be done without, by tool and by kind.
+        if (!$dbman->table_exists('local_oksigeniamarandu_mailout')) {
+            $dbman->install_one_table_from_xmldb_file(__DIR__ . '/install.xml', 'local_oksigeniamarandu_mailout');
+        }
+        upgrade_plugin_savepoint(true, 2026122990, 'local', 'oksigeniamarandu');
+    }
+
     // Every setting with its value, also those a new version brings: Moodle does not stop the update on them.
     \local_oksigeniamarandu\local\sitesettings::settle();
 

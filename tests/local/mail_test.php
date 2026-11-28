@@ -168,12 +168,15 @@ final class mail_test extends \advanced_testcase {
             $message['InlinedAttachments'][0]['ContentID'], $message['ReplyTo']['Email']]);
         $this->assertStringContainsString('9:00', $message['TextPart']);
         $this->assertSame(['sent', '1001', null], [$row->status, $row->mjid, $row->payload]);
-        // Without a way out of its own: ours, to the address that answers, so that Mailjet does not put its own.
+        // Without a way out of its own: ours, the page with one click and a mail to the address that answers, so that
+        // Mailjet does not put its own (it keeps only one with an https and its one click).
+        $page = optout::url('ana@example.com', self::C)->out(false);
         $this->assertSame(
-            '<mailto:secretaria@example.org?subject=' . rawurlencode(get_string('mail:letter:unsubsubject', self::C)) . '>',
+            '<' . $page . '>, <mailto:secretaria@example.org?subject='
+                . rawurlencode(get_string('mail:letter:unsubsubject', self::C)) . '>',
             $message['Headers']['List-Unsubscribe']
         );
-        $this->assertArrayNotHasKey('List-Unsubscribe-Post', $message['Headers']);
+        $this->assertSame('List-Unsubscribe=One-Click', $message['Headers']['List-Unsubscribe-Post']);
         // By the mail of the site, none.
         $this->assertStringNotContainsString('List-Unsubscribe', $mail->header);
 
@@ -386,6 +389,65 @@ final class mail_test extends \advanced_testcase {
         $this->answer = fn($method, $path) => $path === '/v3.1/send' ? [500, ['ErrorMessage' => 'Down']] : null;
         $this->assertTrue(email_to_user($out, api::mail_from('local_oksigeniamarandu'), 'Otra vez', 'Texto', '<p>Texto</p>'));
         $this->assertCount(3, $sink->get_messages());
+    }
+
+    /**
+     * The way out of a mail: by tool and by kind, signed, heard by the tool; a mail that can be done without does not go
+     * to an address that left it, now or from the line; what cannot be done without keeps going.
+     */
+    public function test_optout(): void {
+        global $DB;
+        $this->redirectEmails();
+        $this->choose_mailjet();
+        $token = optout::token('Ana@Example.com', self::C, 'invitation');
+        $this->assertSame(['email' => 'ana@example.com', 'component' => self::C, 'category' => 'invitation'], optout::read($token));
+        $this->assertNull(optout::read($token . 'x'));
+        $this->assertNull(optout::read(str_replace('.', 'x.', $token)));
+        $this->assertSame('*', optout::read(optout::token('ana@example.com', self::C))['category']);
+
+        // Left the invitations: they do not go; the rest of the tool, and what cannot be done without, do.
+        $this->assertTrue(optout::set('ana@example.com', self::C, 'invitation', true, 'oneclick'));
+        $this->assertFalse(optout::set('ana@example.com', self::C, 'invitation', true, 'oneclick'));
+        $this->assertSame([['ana@example.com', 'invitation', true]], listening_plugin::$optout);
+        $this->assertTrue(api::mail_optout_state('ana@example.com', self::C, 'invitation'));
+        $this->assertFalse(api::mail_optout_state('ana@example.com', self::C, 'menu'));
+        $this->assertSame('optedout', api::mail('ana@example.com', 'Acto', '<p>Acto</p>', '', [], [
+            'component' => self::C, 'category' => 'invitation', 'essential' => false, 'ref' => 'act:7']));
+        $this->assertSame(['ana@example.com', 'failed', 'optedout', 'act:7'], array_slice(end(listening_plugin::$mail), 0, 4));
+        $this->assertSame('mailjet', api::mail('ana@example.com', 'Menú', '<p>Menú</p>', '', [], [
+            'component' => self::C, 'category' => 'menu', 'essential' => false]));
+        $this->assertSame('mailjet', api::mail('ana@example.com', 'Cita', '<p>Cita</p>', '', [], [
+            'component' => self::C, 'category' => 'invitation']));
+        $this->assertSame('las invitaciones a actos', optout::category_name(self::C, 'invitation'));
+
+        // Every kind of the tool: also one waiting in the line, when it goes.
+        $this->assertSame('queued', api::mail('ana@example.com', 'Boletín', '<p>Boletín</p>', '', [], [
+            'component' => self::C, 'category' => 'news', 'essential' => false, 'bulk' => true]));
+        api::mail_optout('ana@example.com', self::C);
+        $this->assertSame(['site' => 0, 'mailjet' => 0, 'waiting' => 0, 'failed' => 1], mailer::process(self::NOW));
+        $this->assertSame('optedout', $DB->get_field(mailer::TABLE, 'error', ['subject' => 'Boletín']));
+
+        // The way out of an essential mail leaves every kind; of one that can be done without, its kind.
+        $calls = count($this->sends());
+        api::mail('luis@example.com', 'Acto', '<p>Acto</p>', '', [], ['component' => self::C, 'category' => 'invitation',
+            'essential' => false, 'lang' => 'en']);
+        api::mail('luis@example.com', 'Cita', '<p>Cita</p>', '', [], ['component' => self::C, 'category' => 'invitation']);
+        [$one, $two] = array_slice($this->sends(), $calls);
+        $this->assertStringContainsString(
+            optout::url('luis@example.com', self::C, 'invitation', 'en')->out(false),
+            $one['Messages'][0]['Headers']['List-Unsubscribe']
+        );
+        $this->assertStringContainsString(
+            optout::url('luis@example.com', self::C)->out(false),
+            $two['Messages'][0]['Headers']['List-Unsubscribe']
+        );
+
+        // Back: it comes again, and the tool hears it.
+        $this->assertTrue(api::mail_optout('ana@example.com', self::C, 'invitation', false));
+        $this->assertSame(['ana@example.com', 'invitation', false], end(listening_plugin::$optout));
+        $this->assertTrue(api::mail_optout_state('ana@example.com', self::C, 'invitation'));
+        api::mail_optout('ana@example.com', self::C, '', false);
+        $this->assertFalse(api::mail_optout_state('ana@example.com', self::C, 'invitation'));
     }
 
     /**

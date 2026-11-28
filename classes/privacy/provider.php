@@ -48,6 +48,7 @@ use local_oksigeniamarandu\local\consent;
 use local_oksigeniamarandu\local\history;
 use local_oksigeniamarandu\local\joinask;
 use local_oksigeniamarandu\local\mail\mailer;
+use local_oksigeniamarandu\local\mail\optout;
 use local_oksigeniamarandu\local\proposals;
 use local_oksigeniamarandu\local\telegram;
 use local_oksigeniamarandu\local\wachannel;
@@ -222,6 +223,12 @@ class provider implements
             'email' => 'privacy:metadata:mailbad:email',
             'event' => 'privacy:metadata:mailbad:event',
         ], 'privacy:metadata:mailbad');
+        $collection->add_database_table(optout::TABLE, [
+            'email' => 'privacy:metadata:mailout:email',
+            'component' => 'privacy:metadata:mailout:component',
+            'category' => 'privacy:metadata:mailout:category',
+            'timecreated' => 'privacy:metadata:mailout:timecreated',
+        ], 'privacy:metadata:mailout');
         $collection->add_external_location_link('mailjet', [
             'email' => 'privacy:metadata:mailjet:email',
             'message' => 'privacy:metadata:mailjet:message',
@@ -469,6 +476,7 @@ class provider implements
         $DB->delete_records(proposals::TABLE);
         $DB->delete_records(mailer::TABLE);
         $DB->delete_records(mailer::BAD);
+        $DB->delete_records(optout::TABLE);
     }
 
     /**
@@ -540,6 +548,7 @@ class provider implements
         $email = $DB->get_field('user', 'email', ['id' => $userid]);
         if ($email) {
             $DB->delete_records(mailer::BAD, ['email' => \core_text::strtolower((string)$email)]);
+            $DB->delete_records(optout::TABLE, ['email' => \core_text::strtolower((string)$email)]);
         }
         $DB->delete_records(mailer::TABLE, ['userid' => $userid]);
         $DB->set_field(proposals::TABLE, 'doneby', null, ['doneby' => $userid]);
